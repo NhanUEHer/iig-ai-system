@@ -1,0 +1,2762 @@
+console.log("App.jsx is loading...");
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
+import axios from 'axios';
+import { 
+  Search, RefreshCw, Layers, Database, User, Calendar, Mail, 
+  Phone, CheckCircle, Clock, AlertTriangle, ArrowLeft, LogOut,
+  FileText, MessageSquare, Shield, Users, Trash2, Plus, LogIn,
+  Cpu, Sliders, Settings, Eye, EyeOff, Edit2, Download
+} from 'lucide-react';
+
+const API_BASE = 'http://localhost:5005/api/submissions';
+const AUTH_BASE = 'http://localhost:5005/api/auth';
+
+const AudioPlayer = ({ fileId }) => {
+  const [url, setUrl] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!fileId) {
+      setLoading(false);
+      return;
+    }
+    
+    let isMounted = true;
+    const fetchUrl = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/file-url/${fileId}`);
+        if (isMounted) {
+          if (res.data && res.data.success && res.data.url) {
+            setUrl(res.data.url);
+          } else {
+            setError(res.data?.message || 'Không có URL hợp lệ');
+          }
+        }
+      } catch (e) {
+        console.error('Fetch Audio URL Error:', e);
+        if (isMounted) {
+          setError(e.message || 'Lỗi mạng');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+    
+    fetchUrl();
+    return () => {
+      isMounted = false;
+    };
+  }, [fileId]);
+
+  if (loading) {
+    return <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>⏳ Đang lấy link audio...</div>;
+  }
+
+  if (error) {
+    return <div style={{ fontSize: '12px', color: '#ef4444', fontStyle: 'italic' }}>❌ Lỗi tải: {error}</div>;
+  }
+
+  if (!url) {
+    return <div style={{ fontSize: '12px', color: '#ef4444', fontStyle: 'italic' }}>⚠️ Không tìm thấy URL file âm thanh.</div>;
+  }
+
+  return (
+    <div style={{ marginTop: '5px' }}>
+      <audio src={url} controls style={{ width: '100%', maxWidth: '380px', height: '40px' }} />
+    </div>
+  );
+};
+
+// ── CardSection: labeled section block ──
+const CardSection = ({ icon, label, children }) => (
+  <div style={{ borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)', overflow: 'hidden', marginBottom: '12px', background: 'rgba(255, 255, 255, 0.02)', backdropFilter: 'blur(12px)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: 'rgba(255, 255, 255, 0.04)', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+      <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--primary)' }}>{icon}</span>
+      <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--on-surface-var)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
+    </div>
+    <div style={{ padding: '16px 20px', background: 'transparent' }}>{children}</div>
+  </div>
+);
+
+// ── AudioRow: label + stable AudioPlayer ──
+const AudioRow = ({ label, fileId }) => fileId ? (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+    <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--on-surface-var)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>volume_up</span> {label}
+    </span>
+    <AudioPlayer fileId={fileId} />
+  </div>
+) : null;
+
+// ── ModernWaveformPlayer: Custom Audio Player style from concept ──
+const ModernWaveformPlayer = ({ fileId }) => {
+  const [url, setUrl] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = React.useRef(null);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+
+  useEffect(() => {
+    if (!fileId) {
+      setLoading(false);
+      return;
+    }
+    const fetchUrl = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/file-url/${fileId}`);
+        if (res.data && res.data.success && res.data.url) {
+          setUrl(res.data.url);
+        } else {
+          setError(res.data?.message || 'Không có URL');
+        }
+      } catch (e) {
+        setError(e.message || 'Lỗi mạng');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUrl();
+  }, [fileId]);
+
+  const handlePlayPause = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const onTimeUpdate = () => {
+    if (!audioRef.current) return;
+    setCurrentTime(audioRef.current.currentTime);
+    setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100);
+  };
+
+  const onLoadedMetadata = () => {
+    if (!audioRef.current) return;
+    setDuration(audioRef.current.duration);
+  };
+
+  const formatTime = (time) => {
+    if (isNaN(time)) return '0:00';
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  if (loading) return <div style={{ fontSize: '12px', color: 'var(--on-surface-var)', fontStyle: 'italic' }}>⏳ Đang tải tệp âm thanh...</div>;
+  if (error || !url) return <div style={{ fontSize: '12px', color: 'var(--error)', fontStyle: 'italic' }}>⚠️ Lỗi tải file.</div>;
+
+  return (
+    <div className="glass-container" style={{
+      display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', borderRadius: '16px',
+      background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(168, 200, 255, 0.1)', width: '100%', maxWidth: '520px'
+    }}>
+      <audio ref={audioRef} src={url} onTimeUpdate={onTimeUpdate} onLoadedMetadata={onLoadedMetadata} onEnded={() => setIsPlaying(false)} />
+      
+      {/* Play Icon */}
+      <button onClick={handlePlayPause} style={{
+        width: '44px', height: '44px', borderRadius: '50%', background: 'var(--primary-container)', color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: 'none', transition: 'transform 0.2s'
+      }} className="hover:scale-105 active:scale-95">
+        <span className="material-symbols-outlined" style={{ fontSize: '24px', fontVariationSettings: "'FILL' 1" }}>
+          {isPlaying ? 'pause' : 'play_arrow'}
+        </span>
+      </button>
+
+      {/* Progress & Waveform mockup */}
+      <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: '18px', marginBottom: '8px', opacity: 0.6 }}>
+          {[12, 16, 8, 14, 20, 10, 15, 9, 7, 13, 18, 11, 14, 6, 12, 19, 8, 15, 10, 12, 16, 7, 13, 18].map((h, i) => (
+            <div key={i} style={{
+              flex: 1, height: `${h}px`, borderRadius: '1px',
+              background: isPlaying && progress > (i / 24) * 100 ? 'var(--primary)' : 'rgba(255, 255, 255, 0.15)'
+            }} />
+          ))}
+        </div>
+        <div style={{ position: 'relative', height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '9999px' }}>
+          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', background: 'var(--primary)', width: `${progress}%`, borderRadius: '9999px' }}>
+            <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translate(-50%, -50%)', width: '8px', height: '8px', borderRadius: '50%', background: '#fff', border: '2px solid var(--primary)' }} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '11px', color: 'var(--on-surface-var)' }}>
+          <span>{formatTime(currentTime)}</span>
+          <span>{formatTime(duration)}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+const getQuestionType = (ans) => {
+  const qNo = parseInt(ans.question_no, 10);
+  if (ans.section === 'Writing') {
+    if (qNo >= 1 && qNo <= 5) return 'w_picture';
+    if (qNo >= 6 && qNo <= 7) return 'w_email';
+    return 'w_text';
+  }
+  // Speaking section
+  if (qNo === 1 || qNo === 2) return 'sp_read_aloud';
+  if (qNo === 3 || qNo === 4) return 'sp_describe_pic';
+  if (qNo >= 5 && qNo <= 7) return 'sp_respond_q';
+  if (qNo >= 8 && qNo <= 10) return 'sp_respond_info';
+  return 'sp_opinion';
+};
+const AnswerCard = ({ ans, answerStatusBadge, onGradeComplete }) => {
+  const qType = getQuestionType(ans);
+  const isWriting = ans.section === 'Writing';
+
+  const TYPE_LABELS = {
+    sp_read_aloud:   'Đọc to',
+    sp_describe_pic: 'Mô tả hình ảnh',
+    sp_respond_q:    'Trả lời câu hỏi',
+    sp_respond_info: 'Trả lời theo thông tin',
+    sp_opinion:      'Phát biểu ý kiến',
+    w_picture:       'Viết câu',
+    w_email:         'Viết thư / Email',
+    w_text:          'Viết luận',
+  };
+
+  const accentColor  = isWriting ? '#0055a5' : '#00677e';
+  const accentBg     = isWriting ? 'rgba(0, 85, 165, 0.08)'  : 'rgba(0, 103, 126, 0.08)';
+  const accentBorder = isWriting ? 'rgba(0, 85, 165, 0.20)'  : 'rgba(0, 103, 126, 0.20)';
+
+  return (
+    <div style={{
+      background: 'rgba(255, 255, 255, 0.04)',
+      backdropFilter: 'blur(24px)',
+      borderRadius: '14px',
+      border: '1px solid rgba(255,255,255,0.08)',
+      marginBottom: '20px',
+      overflow: 'hidden',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
+    }}>
+      {/* ── Task Header ── */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '12px 18px',
+        background: `linear-gradient(135deg, ${accentBg}, rgba(255,255,255,0.02))`,
+        borderBottom: `1px solid ${accentBorder}`
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0,
+            background: accentColor, color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontWeight: '700', fontSize: '14px'
+          }}>
+            {ans.question_no}
+          </div>
+          <div>
+            <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--on-surface)' }}>
+              {ans.question_title || `${ans.section} — Câu ${ans.question_no}`}
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--on-surface-var)', marginTop: '2px' }}>
+              {TYPE_LABELS[qType]}
+            </div>
+          </div>
+        </div>
+        {answerStatusBadge(ans.status)}
+      </div>
+
+      {/* ── Body ── */}
+      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+        {/* ════ SPEAKING ════ */}
+
+        {/* Q1-2: Read Aloud */}
+        {qType === 'sp_read_aloud' && (
+          <CardSection icon="description" label="Đề bài — Đoạn văn cần đọc">
+            <p style={{ margin: 0, fontSize: '15.5px', color: 'var(--on-surface)', lineHeight: 2.0, fontWeight: '500' }}>
+              {ans.prompt_text || <em style={{ color: 'var(--on-surface-var)' }}>Không có nội dung</em>}
+            </p>
+          </CardSection>
+        )}
+
+        {/* Q3-4: Describe a Picture */}
+        {qType === 'sp_describe_pic' && (
+          <CardSection icon="image" label="Đề bài — Hình ảnh mô tả">
+            {ans.image_url
+              ? <img src={ans.image_url} alt={`Ảnh câu ${ans.question_no}`}
+                  style={{ width: '100%', maxHeight: '500px', objectFit: 'contain', borderRadius: '8px', display: 'block', margin: '0 auto', border: '1px solid rgba(255,255,255,0.08)' }} />
+              : <em style={{ color: 'var(--on-surface-var)', fontSize: '14px' }}>Không có hình ảnh</em>}
+          </CardSection>
+        )}
+
+        {/* Q5-7: Respond to Questions */}
+        {qType === 'sp_respond_q' && (<>
+          <CardSection icon="language" label="Tình huống">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {ans.prompt_text?.trim() && (
+                <p style={{ margin: 0, fontSize: '14.5px', color: 'var(--on-surface)', lineHeight: 1.8 }}>
+                  {ans.prompt_text}
+                </p>
+              )}
+              <AudioRow label="Audio tình huống" fileId={ans.context_audio_file_id} />
+            </div>
+          </CardSection>
+
+          <CardSection icon="help" label="Câu hỏi">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {ans.question_name?.trim() && (
+                <p style={{ margin: 0, fontSize: '15.5px', fontWeight: '600', color: 'var(--on-surface)', lineHeight: 1.7 }}>
+                  {ans.question_name}
+                </p>
+              )}
+              <AudioRow label="Audio câu hỏi" fileId={ans.question_audio_file_id} />
+            </div>
+          </CardSection>
+        </>)}
+
+        {/* Q8-10: Respond with Info */}
+        {qType === 'sp_respond_info' && (<>
+          {(ans.image_url || ans.context_text?.trim() || ans.context_audio_file_id) && (
+            <CardSection icon="assignment" label="Tình huống & Thông tin">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {ans.image_url && (
+                  <img src={ans.image_url} alt="Bảng thông tin"
+                    style={{ maxWidth: '100%', maxHeight: '340px', objectFit: 'contain', borderRadius: '8px', display: 'block', border: '1px solid rgba(255,255,255,0.08)' }} />
+                )}
+                {ans.context_text?.trim() && (
+                  <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '12px 16px', fontSize: '14px', color: 'var(--on-surface-var)', lineHeight: 1.8 }}>
+                    <span style={{ fontWeight: '700', display: 'block', marginBottom: '4px', color: 'var(--on-surface)' }}>📝 Transcript:</span>
+                    {ans.context_text}
+                  </div>
+                )}
+                <AudioRow label="Audio tình huống" fileId={ans.context_audio_file_id} />
+              </div>
+            </CardSection>
+          )}
+
+          <CardSection icon="help" label="Câu hỏi">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {ans.question_name?.trim() && (
+                <p style={{ margin: 0, fontSize: '15.5px', fontWeight: '600', color: 'var(--on-surface)', lineHeight: 1.7 }}>
+                  {ans.question_name}
+                </p>
+              )}
+              <AudioRow label="Audio câu hỏi" fileId={ans.question_audio_file_id} />
+            </div>
+          </CardSection>
+        </>)}
+
+        {qType === 'sp_opinion' && (
+          <CardSection icon="chat" label="Câu hỏi phát biểu ý kiến">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {ans.prompt_text?.trim() && (
+                <p style={{ margin: 0, fontSize: '15.5px', color: 'var(--on-surface)', lineHeight: 1.9, fontWeight: '500' }}>
+                  {ans.prompt_text}
+                </p>
+              )}
+              <AudioRow label="Audio câu hỏi" fileId={ans.context_audio_file_id} />
+            </div>
+          </CardSection>
+        )}
+
+        {/* Giao diện nút kích hoạt AI Agents động */}
+        <div style={{
+          marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px',
+          border: '1px dashed rgba(168, 200, 255, 0.15)', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.01)', flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--primary)', marginRight: 'auto' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>smart_toy</span>
+            <span style={{ fontSize: '12px', fontWeight: 'bold' }}>AI Copilot Assistants</span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px' }}>
+            {/* AI Transcribe (Chỉ áp dụng cho Speaking) */}
+            {ans.section === 'Speaking' && ans.student_audio_file_id && (
+              <button 
+                onClick={() => {
+                  if (onGradeComplete) {
+                    onGradeComplete(ans.id, 'STT');
+                  }
+                }}
+                title="Dịch giọng nói sang văn bản (STT)"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px',
+                  background: 'rgba(0, 103, 126, 0.15)', border: '1px solid rgba(0, 103, 126, 0.25)',
+                  color: '#38bdf8', cursor: 'pointer', fontSize: '12.5px', fontWeight: 'bold'
+                }}
+                className="hover:opacity-80 active:scale-95"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>translate</span>
+                AI Transcribe
+              </button>
+            )}
+
+            {/* AI Grading (Áp dụng cho cả Speaking và Writing) */}
+            {((ans.section === 'Speaking' && ans.student_audio_file_id) || (ans.section === 'Writing' && ans.student_writing)) && (
+              <button 
+                onClick={() => {
+                  if (onGradeComplete) {
+                    onGradeComplete(ans.id, 'Grading');
+                  }
+                }}
+                title="Gửi sang AI Agent chấm điểm chi tiết bài thi"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px',
+                  background: 'rgba(0, 85, 165, 0.15)', border: '1px solid rgba(0, 85, 165, 0.25)',
+                  color: '#60a5fa', cursor: 'pointer', fontSize: '12.5px', fontWeight: 'bold'
+                }}
+                className="hover:opacity-80 active:scale-95"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>psychology</span>
+                AI Grading
+              </button>
+            )}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+const SubmissionDetailView = ({ showMsg, getStatusBadge }) => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetch = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(`${API_BASE}/${id}`);
+        if (res.data.success) setData(res.data.data);
+      } catch (e) {
+        showMsg('error', 'Không thể tải chi tiết: ' + e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetch();
+  }, [id]);
+
+  if (loading) return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+      <RefreshCw className="spinner" size={36} style={{ color: '#3b82f6' }}/>
+      <div style={{ color: '#64748b', fontSize: '15px', fontWeight: '500' }}>Đang tải chi tiết bài làm...</div>
+    </div>
+  );
+
+  if (!data) return (
+    <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px' }}>
+      <AlertTriangle size={40} style={{ color: '#f59e0b', marginBottom: '12px' }}/>
+      <h3 style={{ margin: 0 }}>Không tìm thấy bài làm</h3>
+    </div>
+  );
+
+  const writingAnswers = data.answers?.filter(a => a.section === 'Writing') || [];
+  const speakingAnswers = data.answers?.filter(a => a.section === 'Speaking') || [];
+
+  const answerStatusBadge = (status) => {
+    const map = {
+      pending:  { bg: '#fef3c7', color: '#92400e', label: 'Chờ chấm' },
+      scoring:  { bg: '#dbeafe', color: '#1e40af', label: 'Đang chấm' },
+      scored:   { bg: '#d1fae5', color: '#065f46', label: 'Đã chấm' },
+      error:    { bg: '#fee2e2', color: '#991b1b', label: 'Lỗi' },
+    };
+    const s = map[status] || { bg: '#f1f5f9', color: '#475569', label: status };
+    return (
+      <span style={{ background: s.bg, color: s.color, padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>
+        {s.label}
+      </span>
+    );
+  };
+
+  const handleGradeAI = async (answerId, apiTypeVal = 'STT') => {
+    try {
+      // 1. Fetch available agents to find match
+      showMsg('info', `Đang tìm kiếm Agent ${apiTypeVal === 'STT' ? 'Transcribe' : 'Grading'} phù hợp...`);
+      const agentsRes = await axios.get('/api/agents');
+      if (!agentsRes.data.success || !agentsRes.data.data.length) {
+        showMsg('error', 'Chưa cấu hình AI Agent nào trên hệ thống. Vui lòng vào mục Quản lý Agent.');
+        return;
+      }
+
+      // Find answer row to determine qType
+      const ansRow = data.answers?.find(a => a.id === answerId);
+      if (!ansRow) return;
+      const qNo = parseInt(ansRow.question_no, 10);
+      let qTypeKey = '';
+      if (ansRow.section === 'Speaking') {
+        if (qNo === 1 || qNo === 2) qTypeKey = 'sp_read_aloud';
+        else if (qNo === 3 || qNo === 4) qTypeKey = 'sp_describe_pic';
+        else if (qNo >= 5 && qNo <= 7) qTypeKey = 'sp_respond_q';
+        else if (qNo >= 8 && qNo <= 10) qTypeKey = 'sp_respond_info';
+        else qTypeKey = 'sp_opinion';
+      } else {
+        if (qNo >= 1 && qNo <= 5) qTypeKey = 'w_picture';
+        else if (qNo >= 6 && qNo <= 7) qTypeKey = 'w_email';
+        else qTypeKey = 'w_text';
+      }
+
+      // Find matching agent
+      const matchAgent = agentsRes.data.data.find(agent => 
+        agent.api_type === apiTypeVal && 
+        (agent.target_questions || []).includes(qTypeKey)
+      );
+
+      if (!matchAgent) {
+        showMsg('error', `Không tìm thấy Agent loại ${apiTypeVal === 'STT' ? 'Transcribe' : 'Grading'} nào được gán cho câu hỏi nhóm: ${qTypeKey.replace('sp_', 'Speaking ').replace('w_', 'Writing ')}`);
+        return;
+      }
+
+      showMsg('info', `Kích hoạt Agent: ${matchAgent.name}...`);
+      const targetEndpoint = apiTypeVal === 'STT' ? 'transcribe-ai' : 'grade-ai';
+      const res = await axios.post(`${API_BASE}/${targetEndpoint}`, { 
+        answerId, 
+        agentId: matchAgent.id 
+      });
+
+      if (res.data.success) {
+        showMsg('success', `${apiTypeVal === 'STT' ? 'STT' : 'Chấm điểm'} hoàn tất!`);
+        // Reload details to display new data
+        const detailRes = await axios.get(`${API_BASE}/${id}`);
+        if (detailRes.data.success) setData(detailRes.data.data);
+      } else {
+        showMsg('error', 'Lỗi: ' + res.data.error);
+      }
+    } catch (e) {
+      showMsg('error', 'Lỗi thực thi AI Agent: ' + (e.response?.data?.error || e.message));
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', background: 'var(--bg)', padding: '24px', position: 'relative' }}>
+      {/* Background patterns */}
+      <div style={{
+        position: 'absolute', inset: 0, opacity: 0.15, pointerEvents: 'none', zIndex: 0,
+        backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)',
+        backgroundSize: '40px 40px'
+      }}></div>
+      <div style={{
+        position: 'absolute', top: '-80px', left: '-80px', width: '250px', height: '250px', borderRadius: '50%', pointerEvents: 'none', zIndex: 0,
+        background: 'radial-gradient(circle, rgba(168, 200, 255, 0.08) 0%, transparent 70%)'
+      }}></div>
+
+      {/* TOP BAR */}
+      <div style={{ display: 'flex', alignItems: 'center', justifycontent: 'space-between', marginBottom: '20px', position: 'relative', zIndex: 1 }}>
+        <button
+          onClick={() => navigate('/submissions')}
+          className="btn-secondary"
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '13px' }}
+        >
+          <ArrowLeft size={16}/> Quay lại danh sách
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {getStatusBadge(data.status)}
+          <span style={{ fontSize: '12px', color: 'var(--on-surface-var)' }}>ID: {data.id?.substring(0, 8)}...</span>
+        </div>
+      </div>
+
+      {/* SCROLLABLE CONTENT */}
+      <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', position: 'relative', zIndex: 1 }}>
+
+        {/* === CANDIDATE INFO CARD === */}
+        <section className="glass-card" style={{ padding: '24px', marginBottom: '32px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '24px', position: 'relative', overflow: 'hidden' }}>
+          {/* AI Accent Glow */}
+          <div style={{ position: 'absolute', top: 0, right: 0, width: '256px', height: '256px', background: 'rgba(0, 85, 165, 0.05)', borderRadius: '50%', filter: 'blur(100px)', zIndex: -1 }}></div>
+          
+          <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+            <div style={{
+              width: '64px', height: '64px', borderRadius: '12px', background: 'var(--primary-container)', color: '#fff',
+              display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '24px', boxShadow: '0 8px 32px rgba(0,85,165,0.2)'
+            }}>
+              {(data.student_name || 'N').charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: 'var(--on-surface)' }}>{data.student_name}</h3>
+              <p style={{ margin: '4px 0 12px 0', fontSize: '14px', color: 'var(--on-surface-var)' }}>{data.test_name}</p>
+              <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--on-surface-var)' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>mail</span> {data.student_email || 'Chưa có email'}
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>call</span> {data.student_phone || 'Chưa có SĐT'}
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>event_available</span> Nộp: {new Date(data.submitted_date).toLocaleString('vi-VN')}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="glass-card" style={{ padding: '12px 24px', borderRadius: '12px', textAlign: 'center', minWidth: '100px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(168,200,255,0.1)' }}>
+              <p style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: 'var(--primary)' }}>{data.answers?.length || 0}</p>
+              <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--on-surface-var)' }}>Tổng câu</p>
+            </div>
+            <div className="glass-card" style={{ padding: '12px 24px', borderRadius: '12px', textAlign: 'center', minWidth: '100px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(168,200,255,0.1)' }}>
+              <p style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: 'var(--on-surface)' }}>{writingAnswers.length}</p>
+              <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--on-surface-var)' }}>Writing</p>
+            </div>
+            <div className="glass-card" style={{ padding: '12px 24px', borderRadius: '12px', textAlign: 'center', minWidth: '100px', background: 'rgba(0, 85, 165, 0.05)', border: '1px solid rgba(0, 85, 165, 0.2)' }}>
+              <p style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: 'var(--primary)' }}>{speakingAnswers.length}</p>
+              <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--primary)' }}>Speaking</p>
+            </div>
+            
+            <div style={{ height: '48px', width: '1px', background: 'rgba(255,255,255,0.1)', margin: '0 8px' }} />
+
+            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '12px 20px', borderRadius: '12px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.06)', minWidth: '130px' }}>
+              <p style={{ margin: 0, fontSize: '11px', color: 'var(--on-surface-var)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Keycode</p>
+              <p style={{ margin: '4px 0 0 0', fontSize: '22px', fontWeight: '800', color: 'var(--on-surface)', letterSpacing: '0.05em' }}>{data.keycode}</p>
+            </div>
+          </div>
+        </section>
+
+        {/* === SPEAKING SECTION === */}
+        {speakingAnswers.length > 0 && (
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+              <div style={{ width: '4px', height: '20px', background: '#16a34a', borderRadius: '2px' }}/>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#15803d' }}>
+                Speaking — {speakingAnswers.length} câu
+              </h3>
+            </div>
+            {speakingAnswers.map((ans, i) => (
+              <AnswerCard 
+                key={ans.id} 
+                ans={ans} 
+                index={i} 
+                answerStatusBadge={answerStatusBadge}
+                onGradeComplete={handleGradeAI}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* === WRITING SECTION === */}
+        {writingAnswers.length > 0 && (
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+              <div style={{ width: '4px', height: '20px', background: '#2563eb', borderRadius: '2px' }}/>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1e40af' }}>
+                Writing — {writingAnswers.length} câu
+              </h3>
+            </div>
+            {writingAnswers.map((ans, i) => (
+              <AnswerCard 
+                key={ans.id} 
+                ans={ans} 
+                index={i} 
+                answerStatusBadge={answerStatusBadge}
+                onGradeComplete={handleGradeAI}
+              />
+            ))}
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+
+function App() {
+  console.log("App component is rendering...");
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('currentUser');
+      if (!saved || saved === 'undefined') return null;
+      return JSON.parse(saved);
+    } catch (e) {
+      console.error('Error parsing localStorage currentUser:', e);
+      return null;
+    }
+  });
+
+  const navigate = useNavigate();
+  const location = useLocation();
+  const path = location.pathname;
+  let activeTab = 'submissions';
+  if (path.startsWith('/mappings')) activeTab = 'mappings';
+  else if (path.startsWith('/ai')) activeTab = 'ai';
+  else if (path.startsWith('/users')) activeTab = 'users';
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('sidebar_collapsed') === 'true';
+  });
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('sidebar_collapsed', String(next));
+      return next;
+    });
+  };
+
+  const [submissions, setSubmissions] = useState([]);
+  const [subCurrentPage, setSubCurrentPage] = useState(1);
+  const [subPageSize, setSubPageSize] = useState(10);
+  
+  // Login form states
+  const [loginUser, setLoginUser] = useState('');
+  const [loginPass, setLoginPass] = useState('');
+  // Scoring Sync states
+  const [keycode, setKeycode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [syncingMappings, setSyncingMappings] = useState(false);
+  const [syncFromDate, setSyncFromDate] = useState('');
+  const [syncToDate, setSyncToDate] = useState('');
+
+  const [syncPageSize, setSyncPageSize] = useState('100');
+  const [syncKeyword, setSyncKeyword] = useState('');
+  const [searchKey, setSearchKey] = useState('');
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [syncStatus, setSyncStatus] = useState('idle');
+  const [syncCount, setSyncCount] = useState(0);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [message, setMessage] = useState(null);
+  const [showPullModal, setShowPullModal] = useState(false);
+  const [pullKeycode, setPullKeycode] = useState('');
+  const [pullStatus, setPullStatus] = useState('idle');
+  const [pullResultId, setPullResultId] = useState('');
+  
+  // User management states
+  const [usersList, setUsersList] = useState([]);
+  const [newUsername, setNewUsername] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newRole, setNewRole] = useState('user');
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isEditingUser, setIsEditingUser] = useState(false);
+  const [editingUserId, setEditingUserId] = useState('');
+  
+  // Keycode mapping states
+  const [mappingsList, setMappingsList] = useState([]);
+  const [newKeycode, setNewKeycode] = useState('');
+  const [newCourseScoringId, setNewCourseScoringId] = useState('');
+  const [newStudentName, setNewStudentName] = useState('');
+  const [newTestName, setNewTestName] = useState('');
+  const [showMappingModal, setShowMappingModal] = useState(false);
+  const [isEditingMapping, setIsEditingMapping] = useState(false);
+  const [loadingMappings, setLoadingMappings] = useState(false);
+  const [mappingSearch, setMappingSearch] = useState('');
+  const [mapCurrentPage, setMapCurrentPage] = useState(1);
+  const [mapPageSize, setMapPageSize] = useState(10);
+  const [selectedSubIds, setSelectedSubIds] = useState([]);
+  // Dify AI Config mock states
+  const [difyEndpoint, setDifyEndpoint] = useState('http://178.105.45.146:8080/v1/workflows/run');
+  const [difyApiKey, setDifyApiKey] = useState('app-XXXXXX...');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  // Fetch submissions list
+  const fetchSubmissions = async () => {
+    if (!currentUser) return;
+    setLoading(true);
+    setSubCurrentPage(1);
+    try {
+      const res = await axios.get(API_BASE, {
+        params: {
+          keycode: searchKey,
+          status: statusFilter
+        }
+      });
+      if (res.data.success) {
+        setSubmissions(res.data.data);
+      }
+    } catch (error) {
+      showMsg('error', 'Failed to fetch submissions list: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
+  // Sync a single Keycode
+  const handleSyncKeycode = async (e) => {
+    e.preventDefault();
+    if (!keycode.trim()) return;
+    setLoading(true);
+    showMsg('info', `Syncing keycode ${keycode.toUpperCase()}...`);
+    try {
+      const res = await axios.post(`${API_BASE}/sync`, { keycode: keycode.trim() });
+      if (res.data.success) {
+        showMsg('success', res.data.message);
+        setKeycode('');
+        fetchSubmissions();
+        fetchMappings();
+      }
+    } catch (error) {
+      showMsg('error', error.response?.data?.error || error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSyncMappings = async () => {
+    setSyncingMappings(true);
+    setSyncStatus('loading');
+    try {
+      const payload = {
+        pageSize: parseInt(syncPageSize, 10) || 100,
+        keyword: syncKeyword.trim() || null,
+        fromSubmittedDate: syncFromDate ? `${syncFromDate}T00:00:00Z` : null,
+        toSubmittedDate: syncToDate ? `${syncToDate}T23:59:59Z` : null
+      };
+      const res = await axios.post(`${API_BASE}/sync-mappings`, payload);
+      if (res.data.success) {
+        setSyncCount(res.data.count || 0);
+        setSyncStatus('success');
+        fetchSubmissions();
+        fetchMappings();
+      } else {
+        setSyncStatus('error');
+      }
+    } catch (error) {
+      setSyncStatus('error');
+      showMsg('error', 'Đồng bộ mappings thất bại: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setSyncingMappings(false);
+    }
+  };
+
+  // Pull single submission by Keycode (Elearning IIG -> local DB)
+  const handlePullSubmission = async (e) => {
+    e.preventDefault();
+    if (!pullKeycode.trim()) return;
+    setPullStatus('loading');
+    try {
+      const res = await axios.post(`${API_BASE}/sync`, {
+        keycode: pullKeycode.trim().toUpperCase()
+      });
+      if (res.data.success) {
+        setPullResultId(res.data.data?.id || res.data.id || '');
+        setPullStatus('success');
+        fetchSubmissions();
+      } else {
+        setPullStatus('error');
+      }
+    } catch (error) {
+      setPullStatus('error');
+      showMsg('error', 'Kéo bài thi thất bại: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    console.log('🔘 Đăng nhập button clicked. Payload:', { username: loginUser, password: loginPass });
+    if (!loginUser.trim() || !loginPass.trim()) {
+      console.warn('⚠️ Username or password is empty');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await axios.post(`${AUTH_BASE}/login`, {
+        username: loginUser.trim(),
+        password: loginPass.trim()
+      });
+      if (res.data.data) {
+        const user = res.data.data;
+        console.log('🎉 Login API succeeded! User info:', user);
+        try {
+          localStorage.setItem('currentUser', JSON.stringify(user));
+        } catch (storageErr) {
+          console.warn('Failed to save to localStorage:', storageErr);
+        }
+        setCurrentUser(user);
+        navigate('/submissions');
+        showMsg('success', `Đăng nhập thành công! Chào mừng ${user.username}`);
+      }    } catch (error) {
+      console.error('Login Failure Details:', error);
+      if (error.response) {
+        // Lỗi từ server trả về
+        showMsg('error', error.response.data?.error || 'Đăng nhập thất bại: Thông tin tài khoản không hợp lệ.');
+      } else {
+        // Lỗi không kết nối được server (Network Error / CORS)
+        showMsg('error', 'Lỗi kết nối: Không thể kết nối tới máy chủ backend (cổng 5005). Vui lòng kiểm tra lại server.js.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Logout
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('currentUser');
+    navigate('/login');
+    setSubmissions([]);
+  };
+
+  // Fetch Users (Admin Only)
+  const fetchUsers = async () => {
+    if (currentUser?.role !== 'admin') return;
+    setLoadingUsers(true);
+    try {
+      const res = await axios.get(`${AUTH_BASE}/users`);
+      if (res.data.success) {
+        setUsersList(res.data.data);
+      }
+    } catch (error) {
+      showMsg('error', 'Failed to load users: ' + error.message);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  // Save User (Create or Edit - Admin Only)
+  const handleSaveUser = async (e) => {
+    e.preventDefault();
+    if (!newUsername.trim() || !newRole) return;
+    
+    // Check if adding new, require password
+    if (!isEditingUser && !newPassword.trim()) {
+      showMsg('error', 'Mật khẩu là bắt buộc khi tạo tài khoản mới.');
+      return;
+    }
+
+    try {
+      if (isEditingUser) {
+        // Edit Mode
+        const res = await axios.put(`${AUTH_BASE}/users/${editingUserId}`, {
+          role: newRole,
+          password: newPassword.trim() || null
+        });
+        if (res.data.success) {
+          showMsg('success', res.data.message);
+          setNewUsername('');
+          setNewPassword('');
+          setNewRole('user');
+          setIsEditingUser(false);
+          setEditingUserId('');
+          setShowCreateModal(false);
+          fetchUsers();
+        }
+      } else {
+        // Create Mode
+        const res = await axios.post(`${AUTH_BASE}/users`, {
+          username: newUsername.trim(),
+          password: newPassword.trim(),
+          role: newRole
+        });
+        if (res.data.success) {
+          showMsg('success', res.data.message);
+          setNewUsername('');
+          setNewPassword('');
+          setNewRole('user');
+          setShowCreateModal(false);
+          fetchUsers();
+        }
+      }
+    } catch (error) {
+      showMsg('error', error.response?.data?.error || error.message);
+    }
+  };
+  // Delete User (Admin Only)
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa user này không?')) return;
+    try {
+      const res = await axios.delete(`${AUTH_BASE}/users/${userId}`);
+      if (res.data.success) {
+        showMsg('success', res.data.message);
+        fetchUsers();
+      }
+    } catch (error) {
+      showMsg('error', error.response?.data?.error || error.message);
+    }
+  };
+
+  // Fetch Keycode Mappings
+  const fetchMappings = async () => {
+    setLoadingMappings(true);
+    setMapCurrentPage(1);
+    try {
+      const res = await axios.get(`${API_BASE}/mappings`);
+      if (res.data.success) {
+        setMappingsList(res.data.data);
+      }
+    } catch (error) {
+      showMsg('error', 'Failed to load mappings: ' + error.message);
+    } finally {
+      setLoadingMappings(false);
+    }
+  };
+
+  // Add or Update Keycode Mapping
+  const handleSaveMapping = async (e) => {
+    e.preventDefault();
+    if (!newKeycode.trim() || !newCourseScoringId.trim()) return;
+    try {
+      const res = await axios.post(`${API_BASE}/mappings`, {
+        keycode: newKeycode.trim(),
+        courseScoringId: newCourseScoringId.trim(),
+        studentName: newStudentName.trim() || null,
+        testName: newTestName.trim() || null
+      });
+      if (res.data.success) {
+        showMsg('success', res.data.message);
+        setNewKeycode('');
+        setNewCourseScoringId('');
+        setNewStudentName('');
+        setNewTestName('');
+        setShowMappingModal(false);
+        fetchMappings();
+      }
+    } catch (error) {
+      showMsg('error', error.response?.data?.error || error.message);
+    }
+  };
+
+  // Delete Mocktest Submission (Only allowed if status === 1)
+  const handleDeleteSubmission = async (subId, keycodeVal, status) => {
+    if (status !== 1) {
+      alert("Không thể xóa bài làm đã được chấm điểm.");
+      return;
+    }
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa bài làm của keycode ${keycodeVal} khỏi hệ thống không?`)) {
+      return;
+    }
+    try {
+      const res = await axios.delete(`${API_BASE}/${subId}`);
+      if (res.data.success) {
+        showMsg('success', res.data.message);
+        fetchSubmissions();
+      }
+    } catch (error) {
+      showMsg('error', error.response?.data?.error || error.message);
+    }
+  };
+
+  // Bulk Delete Submissions
+  const handleBulkDeleteSubmissions = async () => {
+    if (selectedSubIds.length === 0) return;
+    
+    // Find keycodes of selected items for display in confirmation
+    const selectedKeycodes = submissions
+      .filter(s => selectedSubIds.includes(s.id))
+      .map(s => s.keycode);
+
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa ${selectedSubIds.length} bài làm đã chọn (${selectedKeycodes.join(', ')}) khỏi hệ thống không?\nLưu ý: Chỉ bài làm CHƯA CHẤM mới thực sự bị xóa.`)) {
+      return;
+    }
+
+    try {
+      const res = await axios.post(`${API_BASE}/bulk-delete`, {
+        ids: selectedSubIds
+      });
+      if (res.data.success) {
+        showMsg('success', res.data.message);
+        setSelectedSubIds([]);
+        fetchSubmissions();
+      }
+    } catch (error) {
+      showMsg('error', error.response?.data?.error || error.message);
+    }
+  };
+
+  // Delete Keycode Mapping
+  const handleDeleteMapping = async (keycodeVal) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa mapping của keycode ${keycodeVal} không?`)) return;
+    try {
+      const res = await axios.delete(`${API_BASE}/mappings/${keycodeVal}`);
+      if (res.data.success) {
+        showMsg('success', res.data.message);
+        fetchMappings();
+      }
+    } catch (error) {
+      showMsg('error', error.response?.data?.error || error.message);
+    }
+  };
+
+  const showMsg = (type, text) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage(null), 5000);
+  };
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchSubmissions();
+    }
+  }, [currentUser, searchKey, statusFilter]);
+
+  useEffect(() => {
+    if (activeTab === 'users') {
+      fetchUsers();
+    } else if (activeTab === 'mappings') {
+      fetchMappings();
+    }
+  }, [activeTab]);
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 1:
+        return <span className="badge-pending"><Clock size={11}/> Chưa chấm</span>;
+      case 2:
+        return <span className="badge-processing"><RefreshCw className="spinner" size={11}/> Đang chấm</span>;
+      case 3:
+        return <span className="badge-done"><CheckCircle size={11}/> Đã chấm</span>;
+      case 4:
+        return <span className="badge-error"><AlertTriangle size={11}/> Lỗi</span>;
+      default:
+        return <span className="badge-pending">Không rõ</span>;
+    }
+  };
+
+  // IF NOT LOGGED IN, SHOW LOGIN VIEW
+  if (!currentUser) {
+    // Particles config
+    const particles = [
+      { left: '10%', size: 3, duration: 18, delay: 0 },
+      { left: '25%', size: 2, duration: 24, delay: 4 },
+      { left: '40%', size: 4, duration: 20, delay: 8 },
+      { left: '55%', size: 2, duration: 28, delay: 2 },
+      { left: '70%', size: 3, duration: 22, delay: 12 },
+      { left: '82%', size: 2, duration: 16, delay: 6 },
+      { left: '92%', size: 3, duration: 26, delay: 10 },
+    ];
+    return (
+      <Routes>
+        <Route path="/login" element={
+          <div className="login-page">
+            {/* Ambient orbs */}
+            <div className="login-orb login-orb-1" />
+            <div className="login-orb login-orb-2" />
+            <div className="login-orb login-orb-3" />
+            {/* Grid mesh */}
+            <div className="login-grid" />
+            {/* Floating particles */}
+            {particles.map((p, i) => (
+              <div key={i} className="login-particle" style={{
+                left: p.left,
+                width: `${p.size}px`,
+                height: `${p.size}px`,
+                animationDuration: `${p.duration}s`,
+                animationDelay: `${p.delay}s`,
+              }} />
+            ))}
+
+            {/* ── LEFT BRANDING PANEL ── */}
+            <div className="login-panel-left">
+              <div className="login-brand-logo">
+                <img src="/IIG_logo.webp" alt="IIG Vietnam" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '12px', boxSizing: 'border-box' }} />
+              </div>
+              <p className="login-brand-subtitle">IIG Vietnam · AI Technology</p>
+              <h1 className="login-brand-title">IIG AI Scoring<br/>Admin Console</h1>
+              <p className="login-brand-desc">
+                Hệ thống chấm điểm thông minh sử dụng trí tuệ nhân tạo, hỗ trợ đánh giá năng lực tiếng Anh TOEIC Speaking &amp; Writing theo chuẩn quốc tế.
+              </p>
+
+              {/* Stats */}
+              <div className="login-stats">
+                <div className="login-stat-item">
+                  <span className="login-stat-value">AI</span>
+                  <span className="login-stat-label">Powered</span>
+                </div>
+                <div className="login-stat-item">
+                  <span className="login-stat-value">TOEIC</span>
+                  <span className="login-stat-label">Scoring</span>
+                </div>
+                <div className="login-stat-item">
+                  <span className="login-stat-value">Real‑time</span>
+                  <span className="login-stat-label">Processing</span>
+                </div>
+              </div>
+
+              {/* Feature badges */}
+              <div className="login-features">
+                <span className="login-feature-badge">
+                  <span className="login-feature-badge-dot" />
+                  Speaking Evaluation
+                </span>
+                <span className="login-feature-badge">
+                  <span className="login-feature-badge-dot" />
+                  Writing Evaluation
+                </span>
+                <span className="login-feature-badge">
+                  <span className="login-feature-badge-dot" />
+                  Auto Scoring
+                </span>
+              </div>
+            </div>
+
+            {/* ── RIGHT FORM PANEL ── */}
+            <div className="login-panel-right">
+              <div id="login-form-card" className="login-form-card">
+                {/* Form header */}
+                <div className="login-form-header">
+                  <div className="login-form-logo">
+                    <img src="/IIG_logo.webp" alt="IIG Vietnam Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '8px', boxSizing: 'border-box' }} />
+                  </div>
+                  <h2 className="login-form-title">Đăng nhập</h2>
+                  <p className="login-form-subtitle">Admin Console · IIG AI Scoring</p>
+                </div>
+
+                {/* Alert message */}
+                {message && (
+                  <div className={`toast ${message.type}`} style={{ position: 'relative', top: 'auto', right: 'auto', marginBottom: '20px', animation: 'none' }}>
+                    {message.text}
+                  </div>
+                )}
+
+                {/* Login form */}
+                <form onSubmit={(e) => {
+                  const card = document.getElementById('login-form-card');
+                  if (card) {
+                    card.classList.remove('login-form-shake');
+                    void card.offsetWidth; // reflow
+                  }
+                  handleLogin(e);
+                }} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+
+                  {/* Username */}
+                  <div className="login-input-group">
+                    <label className="section-label">Tên đăng nhập</label>
+                    <div className="login-input-wrapper">
+                      <span className="login-input-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                        </svg>
+                      </span>
+                      <input
+                        id="login-username"
+                        type="text"
+                        placeholder="Nhập tên đăng nhập..."
+                        value={loginUser}
+                        onChange={(e) => setLoginUser(e.target.value)}
+                        className="login-field-input"
+                        autoComplete="username"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password Field */}
+                  <div className="login-input-group">
+                    <label className="section-label">Mật khẩu</label>
+                    <div className="login-input-wrapper">
+                      <span className="login-input-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                      </span>
+                      <input
+                        id="login-password"
+                        type={showLoginPassword ? 'text' : 'password'}
+                        placeholder="Nhập mật khẩu..."
+                        value={loginPass}
+                        onChange={(e) => setLoginPass(e.target.value)}
+                        className="login-field-input"
+                        style={{ paddingRight: '48px' }}
+                        autoComplete="current-password"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPassword(!showLoginPassword)}
+                        style={{ position: 'absolute', right: '14px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-surface-var)', display: 'flex', alignItems: 'center', padding: 0, opacity: 0.7, transition: 'opacity 0.2s' }}
+                        onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                        onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}
+                      >
+                        {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Submit */}
+                  <button
+                    id="login-submit-btn"
+                    type="submit"
+                    className="login-submit-btn"
+                  >
+                    <LogIn size={16} />
+                    Đăng nhập
+                  </button>
+                </form>
+
+                {/* Footer */}
+                <p className="login-footer">
+                  © 2025 IIG Vietnam · Bảo mật &amp; Bảo hành thông tin
+                </p>
+              </div>
+            </div>
+          </div>
+        } />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', height: '100vh', width: '100%', background: 'var(--bg)', overflow: 'hidden', position: 'relative' }}>
+      {/* Ambient glows */}
+      <div style={{ position: 'fixed', top: '-96px', left: '-96px', width: '384px', height: '384px', background: 'rgba(168,200,255,0.08)', borderRadius: '50%', filter: 'blur(120px)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'fixed', top: '50%', right: '-96px', width: '320px', height: '320px', background: 'rgba(224,182,255,0.05)', borderRadius: '50%', filter: 'blur(100px)', pointerEvents: 'none', zIndex: 0 }} />
+
+      {/* ── SIDEBAR ── */}
+      <aside className="glass-sidebar" style={{
+        width: sidebarCollapsed ? '72px' : 'var(--sidebar-width)',
+        flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        zIndex: 50,
+        position: 'relative',
+        transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+      }}>
+        {/* Logo & Toggle */}
+        <div>
+          <div style={{ padding: sidebarCollapsed ? '20px 14px' : '24px 24px 20px', display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)', position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden' }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(0,85,165,0.35)', border: '1px solid rgba(168,200,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxShadow: '0 0 20px rgba(0,85,165,0.4)', flexShrink: 0 }}>
+                <img src="/IIG_logo.webp" alt="IIG Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '6px', boxSizing: 'border-box' }} />
+              </div>
+              {!sidebarCollapsed && (
+                <div style={{ animation: 'formFadeIn 0.2s ease forwards' }}>
+                  <h1 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: 'var(--on-surface)', fontFamily: 'Lexend, sans-serif', lineHeight: 1.2, whiteSpace: 'nowrap' }}>IIG AI Scoring</h1>
+                  <p style={{ margin: 0, fontSize: '10px', fontWeight: '600', letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--on-surface-var)', whiteSpace: 'nowrap' }}>Admin Console</p>
+                </div>
+              )}
+            </div>
+            {!sidebarCollapsed && (
+              <button onClick={toggleSidebar} title="Thu gọn menu" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', color: 'var(--on-surface-var)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', padding: 0 }} onMouseEnter={e=>e.currentTarget.style.color='var(--primary)'} onMouseLeave={e=>e.currentTarget.style.color='var(--on-surface-var)'}>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>chevron_left</span>
+              </button>
+            )}
+          </div>
+
+          {/* Toggle button when collapsed */}
+          {sidebarCollapsed && (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 0' }}>
+              <button onClick={toggleSidebar} title="Mở rộng menu" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', color: 'var(--on-surface-var)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '8px' }} onMouseEnter={e=>e.currentTarget.style.color='var(--primary)'} onMouseLeave={e=>e.currentTarget.style.color='var(--on-surface-var)'}>
+                <Sliders size={16} />
+              </button>
+            </div>
+          )}
+
+          {/* Nav */}
+          <nav style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: sidebarCollapsed ? 'center' : 'stretch' }}>
+            <button onClick={() => navigate('/submissions')} className={`nav-item${activeTab === 'submissions' ? ' active' : ''}`} title="Xem bài chấm" style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : '12px 20px', width: sidebarCollapsed ? '48px' : '100%' }}>
+              <FileText size={16} style={{ flexShrink: 0 }}/>
+              {!sidebarCollapsed && <span>Xem bài chấm</span>}
+            </button>
+            {currentUser?.role === 'admin' && (
+              <button onClick={() => navigate('/mappings')} className={`nav-item${activeTab === 'mappings' ? ' active' : ''}`} title="Mapping Keycode" style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : '12px 20px', width: sidebarCollapsed ? '48px' : '100%' }}>
+                <Database size={16} style={{ flexShrink: 0 }}/>
+                {!sidebarCollapsed && <span>Mapping Keycode</span>}
+              </button>
+            )}
+            {currentUser?.role === 'admin' && (
+              <button onClick={() => navigate('/ai')} className={`nav-item${activeTab === 'ai' ? ' active' : ''}`} title="Cấu hình AI" style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : '12px 20px', width: sidebarCollapsed ? '48px' : '100%' }}>
+                <Cpu size={16} style={{ flexShrink: 0 }}/>
+                {!sidebarCollapsed && <span>Cấu hình AI</span>}
+              </button>
+            )}
+            {currentUser?.role === 'admin' && (
+              <button onClick={() => navigate('/users')} className={`nav-item${activeTab === 'users' ? ' active' : ''}`} title="Quản lý Users" style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '12px 0' : '12px 20px', width: sidebarCollapsed ? '48px' : '100%' }}>
+                <Users size={16} style={{ flexShrink: 0 }}/>
+                {!sidebarCollapsed && <span>Quản lý Users</span>}
+              </button>
+            )}
+          </nav>
+        </div>
+
+        {/* Profile */}
+        <div style={{ padding: sidebarCollapsed ? '12px 8px' : '16px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ display: 'flex', flexDirection: sidebarCollapsed ? 'column' : 'row', justifyContent: 'space-between', alignItems: 'center', padding: sidebarCollapsed ? '10px 4px' : '10px 12px', borderRadius: '12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', gap: sidebarCollapsed ? '12px' : '0' }}>
+            <div style={{ display: 'flex', flexDirection: sidebarCollapsed ? 'column' : 'row', alignItems: 'center', gap: '10px', overflow: 'hidden', flex: 1, width: '100%', justifyContent: 'center' }}>
+              <div style={{
+                width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0,
+                background: 'linear-gradient(135deg, var(--primary-container), var(--tertiary-container))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: '700', fontSize: '13px', color: 'var(--on-primary-container)',
+                border: '2px solid rgba(168,200,255,0.2)'
+              }} title={currentUser?.username || ''}>
+                {(currentUser?.username || 'US').substring(0, 2).toUpperCase()}
+              </div>
+              {!sidebarCollapsed && (
+                <div style={{ overflow: 'hidden', flex: 1, animation: 'formFadeIn 0.2s ease forwards' }}>
+                  <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--on-surface)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser?.username || ''}</div>
+                  <div style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--on-surface-var)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser?.role === 'admin' ? 'Administrator' : 'User'}</div>
+                </div>
+              )}
+            </div>
+            <button onClick={handleLogout} title="Đăng xuất" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-surface-var)', display: 'flex', alignItems: 'center', padding: '4px', borderRadius: '6px', transition: 'color 0.2s', flexShrink: 0 }} onMouseEnter={e=>e.currentTarget.style.color='var(--error)'} onMouseLeave={e=>e.currentTarget.style.color='var(--on-surface-var)'}>
+              <LogOut size={16}/>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* MESSAGE TOAST */}
+      {message && (
+        <div className={`toast ${message.type}`}>{message.text}</div>
+      )}
+
+      {/* MAIN CONTENT */}
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', zIndex: 1 }}>
+        
+        <Routes>
+          <Route path="/submissions" element={
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+              {/* ── Stat cards (Đưa lên đầu) ── */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', padding: '24px 24px 0' }}>
+                {/* Total */}
+                <div className="stat-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <FileText size={14} style={{ color: 'var(--primary)' }}/>
+                      <span className="section-label">Tổng bài nộp</span>
+                    </div>
+                    <span style={{ fontSize: '20px', fontWeight: '700', color: 'var(--primary)', fontFamily: 'Lexend, sans-serif' }}>{submissions.length}</span>
+                  </div>
+                  {/* Biểu đồ số bài nộp theo ngày từ dữ liệu thực tế */}
+                  <div className="mini-bar" style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '24px', marginTop: '8px' }}>
+                    {(() => {
+                      // Tính toán số lượng bài nộp theo từng ngày (7 ngày gần nhất)
+                      const last7Days = Array.from({ length: 7 }, (_, i) => {
+                        const d = new Date();
+                        d.setDate(d.getDate() - i);
+                        return d.toISOString().split('T')[0];
+                      }).reverse();
+
+                      const counts = last7Days.map(dateStr => {
+                        return submissions.filter(s => {
+                          if (!s.submitted_date) return false;
+                          const sDate = new Date(s.submitted_date).toISOString().split('T')[0];
+                          return sDate === dateStr;
+                        }).length;
+                      });
+
+                      const maxCount = Math.max(...counts, 1);
+                      return counts.map((count, i) => {
+                        const heightPct = (count / maxCount) * 100;
+                        const dateLabel = new Date(last7Days[i]).toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' });
+                        return (
+                          <div
+                            key={i}
+                            title={`${dateLabel}: ${count} bài`}
+                            style={{
+                              flex: 1,
+                              height: `${Math.max(heightPct, 15)}%`,
+                              background: count > 0 ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                              borderRadius: '2px',
+                              transition: 'height 0.3s ease'
+                            }}
+                          />
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+                {/* Done */}
+                <div className="stat-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <CheckCircle size={14} style={{ color: 'var(--primary)' }}/>
+                      <span className="section-label">Đã chấm</span>
+                    </div>
+                    <span style={{ fontSize: '20px', fontWeight: '700', color: 'var(--primary)', fontFamily: 'Lexend, sans-serif' }}>{submissions.filter(s=>s.status===3).length}</span>
+                  </div>
+                  {submissions.length > 0 && (() => { const pct = Math.round(submissions.filter(s=>s.status===3).length/submissions.length*100); return (
+                    <><div className="progress-bar" style={{ marginTop: '8px' }}><div className="progress-fill" style={{ width: `${pct}%` }} /></div><p style={{ margin: '4px 0 0', fontSize: '10px', color: 'var(--on-surface-var)' }}>{pct}% hoàn thành</p></>
+                  );})()} 
+                </div>
+                {/* Pending */}
+                <div className="stat-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Clock size={14} style={{ color: 'var(--primary)' }}/>
+                      <span className="section-label">Chưa chấm</span>
+                    </div>
+                    <span style={{ fontSize: '20px', fontWeight: '700', color: 'var(--primary)', fontFamily: 'Lexend, sans-serif' }}>{submissions.filter(s=>s.status===1).length}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                    <RefreshCw size={13} style={{ color: 'var(--primary)' }} className={submissions.filter(s=>s.status===2).length>0?'spinner pulse-dot':''}/>
+                    <span style={{ fontSize: '11px', color: 'var(--on-surface-var)' }}>Đang trong hàng đợi...</span>
+                  </div>
+                </div>
+                {/* Live log */}
+                <div className="stat-card">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <MessageSquare size={14} style={{ color: 'var(--primary)' }}/>
+                    <span className="section-label">Live AI Log</span>
+                  </div>
+                  <div id="live-log" className="log-scroll" style={{ height: '52px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <p style={{ margin: 0 }}><span style={{ color: 'var(--primary)', fontWeight: '700' }}>{new Date().toLocaleTimeString('vi-VN',{hour12:false})}</span> System ready.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Table card (Di chuyển Search, Filter, Sync vào đây) ── */}
+              <div className="glass-card" style={{ margin: '20px 24px 24px', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', background: 'rgba(255,255,255,0.02)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '280px' }}>
+                    <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--on-surface)', fontFamily: 'Lexend, sans-serif', whiteSpace: 'nowrap' }}>Danh sách bài chấm</h2>
+                    {/* Search bar */}
+                    <div style={{ position: 'relative', flex: '1', maxWidth: '320px' }}>
+                      <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--on-surface-var)' }}/>
+                      <input
+                        type="text"
+                        placeholder="Tìm keycode, học viên..."
+                        value={searchKey}
+                        onChange={(e) => setSearchKey(e.target.value)}
+                        className="glass-input"
+                        style={{ width: '100%', paddingLeft: '34px', paddingRight: '12px', paddingVertical: '8px', borderRadius: '9999px', boxSizing: 'border-box', fontSize: '12px' }}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {selectedSubIds.length > 0 && (
+                      <button onClick={handleBulkDeleteSubmissions} className="btn-primary" style={{ background: 'var(--error-container)', color: 'var(--error)', fontSize: '11px', padding: '6px 14px' }}>
+                        Xóa ({selectedSubIds.length})
+                      </button>
+                    )}
+                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="glass-input" style={{ padding: '7px 12px', fontSize: '12px' }}>
+                      <option value="">Tất cả trạng thái</option>
+                      <option value="1">Chưa chấm</option>
+                      <option value="2">Đang chấm</option>
+                      <option value="3">Đã chấm</option>
+                      <option value="4">Lỗi</option>
+                    </select>
+                    <button onClick={() => { setPullKeycode(''); setPullStatus('idle'); setPullResultId(''); setShowPullModal(true); }} className="btn-primary" style={{ gap: '4px', padding: '8px 14px', fontSize: '12px' }}>
+                      <Download size={13}/> Kéo dữ liệu bài thi
+                    </button>
+                  </div>
+                </div>
+                {/* TABULAR SUBMISSIONS LIST */}
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                  {loading && submissions.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: '#64748b', padding: '64px' }}>
+                      <RefreshCw className="spinner" size={32} style={{ marginBottom: '12px', color: '#3b82f6' }}/>
+                      <div style={{ fontWeight: '500' }}>Đang tải danh sách bài làm...</div>
+                    </div>
+                  ) : submissions.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: '#64748b', padding: '64px' }}>
+                      Không tìm thấy bài làm nào được đồng bộ. Vui lòng nhập Keycode để đồng bộ mới.
+                    </div>
+                  ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                          <th style={{ padding: '14px 20px', width: '40px' }}>
+                            <input type="checkbox"
+                              checked={submissions.length > 0 && submissions.slice((subCurrentPage-1)*subPageSize, subCurrentPage*subPageSize).every(sub=>selectedSubIds.includes(sub.id))}
+                              onChange={(e) => {
+                                const pageItems = submissions.slice((subCurrentPage-1)*subPageSize, subCurrentPage*subPageSize);
+                                if (e.target.checked) { const ns=[...selectedSubIds]; pageItems.forEach(it=>{ if(!ns.includes(it.id)) ns.push(it.id); }); setSelectedSubIds(ns); }
+                                else { const ids=pageItems.map(it=>it.id); setSelectedSubIds(selectedSubIds.filter(id=>!ids.includes(id))); }
+                              }}
+                              style={{ cursor:'pointer', accentColor:'var(--primary)' }}
+                            />
+                          </th>
+                          {['STT','Mã đề (Keycode)','Học viên','Tên đề thi','Ngày nộp','Đồng bộ','Trạng thái','Hành động'].map(h=>(
+                            <th key={h} style={{ padding:'14px 16px', fontSize:'11px', fontWeight:'700', color:'var(--on-surface-var)', textTransform:'uppercase', letterSpacing:'0.06em', whiteSpace:'nowrap', textAlign: h==='Hành động'?'center':'left' }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {submissions.slice((subCurrentPage-1)*subPageSize, subCurrentPage*subPageSize).map((sub, index) => (
+                          <tr
+                            key={sub.id}
+                            className={`sub-row${selectedSubIds.includes(sub.id)?' selected':''}`}
+                            style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                            onClick={() => navigate(`/submissions/${sub.id}`)}
+                          >
+                            <td style={{ padding:'14px 20px' }} onClick={e=>e.stopPropagation()}>
+                              <input type="checkbox" checked={selectedSubIds.includes(sub.id)}
+                                onChange={() => { if(selectedSubIds.includes(sub.id)) setSelectedSubIds(selectedSubIds.filter(id=>id!==sub.id)); else setSelectedSubIds([...selectedSubIds,sub.id]); }}
+                                style={{ cursor:'pointer', accentColor:'var(--primary)' }}
+                              />
+                            </td>
+                            <td style={{ padding:'14px 16px', fontSize:'12px', color:'var(--on-surface-var)' }}>{(subCurrentPage-1)*subPageSize+index+1}</td>
+                            <td style={{ padding:'14px 16px' }}><span className="keycode-chip">{sub.keycode}</span></td>
+                            <td style={{ padding:'14px 16px' }}>
+                              <div style={{ fontWeight:'600', color:'var(--on-surface)', fontSize:'13px' }}>{sub.student_name}</div>
+                              {(sub.student_email||sub.student_phone) && (
+                                <div style={{ fontSize:'10px', color:'var(--on-surface-var)', marginTop:'2px' }}>
+                                  {sub.student_email && sub.student_email!=='Unknown Student' && <span>📧 {sub.student_email}</span>}
+                                  {sub.student_phone && sub.student_phone!=='Unknown Student' && <span> 📞 {sub.student_phone}</span>}
+                                </div>
+                              )}
+                            </td>
+                            <td style={{ padding:'14px 16px', color:'var(--on-surface-var)', fontSize:'12px', maxWidth:'220px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{sub.test_name}</td>
+                            <td style={{ padding:'14px 16px' }}>
+                              <div style={{ fontSize:'12px', fontWeight:'600', color:'var(--on-surface)' }}>{new Date(sub.submitted_date).toLocaleTimeString('vi-VN',{hour12:false})}</div>
+                              <div style={{ fontSize:'10px', color:'var(--on-surface-var)' }}>{new Date(sub.submitted_date).toLocaleDateString('vi-VN')}</div>
+                            </td>
+                            <td style={{ padding:'14px 16px' }}>
+                              <div style={{ fontSize:'12px', color:'var(--on-surface-var)' }}>{new Date(sub.synced_at||sub.updated_at).toLocaleString('vi-VN')}</div>
+                            </td>
+                            <td style={{ padding:'14px 16px' }}>{getStatusBadge(sub.status)}</td>
+                            <td style={{ padding:'14px 16px', textAlign:'center' }} onClick={e=>e.stopPropagation()}>
+                              <div style={{ display:'flex', gap:'6px', justifyContent:'center' }}>
+                                <button className="icon-btn" title="Xem chi tiết" onClick={()=>navigate(`/submissions/${sub.id}`)}><Eye size={14}/></button>
+                                <button className="icon-btn danger" disabled={sub.status!==1} title={sub.status===1?'Xóa bài':'Không thể xóa bài đã chấm'} onClick={()=>handleDeleteSubmission(sub.id,sub.keycode,sub.status)}><Trash2 size={14}/></button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+
+                {/* PAGINATION */}
+                {submissions.length > 0 && (
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 20px', borderTop:'1px solid rgba(255,255,255,0.06)', background:'rgba(255,255,255,0.02)' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:'8px', fontSize:'12px', color:'var(--on-surface-var)' }}>
+                      <span>Hiển thị hàng:</span>
+                      <select value={subPageSize} onChange={(e)=>{ setSubPageSize(parseInt(e.target.value,10)); setSubCurrentPage(1); }} className="glass-input" style={{ padding:'4px 10px', fontSize:'12px' }}>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={40}>40</option>
+                        <option value={100}>100</option>
+                      </select>
+                      <span style={{ marginLeft:'8px' }}>Trang {subCurrentPage} / {Math.ceil(submissions.length/subPageSize)||1} (Tổng {submissions.length} bài chấm)</span>
+                    </div>
+                    <div style={{ display:'flex', gap:'6px' }}>
+                      <button disabled={subCurrentPage===1} onClick={()=>setSubCurrentPage(subCurrentPage-1)} className="btn-secondary" style={{ padding:'6px 16px', fontSize:'12px' }}>Trước</button>
+                      <button disabled={subCurrentPage>=Math.ceil(submissions.length/subPageSize)} onClick={()=>setSubCurrentPage(subCurrentPage+1)} className="btn-secondary" style={{ padding:'6px 16px', fontSize:'12px' }}>Sau</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          } />
+
+          <Route path="/submissions/:id" element={
+            <SubmissionDetailView showMsg={showMsg} getStatusBadge={getStatusBadge} />
+          } />
+
+        {/* MAPPINGS MANAGEMENT TAB CONTENT */}
+          <Route path="/mappings" element={
+            currentUser?.role === 'admin' ? (
+              <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+            <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              
+              {/* Header and Controls */}
+              <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Database size={18} style={{ color: '#2563eb' }}/>
+                  Quản lý Mapping Keycode $\leftrightarrow$ ID
+                </h3>
+                
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  {/* Search */}
+                  <div style={{ position: 'relative' }}>
+                    <Search size={14} style={{ position: 'absolute', left: '10px', top: '12px', color: '#64748b' }}/>
+                    <input 
+                      type="text" 
+                      placeholder="Tìm keycode hoặc đề..." 
+                      value={mappingSearch}
+                      onChange={(e) => setMappingSearch(e.target.value)}
+                      className="glass-input"
+                      style={{ width: '220px', paddingLeft: '32px', fontSize: '13px' }}
+                    />
+                  </div>
+                  {/* Sync from Elearning Trigger */}
+                  <button 
+                    onClick={() => {
+                      setShowSyncModal(true);
+                      setSyncStatus('idle');
+                      setSyncCount(0);
+                    }} 
+                    className="btn-secondary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: '8px 16px', border: '1px solid #10b981', color: '#059669' }}
+                  >
+                    <RefreshCw size={14}/>
+                    Đồng bộ từ Elearning
+                  </button>
+
+                  {/* Add Manual */}
+                  <button 
+                    onClick={() => {
+                      setNewKeycode('');
+                      setNewCourseScoringId('');
+                      setNewStudentName('');
+                      setNewTestName('');
+                      setIsEditingMapping(false);
+                      setShowMappingModal(true);
+                    }}
+                    className="btn-primary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: '8px 16px' }}
+                  >
+                    <Plus size={15}/> Thêm Mapping
+                  </button>
+                </div>
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {loadingMappings ? (
+                  <div style={{ textAlign: 'center', color: '#64748b', padding: '48px' }}>
+                    <RefreshCw className="spinner" size={24} style={{ marginBottom: '8px' }}/>
+                    <div>Đang tải danh sách mappings...</div>
+                  </div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                        <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: '600', color: '#475569', width: '60px' }}>STT</th>
+                        <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: '600', color: '#475569' }}>Mã đề (Keycode)</th>
+                        <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: '600', color: '#475569' }}>Học sinh</th>
+                        <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: '600', color: '#475569' }}>Tên đề thi</th>
+                        <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: '600', color: '#475569' }}>Course Scoring ID</th>
+                        <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: '600', color: '#475569' }}>Cập nhật</th>
+                        <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: '600', color: '#475569', textAlign: 'right' }}>Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mappingsList
+                        .filter(item => 
+                          item.keycode.toLowerCase().includes(mappingSearch.toLowerCase()) ||
+                          (item.student_name || '').toLowerCase().includes(mappingSearch.toLowerCase()) ||
+                          (item.test_name || '').toLowerCase().includes(mappingSearch.toLowerCase())
+                        )
+                        .slice((mapCurrentPage - 1) * mapPageSize, mapCurrentPage * mapPageSize)
+                        .map((mapItem, index) => (
+                          <tr key={mapItem.keycode} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '14px 20px', fontSize: '13px', color: '#64748b' }}>
+                              {(mapCurrentPage - 1) * mapPageSize + index + 1}
+                            </td>
+                            <td style={{ padding: '14px 20px', fontWeight: '700', color: '#2563eb', fontSize: '14px', letterSpacing: '0.05em' }}>{mapItem.keycode}</td>
+                            <td style={{ padding: '14px 20px', color: '#0f172a', fontSize: '13px' }}>
+                              {mapItem.student_name
+                                ? <span style={{ fontWeight: '500' }}>{mapItem.student_name}</span>
+                                : <em style={{ color: '#94a3b8', fontSize: '12px' }}>Chưa đồng bộ</em>}
+                            </td>
+                            <td style={{ padding: '14px 20px', color: '#334155', fontSize: '13px', maxWidth: '260px' }}>
+                              {mapItem.test_name
+                                ? <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={mapItem.test_name}>{mapItem.test_name}</span>
+                                : <em style={{ color: '#94a3b8', fontSize: '12px' }}>Chưa đồng bộ</em>}
+                            </td>
+                            <td style={{ padding: '14px 20px', color: '#94a3b8', fontSize: '11px', fontFamily: 'monospace' }}>{mapItem.course_scoring_id}</td>
+                            <td style={{ padding: '14px 20px', color: '#64748b', fontSize: '12px' }}>{new Date(mapItem.updated_at || mapItem.created_at).toLocaleString('vi-VN')}</td>
+                            <td style={{ padding: '14px 20px', textAlign: 'right', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                              <button 
+                                onClick={() => {
+                                  setNewKeycode(mapItem.keycode);
+                                  setNewCourseScoringId(mapItem.course_scoring_id);
+                                  setNewStudentName(mapItem.student_name || '');
+                                  setNewTestName(mapItem.test_name || '');
+                                  setIsEditingMapping(true);
+                                  setShowMappingModal(true);
+                                }}
+                                className="btn-secondary" 
+                                style={{ 
+                                  padding: '8px', 
+                                  borderRadius: '50%', 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center',
+                                  background: 'transparent',
+                                  border: '1px solid #e2e8f0',
+                                  color: '#2563eb',
+                                  cursor: 'pointer'
+                                }}
+                                title="Sửa mapping"
+                              >
+                                <Edit2 size={14}/>
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteMapping(mapItem.keycode)}
+                                className="btn-secondary" 
+                                style={{ 
+                                  padding: '8px', 
+                                  borderRadius: '50%', 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center',
+                                  background: 'transparent',
+                                  border: '1px solid #fee2e2',
+                                  color: '#dc2626',
+                                  cursor: 'pointer'
+                                }}
+                                title="Xóa mapping"
+                              >
+                                <Trash2 size={14}/>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {/* PAGINATION PANEL FOR MAPPINGS */}
+              {!loadingMappings && mappingsList.length > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderTop: '1px solid #e2e8f0', background: '#f8fafc', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#475569' }}>
+                    <span>Hiển thị hàng:</span>
+                    <select 
+                      value={mapPageSize} 
+                      onChange={(e) => {
+                        setMapPageSize(parseInt(e.target.value, 10));
+                        setMapCurrentPage(1);
+                      }}
+                      style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', outline: 'none', cursor: 'pointer' }}
+                    >
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={40}>40</option>
+                      <option value={100}>100</option>
+                    </select>
+                    <span style={{ marginLeft: '12px' }}>
+                      {(() => { const f = mappingsList.filter(item => item.keycode.toLowerCase().includes(mappingSearch.toLowerCase()) || (item.student_name||'').toLowerCase().includes(mappingSearch.toLowerCase()) || (item.test_name||'').toLowerCase().includes(mappingSearch.toLowerCase())); return `Trang ${mapCurrentPage} / ${Math.ceil(f.length / mapPageSize) || 1} (Tổng ${f.length} mappings)`; })()}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button 
+                      disabled={mapCurrentPage === 1}
+                      onClick={() => setMapCurrentPage(mapCurrentPage - 1)}
+                      className="btn-secondary"
+                      style={{ padding: '6px 12px', fontSize: '12px', opacity: mapCurrentPage === 1 ? 0.5 : 1 }}
+                    >
+                      Trước
+                    </button>
+                    <button 
+                      disabled={mapCurrentPage >= Math.ceil(mappingsList.filter(item => item.keycode.toLowerCase().includes(mappingSearch.toLowerCase()) || (item.student_name||'').toLowerCase().includes(mappingSearch.toLowerCase()) || (item.test_name||'').toLowerCase().includes(mappingSearch.toLowerCase())).length / mapPageSize)}
+                      onClick={() => setMapCurrentPage(mapCurrentPage + 1)}
+                      className="btn-secondary"
+                      style={{ padding: '6px 12px', fontSize: '12px', opacity: mapCurrentPage >= Math.ceil(mappingsList.filter(item => item.keycode.toLowerCase().includes(mappingSearch.toLowerCase()) || (item.student_name||'').toLowerCase().includes(mappingSearch.toLowerCase()) || (item.test_name||'').toLowerCase().includes(mappingSearch.toLowerCase())).length / mapPageSize) ? 0.5 : 1 }}
+                    >
+                      Sau
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ADD/EDIT MAPPING MODAL POPUP */}
+            {showMappingModal && (
+              <div style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+              }}>
+                <div className="glass-card" style={{ width: '100%', maxWidth: '440px', padding: '32px', boxSizing: 'border-box' }}>
+                  <h3 style={{ margin: '0 0 20px 0', fontSize: '16px', fontWeight: '600', color: '#0f172a' }}>
+                    {isEditingMapping ? 'Cập nhật Mapping Keycode' : 'Thêm Mapping Keycode thủ công'}
+                  </h3>
+                  
+                  <form onSubmit={handleSaveMapping} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: '600', color: '#475569' }}>MÃ ĐỀ (KEYCODE)</label>
+                      <input 
+                        type="text" 
+                        placeholder="Nhập mã đề (e.g. Z9FH65)..."
+                        value={newKeycode}
+                        onChange={(e) => setNewKeycode(e.target.value)}
+                        className="glass-input"
+                        style={{ fontSize: '13px', textTransform: 'uppercase' }}
+                        disabled={isEditingMapping}
+                        required
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: '600', color: '#475569' }}>COURSE SCORING ID (UUID TỪ IIG ELEARNING)</label>
+                      <input 
+                        type="text" 
+                        placeholder="Nhập ID từ Elearning..."
+                        value={newCourseScoringId}
+                        onChange={(e) => setNewCourseScoringId(e.target.value)}
+                        className="glass-input"
+                        style={{ fontSize: '13px' }}
+                        required
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: '600', color: '#475569' }}>HỌ TÊN HỌC VIÊN (TÙY CHỌN)</label>
+                      <input 
+                        type="text" 
+                        placeholder="Nhập tên học viên (e.g. Nghi Nguyen)..."
+                        value={newStudentName}
+                        onChange={(e) => setNewStudentName(e.target.value)}
+                        className="glass-input"
+                        style={{ fontSize: '13px' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: '600', color: '#475569' }}>TÊN ĐỀ THI (TÙY CHỌN)</label>
+                      <input 
+                        type="text" 
+                        placeholder="Nhập tên đề thi..."
+                        value={newTestName}
+                        onChange={(e) => setNewTestName(e.target.value)}
+                        className="glass-input"
+                        style={{ fontSize: '13px' }}
+                      />
+                    </div>
+
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
+                      <button 
+                        type="button" 
+                        onClick={() => setShowMappingModal(false)} 
+                        className="btn-secondary"
+                        style={{ padding: '8px 16px', fontSize: '13px' }}
+                      >
+                        Hủy bỏ
+                      </button>
+                      <button 
+                        type="submit" 
+                        className="btn-primary"
+                        style={{ padding: '8px 16px', fontSize: '13px' }}
+                      >
+                        Lưu Mapping
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+              </div>
+            ) : <Navigate to="/submissions" replace />
+          } />
+
+          {/* AI AGENT MANAGEMENT TAB CONTENT */}
+          <Route path="/ai" element={
+            currentUser?.role === 'admin' ? (
+              <AgentManagementView showMsg={showMsg} />
+            ) : <Navigate to="/submissions" replace />
+          } />
+
+          {/* USER MANAGEMENT TAB CONTENT (Admin Only) */}
+          <Route path="/users" element={
+            currentUser?.role === 'admin' ? (
+              <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+            
+            {/* Users List (Full width) */}
+            <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={18} style={{ color: '#2563eb' }}/>
+                  Danh sách tài khoản hệ thống
+                </h3>
+                <button 
+                  onClick={() => {
+                    setNewUsername('');
+                    setNewPassword('');
+                    setNewRole('user');
+                    setIsEditingUser(false);
+                    setShowCreateModal(true);
+                  }}
+                  className="btn-primary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: '8px 16px' }}
+                >
+                  <Plus size={15}/> Thêm tài khoản
+                </button>
+              </div>
+
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {loadingUsers ? (
+                  <div style={{ textAlign: 'center', color: '#64748b', padding: '48px' }}>
+                    <RefreshCw className="spinner" size={24} style={{ marginBottom: '8px' }}/>
+                    <div>Đang tải danh sách users...</div>
+                  </div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                        <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: '600', color: '#475569', width: '60px' }}>STT</th>
+                        <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: '600', color: '#475569', width: '120px' }}>ID</th>
+                        <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: '600', color: '#475569' }}>Tên đăng nhập</th>
+                        <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: '600', color: '#475569' }}>Quyền hạn (Role)</th>
+                        <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: '600', color: '#475569' }}>Ngày tạo</th>
+                        <th style={{ padding: '14px 20px', fontSize: '12px', fontWeight: '600', color: '#475569', textAlign: 'right' }}>Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {usersList.map((userItem, index) => (
+                        <tr key={userItem.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '14px 20px', fontSize: '13px', color: '#64748b' }}>{index + 1}</td>
+                          <td style={{ padding: '14px 20px', color: '#64748b', fontSize: '12px', fontFamily: 'monospace' }} title={userItem.id}>
+                            {userItem.id ? `${userItem.id.substring(0, 8)}...` : ''}
+                          </td>
+                          <td style={{ padding: '14px 20px', fontWeight: '600', color: '#0f172a', fontSize: '14px' }}>{userItem.username}</td>
+                          <td style={{ padding: '14px 20px' }}>
+                            <span style={{ 
+                              background: userItem.role === 'admin' ? '#fef2f2' : '#ecfdf5',
+                              color: userItem.role === 'admin' ? '#b91c1c' : '#047857',
+                              padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600',
+                              border: userItem.role === 'admin' ? '1px solid #fee2e2' : '1px solid #d1fae5'
+                            }}>
+                              {userItem.role}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 20px', color: '#64748b', fontSize: '13px' }}>
+                            {userItem.created_at ? new Date(userItem.created_at).toLocaleDateString() : ''}
+                          </td>
+                          <td style={{ padding: '14px 20px', textAlign: 'right' }}>
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                              {/* Sửa User */}
+                              <button 
+                                onClick={() => {
+                                  setNewUsername(userItem.username);
+                                  setNewRole(userItem.role);
+                                  setNewPassword(''); // Trống nếu giữ nguyên
+                                  setIsEditingUser(true);
+                                  setEditingUserId(userItem.id);
+                                  setShowCreateModal(true);
+                                }}
+                                className="btn-secondary" 
+                                style={{ 
+                                  padding: '8px', 
+                                  borderRadius: '50%', 
+                                  display: 'inline-flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center',
+                                  background: 'transparent',
+                                  border: '1px solid #e2e8f0',
+                                  color: '#2563eb',
+                                  cursor: 'pointer'
+                                }}
+                                title="Sửa tài khoản"
+                              >
+                                <Edit2 size={14}/>
+                              </button>
+
+                              {/* Xóa User */}
+                              <button 
+                                disabled={userItem.username === currentUser?.username}
+                                onClick={() => handleDeleteUser(userItem.id)}
+                                className="btn-secondary" 
+                                style={{ 
+                                  padding: '8px', 
+                                  borderRadius: '50%', 
+                                  display: 'inline-flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center',
+                                  background: 'transparent',
+                                  border: '1px solid #fee2e2',
+                                  color: '#dc2626',
+                                  cursor: userItem.username === currentUser?.username ? 'not-allowed' : 'pointer',
+                                  opacity: userItem.username === currentUser?.username ? 0.4 : 1
+                                }}
+                                title="Xóa tài khoản"
+                              >
+                                <Trash2 size={14}/>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+
+            {/* CREATE USER POPUP MODAL */}
+            {showCreateModal && (
+              <div style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+              }}>
+                <div className="glass-card" style={{ width: '100%', maxWidth: '400px', padding: '32px', boxSizing: 'border-box' }}>
+                  <h3 style={{ margin: '0 0 20px 0', fontSize: '16px', fontWeight: '600', color: '#0f172a' }}>
+                    {isEditingUser ? 'Cập nhật tài khoản' : 'Thêm tài khoản mới'}
+                  </h3>
+                  
+                  <form onSubmit={handleSaveUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: '600', color: '#475569' }}>TÊN ĐĂNG NHẬP</label>
+                      <input 
+                        type="text" 
+                        placeholder="Nhập tên đăng nhập..."
+                        value={newUsername}
+                        onChange={(e) => setNewUsername(e.target.value)}
+                        className="glass-input"
+                        style={{ fontSize: '13px' }}
+                        required
+                        disabled={isEditingUser}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: '600', color: '#475569' }}>MẬT KHẨU</label>
+                      <input 
+                        type="password" 
+                        placeholder={isEditingUser ? 'Bỏ trống nếu giữ nguyên mật khẩu cũ...' : 'Nhập mật khẩu...'}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="glass-input"
+                        style={{ fontSize: '13px' }}
+                        required={!isEditingUser}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: '600', color: '#475569' }}>QUYỀN HẠN (ROLE)</label>
+                      <select 
+                        value={newRole}
+                        onChange={(e) => setNewRole(e.target.value)}
+                        className="glass-input"
+                        style={{ fontSize: '13px', padding: '10px' }}
+                      >
+                        <option value="user">User (Chỉ chấm bài)</option>
+                        <option value="admin">Admin (Toàn quyền)</option>
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
+                      <button 
+                        type="button" 
+                        onClick={() => setShowCreateModal(false)} 
+                        className="btn-secondary"
+                        style={{ padding: '8px 16px', fontSize: '13px' }}
+                      >
+                        Hủy bỏ
+                      </button>
+                      <button 
+                        type="submit" 
+                        className="btn-primary"
+                        style={{ padding: '8px 16px', fontSize: '13px' }}
+                      >
+                        {isEditingUser ? 'Lưu thay đổi' : 'Tạo tài khoản'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            </div>
+            ) : <Navigate to="/submissions" replace />
+          } />
+
+          <Route path="/" element={<Navigate to="/submissions" replace />} />
+          <Route path="*" element={<Navigate to="/submissions" replace />} />
+        </Routes>
+
+      </main>
+
+      {/* SYNC FROM ELEARNING POPUP MODAL (ROOT LEVEL) */}
+      {showSyncModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: '440px', padding: '32px', boxSizing: 'border-box' }}>
+            
+            {/* Trạng thái 1: Nhập cấu hình lọc đồng bộ */}
+            {syncStatus === 'idle' && (
+              <>
+                <h3 style={{ margin: '0 0 20px 0', fontSize: '16px', fontWeight: '600', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <RefreshCw size={18} style={{ color: '#059669' }}/>
+                  Cấu hình đồng bộ Elearning
+                </h3>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: '600', color: '#475569' }}>TỪ NGÀY NỘP</label>
+                      <input 
+                        type="date" 
+                        value={syncFromDate} 
+                        onChange={(e) => setSyncFromDate(e.target.value)} 
+                        className="glass-input"
+                        style={{ fontSize: '13px', padding: '8px 12px' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: '600', color: '#475569' }}>ĐẾN NGÀY NỘP</label>
+                      <input 
+                        type="date" 
+                        value={syncToDate} 
+                        onChange={(e) => setSyncToDate(e.target.value)} 
+                        className="glass-input"
+                        style={{ fontSize: '13px', padding: '8px 12px' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: '600', color: '#475569' }}>TỪ KHÓA TÌM KIẾM</label>
+                    <input 
+                      type="text" 
+                      placeholder="Nhập tên học sinh, tên đề thi..." 
+                      value={syncKeyword} 
+                      onChange={(e) => setSyncKeyword(e.target.value)} 
+                      className="glass-input"
+                      style={{ fontSize: '13px', padding: '8px 12px' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: '600', color: '#475569' }}>SỐ LƯỢNG TẢI (MAX PAGE SIZE)</label>
+                    <input 
+                      type="number" 
+                      min="10" 
+                      max="2000"
+                      value={syncPageSize} 
+                      onChange={(e) => setSyncPageSize(e.target.value)} 
+                      className="glass-input"
+                      style={{ fontSize: '13px', padding: '8px 12px' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
+                    <button 
+                      type="button" 
+                      onClick={() => setShowSyncModal(false)} 
+                      className="btn-secondary"
+                      style={{ padding: '8px 16px', fontSize: '13px' }}
+                    >
+                      Hủy bỏ
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={handleSyncMappings}
+                      className="btn-primary"
+                      style={{ padding: '8px 16px', fontSize: '13px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none' }}
+                    >
+                      Xác nhận đồng bộ
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Trạng thái 2: Đang tải (Loading) */}
+            {syncStatus === 'loading' && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 0', gap: '16px' }}>
+                <RefreshCw className="spinner" size={40} style={{ color: '#059669' }}/>
+                <div style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', textAlign: 'center' }}>Đang đồng bộ dữ liệu...</div>
+                <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'center' }}>Hệ thống đang truy xuất bài thi và ánh xạ keycode từ IIG Elearning. Quá trình này có thể mất vài chục giây.</div>
+              </div>
+            )}
+
+            {/* Trạng thái 3: Đồng bộ thành công (Success) */}
+            {syncStatus === 'success' && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px 0', gap: '16px' }}>
+                <div style={{
+                  width: '56px', height: '56px', borderRadius: '50%', background: '#ecfdf5',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981',
+                  border: '2px solid #a7f3d0'
+                }}>
+                  <CheckCircle size={32} />
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a' }}>Đồng bộ hoàn tất!</div>
+                <div style={{ fontSize: '14px', color: '#374151', textAlign: 'center', background: '#f0fdf4', padding: '10px 18px', borderRadius: '8px', border: '1px solid #d1fae5' }}>
+                  Đã ánh xạ và đồng bộ thành công <strong style={{ color: '#059669', fontSize: '16px' }}>{syncCount}</strong> keycode từ Elearning.
+                </div>
+                <button 
+                  onClick={() => setShowSyncModal(false)}
+                  className="btn-primary"
+                  style={{ padding: '8px 24px', fontSize: '13px', background: '#059669', border: 'none', marginTop: '8px' }}
+                >
+                  Hoàn thành
+                </button>
+              </div>
+            )}
+
+            {/* Trạng thái 4: Đồng bộ thất bại (Error) */}
+            {syncStatus === 'error' && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px 0', gap: '16px' }}>
+                <div style={{
+                  width: '56px', height: '56px', borderRadius: '50%', background: '#fef2f2',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444',
+                  border: '2px solid #fca5a5'
+                }}>
+                  <AlertTriangle size={32} />
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a' }}>Không thể đồng bộ</div>
+                <div style={{ fontSize: '13px', color: '#64748b', textAlign: 'center' }}>Vui lòng kiểm tra lại cấu hình bộ lọc hoặc phiên đăng nhập Elearning của bạn.</div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                  <button 
+                    onClick={() => setShowSyncModal(false)}
+                    className="btn-secondary"
+                    style={{ padding: '8px 16px', fontSize: '13px' }}
+                  >
+                    Đóng
+                  </button>
+                  <button 
+                    onClick={() => setSyncStatus('idle')}
+                    className="btn-primary"
+                    style={{ padding: '8px 16px', fontSize: '13px', background: '#ef4444', border: 'none' }}
+                  >
+                    Thử lại
+                  </button>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      {/* PULL SUBMISSION BY KEYCODE POPUP MODAL */}
+      {showPullModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: '400px', padding: '32px', boxSizing: 'border-box' }}>
+            
+            {/* Trạng thái 1: Nhập Keycode */}
+            {pullStatus === 'idle' && (
+              <>
+                <h3 style={{ margin: '0 0 20px 0', fontSize: '16px', fontWeight: '600', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Download size={18} style={{ color: '#2563eb' }}/>
+                  Kéo dữ liệu bài thi từ Elearning
+                </h3>
+                
+                <form onSubmit={handlePullSubmission} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: '600', color: '#475569' }}>MÃ KEYCODE BÀI THI</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ví dụ: MNTT4A, Z9FH65..." 
+                      value={pullKeycode} 
+                      onChange={(e) => setPullKeycode(e.target.value)} 
+                      className="glass-input"
+                      style={{ fontSize: '14px', padding: '10px 14px', textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '1px' }}
+                      required
+                      autoFocus
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
+                    <button 
+                      type="button" 
+                      onClick={() => setShowPullModal(false)} 
+                      className="btn-secondary"
+                      style={{ padding: '8px 16px', fontSize: '13px' }}
+                    >
+                      Hủy bỏ
+                    </button>
+                    <button 
+                      type="submit"
+                      className="btn-primary"
+                      style={{ padding: '8px 20px', fontSize: '13px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', border: 'none' }}
+                    >
+                      Xác nhận kéo bài
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+
+            {/* Trạng thái 2: Loading */}
+            {pullStatus === 'loading' && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 0', gap: '16px' }}>
+                <RefreshCw className="spinner" size={40} style={{ color: '#2563eb' }}/>
+                <div style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', textAlign: 'center' }}>Đang kéo dữ liệu bài thi...</div>
+                <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'center' }}>Hệ thống đang truy xuất file câu hỏi, câu trả lời, ghi âm bài thi của keycode <strong style={{ color: '#1e40af' }}>{pullKeycode.toUpperCase()}</strong> từ Elearning IIG. Vui lòng chờ trong giây lát.</div>
+              </div>
+            )}
+
+            {/* Trạng thái 3: Thành công (Success) */}
+            {pullStatus === 'success' && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px 0', gap: '16px' }}>
+                <div style={{
+                  width: '56px', height: '56px', borderRadius: '50%', background: '#ecfdf5',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981',
+                  border: '2px solid #a7f3d0'
+                }}>
+                  <CheckCircle size={32} />
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a' }}>Kéo bài thi thành công!</div>
+                <div style={{ fontSize: '13px', color: '#64748b', textAlign: 'center' }}>Đã đồng bộ trọn vẹn dữ liệu đề bài, câu trả lời và kết quả chấm của bài thi lên hệ thống local.</div>
+                
+                <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                  <button 
+                    onClick={() => setShowPullModal(false)}
+                    className="btn-secondary"
+                    style={{ padding: '8px 16px', fontSize: '13px' }}
+                  >
+                    Đóng
+                  </button>
+                  {pullResultId && (
+                    <button 
+                      onClick={() => {
+                        setShowPullModal(false);
+                        // Kích hoạt xem chi tiết bài thi
+                        setSelectedSubId(pullResultId);
+                      }}
+                      className="btn-primary"
+                      style={{ padding: '8px 20px', fontSize: '13px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none' }}
+                    >
+                      Xem bài chấm ngay
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Trạng thái 4: Lỗi (Error) */}
+            {pullStatus === 'error' && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px 0', gap: '16px' }}>
+                <div style={{
+                  width: '56px', height: '56px', borderRadius: '50%', background: '#fef2f2',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444',
+                  border: '2px solid #fca5a5'
+                }}>
+                  <AlertTriangle size={32} />
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a' }}>Kéo bài thi thất bại</div>
+                <div style={{ fontSize: '13px', color: '#64748b', textAlign: 'center' }}>Không tìm thấy bài thi hoặc keycode của bạn chưa có thông tin khớp trên Elearning API.</div>
+                
+                <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                  <button 
+                    onClick={() => setShowPullModal(false)}
+                    className="btn-secondary"
+                    style={{ padding: '8px 16px', fontSize: '13px' }}
+                  >
+                    Đóng
+                  </button>
+                  <button 
+                    onClick={() => setPullStatus('idle')}
+                    className="btn-primary"
+                    style={{ padding: '8px 16px', fontSize: '13px', background: '#ef4444', border: 'none' }}
+                  >
+                    Thử lại
+                  </button>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const AgentManagementView = ({ showMsg }) => {
+  const [agents, setAgents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+
+  // Form fields
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [apiEndpoint, setApiEndpoint] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [apiType, setApiType] = useState('Grading'); // STT or Grading
+  const [targetQuestions, setTargetQuestions] = useState([]);
+  const [showApiKey, setShowApiKey] = useState(false);
+
+  const SPEAKING_GROUPS = [
+    { key: 'sp_read_aloud', label: 'Speaking Q1-2: Read a Text Aloud' },
+    { key: 'sp_describe_pic', label: 'Speaking Q3-4: Describe a Picture' },
+    { key: 'sp_respond_q', label: 'Speaking Q5-7: Respond to Questions' },
+    { key: 'sp_respond_info', label: 'Speaking Q8-10: Respond to Questions Using Information Provided' },
+    { key: 'sp_opinion', label: 'Speaking Q11: Express an Opinion' },
+  ];
+
+  const WRITING_GROUPS = [
+    { key: 'w_picture', label: 'Writing Q1-5: Write a Sentence Based on a Picture' },
+    { key: 'w_email', label: 'Writing Q6-7: Respond to a Written Request' },
+    { key: 'w_text', label: 'Writing Q8: Write an Opinion Essay' },
+  ];
+
+  const fetchAgents = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get('/api/agents');
+      if (res.data.success) {
+        setAgents(res.data.data);
+      }
+    } catch (e) {
+      showMsg('error', 'Lỗi tải danh sách Agent: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAgents();
+  }, []);
+
+  const handleOpenCreate = () => {
+    setName('');
+    setDescription('');
+    setApiEndpoint('');
+    setApiKey('');
+    setApiType('Grading');
+    setTargetQuestions([]);
+    setIsEditing(false);
+    setShowModal(true);
+  };
+
+  const handleOpenEdit = (agent) => {
+    setName(agent.name);
+    setDescription(agent.description || '');
+    setApiEndpoint(agent.api_endpoint);
+    setApiKey(agent.api_key);
+    setApiType(agent.api_type);
+    setTargetQuestions(agent.target_questions || []);
+    setIsEditing(true);
+    setEditingId(agent.id);
+    setShowModal(true);
+  };
+
+  const handleToggleQuestion = (key) => {
+    if (targetQuestions.includes(key)) {
+      setTargetQuestions(targetQuestions.filter(k => k !== key));
+    } else {
+      setTargetQuestions([...targetQuestions, key]);
+    }
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!name.trim() || !apiEndpoint.trim() || !apiKey.trim()) {
+      showMsg('error', 'Vui lòng nhập đầy đủ các trường thông tin bắt buộc.');
+      return;
+    }
+
+    if (targetQuestions.length === 0) {
+      showMsg('error', 'Vui lòng chọn ít nhất một nhóm câu hỏi áp dụng.');
+      return;
+    }
+
+    // Constraint check
+    if (apiType === 'STT') {
+      const hasWriting = targetQuestions.some(q => q.startsWith('w_'));
+      if (hasWriting) {
+        showMsg('error', 'Transcribe Agent chỉ được gán cho các nhóm câu hỏi Speaking.');
+        return;
+      }
+    }
+
+    try {
+      const payload = {
+        name: name.trim(),
+        description: description.trim(),
+        api_endpoint: apiEndpoint.trim(),
+        api_key: apiKey.trim(),
+        api_type: apiType,
+        target_questions: targetQuestions
+      };
+
+      let res;
+      if (isEditing) {
+        res = await axios.put(`/api/agents/${editingId}`, payload);
+      } else {
+        res = await axios.post('/api/agents', payload);
+      }
+
+      if (res.data.success) {
+        showMsg('success', isEditing ? 'Cập nhật Agent thành công!' : 'Tạo Agent mới thành công!');
+        setShowModal(false);
+        fetchAgents();
+      }
+    } catch (err) {
+      showMsg('error', err.response?.data?.error || err.message);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa Agent này không?')) return;
+    try {
+      const res = await axios.delete(`/api/agents/${id}`);
+      if (res.data.success) {
+        showMsg('success', 'Xóa Agent thành công!');
+        fetchAgents();
+      }
+    } catch (err) {
+      showMsg('error', err.response?.data?.error || err.message);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', padding: '24px' }}>
+      <div style={{ display: 'flex', justifycontent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: 'var(--on-surface)', fontFamily: 'Lexend, sans-serif' }}>Quản lý AI Agents</h2>
+          <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--on-surface-var)' }}>Cấu hình linh hoạt endpoint và key cho từng loại câu hỏi thi.</p>
+        </div>
+        <button onClick={handleOpenCreate} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
+          Thêm Agent
+        </button>
+      </div>
+
+      {/* Agents Table List */}
+      <div className="glass-card" style={{ flex: 1, overflowY: 'auto', borderRadius: '16px' }}>
+        {loading ? (
+          <div style={{ padding: '64px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+            <span className="material-symbols-outlined spinner" style={{ fontSize: '32px', color: 'var(--primary)' }}>sync</span>
+            <span style={{ fontSize: '14px', color: 'var(--on-surface-var)' }}>Đang tải danh sách Agents...</span>
+          </div>
+        ) : agents.length === 0 ? (
+          <div style={{ padding: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', opacity: 0.6 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '48px', color: 'var(--on-surface-var)' }}>smart_toy</span>
+            <span style={{ fontSize: '14px', color: 'var(--on-surface-var)' }}>Chưa có AI Agent nào được cấu hình.</span>
+          </div>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.01)' }}>
+                <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: 'bold', color: 'var(--on-surface-var)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Tên Agent</th>
+                <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: 'bold', color: 'var(--on-surface-var)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Loại API</th>
+                <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: 'bold', color: 'var(--on-surface-var)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Endpoint</th>
+                <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: 'bold', color: 'var(--on-surface-var)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Nhóm áp dụng</th>
+                <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: 'bold', color: 'var(--on-surface-var)', textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: 'right' }}>Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {agents.map((agent) => (
+                <tr key={agent.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <td style={{ padding: '16px 20px' }}>
+                    <span style={{ fontSize: '14.5px', fontWeight: 'bold', color: 'var(--on-surface)', display: 'block' }}>{agent.name}</span>
+                    {agent.description && <span style={{ fontSize: '11px', color: 'var(--on-surface-var)' }}>{agent.description}</span>}
+                  </td>
+                  <td style={{ padding: '16px 20px' }}>
+                    <span style={{
+                      display: 'inline-flex', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold',
+                      background: agent.api_type === 'STT' ? 'rgba(0, 103, 126, 0.15)' : 'rgba(0, 85, 165, 0.15)',
+                      color: agent.api_type === 'STT' ? '#38bdf8' : '#60a5fa'
+                    }}>
+                      {agent.api_type === 'STT' ? 'Transcribe (STT)' : 'Grading (Chấm điểm)'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '16px 20px', fontSize: '13px', fontFamily: 'monospace', color: 'var(--on-surface-var)', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {agent.api_endpoint}
+                  </td>
+                  <td style={{ padding: '16px 20px', maxWidth: '300px' }}>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {(agent.target_questions || []).map((qKey) => {
+                        const allGroup = [...SPEAKING_GROUPS, ...WRITING_GROUPS];
+                        const found = allGroup.find(g => g.key === qKey);
+                        return (
+                          <span key={qKey} style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', color: 'var(--on-surface)', border: '1px solid rgba(255,255,255,0.08)' }} title={found?.label}>
+                            {qKey.replace('sp_', 'SP: ').replace('w_', 'WR: ').replace('_', ' ')}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      <button onClick={() => handleOpenEdit(agent)} className="btn-secondary" style={{ padding: '8px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center' }} title="Sửa">
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
+                      </button>
+                      <button onClick={() => handleDelete(agent.id)} className="btn-secondary" style={{ padding: '8px', borderRadius: '8px', color: 'var(--error)', border: '1px solid rgba(239, 68, 68, 0.1)', display: 'inline-flex', alignItems: 'center' }} title="Xóa">
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* CREATE / EDIT AGENT MODAL */}
+      {showModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: '640px', padding: '28px', boxSizing: 'border-box', overflowY: 'auto', maxHeight: '90vh' }}>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: 'bold', color: 'var(--on-surface)' }}>
+              {isEditing ? 'Cập nhật AI Agent' : 'Cấu hình Agent mới'}
+            </h3>
+
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--on-surface-var)' }}>TÊN AGENT *</label>
+                  <input type="text" placeholder="Ví dụ: Dify Speaking Q1-2..." value={name} onChange={(e) => setName(e.target.value)} className="glass-input" required />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--on-surface-var)' }}>LOẠI API *</label>
+                  <select value={apiType} onChange={(e) => {
+                    setApiType(e.target.value);
+                    if (e.target.value === 'STT') {
+                      // Filter out writing groups if STT selected
+                      setTargetQuestions(prev => prev.filter(q => !q.startsWith('w_')));
+                    }
+                  }} className="glass-input" style={{ padding: '10px' }}>
+                    <option value="Grading">Grading (Chấm điểm & STT kết hợp)</option>
+                    <option value="STT">Transcribe (STT riêng biệt)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--on-surface-var)' }}>MÔ TẢ NGẮN</label>
+                <input type="text" placeholder="Nhập mô tả về nhiệm vụ của Agent..." value={description} onChange={(e) => setDescription(e.target.value)} className="glass-input" />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--on-surface-var)' }}>API ENDPOINT *</label>
+                <input type="text" placeholder="http://178.105.45.146:8080/v1" value={apiEndpoint} onChange={(e) => setApiEndpoint(e.target.value)} className="glass-input" required />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--on-surface-var)' }}>API KEY *</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input type={showApiKey ? 'text' : 'password'} placeholder="app-..." value={apiKey} onChange={(e) => setApiKey(e.target.value)} className="glass-input" style={{ width: '100%', paddingRight: '40px' }} required />
+                  <button type="button" onClick={() => setShowApiKey(!showApiKey)} style={{ position: 'absolute', right: '12px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-surface-var)' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{showApiKey ? 'visibility_off' : 'visibility'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Targets question group */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--on-surface-var)' }}>CHỌN NHÓM CÂU HỎI ÁP DỤNG *</label>
+                
+                {/* speaking */}
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#22c55e' }}>mic</span>
+                    <span style={{ fontSize: '12.5px', fontWeight: 'bold', color: '#22c55e' }}>Speaking Groups</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {SPEAKING_GROUPS.map((g) => (
+                      <label key={g.key} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: 'var(--on-surface)' }}>
+                        <input type="checkbox" checked={targetQuestions.includes(g.key)} onChange={() => handleToggleQuestion(g.key)} style={{ width: '16px', height: '16px' }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* writing (Only show if type is Grading) */}
+                {apiType === 'Grading' && (
+                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', marginTop: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#3b82f6' }}>edit_note</span>
+                      <span style={{ fontSize: '12.5px', fontWeight: 'bold', color: '#3b82f6' }}>Writing Groups</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {WRITING_GROUPS.map((g) => (
+                        <label key={g.key} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: 'var(--on-surface)' }}>
+                          <input type="checkbox" checked={targetQuestions.includes(g.key)} onChange={() => handleToggleQuestion(g.key)} style={{ width: '16px', height: '16px' }} />
+                          {g.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px' }}>
+                <button type="button" onClick={() => setShowModal(false)} className="btn-secondary" style={{ padding: '10px 20px' }}>Hủy bỏ</button>
+                <button type="submit" className="btn-primary" style={{ padding: '10px 20px' }}>Lưu cấu hình</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;

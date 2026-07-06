@@ -1,0 +1,875 @@
+[
+  {
+    "courseScoringId": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+    "courseScoringType": 4,
+    "questionnaires": null,
+    "mckTestResponse": [
+      {
+        "mocktestSectionId": "7263F81C-1749-46DC-BCC0-CC3C0A0CC5BA",
+        "name": "Speaking",
+        "questionnaires": [
+          {
+            "questionnaireId": "3552D705-E152-4F22-9428-68F80E485874",
+            "name": "TOEIC_SW03S - Question 01",
+            "type": 14,
+            "introContent": "",
+            "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+            "mocktestKeyCodeFullName": null,
+            "mocktestSectionSortOrder": 1,
+            "mocktestPartSortOrder": 1,
+            "questionnaireSortOrder": 1,
+            "questions": [
+              {
+                "mocktestSectionId": "7263F81C-1749-46DC-BCC0-CC3C0A0CC5BA",
+                "chooseId": "D1529AAA-40F1-48E4-86C0-92785441BC7A",
+                "status": 1,
+                "questionId": "5620B7D5-9490-4484-BA3E-6787BCCFBF56",
+                "questionnaireId": "3552D705-E152-4F22-9428-68F80E485874",
+                "writingAnswer": null,
+                "recordingFileId": "46B9D13B-2A27-4272-BCBE-15110E2F5A5D",
+                "sortOrder": 1,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 1
+              }
+            ],
+            "leftSections": [
+              {
+                "id": "6157BDD1-F4C3-46FB-91CC-4F877419078D",
+                "questionnaireId": "00000000-0000-0000-0000-000000000000",
+                "sortOrder": 0,
+                "title": "Question 1: Read a Text Aloud",
+                "audioFileId": null,
+                "imageFileId": null,
+                "textScript": "",
+                "textContent": "<h4>I'm Rebecca, representing the Ama Tours, and I extend a warm welcome to all of you in breathtaking Lombok. Are you tired after a long flight? I hope you're not. Now, let's take a moment to get acquainted with some important safety rules. First, please stay seated until we arrive at our destination and avoid eating, drinking, or standing while on the bus. Also, keep in mind that it's illegal to hit the bottle too hard in public. If you have any questions, please ask me. Thank you!</h4>\n",
+                "spaceTime": null,
+                "evaluateManner": "",
+                "videoId": null,
+                "audioDuration": null,
+                "sample": "<p>I'm Rebecca, representing the Ama Tours, and I extend a warm welcome to all of you in breathtaking Lombok. Are you tired after a long flight? I hope you're not. Now, let's take a moment to get acquainted with some important safety rules. First, please stay seated until we arrive at our destination and avoid eating, drinking, or standing while on the bus. Also, keep in mind that it's illegal to hit the bottle too hard in public. If you have any questions, please ask me. Thank you!</p>\n"
+              }
+            ]
+          },
+          {
+            "questionnaireId": "4B4A7434-070F-45EE-ABB6-5593EDEF6C77",
+            "name": "TOEIC_SW03S - Question 02",
+            "type": 14,
+            "introContent": "",
+            "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+            "mocktestKeyCodeFullName": null,
+            "mocktestSectionSortOrder": 1,
+            "mocktestPartSortOrder": 1,
+            "questionnaireSortOrder": 2,
+            "questions": [
+              {
+                "mocktestSectionId": "7263F81C-1749-46DC-BCC0-CC3C0A0CC5BA",
+                "chooseId": "7D37639A-35BB-450F-83C0-A2A40EEDFC05",
+                "status": 1,
+                "questionId": "B0DC4DB6-2A99-4EE3-9044-A12D7816603F",
+                "questionnaireId": "4B4A7434-070F-45EE-ABB6-5593EDEF6C77",
+                "writingAnswer": null,
+                "recordingFileId": "B7A5F94A-2D7D-4FFC-814E-259E10DBF2A6",
+                "sortOrder": 1,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 2
+              }
+            ],
+            "leftSections": [
+              {
+                "id": "66731652-6036-43DE-AE41-5A637A3B0A99",
+                "questionnaireId": "00000000-0000-0000-0000-000000000000",
+                "sortOrder": 0,
+                "title": "Question 2: Read a Text Aloud",
+                "audioFileId": null,
+                "imageFileId": null,
+                "textScript": "",
+                "textContent": "<h4>Have you ever wondered what makes the local bakery's chocolate cake so famous? It's been a city favorite for years, thanks to its rich, moist texture and amazing flavor. The secret? A special blend of high-quality cocoa and a touch of love. Baker and owner Emily Jones recently revealed the recipe at a special event named 'Bake with Emily'. The event featured hands-on baking workshops, a tasting session, and a meet-and-greet with Emily, allowing the community to learn the secrets behind their favorite treat.</h4>\n",
+                "spaceTime": null,
+                "evaluateManner": "",
+                "videoId": null,
+                "audioDuration": null,
+                "sample": "Have you ever wondered what makes the local bakery's chocolate cake so famous? It's been a city favorite for years, thanks to its rich, moist texture and amazing flavor. The secret? A special blend of high-quality cocoa and a touch of love. Baker and owner Emily Jones recently revealed the recipe at a special event named 'Bake with Emily'. The event featured hands-on baking workshops, a tasting session, and a meet-and-greet with Emily, allowing the community to learn the secrets behind their favorite treat."
+              }
+            ]
+          },
+          {
+            "questionnaireId": "C510440D-3DE6-449B-97E1-86455F7C6447",
+            "name": "TOEIC_SW03S - Question 03",
+            "type": 13,
+            "introContent": "",
+            "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+            "mocktestKeyCodeFullName": null,
+            "mocktestSectionSortOrder": 1,
+            "mocktestPartSortOrder": 2,
+            "questionnaireSortOrder": 1,
+            "questions": [
+              {
+                "mocktestSectionId": "7263F81C-1749-46DC-BCC0-CC3C0A0CC5BA",
+                "chooseId": "B2156781-F026-4E7E-B103-F921B073376B",
+                "status": 1,
+                "questionId": "0F0B8FA6-E478-494B-81CD-9C3A12522C7D",
+                "questionnaireId": "C510440D-3DE6-449B-97E1-86455F7C6447",
+                "writingAnswer": null,
+                "recordingFileId": "BF62C57F-3F34-4061-8763-08EC15F222C2",
+                "sortOrder": 1,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 3
+              }
+            ],
+            "leftSections": [
+              {
+                "id": "BAB4FE1D-AE85-4796-ABC3-4FEB2731AB9F",
+                "questionnaireId": "00000000-0000-0000-0000-000000000000",
+                "sortOrder": 0,
+                "title": "Question 3: Describe a Picture",
+                "audioFileId": null,
+                "imageFileId": null,
+                "textScript": "",
+                "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/9cacd2a9-bca4-43f7-963f-9ecd7ff4d0a5/default_image_9cacd2a9-bca4-43f7-963f-9ecd7ff4d0a5_sp_03_1721643500119.jpg\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<p></p>\n",
+                "spaceTime": null,
+                "evaluateManner": "",
+                "videoId": null,
+                "audioDuration": null,
+                "sample": null
+              }
+            ]
+          },
+          {
+            "questionnaireId": "63444584-091E-4A87-AE00-E0E742F47BA0",
+            "name": "TOEIC_SW03S - Question 04",
+            "type": 13,
+            "introContent": "",
+            "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+            "mocktestKeyCodeFullName": null,
+            "mocktestSectionSortOrder": 1,
+            "mocktestPartSortOrder": 2,
+            "questionnaireSortOrder": 2,
+            "questions": [
+              {
+                "mocktestSectionId": "7263F81C-1749-46DC-BCC0-CC3C0A0CC5BA",
+                "chooseId": "C9F73410-5175-4C83-85C6-58658FB076B5",
+                "status": 1,
+                "questionId": "26310BAE-D0F1-4A01-8379-EF769E0D5352",
+                "questionnaireId": "63444584-091E-4A87-AE00-E0E742F47BA0",
+                "writingAnswer": null,
+                "recordingFileId": "09C596D1-B6D6-43DE-97C2-0F3D02AD7A23",
+                "sortOrder": 1,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 4
+              }
+            ],
+            "leftSections": [
+              {
+                "id": "309E1EFE-C06F-4486-A82F-A8548A66D22A",
+                "questionnaireId": "00000000-0000-0000-0000-000000000000",
+                "sortOrder": 0,
+                "title": "Question 4: Describe a Picture",
+                "audioFileId": null,
+                "imageFileId": null,
+                "textScript": "",
+                "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/cb482cbf-35df-4f9f-a958-cd591eaf5f2d/default_image_cb482cbf-35df-4f9f-a958-cd591eaf5f2d_sp_04_1721643512293.jpg\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<p></p>\n",
+                "spaceTime": null,
+                "evaluateManner": "",
+                "videoId": null,
+                "audioDuration": null,
+                "sample": null
+              }
+            ]
+          },
+          {
+            "questionnaireId": "490B8C7F-FC0B-4B84-9099-C3426DA983B0",
+            "name": "TOEIC_SW03S - Question 05-07",
+            "type": 13,
+            "introContent": "",
+            "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+            "mocktestKeyCodeFullName": null,
+            "mocktestSectionSortOrder": 1,
+            "mocktestPartSortOrder": 3,
+            "questionnaireSortOrder": 1,
+            "questions": [
+              {
+                "mocktestSectionId": "7263F81C-1749-46DC-BCC0-CC3C0A0CC5BA",
+                "chooseId": "DDCA60EC-9852-4F5F-80A6-E4B7F8A03628",
+                "status": 1,
+                "questionId": "9428A8D5-933C-4010-942F-250B7EC153B3",
+                "questionnaireId": "490B8C7F-FC0B-4B84-9099-C3426DA983B0",
+                "writingAnswer": null,
+                "recordingFileId": "6BE67FF1-3CFE-4E18-A011-5D5BD5C1035C",
+                "sortOrder": 1,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 5
+              },
+              {
+                "mocktestSectionId": "7263F81C-1749-46DC-BCC0-CC3C0A0CC5BA",
+                "chooseId": "D8FFA292-5B5D-4B95-8636-17450D7A87BB",
+                "status": 1,
+                "questionId": "3EB31FFD-3201-47B9-B477-E699B631938B",
+                "questionnaireId": "490B8C7F-FC0B-4B84-9099-C3426DA983B0",
+                "writingAnswer": null,
+                "recordingFileId": "CC75B326-440D-47C1-9CC6-3D222FAF81BD",
+                "sortOrder": 2,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 6
+              },
+              {
+                "mocktestSectionId": "7263F81C-1749-46DC-BCC0-CC3C0A0CC5BA",
+                "chooseId": "47E2371D-C18C-4E69-A795-C30E6B845184",
+                "status": 1,
+                "questionId": "F5853EDC-A211-45B8-83A1-033DE6171EE9",
+                "questionnaireId": "490B8C7F-FC0B-4B84-9099-C3426DA983B0",
+                "writingAnswer": null,
+                "recordingFileId": "89B0A524-D360-40D2-9061-C902966F35E0",
+                "sortOrder": 3,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 7
+              }
+            ],
+            "leftSections": [
+              {
+                "id": "F4873B58-8DA1-4DEF-A754-0070E54ABCFB",
+                "questionnaireId": "00000000-0000-0000-0000-000000000000",
+                "sortOrder": 0,
+                "title": "Questions 5-7: Respond to Questions",
+                "audioFileId": "8277950F-6F65-41BF-8DE1-40AEE71521D1",
+                "imageFileId": null,
+                "textScript": "",
+                "textContent": "<h4>Imagine that a tourism magazine is doing research in your country. You have agreed to participate in a telephone interview about traveling abroad.</h4>\n",
+                "spaceTime": null,
+                "evaluateManner": "",
+                "videoId": null,
+                "audioDuration": null,
+                "sample": null
+              }
+            ]
+          },
+          {
+            "questionnaireId": "5AB1B698-3FA7-4429-ABD4-203CD6AE927B",
+            "name": "TOEIC_SW03S - Question 08-10",
+            "type": 13,
+            "introContent": "",
+            "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+            "mocktestKeyCodeFullName": null,
+            "mocktestSectionSortOrder": 1,
+            "mocktestPartSortOrder": 4,
+            "questionnaireSortOrder": 1,
+            "questions": [
+              {
+                "mocktestSectionId": "7263F81C-1749-46DC-BCC0-CC3C0A0CC5BA",
+                "chooseId": "21CF27AA-127F-4F25-9FC2-D1395FE879F0",
+                "status": 1,
+                "questionId": "E83799E5-2F5A-43B1-BD15-B55108BD489B",
+                "questionnaireId": "5AB1B698-3FA7-4429-ABD4-203CD6AE927B",
+                "writingAnswer": null,
+                "recordingFileId": "C6E76154-A75B-4B0C-92B4-AC44455D9E7E",
+                "sortOrder": 1,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 8
+              },
+              {
+                "mocktestSectionId": "7263F81C-1749-46DC-BCC0-CC3C0A0CC5BA",
+                "chooseId": "60BDF7E6-DFA5-4241-976F-4E1BE5151621",
+                "status": 1,
+                "questionId": "B58D4B91-DAB8-4800-89B3-C5ABC3E5BB98",
+                "questionnaireId": "5AB1B698-3FA7-4429-ABD4-203CD6AE927B",
+                "writingAnswer": null,
+                "recordingFileId": "3D4F3728-5248-4E4F-AFA7-0D3E8629FB57",
+                "sortOrder": 2,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 9
+              },
+              {
+                "mocktestSectionId": "7263F81C-1749-46DC-BCC0-CC3C0A0CC5BA",
+                "chooseId": "CDBF61F9-B6CC-4BCC-8D51-10B1DCAF6B67",
+                "status": 1,
+                "questionId": "894CF8CC-C559-48F2-AC11-3B1B56A6668A",
+                "questionnaireId": "5AB1B698-3FA7-4429-ABD4-203CD6AE927B",
+                "writingAnswer": null,
+                "recordingFileId": "5638998D-46A1-4E7F-8FC1-5A3AC7036E77",
+                "sortOrder": 3,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 10
+              }
+            ],
+            "leftSections": [
+              {
+                "id": "3A262F26-9748-4013-A062-FF887FE99AAC",
+                "questionnaireId": "00000000-0000-0000-0000-000000000000",
+                "sortOrder": 0,
+                "title": "Questions 8-10: Respond to Questions Using Information Provided",
+                "audioFileId": "74538749-519E-450F-A4E6-4B996410E414",
+                "imageFileId": null,
+                "textScript": "M: Hello Emma, this is Andrew Evans. I have scheduled interviews for candidates for our new projects next Thursday. However, I'm currently on vacation and don't have access to the interview schedule. Could you please help me with the details?",
+                "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/968836a6-d22f-4fce-86cc-36eea072be69/default_image_968836a6-d22f-4fce-86cc-36eea072be69_sp_08-10_1727235882412.png\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<p></p>\n",
+                "spaceTime": null,
+                "evaluateManner": "",
+                "videoId": null,
+                "audioDuration": null,
+                "sample": null
+              }
+            ]
+          },
+          {
+            "questionnaireId": "91A291FD-CA74-4F3A-BFC0-4B775B549B67",
+            "name": "TOEIC_SW03S - Question 11",
+            "type": 13,
+            "introContent": "",
+            "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+            "mocktestKeyCodeFullName": null,
+            "mocktestSectionSortOrder": 1,
+            "mocktestPartSortOrder": 5,
+            "questionnaireSortOrder": 1,
+            "questions": [
+              {
+                "mocktestSectionId": "7263F81C-1749-46DC-BCC0-CC3C0A0CC5BA",
+                "chooseId": "E86528AD-185B-40D0-BAF3-B64796AFC54E",
+                "status": 1,
+                "questionId": "835E2612-99C2-4873-A757-166DD7B595B7",
+                "questionnaireId": "91A291FD-CA74-4F3A-BFC0-4B775B549B67",
+                "writingAnswer": null,
+                "recordingFileId": "B4AAF84F-4483-4254-8ED1-A76B295F3A3F",
+                "sortOrder": 1,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 11
+              }
+            ],
+            "leftSections": [
+              {
+                "id": "F7B735AC-3C49-4E4E-9674-03C9EB4D4CC7",
+                "questionnaireId": "00000000-0000-0000-0000-000000000000",
+                "sortOrder": 0,
+                "title": "Question 11: Express an Opinion",
+                "audioFileId": "06638CF4-FC5F-460D-B5F2-D550A094FC89",
+                "imageFileId": null,
+                "textScript": "",
+                "textContent": "<h4>Do you agree or disagree with the practice of companies laying off older employees in order to hire new employees at lower salaries? Provide reasons and examples to support your opinion.</h4>\n",
+                "spaceTime": null,
+                "evaluateManner": "",
+                "videoId": null,
+                "audioDuration": null,
+                "sample": null
+              }
+            ]
+          }
+        ],
+        "groupScores": [
+          {
+            "id": "638FB747-5E98-41BD-A8F9-85EB80024F29",
+            "name": "Read text aloud",
+            "values": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "selectedScore": null,
+            "fromQuestion": 1,
+            "toQuestion": 2,
+            "sortOrder": 0,
+            "mocktestSectionId": "7263F81C-1749-46DC-BCC0-CC3C0A0CC5BA"
+          },
+          {
+            "id": "05AA377B-28F0-413A-8681-06C833C9A8E8",
+            "name": "Describe a picture",
+            "values": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "selectedScore": null,
+            "fromQuestion": 3,
+            "toQuestion": 4,
+            "sortOrder": 1,
+            "mocktestSectionId": "7263F81C-1749-46DC-BCC0-CC3C0A0CC5BA"
+          },
+          {
+            "id": "E5C302D4-18FF-4AAB-9072-BA853A294CBC",
+            "name": "Respond to questions",
+            "values": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "selectedScore": null,
+            "fromQuestion": 5,
+            "toQuestion": 10,
+            "sortOrder": 2,
+            "mocktestSectionId": "7263F81C-1749-46DC-BCC0-CC3C0A0CC5BA"
+          },
+          {
+            "id": "C94EDCF3-77A7-4E5B-B9BB-01B1AC2B1ACD",
+            "name": "Express an opinion",
+            "values": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "selectedScore": null,
+            "fromQuestion": 11,
+            "toQuestion": 11,
+            "sortOrder": 3,
+            "mocktestSectionId": "7263F81C-1749-46DC-BCC0-CC3C0A0CC5BA"
+          }
+        ],
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+        "mocktestKeyCodeFullName": null,
+        "mocktestId": "5DBC6E52-7BF5-4658-951D-EFA6553542B7"
+      },
+      {
+        "mocktestSectionId": "309E36B1-5488-493A-BA9D-2FF825833467",
+        "name": "Writing",
+        "questionnaires": [
+          {
+            "questionnaireId": "916129B1-371D-41EF-8865-C2570848355E",
+            "name": "TOEIC_SW03W - Question 01",
+            "type": 15,
+            "introContent": "",
+            "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+            "mocktestKeyCodeFullName": null,
+            "mocktestSectionSortOrder": 2,
+            "mocktestPartSortOrder": 1,
+            "questionnaireSortOrder": 1,
+            "questions": [
+              {
+                "mocktestSectionId": "309E36B1-5488-493A-BA9D-2FF825833467",
+                "chooseId": "59D03089-2453-4677-B6C8-7763FB3E6C82",
+                "status": 1,
+                "questionId": "E9F403DE-E69F-4840-9FC3-9E39CD7EFE71",
+                "questionnaireId": "916129B1-371D-41EF-8865-C2570848355E",
+                "writingAnswer": "The server is asking customer before pouring the wine. ",
+                "recordingFileId": null,
+                "sortOrder": 1,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 1
+              }
+            ],
+            "leftSections": [
+              {
+                "id": "F2FE8EBD-4324-406D-81F7-87C418F542D2",
+                "questionnaireId": "00000000-0000-0000-0000-000000000000",
+                "sortOrder": 0,
+                "title": "Question 1: Write a sentence based on a picture",
+                "audioFileId": null,
+                "imageFileId": null,
+                "textScript": "",
+                "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/c147c036-ab7b-4ef7-bd7e-bac4ec6ca171/default_image_c147c036-ab7b-4ef7-bd7e-bac4ec6ca171_wr_01_1721641636844.jpg\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<h4 style=\"text-align:center;\">before / wine</h4>\n",
+                "spaceTime": null,
+                "evaluateManner": "",
+                "videoId": null,
+                "audioDuration": null,
+                "sample": null
+              }
+            ]
+          },
+          {
+            "questionnaireId": "BEBADFB7-335A-4535-B627-FE3A1E5C6272",
+            "name": "TOEIC_SW03W - Question 02",
+            "type": 15,
+            "introContent": "",
+            "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+            "mocktestKeyCodeFullName": null,
+            "mocktestSectionSortOrder": 2,
+            "mocktestPartSortOrder": 1,
+            "questionnaireSortOrder": 2,
+            "questions": [
+              {
+                "mocktestSectionId": "309E36B1-5488-493A-BA9D-2FF825833467",
+                "chooseId": "6C9D9E88-D84F-4D96-BEE3-8233D50DBE32",
+                "status": 1,
+                "questionId": "61254853-C622-482E-87CD-455DBDC4AC99",
+                "questionnaireId": "BEBADFB7-335A-4535-B627-FE3A1E5C6272",
+                "writingAnswer": "The man is holding a map and looking at a picture in a camera. ",
+                "recordingFileId": null,
+                "sortOrder": 1,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 2
+              }
+            ],
+            "leftSections": [
+              {
+                "id": "E1453065-E604-44EE-A775-4A815FA30FAA",
+                "questionnaireId": "00000000-0000-0000-0000-000000000000",
+                "sortOrder": 0,
+                "title": "Question 2: Write a sentence based on a picture",
+                "audioFileId": null,
+                "imageFileId": null,
+                "textScript": "",
+                "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/f4209ea4-2cec-471f-a321-bfd7efd73dea/default_image_f4209ea4-2cec-471f-a321-bfd7efd73dea_wr_02_1721641656093.jpg\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<h4 style=\"text-align:center;\">map / at</h4>\n",
+                "spaceTime": null,
+                "evaluateManner": "",
+                "videoId": null,
+                "audioDuration": null,
+                "sample": null
+              }
+            ]
+          },
+          {
+            "questionnaireId": "CB4A927D-4E8B-45D4-88D4-533B01DD194F",
+            "name": "TOEIC_SW03W - Question 03",
+            "type": 15,
+            "introContent": "",
+            "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+            "mocktestKeyCodeFullName": null,
+            "mocktestSectionSortOrder": 2,
+            "mocktestPartSortOrder": 1,
+            "questionnaireSortOrder": 3,
+            "questions": [
+              {
+                "mocktestSectionId": "309E36B1-5488-493A-BA9D-2FF825833467",
+                "chooseId": "D99CB907-EF71-4D94-B37D-975BA38AD9B7",
+                "status": 1,
+                "questionId": "4C95746A-E52F-4E64-A450-D610F587D910",
+                "questionnaireId": "CB4A927D-4E8B-45D4-88D4-533B01DD194F",
+                "writingAnswer": "All peope in the meeting room are listening the presentaion of the man. ",
+                "recordingFileId": null,
+                "sortOrder": 1,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 3
+              }
+            ],
+            "leftSections": [
+              {
+                "id": "943A7A64-C404-4561-B429-A3BCBCAC49E3",
+                "questionnaireId": "00000000-0000-0000-0000-000000000000",
+                "sortOrder": 0,
+                "title": "Question 3: Write a sentence based on a picture",
+                "audioFileId": null,
+                "imageFileId": null,
+                "textScript": "",
+                "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/8b9e9fd5-c48d-4789-bd6e-4d87f2441226/default_image_8b9e9fd5-c48d-4789-bd6e-4d87f2441226_wr_03_1721641671297.jpg\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<h4 style=\"text-align:center;\">listen / man</h4>\n",
+                "spaceTime": null,
+                "evaluateManner": "",
+                "videoId": null,
+                "audioDuration": null,
+                "sample": null
+              }
+            ]
+          },
+          {
+            "questionnaireId": "17A5BAD1-75F4-4FA3-9F8E-475D5C1BEEA2",
+            "name": "TOEIC_SW03W - Question 04",
+            "type": 15,
+            "introContent": "",
+            "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+            "mocktestKeyCodeFullName": null,
+            "mocktestSectionSortOrder": 2,
+            "mocktestPartSortOrder": 1,
+            "questionnaireSortOrder": 4,
+            "questions": [
+              {
+                "mocktestSectionId": "309E36B1-5488-493A-BA9D-2FF825833467",
+                "chooseId": "28374503-601C-456F-9436-71FB93231F74",
+                "status": 1,
+                "questionId": "9A34172E-3113-4897-90F4-E841A7638B21",
+                "questionnaireId": "17A5BAD1-75F4-4FA3-9F8E-475D5C1BEEA2",
+                "writingAnswer": "The couter is giving a card for her after she paid. ",
+                "recordingFileId": null,
+                "sortOrder": 1,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 4
+              }
+            ],
+            "leftSections": [
+              {
+                "id": "87C6F5E2-D841-4117-BE43-A57310299535",
+                "questionnaireId": "00000000-0000-0000-0000-000000000000",
+                "sortOrder": 0,
+                "title": "Question 4: Write a sentence based on a picture",
+                "audioFileId": null,
+                "imageFileId": null,
+                "textScript": "",
+                "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/8893e60c-87f8-4c3a-bcba-06f40e7c52b7/default_image_8893e60c-87f8-4c3a-bcba-06f40e7c52b7_wr_04_1721641690065.jpg\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<h4 style=\"text-align:center;\">counter / card</h4>\n",
+                "spaceTime": null,
+                "evaluateManner": "",
+                "videoId": null,
+                "audioDuration": null,
+                "sample": null
+              }
+            ]
+          },
+          {
+            "questionnaireId": "89529092-680C-4FDB-8DBF-0E6C79364A0E",
+            "name": "TOEIC_SW03W - Question 05",
+            "type": 15,
+            "introContent": "",
+            "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+            "mocktestKeyCodeFullName": null,
+            "mocktestSectionSortOrder": 2,
+            "mocktestPartSortOrder": 1,
+            "questionnaireSortOrder": 5,
+            "questions": [
+              {
+                "mocktestSectionId": "309E36B1-5488-493A-BA9D-2FF825833467",
+                "chooseId": "2D655955-746F-4C22-9282-06BF60A81047",
+                "status": 1,
+                "questionId": "5B9B6789-1CD0-4CEF-8DD5-B4F5974B777F",
+                "questionnaireId": "89529092-680C-4FDB-8DBF-0E6C79364A0E",
+                "writingAnswer": "The woman is sorting the wastes for the different box. ",
+                "recordingFileId": null,
+                "sortOrder": 1,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 5
+              }
+            ],
+            "leftSections": [
+              {
+                "id": "C85C5C52-3E5F-4B36-8A3F-7710E918DD48",
+                "questionnaireId": "00000000-0000-0000-0000-000000000000",
+                "sortOrder": 0,
+                "title": "Question 5: Write a sentence based on a picture",
+                "audioFileId": null,
+                "imageFileId": null,
+                "textScript": "",
+                "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/1144b11d-d3fc-4d88-9ae7-2bd064308be8/default_image_1144b11d-d3fc-4d88-9ae7-2bd064308be8_wr_05_1721641707512.jpg\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<h4 style=\"text-align:center;\">different / waste</h4>\n",
+                "spaceTime": null,
+                "evaluateManner": "",
+                "videoId": null,
+                "audioDuration": null,
+                "sample": null
+              }
+            ]
+          },
+          {
+            "questionnaireId": "388C4ECC-D100-413F-8A9E-7310D7AA5FFF",
+            "name": "TOEIC_SW03W - Question 06",
+            "type": 15,
+            "introContent": "",
+            "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+            "mocktestKeyCodeFullName": null,
+            "mocktestSectionSortOrder": 2,
+            "mocktestPartSortOrder": 2,
+            "questionnaireSortOrder": 1,
+            "questions": [
+              {
+                "mocktestSectionId": "309E36B1-5488-493A-BA9D-2FF825833467",
+                "chooseId": "33041065-338A-45AD-BDA9-C92DDF0145E4",
+                "status": 1,
+                "questionId": "E8A91D6D-112F-4C6D-8246-9E57F512F747",
+                "questionnaireId": "388C4ECC-D100-413F-8A9E-7310D7AA5FFF",
+                "writingAnswer": "Dear Ms. Archer, \nThank you for your email. I am afraid when the Statue of Liberty Tour is cancelled because we do not have enough guides for the trip. Ensuring the safety for all of customers we must cancel but we will look for more talented guides for the trip. If we have enough guides, we will open form for all of you ane will discout 10% for the trip so we are looking forward to your form. \nBest wishes, \nCoco Trip Tours Customer Service",
+                "recordingFileId": null,
+                "sortOrder": 1,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 6
+              }
+            ],
+            "leftSections": [
+              {
+                "id": "C685ACAB-3BCA-430A-994B-18C4C0E0C613",
+                "questionnaireId": "00000000-0000-0000-0000-000000000000",
+                "sortOrder": 0,
+                "title": "Question 6: Respond to a written request",
+                "audioFileId": null,
+                "imageFileId": null,
+                "textScript": null,
+                "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/4813144b-ecea-486a-9e0f-c784cbe97250/default_image_4813144b-ecea-486a-9e0f-c784cbe97250_wr_06_1727236936369.png\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<p></p>\n",
+                "spaceTime": null,
+                "evaluateManner": null,
+                "videoId": null,
+                "audioDuration": null,
+                "sample": null
+              }
+            ]
+          },
+          {
+            "questionnaireId": "B4144110-A313-4E69-AEC8-EB3EDD49275E",
+            "name": "TOEIC_SW03W - Question 07",
+            "type": 15,
+            "introContent": "",
+            "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+            "mocktestKeyCodeFullName": null,
+            "mocktestSectionSortOrder": 2,
+            "mocktestPartSortOrder": 3,
+            "questionnaireSortOrder": 1,
+            "questions": [
+              {
+                "mocktestSectionId": "309E36B1-5488-493A-BA9D-2FF825833467",
+                "chooseId": "A59F94B8-35F1-442D-8682-CE76C27FB6A0",
+                "status": 1,
+                "questionId": "CF9E3014-A15D-4758-8690-476FC02E5E10",
+                "questionnaireId": "B4144110-A313-4E69-AEC8-EB3EDD49275E",
+                "writingAnswer": "Dear Ms. Krish, \nThank you for your reponse. About the photocopier or scanner for the tasks you can use on 4th floor and you should hold the key to open the locker which hang on the wall. I will buy the new equipment  in this your floor to ensure quality performence. Would you mind about if I open the interview to look for some specific guidelines becasuse the old worker will not continue work with us.  \nI look forward to your reponse. Best wishes, \nNoah Liam ",
+                "recordingFileId": null,
+                "sortOrder": 1,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 7
+              }
+            ],
+            "leftSections": [
+              {
+                "id": "1A9FE07E-C21B-4D9E-8FD1-84F071581542",
+                "questionnaireId": "00000000-0000-0000-0000-000000000000",
+                "sortOrder": 0,
+                "title": "Question 7: Respond to a written request",
+                "audioFileId": null,
+                "imageFileId": null,
+                "textScript": null,
+                "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/19ff3f3c-ea74-43ec-bee2-e92b027efdc5/default_image_19ff3f3c-ea74-43ec-bee2-e92b027efdc5_wr_07_1727236960726.png\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<p></p>\n",
+                "spaceTime": null,
+                "evaluateManner": null,
+                "videoId": null,
+                "audioDuration": null,
+                "sample": null
+              }
+            ]
+          },
+          {
+            "questionnaireId": "D2A5580B-55FE-429C-8AFF-9D7CB5072A9B",
+            "name": "TOEIC_SW03W - Question 08",
+            "type": 15,
+            "introContent": "",
+            "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+            "mocktestKeyCodeFullName": null,
+            "mocktestSectionSortOrder": 2,
+            "mocktestPartSortOrder": 4,
+            "questionnaireSortOrder": 1,
+            "questions": [
+              {
+                "mocktestSectionId": "309E36B1-5488-493A-BA9D-2FF825833467",
+                "chooseId": "9C2A955F-D244-4915-9F53-90F41E4FCD87",
+                "status": 1,
+                "questionId": "4E28D81D-3BE5-4E10-A395-BD8121C258E1",
+                "questionnaireId": "D2A5580B-55FE-429C-8AFF-9D7CB5072A9B",
+                "writingAnswer": "When having a interview, the decision maker is so importance because that person will choose a good or bad employee for the company which will decison performence of the company increase or decrease. \nFirtly, the employer should look at a way that the employee anwser some questions. These are help us know that the employees  are flexible, aren't they? The company have to a flexible person to give solution for the problem in the work. For example, by the answer way we know about their knowledge and experience in the work thanks to that we can easily chooose. \nSecondly, preparing from their clothes to their anwser about the poision is also benefit to give a good choice. A person has a prepare for the poision will good anwser of the employer and your clothes is fomall than a person do not prepare anything. That person will have high performence for the company because they will good prepare for the work before the meeting or task. \nOverall, the decision maker is also carefull about the choose employee for the company. If you can choice a good person that enough experience about the work, solution the problem skill and have carefully prepare before the interview, you will help increase performence for the company. ",
+                "recordingFileId": null,
+                "sortOrder": 1,
+                "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+                "mocktestKeyCodeFullName": null,
+                "isScored": false,
+                "no": 8
+              }
+            ],
+            "leftSections": [
+              {
+                "id": "F2FA033C-1618-4208-9383-397297A62169",
+                "questionnaireId": "00000000-0000-0000-0000-000000000000",
+                "sortOrder": 0,
+                "title": "Question 8: Write an opinion essay",
+                "audioFileId": null,
+                "imageFileId": null,
+                "textScript": "",
+                "textContent": "<h4>For some employers, references from applicants' previous employers can be crucial for hiring decisions. Why do you think that references are important to employers? Use specific reasons and examples to explain your answer.</h4>\n",
+                "spaceTime": null,
+                "evaluateManner": "",
+                "videoId": null,
+                "audioDuration": null,
+                "sample": null
+              }
+            ]
+          }
+        ],
+        "groupScores": [
+          {
+            "id": "711975FC-4238-4A10-8BAB-582A323A14E8",
+            "name": "Write a sentence based on a picture",
+            "values": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "selectedScore": null,
+            "fromQuestion": 1,
+            "toQuestion": 5,
+            "sortOrder": 0,
+            "mocktestSectionId": "309E36B1-5488-493A-BA9D-2FF825833467"
+          },
+          {
+            "id": "1884963D-1B7F-4311-A5B7-C2B9A13EA185",
+            "name": "Respond to a written request 1",
+            "values": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "selectedScore": null,
+            "fromQuestion": 6,
+            "toQuestion": 6,
+            "sortOrder": 1,
+            "mocktestSectionId": "309E36B1-5488-493A-BA9D-2FF825833467"
+          },
+          {
+            "id": "EB065132-0C26-4FE5-BD2C-601C7E677E86",
+            "name": "Respond to a written request 2",
+            "values": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "selectedScore": null,
+            "fromQuestion": 7,
+            "toQuestion": 7,
+            "sortOrder": 2,
+            "mocktestSectionId": "309E36B1-5488-493A-BA9D-2FF825833467"
+          },
+          {
+            "id": "07B77241-A9B0-4E4F-9635-D8C1629FA9E1",
+            "name": "Write an opinion essay",
+            "values": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "selectedScore": null,
+            "fromQuestion": 8,
+            "toQuestion": 8,
+            "sortOrder": 3,
+            "mocktestSectionId": "309E36B1-5488-493A-BA9D-2FF825833467"
+          }
+        ],
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+        "mocktestKeyCodeFullName": null,
+        "mocktestId": "5DBC6E52-7BF5-4658-951D-EFA6553542B7"
+      }
+    ],
+    "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7",
+    "mocktestKeyCodeFullName": null
+  }
+]

@@ -1,0 +1,1085 @@
+app:
+  description: ''
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  icon_type: emoji
+  mode: workflow
+  name: GET Scoring Course ID
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.6.0
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - description: ''
+    id: 7e026bd5-7693-487c-aded-37c38adbc930
+    name: ApiKeyScore
+    selector:
+    - env
+    - ApiKeyScore
+    value: Bearer app-NBVSDoQ9vUV6GlMXZj2Q2w3j
+    value_type: string
+  - description: ''
+    id: 26bf6836-df44-41fa-84cb-d735b7e9da48
+    name: ApiDifyScore
+    selector:
+    - env
+    - ApiDifyScore
+    value: http://178.105.45.146:8080/v1/workflows/run
+    value_type: string
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 20
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: http-request
+      id: 1781151309049-source-1781325883676-target
+      source: '1781151309049'
+      sourceHandle: source
+      target: '1781325883676'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: code
+      id: 1781325883676-source-1781326085355-target
+      source: '1781325883676'
+      sourceHandle: source
+      target: '1781326085355'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: iteration
+      id: 1781326085355-source-1781326272517-target
+      source: '1781326085355'
+      sourceHandle: source
+      target: '1781326272517'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1781326272517'
+        sourceType: iteration-start
+        targetType: code
+      id: 1781326272517start-source-1781326625277-target
+      source: 1781326272517start
+      sourceHandle: source
+      target: '1781326625277'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1781326272517'
+        sourceType: code
+        targetType: if-else
+      id: 1781326625277-source-1781326785225-target
+      source: '1781326625277'
+      sourceHandle: source
+      target: '1781326785225'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1781326272517'
+        sourceType: if-else
+        targetType: http-request
+      id: 1781326785225-true-1781327539254-target
+      source: '1781326785225'
+      sourceHandle: 'true'
+      target: '1781327539254'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1781326272517'
+        sourceType: http-request
+        targetType: code
+      id: 1781327539254-source-1781327965729-target
+      source: '1781327539254'
+      sourceHandle: source
+      target: '1781327965729'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1781326272517'
+        sourceType: if-else
+        targetType: code
+      id: 1781326785225-false-1781327965729-target
+      source: '1781326785225'
+      sourceHandle: 'false'
+      target: '1781327965729'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1781326272517'
+        sourceType: code
+        targetType: code
+      id: 1781327965729-source-1781328770154-target
+      source: '1781327965729'
+      sourceHandle: source
+      target: '1781328770154'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1781326272517'
+        sourceType: code
+        targetType: code
+      id: 1781328770154-source-1781336016777-target
+      source: '1781328770154'
+      sourceHandle: source
+      target: '1781336016777'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1781326272517'
+        sourceType: code
+        targetType: if-else
+      id: 1781336016777-source-1781337680195-target
+      source: '1781336016777'
+      sourceHandle: source
+      target: '1781337680195'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1781326272517'
+        sourceType: if-else
+        targetType: http-request
+      id: 1781337680195-true-1781337699509-target
+      source: '1781337680195'
+      sourceHandle: 'true'
+      target: '1781337699509'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    nodes:
+    - data:
+        selected: true
+        title: User Input
+        type: start
+        variables:
+        - default: ''
+          hint: ''
+          label: CourseScoringID
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: CourseScoringID
+        - default: ''
+          hint: ''
+          label: KeyCode
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: KeyCode
+        - default: ''
+          hint: ''
+          label: AccessToken
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: access_token
+      height: 161
+      id: '1781151309049'
+      position:
+        x: 78.43695992920073
+        y: 282
+      positionAbsolute:
+        x: 78.43695992920073
+        y: 282
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: '["{{#1781151309049.CourseScoringID#}}"]'
+          type: raw-text
+        headers: 'accept:application/json, text/plain, */*
+
+          accept-language:en-US,en;q=0.9,vi;q=0.8
+
+          authorization:{{#1781151309049.access_token#}}
+
+          cache-control:no-cache
+
+          category:admin
+
+          content-type:application/json
+
+          domain:iig
+
+          origin:https://admin-elearning.iigvietnam.com
+
+          pragma:no-cache
+
+          priority:u=1, i
+
+          referer:https://admin-elearning.iigvietnam.com/
+
+          sec-ch-ua:"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"
+
+          sec-ch-ua-mobile:?0
+
+          sec-ch-ua-platform:"macOS"
+
+          sec-fetch-dest:empty
+
+          sec-fetch-mode:cors
+
+          sec-fetch-site:same-site
+
+          user-agent:Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36
+          (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36'
+        method: post
+        params: 'isEdit: false'
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: HTTP Request
+        type: http-request
+        url: https://elearningapi.iigvietnam.com/api-admin-old/api/Scoring/course-scoring/detail/questions
+        variables: []
+      height: 170
+      id: '1781325883676'
+      position:
+        x: 445.71071173434234
+        y: 303
+      positionAbsolute:
+        x: 445.71071173434234
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        code: "import json\n\ndef main(http_response_body: str) -> dict:\n    data\
+          \ = json.loads(http_response_body)\n    root_data = data[0] if isinstance(data,\
+          \ list) else data\n    sections = root_data.get(\"mckTestResponse\", [])\n\
+          \    \n    items = []\n    \n    for sec in sections:\n        sec_name\
+          \ = sec.get(\"name\") # \"Speaking\" hoặc \"Writing\"\n        questionnaires\
+          \ = sec.get(\"questionnaires\", [])\n        \n        for qnaire in questionnaires:\n\
+          \            left_sections = qnaire.get(\"leftSections\", [])\n        \
+          \    left_section = left_sections[0] if left_sections else {}\n        \
+          \    prompt_html = left_section.get(\"textContent\", \"\")\n           \
+          \ left_audio_id = left_section.get(\"audioFileId\", \"\")\n            \n\
+          \            questions = qnaire.get(\"questions\", [])\n            for\
+          \ q in questions:\n                q_no = q.get(\"no\")\n              \
+          \  q_id = q.get(\"questionId\")\n                choose_id = q.get(\"chooseId\"\
+          )\n                \n                # Tạo bản ghi phẳng đại diện cho từng\
+          \ câu hỏi\n                item = {\n                    \"sec_name\": sec_name,\n\
+          \                    \"q_no\": q_no,\n                    \"q_id\": q_id,\n\
+          \                    \"choose_id\": choose_id,\n                    \"prompt_html\"\
+          : prompt_html,\n                    \"left_audio_id\": left_audio_id,\n\
+          \                }\n                \n                if sec_name == \"\
+          Speaking\":\n                    item[\"recording_file_id\"] = q.get(\"\
+          recordingFileId\")\n                else: # Writing\n                  \
+          \  item[\"writing_answer\"] = q.get(\"writingAnswer\", \"\")\n         \
+          \           \n                items.append(item)\n                \n   \
+          \ return {\n        \"questions_array\": items # Trả về mảng 19 items để\
+          \ đưa vào Node Iteration tiếp theo\n    }"
+        code_language: python3
+        outputs:
+          questions_array:
+            children: null
+            type: array[object]
+        selected: false
+        title: Code
+        type: code
+        variables:
+        - value_selector:
+          - '1781325883676'
+          - body
+          value_type: string
+          variable: http_response_body
+      height: 52
+      id: '1781326085355'
+      position:
+        x: 814.1428612712605
+        y: 303
+      positionAbsolute:
+        x: 814.1428612712605
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        error_handle_mode: terminated
+        flatten_output: true
+        height: 593
+        is_parallel: true
+        iterator_input_type: array[object]
+        iterator_selector:
+        - '1781326085355'
+        - questions_array
+        output_selector:
+        - '1781336016777'
+        - debug_json
+        output_type: array[string]
+        parallel_nums: 10
+        selected: false
+        start_node_id: 1781326272517start
+        title: Iteration
+        type: iteration
+        width: 3507
+      height: 593
+      id: '1781326272517'
+      position:
+        x: 1349.9758933983385
+        y: 303
+      positionAbsolute:
+        x: 1349.9758933983385
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 3507
+      zIndex: 1
+    - data:
+        desc: ''
+        isInIteration: true
+        selected: false
+        title: ''
+        type: iteration-start
+      draggable: false
+      height: 48
+      id: 1781326272517start
+      parentId: '1781326272517'
+      position:
+        x: 24
+        y: 68
+      positionAbsolute:
+        x: 1373.9758933983385
+        y: 371
+      selectable: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-iteration-start
+      width: 44
+      zIndex: 1002
+    - data:
+        code: "import json\n\ndef main(item_data) -> dict:\n    # 1. Đảm bảo đọc đúng\
+          \ dữ liệu (chuỗi JSON hoặc Dict)\n    if isinstance(item_data, str):\n \
+          \       try:\n            item = json.loads(item_data)\n        except:\n\
+          \            item = {}\n    else:\n        item = item_data\n        \n\
+          \    # Hàm phụ trợ để chuyển đổi an toàn mọi thứ thành String, nếu null\
+          \ thì trả về chuỗi rỗng\n    def safe_str(val):\n        return str(val)\
+          \ if val is not None else \"\"\n        \n    # 2. Bóc tách các biến cơ\
+          \ bản\n    sec_name = safe_str(item.get(\"sec_name\", \"\"))\n    q_no_str\
+          \ = safe_str(item.get(\"q_no\", \"\"))\n    \n    # 3. Tính toán điều kiện\
+          \ needs_detail cho If/Else\n    try:\n        q_no_int = int(q_no_str)\n\
+          \    except:\n        q_no_int = 0\n        \n    needs_detail = \"true\"\
+          \ if (sec_name == \"Speaking\" and q_no_int in [5, 6, 7, 8, 9, 10]) else\
+          \ \"false\"\n    \n    # 4. Trả về toàn bộ các trường dưới dạng String phẳng\n\
+          \    return {\n        \"sec_name\": sec_name,\n        \"q_no\": q_no_str,\n\
+          \        \"needs_detail\": needs_detail,\n        \"choose_id\": safe_str(item.get(\"\
+          choose_id\", \"\")),\n        \"left_audio_id\": safe_str(item.get(\"left_audio_id\"\
+          , \"\")),\n        \"prompt_html\": safe_str(item.get(\"prompt_html\", \"\
+          \")),\n        \"q_id\": safe_str(item.get(\"q_id\", \"\")),\n        \"\
+          recording_file_id\": safe_str(item.get(\"recording_file_id\", \"\")),\n\
+          \        \"writing_answer\": safe_str(item.get(\"writing_answer\", \"\"\
+          ))\n    }"
+        code_language: python3
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1781326272517'
+        outputs:
+          choose_id:
+            children: null
+            type: string
+          left_audio_id:
+            children: null
+            type: string
+          needs_detail:
+            children: null
+            type: string
+          prompt_html:
+            children: null
+            type: string
+          q_id:
+            children: null
+            type: string
+          q_no:
+            children: null
+            type: string
+          recording_file_id:
+            children: null
+            type: string
+          sec_name:
+            children: null
+            type: string
+          writing_answer:
+            children: null
+            type: string
+        selected: false
+        title: Code 2
+        type: code
+        variables:
+        - value_selector:
+          - '1781326272517'
+          - item
+          value_type: object
+          variable: item_data
+      height: 52
+      id: '1781326625277'
+      parentId: '1781326272517'
+      position:
+        x: 164.18703002985308
+        y: 65
+      positionAbsolute:
+        x: 1514.1629234281916
+        y: 368
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 1002
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: contains
+            id: 7af2534e-f900-4b13-960b-7fe7a219f7b4
+            value: 'true'
+            varType: string
+            variable_selector:
+            - '1781326625277'
+            - needs_detail
+          id: 'true'
+          logical_operator: and
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1781326272517'
+        selected: false
+        title: IF/ELSE
+        type: if-else
+      height: 148
+      id: '1781326785225'
+      parentId: '1781326272517'
+      position:
+        x: 542.4987417333289
+        y: 181.10957386381574
+      positionAbsolute:
+        x: 1892.4746351316674
+        y: 484.10957386381574
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 1002
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: ''
+          type: none
+        headers: 'accept:application/json, text/plain, */*
+
+          accept-language:en-US,en;q=0.9,vi;q=0.8
+
+          authorization:{{#1781151309049.access_token#}}
+
+          cache-control:no-cache
+
+          category:admin
+
+          domain:iig
+
+          origin:https://admin-elearning.iigvietnam.com
+
+          pragma:no-cache
+
+          priority:u=1, i
+
+          referer:https://admin-elearning.iigvietnam.com/
+
+          sec-ch-ua:"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"
+
+          sec-ch-ua-mobile:?0
+
+          sec-ch-ua-platform:"macOS"
+
+          sec-fetch-dest:empty
+
+          sec-fetch-mode:cors
+
+          sec-fetch-site:same-site
+
+          user-agent:Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36
+          (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36'
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1781326272517'
+        method: get
+        params: chooseId:{{#1781326625277.choose_id#}}
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: HTTP Request 2
+        type: http-request
+        url: https://elearningapi.iigvietnam.com/api-admin-old/api/Scoring/scoring/question/detail
+        variables: []
+      height: 154
+      id: '1781327539254'
+      parentId: '1781326272517'
+      position:
+        x: 960.7523199967277
+        y: 84.9856006786244
+      positionAbsolute:
+        x: 2310.728213395066
+        y: 387.9856006786244
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 1002
+    - data:
+        code: "import re\nimport json\n\ndef clean_html(html):\n    if not html: return\
+          \ \"\"\n    cleanr = re.compile('<.*?>')\n    return re.sub(cleanr, '',\
+          \ html).replace('&nbsp;', ' ').strip()\n\n# Đưa thẳng các biến String từ\
+          \ Node 4.0 vào hàm main\ndef main(sec_name: str, q_no: str, prompt_html:\
+          \ str, recording_file_id: str, left_audio_id: str, writing_answer: str,\
+          \ detail_response_str: str = \"\") -> dict:\n    \n    student_audio_id\
+          \ = recording_file_id\n    current_left_audio = left_audio_id\n    current_prompt_html\
+          \ = prompt_html\n    \n    question_text = \"\"\n    question_audio_id =\
+          \ \"\"\n    \n    # Nếu có dữ liệu detail (Speaking Q5-10) từ HTTP Request\n\
+          \    if detail_response_str:\n        try:\n            detail = json.loads(detail_response_str)\n\
+          \            left_sections = detail.get(\"leftSections\", [])\n        \
+          \    if left_sections:\n                current_prompt_html = left_sections[0].get(\"\
+          textContent\", current_prompt_html)\n                current_left_audio\
+          \ = left_sections[0].get(\"audioFileId\", current_left_audio)\n        \
+          \        \n            question_info = detail.get(\"questionInfo\", {})\n\
+          \            if question_info:\n                question_text = question_info.get(\"\
+          questionName\", \"\")\n                question_audio_id = question_info.get(\"\
+          audioFileId\", \"\")\n                student_audio_id = question_info.get(\"\
+          recordingFileId\", student_audio_id)\n        except:\n            pass\n\
+          \n    # 1. Trích xuất link ảnh\n    img_urls = re.findall(r'<img[^>]+src=\"\
+          ([^\">]+)\"', current_prompt_html)\n    image_url = img_urls[0] if img_urls\
+          \ else \"\"\n    \n    # 2. Làm sạch text\n    prompt_text = clean_html(current_prompt_html)\n\
+          \    \n    # 3. Trích xuất từ khóa (Writing Q1-5)\n    keywords = \"\"\n\
+          \    try:\n        q_no_int = int(q_no)\n    except:\n        q_no_int =\
+          \ 0\n        \n    if sec_name == \"Writing\" and q_no_int in [1, 2, 3,\
+          \ 4, 5]:\n        kw_match = re.search(r'<h4[^>]*>(.*?)<\\/h4>', current_prompt_html,\
+          \ re.IGNORECASE)\n        if kw_match:\n            keywords = clean_html(kw_match.group(1))\n\
+          \n    # Trả về payload sạch sẽ chuẩn bị gửi đi đổi link S3 và chấm điểm\n\
+          \    return {\n        \"sec_name\": sec_name,\n        \"q_no\": q_no,\n\
+          \        \"prompt_text\": prompt_text,\n        \"image_url\": image_url,\n\
+          \        \"keywords\": keywords,\n        \"question_text\": question_text,\n\
+          \        \"left_audio_id\": current_left_audio,\n        \"question_audio_id\"\
+          : question_audio_id,\n        \"student_audio_id\": student_audio_id,\n\
+          \        \"writing_answer\": writing_answer\n    }"
+        code_language: python3
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1781326272517'
+        outputs:
+          image_url:
+            children: null
+            type: string
+          keywords:
+            children: null
+            type: string
+          left_audio_id:
+            children: null
+            type: string
+          prompt_text:
+            children: null
+            type: string
+          q_no:
+            children: null
+            type: string
+          question_audio_id:
+            children: null
+            type: string
+          question_text:
+            children: null
+            type: string
+          sec_name:
+            children: null
+            type: string
+          student_audio_id:
+            children: null
+            type: string
+          writing_answer:
+            children: null
+            type: string
+        selected: false
+        title: Code 3
+        type: code
+        variables:
+        - value_selector:
+          - '1781326625277'
+          - sec_name
+          value_type: string
+          variable: sec_name
+        - value_selector:
+          - '1781326625277'
+          - q_no
+          value_type: string
+          variable: q_no
+        - value_selector:
+          - '1781326625277'
+          - prompt_html
+          value_type: string
+          variable: prompt_html
+        - value_selector:
+          - '1781326625277'
+          - recording_file_id
+          value_type: string
+          variable: recording_file_id
+        - value_selector:
+          - '1781326625277'
+          - left_audio_id
+          value_type: string
+          variable: left_audio_id
+        - value_selector:
+          - '1781326625277'
+          - writing_answer
+          value_type: string
+          variable: writing_answer
+        - value_selector:
+          - '1781327539254'
+          - body
+          value_type: string
+          variable: detail_response_str
+      height: 52
+      id: '1781327965729'
+      parentId: '1781326272517'
+      position:
+        x: 1477.6464191851155
+        y: 286.5063328658921
+      positionAbsolute:
+        x: 2827.622312583454
+        y: 589.5063328658921
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 1002
+    - data:
+        code: "import urllib.request\nimport json\nimport ssl\n\ndef get_signed_url(file_id:\
+          \ str, access_token: str) -> str:\n    # 1. Bỏ qua nếu không có ID\n   \
+          \ if not file_id or str(file_id).strip() in [\"\", \"None\", \"null\"]:\n\
+          \        return \"\"\n    \n    # 2. Xử lý token\n    clean_token = str(access_token).replace(\"\
+          Bearer \", \"\").strip()\n    url = f\"https://elearningapi.iigvietnam.com/api-admin-old/api/FileUploader/get-info-migrate-file/{file_id}?access_token={clean_token}\"\
+          \n    \n    headers = {\n        \"Authorization\": f\"Bearer {clean_token}\"\
+          ,\n        \"Category\": \"admin\",\n        \"Domain\": \"iig\"\n    }\n\
+          \    \n    # 3. Bypass SSL để không bị Dify Sandbox chặn\n    ctx = ssl.create_default_context()\n\
+          \    ctx.check_hostname = False\n    ctx.verify_mode = ssl.CERT_NONE\n \
+          \   \n    try:\n        req = urllib.request.Request(url, headers=headers)\n\
+          \        with urllib.request.urlopen(req, timeout=10, context=ctx) as response:\n\
+          \            res_data = json.loads(response.read().decode('utf-8'))\n  \
+          \          \n            # 4. Lấy đúng link từ key 'tempUrl'\n         \
+          \   return str(res_data.get(\"tempUrl\", \"\"))\n            \n    except\
+          \ Exception as e:\n        # Trả về rỗng nếu có lỗi bất ngờ\n        return\
+          \ \"\"\n\ndef main(left_audio_id: str, question_audio_id: str, student_audio_id:\
+          \ str, access_token: str) -> dict:\n    return {\n        \"resolved_left_audio\"\
+          : get_signed_url(left_audio_id, access_token),\n        \"resolved_question_audio\"\
+          : get_signed_url(question_audio_id, access_token),\n        \"resolved_student_audio\"\
+          : get_signed_url(student_audio_id, access_token)\n    }"
+        code_language: python3
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1781326272517'
+        outputs:
+          resolved_left_audio:
+            children: null
+            type: string
+          resolved_question_audio:
+            children: null
+            type: string
+          resolved_student_audio:
+            children: null
+            type: string
+        selected: false
+        title: Code 4
+        type: code
+        variables:
+        - value_selector:
+          - '1781327965729'
+          - left_audio_id
+          value_type: string
+          variable: left_audio_id
+        - value_selector:
+          - '1781327965729'
+          - question_audio_id
+          value_type: string
+          variable: question_audio_id
+        - value_selector:
+          - '1781327965729'
+          - student_audio_id
+          value_type: string
+          variable: student_audio_id
+        - value_selector:
+          - '1781151309049'
+          - access_token
+          value_type: string
+          variable: access_token
+      height: 52
+      id: '1781328770154'
+      parentId: '1781326272517'
+      position:
+        x: 1934.4786379154966
+        y: 187.64604074776196
+      positionAbsolute:
+        x: 3284.454531313835
+        y: 490.64604074776196
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 1002
+    - data:
+        code: "import json\n\ndef main(sec_name: str, q_no: str, prompt_text: str,\
+          \ image_url: str, \n         keywords: str, question_text: str, writing_answer:\
+          \ str,\n         resolved_left_audio: str, resolved_question_audio: str,\
+          \ resolved_student_audio: str) -> dict:\n    \n    try:\n        q_no_int\
+          \ = int(q_no)\n    except:\n        q_no_int = 0\n\n    # 1. Logic tạo mã\
+          \ vị trí điểm (s_q1, w_q1...)\n    prefix = \"s\" if sec_name == \"Speaking\"\
+          \ else \"w\"\n    vi_tri_diem = f\"{prefix}_q{q_no}\"\n\n    # 2. Logic\
+          \ tạo nhóm điểm (rubric_group)\n    rubric_group = \"\"\n    if sec_name\
+          \ == \"Speaking\":\n        if q_no_int in [1, 2]:\n            rubric_group\
+          \ = \"Read Text Aloud\"\n        elif q_no_int in [3, 4]:\n            rubric_group\
+          \ = \"Describe a picture\"\n        elif q_no_int in [5, 6, 7]:\n      \
+          \      rubric_group = \"Respond to questions (Q5-7)\"\n        elif q_no_int\
+          \ in [8, 9, 10]:\n            rubric_group = \"Respond to questions (Q8-10)\"\
+          \n        elif q_no_int == 11:\n            rubric_group = \"Express an\
+          \ opinion\"\n    elif sec_name == \"Writing\":\n        if q_no_int in [1,\
+          \ 2, 3, 4, 5]:\n            rubric_group = \"Write a Sentence Based on a\
+          \ Picture\"\n        elif q_no_int in [6, 7]:\n            rubric_group\
+          \ = \"Respond to a Written Request / Email\"\n        elif q_no_int == 8:\n\
+          \            rubric_group = \"Write an opinion essay\"\n\n    # 3. Gom data\
+          \ vào dict để xuất ra chuỗi JSON debug\n    debug_payload = {\n        \"\
+          sec_name\": sec_name,\n        \"q_no\": q_no,\n        \"vi_tri_diem\"\
+          : vi_tri_diem,\n        \"rubric_group\": rubric_group,\n        \"prompt_text\"\
+          : prompt_text,\n        \"image_url\": image_url,\n        \"keywords\"\
+          : keywords,\n        \"question_text\": question_text,\n        \"writing_answer\"\
+          : writing_answer,\n        \"left_audio_url\": resolved_left_audio,\n  \
+          \      \"question_audio_url\": resolved_question_audio,\n        \"student_audio_url\"\
+          : resolved_student_audio\n    }\n    \n    debug_json_str = json.dumps(debug_payload,\
+          \ ensure_ascii=False)\n\n    # 4. Trả về từng biến phẳng VÀ thêm cục biến\
+          \ JSON debug\n    return {\n        \"sec_name\": sec_name,\n        \"\
+          q_no\": q_no,\n        \"vi_tri_diem\": vi_tri_diem,\n        \"rubric_group\"\
+          : rubric_group,\n        \"prompt_text\": prompt_text,\n        \"image_url\"\
+          : image_url,\n        \"keywords\": keywords,\n        \"question_text\"\
+          : question_text,\n        \"writing_answer\": writing_answer,\n        \"\
+          left_audio_url\": resolved_left_audio,\n        \"question_audio_url\":\
+          \ resolved_question_audio,\n        \"student_audio_url\": resolved_student_audio,\n\
+          \        \"debug_json\": debug_json_str\n    }"
+        code_language: python3
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1781326272517'
+        outputs:
+          debug_json:
+            children: null
+            type: string
+          image_url:
+            children: null
+            type: string
+          keywords:
+            children: null
+            type: string
+          left_audio_url:
+            children: null
+            type: string
+          prompt_text:
+            children: null
+            type: string
+          q_no:
+            children: null
+            type: string
+          question_audio_url:
+            children: null
+            type: string
+          question_text:
+            children: null
+            type: string
+          rubric_group:
+            children: null
+            type: string
+          sec_name:
+            children: null
+            type: string
+          student_audio_url:
+            children: null
+            type: string
+          vi_tri_diem:
+            children: null
+            type: string
+          writing_answer:
+            children: null
+            type: string
+        selected: false
+        title: Code 5
+        type: code
+        variables:
+        - value_selector:
+          - '1781327965729'
+          - sec_name
+          value_type: string
+          variable: sec_name
+        - value_selector:
+          - '1781327965729'
+          - q_no
+          value_type: string
+          variable: q_no
+        - value_selector:
+          - '1781327965729'
+          - prompt_text
+          value_type: string
+          variable: prompt_text
+        - value_selector:
+          - '1781327965729'
+          - image_url
+          value_type: string
+          variable: image_url
+        - value_selector:
+          - '1781327965729'
+          - keywords
+          value_type: string
+          variable: keywords
+        - value_selector:
+          - '1781327965729'
+          - question_text
+          value_type: string
+          variable: question_text
+        - value_selector:
+          - '1781327965729'
+          - writing_answer
+          value_type: string
+          variable: writing_answer
+        - value_selector:
+          - '1781328770154'
+          - resolved_left_audio
+          value_type: string
+          variable: resolved_left_audio
+        - value_selector:
+          - '1781328770154'
+          - resolved_question_audio
+          value_type: string
+          variable: resolved_question_audio
+        - value_selector:
+          - '1781328770154'
+          - resolved_student_audio
+          value_type: string
+          variable: resolved_student_audio
+      height: 52
+      id: '1781336016777'
+      parentId: '1781326272517'
+      position:
+        x: 2312.1919272436558
+        y: 189.41299353833358
+      positionAbsolute:
+        x: 3662.1678206419942
+        y: 492.4129935383336
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 1002
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: 91950efc-3973-4d36-981e-a815823002fa
+            value: Read Text Aloud
+            varType: string
+            variable_selector:
+            - '1781336016777'
+            - rubric_group
+          id: 'true'
+          logical_operator: and
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1781326272517'
+        selected: false
+        title: IF/ELSE 2
+        type: if-else
+      height: 148
+      id: '1781337680195'
+      parentId: '1781326272517'
+      position:
+        x: 2692.2920909173586
+        y: 189.41299353833358
+      positionAbsolute:
+        x: 4042.267984315697
+        y: 492.4129935383336
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 1002
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - id: key-value-1028
+            key: ''
+            type: text
+            value: "{\n  \"inputs\": {\n    \"group_score\": \"{{#1781336016777.rubric_group#}}\"\
+              ,\n    \"question_id\": \"{{#1781336016777.vi_tri_diem#}}\",\n    \"\
+              keycode\": \"{{#1781151309049.KeyCode#}}\",\n    \"text_passage\": \"\
+              {{#1781336016777.prompt_text#}}\",\n    \"student_audio\": {\n     \
+              \ \"transfer_method\": \"remote_url\",\n      \"url\": \"{{#1781336016777.student_audio_url#}}\"\
+              ,\n      \"type\": \"audio\"\n    }\n  },\n  \"response_mode\": \"blocking\"\
+              ,\n  \"user\": \"SW Scoring\"\n}"
+          type: json
+        headers: Authorization:{{#env.ApiKeyScore#}}
+        isInIteration: true
+        isInLoop: false
+        iteration_id: '1781326272517'
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: HTTP Request 3
+        type: http-request
+        url: '{{#env.ApiDifyScore#}}'
+        variables: []
+      height: 126
+      id: '1781337699509'
+      parentId: '1781326272517'
+      position:
+        x: 3095.4550189770075
+        y: 189.41299353833358
+      positionAbsolute:
+        x: 4445.430912375346
+        y: 492.4129935383336
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 1002
+    viewport:
+      x: 293.68965733375353
+      y: 95.84885912491782
+      zoom: 0.25
+  rag_pipeline_variables: []

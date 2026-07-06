@@ -1,0 +1,2045 @@
+[
+  {
+    "section": "Speaking",
+    "q_no": 1,
+    "choose_id": "D1529AAA-40F1-48E4-86C0-92785441BC7A",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "6157BDD1-F4C3-46FB-91CC-4F877419078D",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Question 1: Read a Text Aloud",
+          "audioFileId": null,
+          "imageFileId": null,
+          "textScript": "",
+          "textContent": "<h4>I'm Rebecca, representing the Ama Tours, and I extend a warm welcome to all of you in breathtaking Lombok. Are you tired after a long flight? I hope you're not. Now, let's take a moment to get acquainted with some important safety rules. First, please stay seated until we arrive at our destination and avoid eating, drinking, or standing while on the bus. Also, keep in mind that it's illegal to hit the bottle too hard in public. If you have any questions, please ask me. Thank you!</h4>\n",
+          "spaceTime": null,
+          "evaluateManner": "",
+          "videoId": null,
+          "audioDuration": null,
+          "sample": "<p>I'm Rebecca, representing the Ama Tours, and I extend a warm welcome to all of you in breathtaking Lombok. Are you tired after a long flight? I hope you're not. Now, let's take a moment to get acquainted with some important safety rules. First, please stay seated until we arrive at our destination and avoid eating, drinking, or standing while on the bus. Also, keep in mind that it's illegal to hit the bottle too hard in public. If you have any questions, please ask me. Thank you!</p>\n"
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 14,
+        "id": "3552D705-E152-4F22-9428-68F80E485874",
+        "questionId": "5620B7D5-9490-4484-BA3E-6787BCCFBF56",
+        "questionName": "",
+        "audioFileId": null,
+        "maxWritingLength": 0,
+        "spaceTime": "00:00:45",
+        "recordingTime": "00:00:45",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "Sample 1",
+            "questionId": "5620b7d5-9490-4484-ba3e-6787bccfbf56",
+            "sortOrder": 0,
+            "audioDuration": 35,
+            "audioFileId": "B669D4F9-5946-4AAD-9621-7A9109427A6A"
+          },
+          {
+            "type": 1,
+            "content": "Sample 2",
+            "questionId": "5620b7d5-9490-4484-ba3e-6787bccfbf56",
+            "sortOrder": 1,
+            "audioDuration": 33,
+            "audioFileId": "67C0C3E4-7814-4D4D-8C5F-0B07C530B72F"
+          },
+          {
+            "type": 2,
+            "content": "Câu đầu tiên phát âm có thể hiểu được. Tuy nhiên từ câu thứ hai, thỉnh thoảng mới có 1 vài từ phát âm dễ hiểu. Gặp khó khan với các từ nhiều âm tiết. Trọng âm không chính xác, ngắt nghỉ không phù hợp, gây ảnh hưởng đến việc hiểu thông tin.",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phát âm không đồng đều, gây ảnh hưởng đến việc hiểu thông tin. Bạn có cố gắng sử dụng ngữ điệu và trọng âm, tuy nhiên phần nói nhìn chung còn đều đều, hoặc ngập ngừng.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Mặc dù đôi lúc có lỗi phát âm, phần nói nhìn chung dễ hiểu. Việc sử dụng trọng âm và ngữ điệu phù hợp với nội dung văn bản.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": null,
+            "audioFileId": null
+          }
+        ],
+        "writingAnswer": null,
+        "recordingFileId": "46B9D13B-2A27-4272-BCBE-15110E2F5A5D",
+        "sortOrder": 1
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  },
+  {
+    "section": "Speaking",
+    "q_no": 2,
+    "choose_id": "7D37639A-35BB-450F-83C0-A2A40EEDFC05",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "66731652-6036-43DE-AE41-5A637A3B0A99",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Question 2: Read a Text Aloud",
+          "audioFileId": null,
+          "imageFileId": null,
+          "textScript": "",
+          "textContent": "<h4>Have you ever wondered what makes the local bakery's chocolate cake so famous? It's been a city favorite for years, thanks to its rich, moist texture and amazing flavor. The secret? A special blend of high-quality cocoa and a touch of love. Baker and owner Emily Jones recently revealed the recipe at a special event named 'Bake with Emily'. The event featured hands-on baking workshops, a tasting session, and a meet-and-greet with Emily, allowing the community to learn the secrets behind their favorite treat.</h4>\n",
+          "spaceTime": null,
+          "evaluateManner": "",
+          "videoId": null,
+          "audioDuration": null,
+          "sample": "Have you ever wondered what makes the local bakery's chocolate cake so famous? It's been a city favorite for years, thanks to its rich, moist texture and amazing flavor. The secret? A special blend of high-quality cocoa and a touch of love. Baker and owner Emily Jones recently revealed the recipe at a special event named 'Bake with Emily'. The event featured hands-on baking workshops, a tasting session, and a meet-and-greet with Emily, allowing the community to learn the secrets behind their favorite treat."
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 14,
+        "id": "4B4A7434-070F-45EE-ABB6-5593EDEF6C77",
+        "questionId": "B0DC4DB6-2A99-4EE3-9044-A12D7816603F",
+        "questionName": "",
+        "audioFileId": null,
+        "maxWritingLength": 0,
+        "spaceTime": "00:00:45",
+        "recordingTime": "00:00:45",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "Sample 1",
+            "questionId": "b0dc4db6-2a99-4ee3-9044-a12d7816603f",
+            "sortOrder": 0,
+            "audioDuration": 35,
+            "audioFileId": "F4196F65-70FA-4CBF-85C2-C44C82BE056B"
+          },
+          {
+            "type": 1,
+            "content": "Sample 2",
+            "questionId": "b0dc4db6-2a99-4ee3-9044-a12d7816603f",
+            "sortOrder": 1,
+            "audioDuration": 35,
+            "audioFileId": "F4924710-2FC9-41D1-AA35-899402A97FAE"
+          },
+          {
+            "type": 2,
+            "content": "Câu đầu tiên phát âm có thể hiểu được. Tuy nhiên từ câu thứ hai, thỉnh thoảng mới có 1 vài từ phát âm dễ hiểu. Gặp khó khan với các từ nhiều âm tiết. Trọng âm không chính xác, ngắt nghỉ không phù hợp, gây ảnh hưởng đến việc hiểu thông tin.",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phát âm không đồng đều, gây ảnh hưởng đến việc hiểu thông tin. Bạn có cố gắng sử dụng ngữ điệu và trọng âm, tuy nhiên phần nói nhìn chung còn đều đều, hoặc ngập ngừng.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Mặc dù đôi lúc có lỗi phát âm, phần nói nhìn chung dễ hiểu. Việc sử dụng trọng âm và ngữ điệu phù hợp với nội dung văn bản.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": null,
+            "audioFileId": null
+          }
+        ],
+        "writingAnswer": null,
+        "recordingFileId": "B7A5F94A-2D7D-4FFC-814E-259E10DBF2A6",
+        "sortOrder": 1
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  },
+  {
+    "section": "Speaking",
+    "q_no": 3,
+    "choose_id": "B2156781-F026-4E7E-B103-F921B073376B",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "BAB4FE1D-AE85-4796-ABC3-4FEB2731AB9F",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Question 3: Describe a Picture",
+          "audioFileId": null,
+          "imageFileId": null,
+          "textScript": "",
+          "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/9cacd2a9-bca4-43f7-963f-9ecd7ff4d0a5/default_image_9cacd2a9-bca4-43f7-963f-9ecd7ff4d0a5_sp_03_1721643500119.jpg\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<p></p>\n",
+          "spaceTime": null,
+          "evaluateManner": "",
+          "videoId": null,
+          "audioDuration": null,
+          "sample": null
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 13,
+        "id": "C510440D-3DE6-449B-97E1-86455F7C6447",
+        "questionId": "0F0B8FA6-E478-494B-81CD-9C3A12522C7D",
+        "questionName": "",
+        "audioFileId": null,
+        "maxWritingLength": 0,
+        "spaceTime": "00:00:45",
+        "recordingTime": "00:00:30",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "This picture was taken in a café. There are two women in the picture, both wearing formal clothes. They are using a pen to point at the screen of a laptop. At the bottom left of the picture, I can see a plate of cookies, two cups of tea, a bottle, and some phones on the table. Overall, it seems like the women are having a great time together.",
+            "questionId": "0f0b8fa6-e478-494b-81cd-9c3a12522c7d",
+            "sortOrder": 0,
+            "audioDuration": 0,
+            "audioFileId": "441568F2-DABA-4646-A12A-94372975B957"
+          },
+          {
+            "type": 1,
+            "content": "In the picture, two women are seated in a charming café, both focusing on a laptop screen in front of them. They are using a pen to point at something. One of the women, dressed in a stylish pink blazer, has her hand resting on the laptop. On the table, there is a delicious-looking plate of cookies, two cups of tea, a French press, and a few phones scattered around. It looks like they’re having a productive and pleasant time in a comfortable setting.",
+            "questionId": "0f0b8fa6-e478-494b-81cd-9c3a12522c7d",
+            "sortOrder": 1,
+            "audioDuration": 0,
+            "audioFileId": "E04A9230-665A-4900-8277-37E88C40A47D"
+          },
+          {
+            "type": 2,
+            "content": "Ảnh hưởng của ngôn ngữ mẹ đẻ rõ ràng, khiến phần trả lời khó hiểu. Nội dung mô tả có liên quan đến bức tranh, nhưng còn hạn chế. Nhiều lỗi ngữ pháp.",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời bắt đầu tốt, nhưng yếu dần về nửa sau. Phát âm nhìn chung dễ hiểu, tuy nhiên ngữ điệu sử dụng chưa phù hợp. Nội dung tốt, sử dụng từ vựng đa dạng. Ngữ pháp nhìn chung tốt.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời trôi chảy. Có một vài lỗi phát âm, tuy nhiên không ảnh hưởng đến việc hiểu nội dung. Nội dung mô tả phù hợp, sử dụng từ vực đa dạng. Sử dụng được cả câu đơn và câu phức.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": null,
+            "audioFileId": null
+          }
+        ],
+        "writingAnswer": null,
+        "recordingFileId": "BF62C57F-3F34-4061-8763-08EC15F222C2",
+        "sortOrder": 1
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  },
+  {
+    "section": "Speaking",
+    "q_no": 4,
+    "choose_id": "C9F73410-5175-4C83-85C6-58658FB076B5",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "309E1EFE-C06F-4486-A82F-A8548A66D22A",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Question 4: Describe a Picture",
+          "audioFileId": null,
+          "imageFileId": null,
+          "textScript": "",
+          "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/cb482cbf-35df-4f9f-a958-cd591eaf5f2d/default_image_cb482cbf-35df-4f9f-a958-cd591eaf5f2d_sp_04_1721643512293.jpg\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<p></p>\n",
+          "spaceTime": null,
+          "evaluateManner": "",
+          "videoId": null,
+          "audioDuration": null,
+          "sample": null
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 13,
+        "id": "63444584-091E-4A87-AE00-E0E742F47BA0",
+        "questionId": "26310BAE-D0F1-4A01-8379-EF769E0D5352",
+        "questionName": "",
+        "audioFileId": null,
+        "maxWritingLength": 0,
+        "spaceTime": "00:00:45",
+        "recordingTime": "00:00:30",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "This photo was taken on a busy street. What I notice first is people walking in various directions. Some of them are wearing long jackets, so it must be cold outside. There are high buildings on both sides of the street. All the cars have stopped at the zebra crossing to let the pedestrians pass safely. Overall, it looks like a scene from a busy city area.",
+            "questionId": "26310bae-d0f1-4a01-8379-ef769e0d5352",
+            "sortOrder": 0,
+            "audioDuration": 0,
+            "audioFileId": "0DE5FFAC-B3EE-4D12-B38C-44E850B63C0B"
+          },
+          {
+            "type": 1,
+            "content": "This picture captures a bustling city intersection. A large crowd is crossing the street on a wide zebra crossing, suggesting it's a busy time of day. They're all bundled up in coats, indicating it's quite cold. Meanwhile, there are several buses and cars stopped, waiting for the pedestrians to cross. On either side of the street, I notice tall buildings housing various shops and offices. Overall, it portrays a vibrant and dynamic urban scene.",
+            "questionId": "26310bae-d0f1-4a01-8379-ef769e0d5352",
+            "sortOrder": 1,
+            "audioDuration": 0,
+            "audioFileId": "760C7F75-1C7A-4807-8AB3-E8EDFB038131"
+          },
+          {
+            "type": 2,
+            "content": "Ảnh hưởng của ngôn ngữ mẹ đẻ rõ ràng, khiến phần trả lời khó hiểu. Nội dung mô tả có liên quan đến bức tranh, nhưng còn hạn chế. Nhiều lỗi ngữ pháp.",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời bắt đầu tốt, nhưng yếu dần về nửa sau. Phát âm nhìn chung dễ hiểu, tuy nhiên ngữ điệu sử dụng chưa phù hợp. Nội dung tốt, sử dụng từ vựng đa dạng. Ngữ pháp nhìn chung tốt.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời trôi chảy. Có một vài lỗi phát âm, tuy nhiên không ảnh hưởng đến việc hiểu nội dung. Nội dung mô tả phù hợp, sử dụng từ vực đa dạng. Sử dụng được cả câu đơn và câu phức.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": null,
+            "audioFileId": null
+          }
+        ],
+        "writingAnswer": null,
+        "recordingFileId": "09C596D1-B6D6-43DE-97C2-0F3D02AD7A23",
+        "sortOrder": 1
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  },
+  {
+    "section": "Speaking",
+    "q_no": 5,
+    "choose_id": "DDCA60EC-9852-4F5F-80A6-E4B7F8A03628",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "F4873B58-8DA1-4DEF-A754-0070E54ABCFB",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Questions 5-7: Respond to Questions",
+          "audioFileId": "8277950F-6F65-41BF-8DE1-40AEE71521D1",
+          "imageFileId": null,
+          "textScript": "",
+          "textContent": "<h4>Imagine that a tourism magazine is doing research in your country. You have agreed to participate in a telephone interview about traveling abroad.</h4>\n",
+          "spaceTime": null,
+          "evaluateManner": "",
+          "videoId": null,
+          "audioDuration": null,
+          "sample": null
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 13,
+        "id": "490B8C7F-FC0B-4B84-9099-C3426DA983B0",
+        "questionId": "9428A8D5-933C-4010-942F-250B7EC153B3",
+        "questionName": "Do you like traveling abroad? Why or why not?",
+        "audioFileId": "CB3BC97B-6FF2-42C9-879B-03A2057A4AE1",
+        "maxWritingLength": 0,
+        "spaceTime": "00:00:03",
+        "recordingTime": "00:00:15",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "I love traveling abroad! I can learn about new cultures, meet new people, and try new foods. I want to travel to many destinations with my friends.",
+            "questionId": "9428a8d5-933c-4010-942f-250b7ec153b3",
+            "sortOrder": 0,
+            "audioDuration": 0,
+            "audioFileId": "CDD5683E-D37E-4677-AB8F-DB8CE6B8AACE"
+          },
+          {
+            "type": 1,
+            "content": "Yes, traveling abroad is my cup of tea. There's something about immersing myself in new cultures, meeting new people, and trying new foods that gets me excited.",
+            "questionId": "9428a8d5-933c-4010-942f-250b7ec153b3",
+            "sortOrder": 1,
+            "audioDuration": 0,
+            "audioFileId": "2D95B3E0-8194-49E2-9377-8267BF461F8E"
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời ngập ngừng, không sử dụng đúng từ vựng và ngữ pháp.",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phát âm, diễn đạt, cách sử dụng từ còn khó hiểu. Tuy nhiên, nhìn chung phần trả lời có thể hiểu được.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Mặc dù có một vài ảnh hưởng của ngôn ngữ mẹ đẻ lên phát âm, phần trả lời nhìn chung trôi chảy, sử dụng từ vựng phù hợp, ngữ pháp đúng.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": null,
+            "audioFileId": null
+          }
+        ],
+        "writingAnswer": null,
+        "recordingFileId": "6BE67FF1-3CFE-4E18-A011-5D5BD5C1035C",
+        "sortOrder": 1
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  },
+  {
+    "section": "Speaking",
+    "q_no": 6,
+    "choose_id": "D8FFA292-5B5D-4B95-8636-17450D7A87BB",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "F4873B58-8DA1-4DEF-A754-0070E54ABCFB",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Questions 5-7: Respond to Questions",
+          "audioFileId": "8277950F-6F65-41BF-8DE1-40AEE71521D1",
+          "imageFileId": null,
+          "textScript": "",
+          "textContent": "<h4>Imagine that a tourism magazine is doing research in your country. You have agreed to participate in a telephone interview about traveling abroad.</h4>\n",
+          "spaceTime": null,
+          "evaluateManner": "",
+          "videoId": null,
+          "audioDuration": null,
+          "sample": null
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 13,
+        "id": "490B8C7F-FC0B-4B84-9099-C3426DA983B0",
+        "questionId": "3EB31FFD-3201-47B9-B477-E699B631938B",
+        "questionName": "Which country do you want to travel to?",
+        "audioFileId": "ABDD40BC-007F-4DF4-B743-7E951998F0F1",
+        "maxWritingLength": 0,
+        "spaceTime": "00:00:03",
+        "recordingTime": "00:00:15",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "I want to travel to Japan! Japan’s traditional and modern culture attracts me. I’m interested in discovering ancient temples and shrines and trying on traditional kimonos.",
+            "questionId": "3eb31ffd-3201-47b9-b477-e699b631938b",
+            "sortOrder": 0,
+            "audioDuration": 0,
+            "audioFileId": "3EBB515A-0093-476F-A144-DB8C56AEC5BE"
+          },
+          {
+            "type": 1,
+            "content": "I would love to travel to Japan! The country's unique blend of traditional and modern culture fascinates me. I'm drawn to the vibrant cities, serene landscapes, and delicious cuisine.",
+            "questionId": "3eb31ffd-3201-47b9-b477-e699b631938b",
+            "sortOrder": 1,
+            "audioDuration": 0,
+            "audioFileId": "3A015F4A-4CDB-4AEA-8894-3BF406062F1C"
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời có khởi đầu tốt, nhưng từ phần sau, việc sử dụng từ vựng và ngữ pháp làm phần nói khó hiểu.",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Các truyền tải còn yếu, ngập ngừng và lặp từ nhiều. Tuy nhiên, nhìn chung có thể hiểu được ý chính.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Mặc dù có một vài ảnh hưởng của ngôn ngữ mẹ đẻ lên phát âm, phần trả lời nhìn chung trôi chảy, sử dụng từ vựng phù hợp, có sử dụng câu phức.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": null,
+            "audioFileId": null
+          }
+        ],
+        "writingAnswer": null,
+        "recordingFileId": "CC75B326-440D-47C1-9CC6-3D222FAF81BD",
+        "sortOrder": 2
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  },
+  {
+    "section": "Speaking",
+    "q_no": 7,
+    "choose_id": "47E2371D-C18C-4E69-A795-C30E6B845184",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "F4873B58-8DA1-4DEF-A754-0070E54ABCFB",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Questions 5-7: Respond to Questions",
+          "audioFileId": "8277950F-6F65-41BF-8DE1-40AEE71521D1",
+          "imageFileId": null,
+          "textScript": "",
+          "textContent": "<h4>Imagine that a tourism magazine is doing research in your country. You have agreed to participate in a telephone interview about traveling abroad.</h4>\n",
+          "spaceTime": null,
+          "evaluateManner": "",
+          "videoId": null,
+          "audioDuration": null,
+          "sample": null
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 13,
+        "id": "490B8C7F-FC0B-4B84-9099-C3426DA983B0",
+        "questionId": "F5853EDC-A211-45B8-83A1-033DE6171EE9",
+        "questionName": "Do you prefer to travel abroad alone or in a group?",
+        "audioFileId": "51B6530B-9BBD-433F-B739-27CE898AD4DC",
+        "maxWritingLength": 0,
+        "spaceTime": "00:00:03",
+        "recordingTime": "00:00:30",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "I prefer traveling abroad with a group of people. I can save money and also have security during the trip. Additionally, traveling with a group means we can share experiences and memories together, making the trip more enjoyable and fun.",
+            "questionId": "f5853edc-a211-45b8-83a1-033de6171ee9",
+            "sortOrder": 0,
+            "audioDuration": 0,
+            "audioFileId": "5E7F49A4-A3D0-4ADA-9478-A86D5B42C14E"
+          },
+          {
+            "type": 1,
+            "content": "I prefer traveling abroad with a group of people who share similar interests and preferences. Firstly, I can split costs and expenses with others. Secondly, it provides a sense of security during the trip. Moreover, traveling with a group allows for shared experiences and memories, which makes the journey more enjoyable and enriching.",
+            "questionId": "f5853edc-a211-45b8-83a1-033de6171ee9",
+            "sortOrder": 1,
+            "audioDuration": 0,
+            "audioFileId": "4616A1FA-F5A4-4BFE-A121-BCB739044D24"
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời có nhiều khoảng nghỉ gây ảnh hưởng đến việc hiểu thông điệp.",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời chưa trôi chảy, còn nhiều đoạn ngập ngừng để tìm từ, cấu trúc phù hợp. Tuy nhiên, nhìn chung, phần trả lời có thể hiểu được.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời trôi chảy và nhất quán, lựa chọn sử dụng từ vựng phù hợp. Vẫn còn xuất hiện lỗi ngữ pháp, nhưng nhìn chung không ảnh hưởng đến ý nghĩa tổng thể.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": null,
+            "audioFileId": null
+          }
+        ],
+        "writingAnswer": null,
+        "recordingFileId": "89B0A524-D360-40D2-9061-C902966F35E0",
+        "sortOrder": 3
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  },
+  {
+    "section": "Speaking",
+    "q_no": 8,
+    "choose_id": "21CF27AA-127F-4F25-9FC2-D1395FE879F0",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "3A262F26-9748-4013-A062-FF887FE99AAC",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Questions 8-10: Respond to Questions Using Information Provided",
+          "audioFileId": "74538749-519E-450F-A4E6-4B996410E414",
+          "imageFileId": null,
+          "textScript": "M: Hello Emma, this is Andrew Evans. I have scheduled interviews for candidates for our new projects next Thursday. However, I'm currently on vacation and don't have access to the interview schedule. Could you please help me with the details?",
+          "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/968836a6-d22f-4fce-86cc-36eea072be69/default_image_968836a6-d22f-4fce-86cc-36eea072be69_sp_08-10_1727235882412.png\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<p></p>\n",
+          "spaceTime": null,
+          "evaluateManner": "",
+          "videoId": null,
+          "audioDuration": null,
+          "sample": null
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 13,
+        "id": "5AB1B698-3FA7-4429-ABD4-203CD6AE927B",
+        "questionId": "E83799E5-2F5A-43B1-BD15-B55108BD489B",
+        "questionName": "",
+        "audioFileId": "0DA24FD7-96A0-4D6F-9831-7F7FFD8D044A",
+        "maxWritingLength": 0,
+        "spaceTime": "00:00:03",
+        "recordingTime": "00:00:15",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "Hello, Mr. Evans. I’m happy to help. The interviews will take place in Meeting Room C. The first interview is scheduled to start at 9:00 A.M. with Alex Peterson.",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": 5,
+            "audioFileId": "E11309BD-BFEA-4FDC-83ED-39BEA845C130"
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời rõ ràng, sử dụng ngữ pháp tốt. Thông tin được truyền tải chính xác.",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": 5,
+            "audioFileId": "E11309BD-BFEA-4FDC-83ED-39BEA845C130"
+          },
+          {
+            "type": 1,
+            "content": "Certainly, Mr. Evans, I’d be happy to assist. The interviews will be held in Meeting Room C. The first interview is scheduled to start at 9:00 A.M. with Alex Peterson, who is applying for the Software Developer position.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": 5,
+            "audioFileId": "D9E733FE-2B61-409A-AEE7-3C5ACBBEE993"
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời không quá trôi chảy. Ngữ pháp và từ vựng đôi khi ảnh hưởng đến việc truyền tải thông tin. Nhưng nhìn chung thông điệp có thể hiểu được.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": 5,
+            "audioFileId": "D9E733FE-2B61-409A-AEE7-3C5ACBBEE993"
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời rất ngập ngừng. Nhiều đoạn chỉ đọc lại thông tin từ bảng biểu, không tạo thành câu.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": 0,
+            "audioFileId": "79632F4C-5CE4-430F-8F78-17205D858BE0"
+          }
+        ],
+        "writingAnswer": null,
+        "recordingFileId": "C6E76154-A75B-4B0C-92B4-AC44455D9E7E",
+        "sortOrder": 1
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  },
+  {
+    "section": "Speaking",
+    "q_no": 9,
+    "choose_id": "60BDF7E6-DFA5-4241-976F-4E1BE5151621",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "3A262F26-9748-4013-A062-FF887FE99AAC",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Questions 8-10: Respond to Questions Using Information Provided",
+          "audioFileId": "74538749-519E-450F-A4E6-4B996410E414",
+          "imageFileId": null,
+          "textScript": "M: Hello Emma, this is Andrew Evans. I have scheduled interviews for candidates for our new projects next Thursday. However, I'm currently on vacation and don't have access to the interview schedule. Could you please help me with the details?",
+          "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/968836a6-d22f-4fce-86cc-36eea072be69/default_image_968836a6-d22f-4fce-86cc-36eea072be69_sp_08-10_1727235882412.png\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<p></p>\n",
+          "spaceTime": null,
+          "evaluateManner": "",
+          "videoId": null,
+          "audioDuration": null,
+          "sample": null
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 13,
+        "id": "5AB1B698-3FA7-4429-ABD4-203CD6AE927B",
+        "questionId": "B58D4B91-DAB8-4800-89B3-C5ABC3E5BB98",
+        "questionName": "",
+        "audioFileId": "B8AD9E68-6F9E-42ED-9A2B-AFFE8710481C",
+        "maxWritingLength": 0,
+        "spaceTime": "00:00:03",
+        "recordingTime": "00:00:15",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "Yes, there are two applicants for the Software Developer position: Mr. Alex Peterson and Ms. Jane Kim. However, Ms. Kim's interview has been canceled. Please update this information.",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": 5,
+            "audioFileId": "A962AA66-DEDB-45B2-A8A1-A4D1EBED8E2D"
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời rõ ràng, sử dụng ngữ pháp tốt. Thông tin được truyền tải chính xác.",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": 5,
+            "audioFileId": "A962AA66-DEDB-45B2-A8A1-A4D1EBED8E2D"
+          },
+          {
+            "type": 1,
+            "content": "According to our schedule, we have two applicants for the Software Developer position: Mr. Alex Peterson and Ms. Jane Kim. However, I wanted to let you know that Ms. Kim's interview has been canceled. Please update the schedule accordingly.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": 5,
+            "audioFileId": "08B2D6A7-FE83-4030-A68C-7761D1E40C0F"
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời không quá trôi chảy. Ngữ pháp và từ vựng đôi khi ảnh hưởng đến việc truyền tải thông tin. Nhưng nhìn chung thông điệp có thể hiểu được.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": 5,
+            "audioFileId": "08B2D6A7-FE83-4030-A68C-7761D1E40C0F"
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời rất ngập ngừng. Nhiều đoạn chỉ đọc lại thông tin từ bảng biểu, không tạo thành câu.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": 0,
+            "audioFileId": "79632F4C-5CE4-430F-8F78-17205D858BE0"
+          }
+        ],
+        "writingAnswer": null,
+        "recordingFileId": "3D4F3728-5248-4E4F-AFA7-0D3E8629FB57",
+        "sortOrder": 2
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  },
+  {
+    "section": "Speaking",
+    "q_no": 10,
+    "choose_id": "CDBF61F9-B6CC-4BCC-8D51-10B1DCAF6B67",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "3A262F26-9748-4013-A062-FF887FE99AAC",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Questions 8-10: Respond to Questions Using Information Provided",
+          "audioFileId": "74538749-519E-450F-A4E6-4B996410E414",
+          "imageFileId": null,
+          "textScript": "M: Hello Emma, this is Andrew Evans. I have scheduled interviews for candidates for our new projects next Thursday. However, I'm currently on vacation and don't have access to the interview schedule. Could you please help me with the details?",
+          "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/968836a6-d22f-4fce-86cc-36eea072be69/default_image_968836a6-d22f-4fce-86cc-36eea072be69_sp_08-10_1727235882412.png\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<p></p>\n",
+          "spaceTime": null,
+          "evaluateManner": "",
+          "videoId": null,
+          "audioDuration": null,
+          "sample": null
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 13,
+        "id": "5AB1B698-3FA7-4429-ABD4-203CD6AE927B",
+        "questionId": "894CF8CC-C559-48F2-AC11-3B1B56A6668A",
+        "questionName": "",
+        "audioFileId": "9D3AD355-9D06-496F-90EF-3F2104B46A9D",
+        "maxWritingLength": 0,
+        "spaceTime": "00:00:03",
+        "recordingTime": "00:00:30",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "Please give me a minute to check that. Yes, there are two applicants with experience at Nexus Innovations. The first one is Dana Lee, applying for the UX/UI Designer position, and her interview is scheduled for 10:00 A.M. The second one is Sara Miller, applying for the Project Manager position, and her interview is scheduled for 2:30 P.M.",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": 5,
+            "audioFileId": "388D69A7-9514-45FC-A2E4-B313BA7883BE"
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời rõ ràng, sử dụng ngữ pháp tốt. Thông tin được truyền tải chính xác.",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": 5,
+            "audioFileId": "388D69A7-9514-45FC-A2E4-B313BA7883BE"
+          },
+          {
+            "type": 1,
+            "content": "Let me check the schedule for you. Yes, there are two applicants with experience at Nexus Innovations. The first interviewee is Ms. Dana Lee, applying for the UX/UI Designer position, and her interview is scheduled for 10:00 A.M. The second interviewee is Ms. Sara Miller, applying for the Project Manager position, and her interview is scheduled for 2:30 P.M. Feel free to ask if you need further assistance.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": 5,
+            "audioFileId": "7072693C-A01B-429B-A1D3-AA5A0B7CF0AE"
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời không quá trôi chảy. Ngữ pháp và từ vựng đôi khi ảnh hưởng đến việc truyền tải thông tin. Nhưng nhìn chung thông điệp có thể hiểu được.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": 5,
+            "audioFileId": "7072693C-A01B-429B-A1D3-AA5A0B7CF0AE"
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời rất ngập ngừng. Nhiều đoạn chỉ đọc lại thông tin từ bảng biểu, không tạo thành câu.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": 0,
+            "audioFileId": "79632F4C-5CE4-430F-8F78-17205D858BE0"
+          }
+        ],
+        "writingAnswer": null,
+        "recordingFileId": "5638998D-46A1-4E7F-8FC1-5A3AC7036E77",
+        "sortOrder": 3
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  },
+  {
+    "section": "Speaking",
+    "q_no": 11,
+    "choose_id": "E86528AD-185B-40D0-BAF3-B64796AFC54E",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "F7B735AC-3C49-4E4E-9674-03C9EB4D4CC7",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Question 11: Express an Opinion",
+          "audioFileId": "06638CF4-FC5F-460D-B5F2-D550A094FC89",
+          "imageFileId": null,
+          "textScript": "",
+          "textContent": "<h4>Do you agree or disagree with the practice of companies laying off older employees in order to hire new employees at lower salaries? Provide reasons and examples to support your opinion.</h4>\n",
+          "spaceTime": null,
+          "evaluateManner": "",
+          "videoId": null,
+          "audioDuration": null,
+          "sample": null
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 13,
+        "id": "91A291FD-CA74-4F3A-BFC0-4B775B549B67",
+        "questionId": "835E2612-99C2-4873-A757-166DD7B595B7",
+        "questionName": "",
+        "audioFileId": null,
+        "maxWritingLength": 0,
+        "spaceTime": null,
+        "recordingTime": "00:01:00",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "I disagree with the idea of laying off older employees to hire new ones at lower salaries. Experience and loyalty are important. Older employees bring valuable knowledge and stability to a company. For example, in my father's company, experienced workers help mentor new hires and improve productivity. Laying them off to save money can make the company lose important expertise. Instead, companies could train all employees to develop new skills and adapt to changes.",
+            "questionId": "835e2612-99c2-4873-a757-166dd7b595b7",
+            "sortOrder": 0,
+            "audioDuration": 0,
+            "audioFileId": "73AB555E-5CA5-42EE-A45E-18011D58B9CC"
+          },
+          {
+            "type": 1,
+            "content": "I disagree with companies laying off older employees to hire new ones at lower salaries. Firstly, experienced employees bring valuable skills and knowledge from years in the industry. Their mentoring abilities help younger colleagues and boost productivity. Secondly, firing older workers just to cut costs creates a negative atmosphere and insecurity. For instance, in a company I know, when older workers were laid off, the remaining staff felt anxious about their job security and less motivated to work. Companies should value loyalty and experience because these contribute to long-term success.",
+            "questionId": "835e2612-99c2-4873-a757-166dd7b595b7",
+            "sortOrder": 1,
+            "audioDuration": 0,
+            "audioFileId": "D8C15DAE-9F6F-4B71-AE02-07FA4D639052"
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời chỉ nhắc lại một số cụm từ từ đề bài, và không nói hoàn thiện được một câu nêu quan điểm cá nhân.",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Bạn có cố gắng nói được ở mức độ câu tuy nhiên còn ngập ngừng, lặp từ, và tự sửa lỗi nhiều lần. Phần trả lời không có sự liên kết và khiến người nghe khó hiểu.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Bạn gặp khó khăn trong việc tìm ý tưởng và từ vựng để trả lời câu hỏi đề bài. Quan điểm của bạn chỉ mới được đưa ra một cách mơ hồ ở phần đầu. Phần nói không trôi chảy. Có nhiều lỗi ngữ pháp và các cấu trúc ngữ pháp được sử dụng còn hạn chế.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Bạn đưa ra được lý do tốt để hỗ trợ quan điểm của mình và sử dụng từ vựng, ngữ pháp hiệu quả. Phần trả lời nhìn chung trôi chảy, tuy nhiên phát âm nhiều chỗ chưa tốt, sử dụng ngữ điệu không phù hợp, làm người nghe gặp khó khăn.",
+            "questionId": null,
+            "sortOrder": 3,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Bạn đưa ra được quan điểm rõ ràng, sử dụng cấu trúc và từ vựng tương đối tốt. Tốc độ nói phù hợp và phát âm rõ ràng. Mặc dù vẫn còn ảnh hưởng của ngôn ngữ mẹ đẻ nhưng không ảnh hưởng đến việc hiểu thông điệp của người nghe.",
+            "questionId": null,
+            "sortOrder": 4,
+            "audioDuration": null,
+            "audioFileId": null
+          }
+        ],
+        "writingAnswer": null,
+        "recordingFileId": "B4AAF84F-4483-4254-8ED1-A76B295F3A3F",
+        "sortOrder": 1
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  },
+  {
+    "section": "Writing",
+    "q_no": 1,
+    "choose_id": "59D03089-2453-4677-B6C8-7763FB3E6C82",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "F2FE8EBD-4324-406D-81F7-87C418F542D2",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Question 1: Write a sentence based on a picture",
+          "audioFileId": null,
+          "imageFileId": null,
+          "textScript": "",
+          "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/c147c036-ab7b-4ef7-bd7e-bac4ec6ca171/default_image_c147c036-ab7b-4ef7-bd7e-bac4ec6ca171_wr_01_1721641636844.jpg\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<h4 style=\"text-align:center;\">before / wine</h4>\n",
+          "spaceTime": null,
+          "evaluateManner": "",
+          "videoId": null,
+          "audioDuration": null,
+          "sample": null
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 15,
+        "id": "916129B1-371D-41EF-8865-C2570848355E",
+        "questionId": "E9F403DE-E69F-4840-9FC3-9E39CD7EFE71",
+        "questionName": "Directions: Write ONE sentence based on the picture. Use the TWO words or phrases under the picture. You may change the forms of the words and you may use them in any order.",
+        "audioFileId": null,
+        "maxWritingLength": 50,
+        "spaceTime": null,
+        "recordingTime": "00:00:00",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "A waitress is showing the wine to a couple before serving it.",
+            "questionId": "e9f403de-e69f-4840-9fc3-9e39cd7efe71",
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 1,
+            "content": "The couple is examining the wine bottle that the waitress is showing them before they decide to order.",
+            "questionId": "e9f403de-e69f-4840-9fc3-9e39cd7efe71",
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời dùng đủ hai từ khóa cho sẵn nhưng ý nghĩa của câu không rõ ràng do có các lỗi về sử dụng từ vựng và ngữ pháp",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời dùng đủ hai từ khóa và ý nghĩa rõ ràng. Tuy nhiên, có chứa một lỗi ngữ pháp nghiêm trọng.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời sử dụng hiểu quả cả hai từ khóa, nội dung phù hợp với ảnh và không chứa lỗi ngữ pháp.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": null,
+            "audioFileId": null
+          }
+        ],
+        "writingAnswer": "The server is asking customer before pouring the wine. ",
+        "recordingFileId": null,
+        "sortOrder": 1
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  },
+  {
+    "section": "Writing",
+    "q_no": 2,
+    "choose_id": "6C9D9E88-D84F-4D96-BEE3-8233D50DBE32",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "E1453065-E604-44EE-A775-4A815FA30FAA",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Question 2: Write a sentence based on a picture",
+          "audioFileId": null,
+          "imageFileId": null,
+          "textScript": "",
+          "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/f4209ea4-2cec-471f-a321-bfd7efd73dea/default_image_f4209ea4-2cec-471f-a321-bfd7efd73dea_wr_02_1721641656093.jpg\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<h4 style=\"text-align:center;\">map / at</h4>\n",
+          "spaceTime": null,
+          "evaluateManner": "",
+          "videoId": null,
+          "audioDuration": null,
+          "sample": null
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 15,
+        "id": "BEBADFB7-335A-4535-B627-FE3A1E5C6272",
+        "questionId": "61254853-C622-482E-87CD-455DBDC4AC99",
+        "questionName": "Directions: Write ONE sentence based on the picture. Use the TWO words or phrases under the picture. You may change the forms of the words and you may use them in any order.",
+        "audioFileId": null,
+        "maxWritingLength": 50,
+        "spaceTime": null,
+        "recordingTime": "00:00:00",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "A man is holding a map and looking at the camera in the woman’s hand.",
+            "questionId": "61254853-c622-482e-87cd-455dbdc4ac99",
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 1,
+            "content": "With a map in his hand, the man is looking at the camera that the woman is holding.",
+            "questionId": "61254853-c622-482e-87cd-455dbdc4ac99",
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời dùng đủ hai từ khóa cho sẵn nhưng ý nghĩa của câu không rõ ràng do có các lỗi về sử dụng từ vựng và ngữ pháp",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời dùng đủ hai từ khóa và ý nghĩa rõ ràng. Tuy nhiên, có chứa một lỗi ngữ pháp nghiêm trọng.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời sử dụng hiểu quả cả hai từ khóa, nội dung phù hợp với ảnh và không chứa lỗi ngữ pháp.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": null,
+            "audioFileId": null
+          }
+        ],
+        "writingAnswer": "The man is holding a map and looking at a picture in a camera. ",
+        "recordingFileId": null,
+        "sortOrder": 1
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  },
+  {
+    "section": "Writing",
+    "q_no": 3,
+    "choose_id": "D99CB907-EF71-4D94-B37D-975BA38AD9B7",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "943A7A64-C404-4561-B429-A3BCBCAC49E3",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Question 3: Write a sentence based on a picture",
+          "audioFileId": null,
+          "imageFileId": null,
+          "textScript": "",
+          "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/8b9e9fd5-c48d-4789-bd6e-4d87f2441226/default_image_8b9e9fd5-c48d-4789-bd6e-4d87f2441226_wr_03_1721641671297.jpg\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<h4 style=\"text-align:center;\">listen / man</h4>\n",
+          "spaceTime": null,
+          "evaluateManner": "",
+          "videoId": null,
+          "audioDuration": null,
+          "sample": null
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 15,
+        "id": "CB4A927D-4E8B-45D4-88D4-533B01DD194F",
+        "questionId": "4C95746A-E52F-4E64-A450-D610F587D910",
+        "questionName": "Directions: Write ONE sentence based on the picture. Use the TWO words or phrases under the picture. You may change the forms of the words and you may use them in any order.",
+        "audioFileId": null,
+        "maxWritingLength": 50,
+        "spaceTime": null,
+        "recordingTime": "00:00:00",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "The man is talking, and his team is listening to him about a new project.",
+            "questionId": "4c95746a-e52f-4e64-a450-d610f587d910",
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 1,
+            "content": "The man is presenting a new product plan to his team, who are listening attentively during the meeting.",
+            "questionId": "4c95746a-e52f-4e64-a450-d610f587d910",
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời dùng đủ hai từ khóa cho sẵn nhưng ý nghĩa của câu không rõ ràng do có các lỗi về sử dụng từ vựng và ngữ pháp",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời dùng đủ hai từ khóa và ý nghĩa rõ ràng. Tuy nhiên, có chứa một lỗi ngữ pháp nghiêm trọng.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời sử dụng hiểu quả cả hai từ khóa, nội dung phù hợp với ảnh và không chứa lỗi ngữ pháp.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": null,
+            "audioFileId": null
+          }
+        ],
+        "writingAnswer": "All peope in the meeting room are listening the presentaion of the man. ",
+        "recordingFileId": null,
+        "sortOrder": 1
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  },
+  {
+    "section": "Writing",
+    "q_no": 4,
+    "choose_id": "28374503-601C-456F-9436-71FB93231F74",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "87C6F5E2-D841-4117-BE43-A57310299535",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Question 4: Write a sentence based on a picture",
+          "audioFileId": null,
+          "imageFileId": null,
+          "textScript": "",
+          "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/8893e60c-87f8-4c3a-bcba-06f40e7c52b7/default_image_8893e60c-87f8-4c3a-bcba-06f40e7c52b7_wr_04_1721641690065.jpg\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<h4 style=\"text-align:center;\">counter / card</h4>\n",
+          "spaceTime": null,
+          "evaluateManner": "",
+          "videoId": null,
+          "audioDuration": null,
+          "sample": null
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 15,
+        "id": "17A5BAD1-75F4-4FA3-9F8E-475D5C1BEEA2",
+        "questionId": "9A34172E-3113-4897-90F4-E841A7638B21",
+        "questionName": "Directions: Write ONE sentence based on the picture. Use the TWO words or phrases under the picture. You may change the forms of the words and you may use them in any order.",
+        "audioFileId": null,
+        "maxWritingLength": 50,
+        "spaceTime": null,
+        "recordingTime": "00:00:00",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "The cashier at the counter accepts the credit card when the customer hands it to him.",
+            "questionId": "9a34172e-3113-4897-90f4-e841a7638b21",
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 1,
+            "content": "When the customer, who is standing in front of the counter, hands over her card, the cashier politely takes it.",
+            "questionId": "9a34172e-3113-4897-90f4-e841a7638b21",
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời dùng đủ hai từ khóa cho sẵn nhưng ý nghĩa của câu không rõ ràng do có các lỗi về sử dụng từ vựng và ngữ pháp",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời dùng đủ hai từ khóa và ý nghĩa rõ ràng. Tuy nhiên, có chứa một lỗi ngữ pháp nghiêm trọng.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời sử dụng hiểu quả cả hai từ khóa, nội dung phù hợp với ảnh và không chứa lỗi ngữ pháp.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": null,
+            "audioFileId": null
+          }
+        ],
+        "writingAnswer": "The couter is giving a card for her after she paid. ",
+        "recordingFileId": null,
+        "sortOrder": 1
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  },
+  {
+    "section": "Writing",
+    "q_no": 5,
+    "choose_id": "2D655955-746F-4C22-9282-06BF60A81047",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "C85C5C52-3E5F-4B36-8A3F-7710E918DD48",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Question 5: Write a sentence based on a picture",
+          "audioFileId": null,
+          "imageFileId": null,
+          "textScript": "",
+          "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/1144b11d-d3fc-4d88-9ae7-2bd064308be8/default_image_1144b11d-d3fc-4d88-9ae7-2bd064308be8_wr_05_1721641707512.jpg\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<h4 style=\"text-align:center;\">different / waste</h4>\n",
+          "spaceTime": null,
+          "evaluateManner": "",
+          "videoId": null,
+          "audioDuration": null,
+          "sample": null
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 15,
+        "id": "89529092-680C-4FDB-8DBF-0E6C79364A0E",
+        "questionId": "5B9B6789-1CD0-4CEF-8DD5-B4F5974B777F",
+        "questionName": "Directions: Write ONE sentence based on the picture. Use the TWO words or phrases under the picture. You may change the forms of the words and you may use them in any order.",
+        "audioFileId": null,
+        "maxWritingLength": 50,
+        "spaceTime": null,
+        "recordingTime": "00:00:00",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "A young woman is organizing different types of waste in the kitchen to recycle.",
+            "questionId": "5b9b6789-1cd0-4cef-8dd5-b4f5974b777f",
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 1,
+            "content": "The kitchen table is filled with different waste items being sorted by a woman.",
+            "questionId": "5b9b6789-1cd0-4cef-8dd5-b4f5974b777f",
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời dùng đủ hai từ khóa cho sẵn nhưng ý nghĩa của câu không rõ ràng do có các lỗi về sử dụng từ vựng và ngữ pháp",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời dùng đủ hai từ khóa và ý nghĩa rõ ràng. Tuy nhiên, có chứa một lỗi ngữ pháp nghiêm trọng.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời sử dụng hiểu quả cả hai từ khóa, nội dung phù hợp với ảnh và không chứa lỗi ngữ pháp.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": null,
+            "audioFileId": null
+          }
+        ],
+        "writingAnswer": "The woman is sorting the wastes for the different box. ",
+        "recordingFileId": null,
+        "sortOrder": 1
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  },
+  {
+    "section": "Writing",
+    "q_no": 6,
+    "choose_id": "33041065-338A-45AD-BDA9-C92DDF0145E4",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "C685ACAB-3BCA-430A-994B-18C4C0E0C613",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Question 6: Respond to a written request",
+          "audioFileId": null,
+          "imageFileId": null,
+          "textScript": null,
+          "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/4813144b-ecea-486a-9e0f-c784cbe97250/default_image_4813144b-ecea-486a-9e0f-c784cbe97250_wr_06_1727236936369.png\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<p></p>\n",
+          "spaceTime": null,
+          "evaluateManner": null,
+          "videoId": null,
+          "audioDuration": null,
+          "sample": null
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 15,
+        "id": "388C4ECC-D100-413F-8A9E-7310D7AA5FFF",
+        "questionId": "E8A91D6D-112F-4C6D-8246-9E57F512F747",
+        "questionName": "Directions: Respond to the email as if you are one of the Coco Trip Customer Service members. In your email, give ONE reason and make TWO compensations.",
+        "audioFileId": null,
+        "maxWritingLength": 500,
+        "spaceTime": null,
+        "recordingTime": "00:00:00",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "Dear Amelia Archer,\nThank you for your email. I am very sorry to hear about your disappointment.\nThe tour was canceled because of bad weather. Safety is very important to us.\nWe want to make up for this. First, we can reschedule your tour to another day that works for you. You can choose any date that is good for you, and we will book the tour again for free. Second, we will give you a 20% discount on your next tour with us. You can use this discount for any other tour you book with us in the future.\nPlease let us know a good day for you to reschedule.\nThank you for your understanding.\nBest regards, \nCoco Trip Tours",
+            "questionId": "e8a91d6d-112f-4c6d-8246-9e57f512f747",
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 1,
+            "content": "Dear Amelia Archer,\nThank you for reaching out to us. I understand your disappointment regarding the cancellation of the Statue of Liberty Tour scheduled for June 20.\nUnfortunately, the tour was canceled due to severe weather conditions. Your safety is our top priority.\nTo compensate for this inconvenience, we would like to offer you two options. First, we can reschedule your tour for another date that suits your schedule. You may select any available date, and we will rebook the tour for you at no additional cost. Additionally, we are offering a 20% discount on your next booking with us. This discount can be applied to any future tour or experience you choose to book with Coco Trip.\nPlease let us know your preferred date for rescheduling, and we will make the necessary arrangements.\nThank you for your understanding and patience.\nBest regards, \nCoco Trip Tours",
+            "questionId": "e8a91d6d-112f-4c6d-8246-9e57f512f747",
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Có rất nhiều lỗi ngữ pháp và sử dụng từ vựng trong phần trả lời này, gây ảnh hưởng đến nội dung của email. Ngoài ra, mặc dù có một số nội dung có liên quan đến đề bài, nhưng phần trả lời chưa đáp ứng được yêu cầu đề bài.",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Bạn có nỗ lực giải quyết yêu cầu đề bài, tuy nhiên chỉ có một trên ba yêu cầu được đáp ứng. Nhiều lỗi ngữ pháp và sử dụng từ vựng gây ảnh hưởng đến nội dung truyền đạt.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời chỉ mới đáp ứng được hai trên ba yêu cầu đề bài. Ngoài ra, phần trả lời có một số lỗi ngữ pháp trong bài, tuy nhiên không gây ảnh hưởng đến nội dung truyền đạt.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời giải quyết đủ ba yêu cầu của đề bài và lựa chọn giọng văn phù hợp văn cảnh. Việc sử dụng phù hợp các từ nối giúp bài có tính liên kết. Còn một số lỗi ngữ pháp và sử dụng từ, tuy nhiên không ảnh hưởng đến nội dung truyền đạt.",
+            "questionId": null,
+            "sortOrder": 3,
+            "audioDuration": null,
+            "audioFileId": null
+          }
+        ],
+        "writingAnswer": "Dear Ms. Archer, \nThank you for your email. I am afraid when the Statue of Liberty Tour is cancelled because we do not have enough guides for the trip. Ensuring the safety for all of customers we must cancel but we will look for more talented guides for the trip. If we have enough guides, we will open form for all of you ane will discout 10% for the trip so we are looking forward to your form. \nBest wishes, \nCoco Trip Tours Customer Service",
+        "recordingFileId": null,
+        "sortOrder": 1
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  },
+  {
+    "section": "Writing",
+    "q_no": 7,
+    "choose_id": "A59F94B8-35F1-442D-8682-CE76C27FB6A0",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "1A9FE07E-C21B-4D9E-8FD1-84F071581542",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Question 7: Respond to a written request",
+          "audioFileId": null,
+          "imageFileId": null,
+          "textScript": null,
+          "textContent": "<p></p>\n<img src=\"https://han02.vstorage.vngcloud.vn/public/Default/Media/Images/19ff3f3c-ea74-43ec-bee2-e92b027efdc5/default_image_19ff3f3c-ea74-43ec-bee2-e92b027efdc5_wr_07_1727236960726.png\" alt=\"undefined\" style=\"height: auto;width: auto\"/>\n<p></p>\n",
+          "spaceTime": null,
+          "evaluateManner": null,
+          "videoId": null,
+          "audioDuration": null,
+          "sample": null
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 15,
+        "id": "B4144110-A313-4E69-AEC8-EB3EDD49275E",
+        "questionId": "CF9E3014-A15D-4758-8690-476FC02E5E10",
+        "questionName": "Directions: Respond to the email as if you are Noah Liam. In your email, give ONE set of instructions and ask ONE question.",
+        "audioFileId": null,
+        "maxWritingLength": 500,
+        "spaceTime": null,
+        "recordingTime": "00:00:00",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "Hi Lucas, \nWelcome to the team! To use the photocopier and scanner, please contact our office manager, Sarah. You can reach her at extension 123. She will set up your access to the machines and give you a brief demonstration of how to use them properly. \nDo you need any help finding other office supplies or equipment? \nBest regards, \nNoah Liam",
+            "questionId": "cf9e3014-a15d-4758-8690-476fc02e5e10",
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 1,
+            "content": "Hi Lucas, \nI hope you're settling in well. To access the photocopier and scanner, you’ll need to get in touch with IT support. Please contact John, our IT specialist, on extension 456 or email him at john.it@company.com. He will grant you the necessary permissions to use the machines and guide you through the setup process. \nBy the way, have you had the chance to set up your email and other essential software tools yet? If you need any assistance with that, let me know. \nBest regards, \nNoah Liam",
+            "questionId": "cf9e3014-a15d-4758-8690-476fc02e5e10",
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Có rất nhiều lỗi ngữ pháp và sử dụng từ vựng trong phần trả lời này, gây ảnh hưởng đến nội dung của email. Ngoài ra, mặc dù có một số nội dung có liên quan đến đề bài, nhưng phần trả lời chưa đáp ứng được yêu cầu đề bài.",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Bạn có nỗ lực giải quyết yêu cầu đề bài, tuy nhiên chỉ có một trên ba yêu cầu được đáp ứng. Nhiều lỗi ngữ pháp và sử dụng từ vựng gây ảnh hưởng đến nội dung truyền đạt.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời chỉ mới đáp ứng được hai trên ba yêu cầu đề bài. Ngoài ra, phần trả lời có một số lỗi ngữ pháp trong bài, tuy nhiên không gây ảnh hưởng đến nội dung truyền đạt.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Phần trả lời giải quyết đủ ba yêu cầu của đề bài và lựa chọn giọng văn phù hợp văn cảnh. Việc sử dụng phù hợp các từ nối giúp bài có tính liên kết. Còn một số lỗi ngữ pháp và sử dụng từ, tuy nhiên không ảnh hưởng đến nội dung truyền đạt.",
+            "questionId": null,
+            "sortOrder": 3,
+            "audioDuration": null,
+            "audioFileId": null
+          }
+        ],
+        "writingAnswer": "Dear Ms. Krish, \nThank you for your reponse. About the photocopier or scanner for the tasks you can use on 4th floor and you should hold the key to open the locker which hang on the wall. I will buy the new equipment  in this your floor to ensure quality performence. Would you mind about if I open the interview to look for some specific guidelines becasuse the old worker will not continue work with us.  \nI look forward to your reponse. Best wishes, \nNoah Liam ",
+        "recordingFileId": null,
+        "sortOrder": 1
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  },
+  {
+    "section": "Writing",
+    "q_no": 8,
+    "choose_id": "9C2A955F-D244-4915-9F53-90F41E4FCD87",
+    "details": {
+      "courseScoringInfo": {
+        "id": "7B7203E9-705E-4DE8-B688-E8FDB5EC3979",
+        "name": "BCBFBG-Thi thử Online TOEIC SW - SW03",
+        "unitOrCourseTest": "",
+        "lesson": "",
+        "step": null,
+        "webUserName": "Nguyễn Đỗ Khánh Trân",
+        "webUserMobileNumber": "945751454",
+        "webUserEmail": "nhatt9271@gmail.com",
+        "submittedDate": "2026-06-29T14:50:17Z",
+        "activeScoringUser": null,
+        "score": null,
+        "scoringDeadLine": "2026-07-06T14:50:17Z",
+        "scoredDate": null,
+        "status": 1,
+        "type": 4,
+        "isDraft": null,
+        "activeScoringIds": null,
+        "nameId": null,
+        "unitId": null,
+        "stepId": null,
+        "webUserId": "0608FF4D-4568-411B-874F-FBE341D47CF7"
+      },
+      "liveClassScoringInfo": null,
+      "leftSections": [
+        {
+          "id": "F2FA033C-1618-4208-9383-397297A62169",
+          "questionnaireId": "00000000-0000-0000-0000-000000000000",
+          "sortOrder": 0,
+          "title": "Question 8: Write an opinion essay",
+          "audioFileId": null,
+          "imageFileId": null,
+          "textScript": "",
+          "textContent": "<h4>For some employers, references from applicants' previous employers can be crucial for hiring decisions. Why do you think that references are important to employers? Use specific reasons and examples to explain your answer.</h4>\n",
+          "spaceTime": null,
+          "evaluateManner": "",
+          "videoId": null,
+          "audioDuration": null,
+          "sample": null
+        }
+      ],
+      "questionInfo": {
+        "questionnaireType": 15,
+        "id": "D2A5580B-55FE-429C-8AFF-9D7CB5072A9B",
+        "questionId": "4E28D81D-3BE5-4E10-A395-BD8121C258E1",
+        "questionName": "",
+        "audioFileId": null,
+        "maxWritingLength": 1000,
+        "spaceTime": null,
+        "recordingTime": "00:00:00",
+        "sampleTemplateViewModel": [
+          {
+            "type": 1,
+            "content": "Employers often ask for references from the places where candidates previously worked when they are looking to hire someone new. In this essay, I will talk about why these references are important during the hiring process.\nFirstly, references help employers check if what the candidate says about their skills and experience is true. A good word from a past manager or coworker can prove that the candidate really has the qualifications and has done well in their past jobs. For example, if a candidate says they are good at managing projects, a reference can give examples of projects the candidate managed successfully.\nSecondly, references give information about how the candidate works and what they are like as a person. Employers need this information to see if the candidate will fit well with their team. A reference can mention important qualities like being reliable, working well with others, and solving problems. For instance, a past employer might talk about how the candidate always met deadlines and worked well with others.\nFurthermore, references help reduce the risk when hiring someone new. Hiring involves both a big investment and some risks. With references, employers can make better choices and avoid hiring someone who might not be right for the job, which could cause financial problems or trouble at work.\nIn conclusion, references from past employers are very useful when hiring. They give a detailed view of what the candidate has done professionally, confirm their abilities, and help reduce hiring risks. As jobs keep changing, the need for good references shows why it's important to have strong professional relationships and do well in your career.",
+            "questionId": "4e28d81d-3be5-4e10-a395-bd8121c258e1",
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 1,
+            "content": "References from previous employers play a crucial role in the hiring process for many employers. They provide valuable insights into a candidate’s past work performance, reliability, and overall suitability for the job. There are several reasons why references are important to employers.\nFirstly, references offer a glimpse into the candidate’s work history and achievements. When an employer contacts a reference, they can verify the accuracy of the information provided in the candidate’s resume and during the interview. For example, if a candidate claims to have successfully managed a project, a reference can confirm this and provide additional details about how the candidate handled the project. This helps employers ensure that the candidate has the relevant experience and skills for the job.\nSecondly, references provide insight into a candidate’s interpersonal skills and ability to work in a team. By speaking with former colleagues or supervisors, employers can learn about the candidate’s communication skills, adaptability, and how they handle conflicts or challenges in the workplace. For instance, if a reference mentions that the candidate was known for resolving team disputes effectively, it indicates that the candidate possesses strong interpersonal skills, which are valuable in any work environment.\nFurthermore, references can highlight a candidate’s reliability and work ethic. Employers want to hire individuals who are dependable, punctual, and committed to their work. A reference can provide specific examples of the candidate’s attendance record, willingness to take on additional responsibilities, and overall dedication to their job. For example, if a reference mentions that the candidate often volunteered for extra tasks and consistently met deadlines, it suggests that the candidate is hardworking and dependable.\nIn conclusion, references from previous employers are essential for several reasons. They provide a comprehensive view of the candidate’s work history, interpersonal skills, and reliability. By obtaining this information, employers can make more informed and confident hiring decisions, ultimately leading to a more productive and harmonious workplace.",
+            "questionId": "4e28d81d-3be5-4e10-a395-bd8121c258e1",
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Bài luận chưa biết cách tổ chức và phát triển ý. Có rất nhiều lỗi về ngữ pháp và từ vựng. Người viết đưa ra được một số ý, nhưng không rõ sự liên quan đến yêu cầu đề bài.",
+            "questionId": null,
+            "sortOrder": 0,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Bài luận chưa giải quyết được đúng yêu cầu của đề bài. Các ý giải thích chưa rõ ràng. Bài viết được triển khai chưa tốt, không có sự chuyển giao giữa các phần. Các lỗi về ngữ pháp và từ vựng gây ảnh hưởng đến thông điệp truyền tải.",
+            "questionId": null,
+            "sortOrder": 1,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Bài luận đưa ra quan điểm rõ ràng và đi kèm giải thích. Tuy nhiên, các ý giải thích chưa được phát triển tốt. Ngoài ra, lỗi ngữ pháp hoặc dùng từ gây ảnh hưởng đến thông điệp truyền tải.",
+            "questionId": null,
+            "sortOrder": 2,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Bài luận đưa ra quan điểm rõ ràng. Các quan điểm có kèm giải thích, tuy nhiên việc chuyển giao giữa các ý chưa rành mạch. Có một số lỗi ngữ pháp như …., nhưng không ảnh hưởng đến thông điệp truyền tải.",
+            "questionId": null,
+            "sortOrder": 3,
+            "audioDuration": null,
+            "audioFileId": null
+          },
+          {
+            "type": 2,
+            "content": "Bài luận được phát triển và tổ chức tốt. Quan điểm đưa ra rõ ràng và ngắn gọn, đi kèm các lập luận thuyết phục để hỗ trợ. Cách phát triển ý logic. Bài luận sử dụng đa dạng từ vựng và cấu trúc câu. Có một số lỗi nhỏ nhưng không ảnh hưởng đến thông điệp truyền tải.",
+            "questionId": null,
+            "sortOrder": 4,
+            "audioDuration": null,
+            "audioFileId": null
+          }
+        ],
+        "writingAnswer": "When having a interview, the decision maker is so importance because that person will choose a good or bad employee for the company which will decison performence of the company increase or decrease. \nFirtly, the employer should look at a way that the employee anwser some questions. These are help us know that the employees  are flexible, aren't they? The company have to a flexible person to give solution for the problem in the work. For example, by the answer way we know about their knowledge and experience in the work thanks to that we can easily chooose. \nSecondly, preparing from their clothes to their anwser about the poision is also benefit to give a good choice. A person has a prepare for the poision will good anwser of the employer and your clothes is fomall than a person do not prepare anything. That person will have high performence for the company because they will good prepare for the work before the meeting or task. \nOverall, the decision maker is also carefull about the choose employee for the company. If you can choice a good person that enough experience about the work, solution the problem skill and have carefully prepare before the interview, you will help increase performence for the company. ",
+        "recordingFileId": null,
+        "sortOrder": 1
+      },
+      "speakingWritingResult": null,
+      "introContent": ""
+    }
+  }
+]
