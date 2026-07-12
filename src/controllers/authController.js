@@ -5,7 +5,7 @@ const authController = {
    * Log in user
    */
   async login(req, res) {
-    const { username, password } = req.body;
+    const { username, password } = req.body || {};
     console.log(`🔐 Incoming login request: username="${username}", password="${password}"`);
     if (!username || !password) {
       return res.status(400).json({ success: false, error: 'Tên đăng nhập và mật khẩu là bắt buộc.' });

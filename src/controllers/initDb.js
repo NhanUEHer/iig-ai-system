@@ -47,6 +47,8 @@ CREATE TABLE IF NOT EXISTS submission_answers (
   CONSTRAINT idx_submission_q UNIQUE (submission_id, section, question_no)
 );
 
+DROP TABLE IF EXISTS users;
+
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   username VARCHAR(100) UNIQUE NOT NULL,

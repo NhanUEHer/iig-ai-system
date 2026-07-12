@@ -4,11 +4,15 @@ const submissionRoutes = require('./routes/submissionRoutes');
 const authRoutes = require('./routes/authRoutes');
 const agentRoutes = require('./routes/agentRoutes');
 
+const path = require('path');
 const app = express();
 
 // Standard middlewares
 app.use(cors());
 app.use(express.json());
+
+// Serve cleaned audio files statically
+app.use('/cleaned-audio', express.static(path.join(__dirname, '../public/cleaned-audio')));
 
 // Routes mapping
 app.use('/api/submissions', submissionRoutes);

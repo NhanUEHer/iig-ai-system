@@ -3,37 +3,38 @@
 
 /* ── Design Tokens ─────────────────────────────── */
 :root {
-  /* Dark palette – Lumina Intelligence */
-  --bg:                  #0b1326;
-  --surface-low:         #131b2e;
-  --surface:             #171f33;
-  --surface-high:        #222a3d;
-  --surface-highest:     #2d3449;
-  --on-surface:          #dae2fd;
-  --on-surface-var:      #c2c6d3;
-  --outline:             #8c919d;
-  --outline-var:         #424751;
+  /* Dark palette – Sleek Slate High-Contrast Dark */
+  --bg:                  #0a0f1d;
+  --surface-low:         #111827;
+  --surface:             #1f2937;
+  --surface-high:        #374151;
+  --surface-highest:     #4b5563;
+  --on-surface:          #f9fafb; /* Off-white for crisp, easy-on-the-eyes text */
+  --on-surface-var:      #e5e7eb; /* Soft white-gray for descriptions */
+  --outline:             #9ca3af;
+  --outline-var:         #4b5563;
 
-  --primary:             #a8c8ff;
-  --primary-container:   #0055a5;
-  --on-primary:          #003062;
-  --on-primary-container:#b0ccff;
+  --primary:             #60a5fa; /* Vibrant primary blue */
+  --primary-container:   #1d4ed8;
+  --on-primary:          #ffffff;
+  --on-primary-container:#dbeafe;
 
-  --secondary:           #c3c3eb;
-  --secondary-container: #454668;
-  --on-secondary:        #2c2d4d;
+  --secondary:           #e5e7eb;
+  --secondary-container: #374151;
+  --on-secondary:        #111827;
 
-  --tertiary:            #e0b6ff;
-  --tertiary-container:  #7b27ba;
-  --on-tertiary:         #4c007d;
+  --tertiary:            #d8b4fe;
+  --tertiary-container:  #7c3aed;
+  --on-tertiary:         #ffffff;
 
-  --error:               #ffb4ab;
-  --error-container:     #93000a;
-  --on-error:            #690005;
+  --error:               #fca5a5;
+  --error-container:     #7f1d1d;
+  --on-error:            #ffffff;
 
   --sidebar-width: 280px;
+  --bento-border:        rgba(255, 255, 255, 0.08);
 
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Lexend', 'Inter', system-ui, sans-serif;
   line-height: 1.5;
   font-weight: 400;
   color-scheme: dark;
@@ -45,34 +46,38 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Light Theme Variables */
+/* Light Theme Variables - Ultra Clean Slate Light */
 :root.light-theme {
-  --bg:                  #f1f5f9;
-  --surface-low:         #f8fafc;
+  --bg:                  #f7f9fb;
+  --surface-low:         #f2f4f6;
   --surface:             #ffffff;
-  --surface-high:        #e2e8f0;
-  --surface-highest:     #cbd5e1;
-  --on-surface:          #0f172a;
-  --on-surface-var:      #1e293b; /* Tối hơn cũ để tăng độ tương phản chữ phụ */
-  --outline:             #64748b; /* Tối màu viền hơn */
-  --outline-var:         #cbd5e1; /* Tăng tương phản đường viền giữa các dòng */
+  --surface-high:        #e6e8ea;
+  --surface-highest:     #e0e3e5;
+  --on-surface:          #191c1e;
+  --on-surface-var:      #424751;
+  --outline:             #727783;
+  --outline-var:         #c2c6d3;
 
-  --primary:             #0055a5; /* Đổi sang màu xanh thương hiệu đậm để chữ trên nền trắng cực kỳ rõ ràng */
-  --primary-container:   #e0f2fe;
+  --primary:             #003e7b;
+  --primary-container:   #0055a5;
   --on-primary:          #ffffff;
-  --on-primary-container:#0369a1;
+  --on-primary-container:#b0ccff;
 
-  --secondary:           #475569;
-  --secondary-container: #f1f5f9;
-  --on-secondary:        #0f172a;
+  --secondary:           #00677e;
+  --secondary-container: #00d2fd;
+  --on-secondary:        #ffffff;
+  --on-secondary-container:#005669;
 
-  --tertiary:            #6d28d9;
-  --tertiary-container:  #f5f3ff;
+  --tertiary:            #4d00b4;
+  --tertiary-container:  #6900ef;
   --on-tertiary:         #ffffff;
+  --on-tertiary-container:#d5c2ff;
 
-  --error:               #b91c1c;
-  --error-container:     #fef2f2;
+  --error:               #ba1a1a;
+  --error-container:     #ffdad6;
   --on-error:            #ffffff;
+  --on-error-container:  #93000a;
+  --bento-border:        #e2e8f0;
 
   color-scheme: light;
 }
@@ -910,3 +915,20 @@ body {
   .login-form-card { padding: 28px 20px; }
   .login-form-title { font-size: 20px; }
 }
+
+/* Dashboard Statistics Chart Tooltip Styles */
+.bar-item {
+  position: relative;
+  transition: all 0.2s ease !important;
+}
+.bar-item:hover {
+  background: var(--primary) !important;
+  filter: brightness(1.2);
+  transform: scaleY(1.05);
+}
+.bar-item:hover .tooltip-text {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translate(-50%, -4px) !important;
+}
+

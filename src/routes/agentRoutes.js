@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
 
 // Create new agent
 router.post('/', async (req, res) => {
-  const { name, description, api_endpoint, api_key, api_type, target_questions } = req.body;
+  const { name, description, api_endpoint, api_key, api_type, target_questions, stt_target } = req.body;
   if (!name || !api_endpoint || !api_key || !api_type || !target_questions) {
     return res.status(400).json({ success: false, error: 'Thiếu các thông tin bắt buộc.' });
   }
@@ -30,8 +30,8 @@ router.post('/', async (req, res) => {
 
   try {
     const query = `
-      INSERT INTO ai_agents (name, description, api_endpoint, api_key, api_type, target_questions, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+      INSERT INTO ai_agents (name, description, api_endpoint, api_key, api_type, stt_target, target_questions, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
       RETURNING *
     `;
     const result = await db.query(query, [
@@ -40,6 +40,7 @@ router.post('/', async (req, res) => {
       api_endpoint.trim(),
       api_key.trim(),
       api_type,
+      stt_target || 'student_answer',
       JSON.stringify(target_questions)
     ]);
     return res.json({ success: true, data: result.rows[0] });
@@ -52,7 +53,7 @@ router.post('/', async (req, res) => {
 // Update agent
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, description, api_endpoint, api_key, api_type, target_questions } = req.body;
+  const { name, description, api_endpoint, api_key, api_type, target_questions, stt_target } = req.body;
 
   if (!name || !api_endpoint || !api_key || !api_type || !target_questions) {
     return res.status(400).json({ success: false, error: 'Thiếu các thông tin bắt buộc.' });
@@ -69,8 +70,8 @@ router.put('/:id', async (req, res) => {
   try {
     const query = `
       UPDATE ai_agents 
-      SET name = $1, description = $2, api_endpoint = $3, api_key = $4, api_type = $5, target_questions = $6, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $7
+      SET name = $1, description = $2, api_endpoint = $3, api_key = $4, api_type = $5, stt_target = $6, target_questions = $7, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $8
       RETURNING *
     `;
     const result = await db.query(query, [
@@ -79,6 +80,7 @@ router.put('/:id', async (req, res) => {
       api_endpoint.trim(),
       api_key.trim(),
       api_type,
+      stt_target || 'student_answer',
       JSON.stringify(target_questions),
       id
     ]);
