@@ -46,10 +46,18 @@ sshpass -p "$VPS_PASSWORD" rsync -az --delete \
   --exclude='voice_clone_models' \
   --exclude='tts_env' \
   --exclude='asset' \
+  --exclude='src/models/**/*.onnx' \
+  --exclude='src/models/**/*.bin' \
+  --exclude='src/models/**/*.pt' \
+  --exclude='src/models/**/*.pth' \
+  --exclude='src/models/**/*.npy' \
+  --exclude='src/models/**/*.safetensors' \
   --exclude='public/cleaned-audio' \
   --exclude='public/local_audio' \
   --exclude='public/local_voices' \
   --exclude='public/tmp_local' \
+  --exclude='public/dialogues' \
+  --exclude='public/custom_voices' \
   "$PROJECT_DIR/" root@"$VPS_IP":"$STAGE_DIR/"
 
 echo "[5/7] Installing production dependencies in staging..."
@@ -71,8 +79,18 @@ sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no root@"$VPS_IP" "
     --exclude='public/local_audio' \
     --exclude='public/local_voices' \
     --exclude='public/tmp_local' \
+    --exclude='public/dialogues' \
+    --exclude='public/custom_voices' \
     --exclude='tts_env' \
+    --exclude='voice_clone_env' \
+    --exclude='voice_clone_models' \
     --exclude='asset' \
+    --exclude='src/models/**/*.onnx' \
+    --exclude='src/models/**/*.bin' \
+    --exclude='src/models/**/*.pt' \
+    --exclude='src/models/**/*.pth' \
+    --exclude='src/models/**/*.npy' \
+    --exclude='src/models/**/*.safetensors' \
     '$STAGE_DIR/' '$VPS_DIR/'
   cd '$VPS_DIR'
   install -m 644 deploy/nginx-ai-scoring.conf /etc/nginx/sites-available/ai-scoring
