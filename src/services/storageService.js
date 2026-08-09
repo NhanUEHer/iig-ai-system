@@ -12,6 +12,9 @@ const R2_ENDPOINT   = process.env.R2_ENDPOINT   || '';
 const R2_ACCESS_KEY = process.env.R2_ACCESS_KEY  || '';
 const R2_SECRET_KEY = process.env.R2_SECRET_KEY  || '';
 const R2_BUCKET     = process.env.R2_BUCKET      || 'ai-scoring-audio';
+const R2_CLEAN_AUDIO_PREFIX = process.env.R2_CLEAN_AUDIO_PREFIX || 'cleaned-audio';
+const R2_GENERATED_AUDIO_PREFIX = process.env.R2_GENERATED_AUDIO_PREFIX || 'dialogues';
+const AUDIO_STORAGE_MODE = process.env.AUDIO_STORAGE_MODE || 'local';
 
 // URL expiry: 7 days (Dify calls + frontend playback)
 const SIGNED_URL_EXPIRY_SECONDS = 60 * 60 * 24 * 7;
@@ -40,6 +43,17 @@ function getClient() {
  */
 function isR2Configured() {
   return !!(R2_ENDPOINT && R2_ACCESS_KEY && R2_SECRET_KEY);
+}
+
+function requireR2() {
+  if (AUDIO_STORAGE_MODE === 'r2' && !isR2Configured()) {
+    throw new Error('AUDIO_STORAGE_MODE=r2 requires complete R2 credentials.');
+  }
+}
+
+function objectKey(kind, fileName) {
+  const prefix = kind === 'generated' ? R2_GENERATED_AUDIO_PREFIX : R2_CLEAN_AUDIO_PREFIX;
+  return `${prefix.replace(/^\/+|\/+$/g, '')}/${String(fileName).replace(/^\/+/, '')}`;
 }
 
 /**
@@ -112,4 +126,4 @@ function isR2Key(storedUrl) {
   return typeof storedUrl === 'string' && storedUrl.startsWith('r2:');
 }
 
-module.exports = { uploadFile, getSignedAudioUrl, deleteFile, isR2Key, isR2Configured };
+module.exports = { uploadFile, getSignedAudioUrl, deleteFile, isR2Key, isR2Configured, requireR2, objectKey, audioStorageMode: AUDIO_STORAGE_MODE };

@@ -20,9 +20,18 @@ function parseFlexibleNumber(raw){
   if(commas&&dots){const decimal=cleaned.lastIndexOf(',')>cleaned.lastIndexOf('.')?',':'.',group=decimal===','?'.':',';normalized=cleaned.replaceAll(group,'').replace(decimal,'.');}
   else if(commas){normalized=commas>1||cleaned.split(',').at(-1).length===3?cleaned.replaceAll(',',''):cleaned.replace(',','.');}
   else if(dots){normalized=dots>1||cleaned.split('.').at(-1).length===3?cleaned.replaceAll('.',''):cleaned;}
-  const number=Number(normalized);return Number.isFinite(number)?number:null;
+  return /^-?\d+(?:\.\d+)?$/.test(normalized)&&Number.isFinite(Number(normalized))?normalized:null;
 }
-const formatInputNumber=value=>value===null||value===undefined||value===''?'':Number(value).toLocaleString('vi-VN',{useGrouping:true,maximumFractionDigits:6});
+function formatInputNumber(value){
+  if(value===null||value===undefined||value==='')return '';
+  const normalized=String(value).replace(',','.');
+  if(!/^-?\d+(?:\.\d+)?$/.test(normalized))return String(value);
+  const [rawInteger,rawFraction='']=normalized.split('.');
+  const sign=rawInteger.startsWith('-')?'-':'';
+  const integer=rawInteger.replace('-','').replace(/^0+(?=\d)/,'').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  const fraction=rawFraction.slice(0,9);
+  return `${sign}${integer}${fraction?`,${fraction}`:''}`;
+}
 const performanceClass=(value,threshold=1)=>value===null||value===undefined||!Number.isFinite(Number(value))?'':Number(value)>=threshold?'formula-good':'formula-bad';
 const evaluationClass=value=>value==='Đạt'?'formula-good':value==='Chưa đạt'?'formula-bad':'';
 const trendClass=(value,direction)=>value===null||value===undefined||direction==='monitor'?'':direction==='decrease_good'?(Number(value)<=0?'formula-good':'formula-bad'):(Number(value)>=0?'formula-good':'formula-bad');

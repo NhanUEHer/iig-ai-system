@@ -82,8 +82,9 @@ async function cleanAudio(inputUrl, fileId, method = 'ai', dependencies = {}) {
 
     const outputDir = path.join(__dirname, '../../public/cleaned-audio');
     const outputName = `${String(fileId).replace(/[^a-zA-Z0-9_-]/g, '_')}_cleaned.mp3`;
+    storage.requireR2?.();
     if (storage.isR2Configured()) {
-      const storedKey = await storage.uploadFile(mp3Path, `cleaned-audio/${outputName}`);
+      const storedKey = await storage.uploadFile(mp3Path, storage.objectKey('cleaned', outputName));
       return { absolutePath: null, urlPath: storedKey, methodUsed: resolveMethod(pythonResult.stdout) };
     }
     await fsp.mkdir(outputDir, { recursive: true });

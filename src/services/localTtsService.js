@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { execFile } = require('child_process');
 const voiceCloneService = require('./voiceCloneService');
+const storageService = require('./storageService');
 
 class LocalTtsService {
   constructor() {
@@ -296,11 +297,24 @@ class LocalTtsService {
       try { fs.unlinkSync(f); } catch (e) {}
     });
 
-    const publicAudioUrl = `/local_audio/${path.basename(finalMp3File)}`;
     const durationSeconds = await new Promise(resolve => execFile('ffprobe', [
       '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=nw=1:nk=1', finalMp3File
     ], (error, stdout) => resolve(error ? null : Number.parseFloat(stdout.trim()) || null)));
     const fileSizeBytes = fs.statSync(finalMp3File).size;
+    storageService.requireR2();
+    let storedAudioPath = `/local_audio/${path.basename(finalMp3File)}`;
+    let playbackUrl = storedAudioPath;
+    if (storageService.audioStorageMode === 'r2') {
+      try {
+        storedAudioPath = await storageService.uploadFile(
+          finalMp3File,
+          storageService.objectKey('generated', path.basename(finalMp3File))
+        );
+      } finally {
+        try { fs.unlinkSync(finalMp3File); } catch {}
+      }
+      playbackUrl = await storageService.getSignedAudioUrl(storedAudioPath);
+    }
 
     // Save to CSDL PostgreSQL local_tts_history
     const queryText = `
@@ -312,7 +326,7 @@ class LocalTtsService {
       title || 'Untitled Audio',
       content_type,
       JSON.stringify(script),
-      publicAudioUrl,
+      storedAudioPath,
       durationSeconds,
       JSON.stringify({ global_rate, global_pitch, pause_between_ms }),
       fileSizeBytes
@@ -323,7 +337,7 @@ class LocalTtsService {
 
     return {
       success: true,
-      audio_url: publicAudioUrl,
+      audio_url: playbackUrl,
       record: savedRecord
     };
   }
@@ -342,28 +356,48 @@ class LocalTtsService {
       [query, safeLimit, (safePage - 1) * safeLimit]),
       db.query('SELECT COUNT(*)::int AS total FROM local_tts_history WHERE title ILIKE $1', [query])
     ]);
-    return { items: rows.rows, pagination: { page: safePage, limit: safeLimit, total: count.rows[0].total, totalPages: Math.max(1, Math.ceil(count.rows[0].total / safeLimit)) } };
+    const items = await Promise.all(rows.rows.map(async (row) => {
+      if (!storageService.isR2Key(row.audio_path)) return row;
+      try {
+        return { ...row, audio_path: await storageService.getSignedAudioUrl(row.audio_path) };
+      } catch {
+        return { ...row, audio_path: null, audio_unavailable: true };
+      }
+    }));
+    return { items, pagination: { page: safePage, limit: safeLimit, total: count.rows[0].total, totalPages: Math.max(1, Math.ceil(count.rows[0].total / safeLimit)) } };
   }
 
   async getHistoryDetail(id) {
     const res = await db.query('SELECT * FROM local_tts_history WHERE id = $1', [id]);
-    return res.rows[0] || null;
+    const row = res.rows[0] || null;
+    if (row && storageService.isR2Key(row.audio_path)) {
+      try {
+        row.audio_path = await storageService.getSignedAudioUrl(row.audio_path);
+      } catch {
+        row.audio_path = null;
+        row.audio_unavailable = true;
+      }
+    }
+    return row;
   }
 
   /**
    * Delete history item
    */
   async deleteHistory(id) {
-    const res = await db.query('DELETE FROM local_tts_history WHERE id = $1 RETURNING *', [id]);
-    if (res.rows.length > 0) {
-      const audioPath = res.rows[0].audio_path;
-      if (audioPath) {
+    const found = await db.query('SELECT * FROM local_tts_history WHERE id = $1', [id]);
+    if (found.rows.length > 0) {
+      const audioPath = found.rows[0].audio_path;
+      if (storageService.isR2Key(audioPath)) {
+        await storageService.deleteFile(audioPath);
+      } else if (audioPath) {
         const localFile = path.join(__dirname, '../../public', audioPath);
         if (fs.existsSync(localFile)) {
           try { fs.unlinkSync(localFile); } catch (e) {}
         }
       }
     }
+    const res = await db.query('DELETE FROM local_tts_history WHERE id = $1 RETURNING *', [id]);
     return res.rows[0];
   }
 

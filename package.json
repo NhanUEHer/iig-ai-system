@@ -1,6 +1,6 @@
 {
   "name": "ai-scoring-admin",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -10,7 +10,8 @@
     "check:syntax": "find src tests -name '*.js' -type f -exec node --check {} \\;",
     "check": "npm run check:syntax && npm test && npm run lint --prefix frontend && npm run build --prefix frontend",
     "reports:clear-data": "node scripts/clear-report-data.js",
-    "reports:seed-e2e": "node scripts/seed-report-e2e.js"
+    "reports:seed-e2e": "node scripts/seed-report-e2e.js",
+    "audio:migrate-dev-r2": "node scripts/migrate-dev-audio-to-r2.js"
   },
   "keywords": [],
   "author": "",

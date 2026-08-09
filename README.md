@@ -279,6 +279,8 @@ Never commit `.env`, model environments, checkpoints, generated audio, reference
 
 Never put the Hetzner password in any repository file. Provide `VPS_PASSWORD` only in the process environment, or store it in macOS Keychain under service `ai-scoring-vps` and account `root@<VPS_IP>`; `deploy.sh` can read that item without printing the secret.
 
+Development audio storage uses Cloudflare R2 when `AUDIO_STORAGE_MODE=r2`. PostgreSQL stores only an `r2:<object-key>` reference and metadata. The bucket layout mirrors production: `cleaned-audio/` for processed answers, `dialogues/` for generated audio, `question-bank/` for question assets, and `test/` for connectivity checks. Run `npm run audio:migrate-dev-r2` for a dry run and append `-- --apply` to upload existing local files, update their database references, and remove the migrated local copies.
+
 ## Database migrations
 
 Migrations run automatically during backend startup through `src/database/migrate.js`. Each SQL filename is recorded in `schema_migrations` and applied once inside a transaction.
