@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const runTransaction = require('../database/transaction');
 require('dotenv').config();
 
 const pool = new Pool({
@@ -16,5 +17,7 @@ pool.on('error', (err) => {
 
 module.exports = {
   query: (text, params) => pool.query(text, params),
+  transaction: work => runTransaction(pool, work),
+  close: () => pool.end(),
   pool,
 };

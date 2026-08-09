@@ -1,0 +1,36 @@
+:root:not(.light-theme) .submission-workspace{background:#0c111d;color:#e4e7ec}
+:root:not(.light-theme) .submission-page-header h1{color:#f9fafb}
+:root:not(.light-theme) .submission-page-header p{color:#98a2b3}
+:root:not(.light-theme) .submission-button.secondary{background:#161b26;border-color:#333741;color:#d0d5dd}
+:root:not(.light-theme) .submission-metric,
+:root:not(.light-theme) .submission-data-card{background:#161b26;border-color:#292e3a;box-shadow:none}
+:root:not(.light-theme) .submission-metric strong{color:#f9fafb}
+:root:not(.light-theme) .submission-metric span{color:#98a2b3}
+:root:not(.light-theme) .submission-metric small{color:#667085}
+:root:not(.light-theme) .submission-data-top,
+:root:not(.light-theme) .submission-table td,
+:root:not(.light-theme) .submission-pagination{border-color:#292e3a}
+:root:not(.light-theme) .submission-status-tabs{background:#0c111d}
+:root:not(.light-theme) .submission-status-tabs button{color:#98a2b3}
+:root:not(.light-theme) .submission-status-tabs button span{background:#292e3a;color:#98a2b3}
+:root:not(.light-theme) .submission-status-tabs button.active{background:#1f2a44;color:#84adff;box-shadow:none}
+:root:not(.light-theme) .submission-status-tabs button.active span{background:#1849a9;color:#d1e0ff}
+:root:not(.light-theme) .submission-search{background:#0c111d;border-color:#333741}
+:root:not(.light-theme) .submission-search input{color:#f2f4f7}
+:root:not(.light-theme) .submission-selection-bar{background:#172554;border-color:#1d4ed8;color:#d1e0ff}
+:root:not(.light-theme) .submission-table th{background:#101323;border-color:#292e3a;color:#85888e}
+:root:not(.light-theme) .submission-table td{color:#d0d5dd}
+:root:not(.light-theme) .submission-table tbody tr:hover{background:#1d2433}
+:root:not(.light-theme) .submission-table tbody tr.selected{background:#172554}
+:root:not(.light-theme) .candidate-cell strong{color:#f2f4f7}
+:root:not(.light-theme) .candidate-cell div span,
+:root:not(.light-theme) .submission-table time{color:#85888e}
+:root:not(.light-theme) .test-name{color:#b6bac3}
+:root:not(.light-theme) .row-actions button,
+:root:not(.light-theme) .page-controls button,
+:root:not(.light-theme) .submission-pagination select{background:#1d2433;border-color:#333741;color:#d0d5dd}
+:root:not(.light-theme) .submission-empty strong{color:#d0d5dd}
+:root:not(.light-theme) .submission-modal{background:#161b26;color:#f2f4f7}
+:root:not(.light-theme) .submission-modal>p{color:#98a2b3}
+:root:not(.light-theme) .submission-modal label{color:#d0d5dd}
+:root:not(.light-theme) .submission-modal input{background:#0c111d;border-color:#333741;color:#f9fafb}

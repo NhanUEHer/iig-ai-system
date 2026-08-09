@@ -1,117 +1,105 @@
 const { execFile } = require('child_process');
-const path = require('path');
+const { randomUUID } = require('crypto');
 const fs = require('fs');
-const https = require('https');
+const fsp = require('fs/promises');
 const http = require('http');
+const https = require('https');
+const os = require('os');
+const path = require('path');
+const { pipeline } = require('stream/promises');
 const storageService = require('./storageService');
 
-/**
- * Downloads a file from a URL to a local destination path
- */
-function downloadFile(url, destPath) {
+const MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024;
+const PROCESS_TIMEOUT_MS = 5 * 60 * 1000;
+
+function execute(file, args, options = {}) {
+  return new Promise((resolve, reject) => execFile(file, args, { timeout: PROCESS_TIMEOUT_MS, maxBuffer: 1024 * 1024, ...options }, (error, stdout, stderr) => {
+    if (error) return reject(new Error(`${path.basename(file)} failed: ${stderr || error.message}`));
+    return resolve({ stdout, stderr });
+  }));
+}
+
+async function getAudioDuration(file, dependencies = {}) {
+  const runner = dependencies.execute || execute;
+  const { stdout } = await runner('ffprobe', [
+    '-v', 'error', '-show_entries', 'format=duration',
+    '-of', 'default=nw=1:nk=1', file
+  ]);
+  const duration = Number.parseFloat(stdout);
+  return Number.isFinite(duration) ? duration : 0;
+}
+
+async function ensureSafeDuration(inputPath, outputPath, dependencies = {}) {
+  const inputDuration = await getAudioDuration(inputPath, dependencies);
+  const outputDuration = await getAudioDuration(outputPath, dependencies);
+  const minimumDuration = Math.max(1, inputDuration * 0.8);
+  if (inputDuration > 1 && outputDuration < minimumDuration) {
+    throw new Error(`Audio cleaner shortened the recording unexpectedly (${outputDuration.toFixed(2)}s / ${inputDuration.toFixed(2)}s).`);
+  }
+  return { inputDuration, outputDuration };
+}
+
+function downloadFile(url, destination, redirects = 0) {
   return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(destPath);
-    const client = url.startsWith('https') ? https : http;
-
-    client.get(url, (response) => {
-      if (response.statusCode !== 200) {
-        reject(new Error(`Failed to download file, status code: ${response.statusCode}`));
-        return;
+    if (redirects > 5) return reject(new Error('Audio download exceeded redirect limit.'));
+    const client = String(url).startsWith('https:') ? https : http;
+    const request = client.get(url, { timeout: 30000 }, async response => {
+      if ([301, 302, 303, 307, 308].includes(response.statusCode) && response.headers.location) {
+        response.resume();
+        return resolve(downloadFile(new URL(response.headers.location, url).toString(), destination, redirects + 1));
       }
-      response.pipe(file);
-      file.on('finish', () => {
-        file.close();
-        resolve(destPath);
+      if (response.statusCode !== 200) { response.resume(); return reject(new Error(`Không thể tải audio (HTTP ${response.statusCode}).`)); }
+      const length = Number(response.headers['content-length'] || 0);
+      if (length > MAX_DOWNLOAD_BYTES) { response.resume(); return reject(new Error('Tệp audio vượt quá giới hạn 50 MB.')); }
+      let received = 0;
+      response.on('data', chunk => {
+        received += chunk.length;
+        if (received > MAX_DOWNLOAD_BYTES) request.destroy(new Error('Tệp audio vượt quá giới hạn 50 MB.'));
       });
-    }).on('error', (err) => {
-      fs.unlink(destPath, () => {});
-      reject(err);
+      try { await pipeline(response, fs.createWriteStream(destination)); resolve(destination); }
+      catch (error) { reject(error); }
     });
+    request.on('timeout', () => request.destroy(new Error('Hết thời gian tải audio.')));
+    request.on('error', reject);
   });
 }
 
-/**
- * Clean audio using Python audioCleaner script
- */
-function cleanAudio(inputUrl, fileId, method = 'ai') {
-  return new Promise(async (resolve, reject) => {
-    const tempDir = path.join(__dirname, '../../tmp');
+async function cleanAudio(inputUrl, fileId, method = 'ai', dependencies = {}) {
+  const normalizedMethod = ['ai', 'dsp'].includes(method) ? method : 'ai';
+  const storage = dependencies.storage || storageService;
+  const workDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'iig-audio-clean-'));
+  const uniqueName = `${String(fileId).replace(/[^a-zA-Z0-9_-]/g, '_')}-${randomUUID()}`;
+  const inputPath = path.join(workDir, `${uniqueName}-input.wav`);
+  const wavPath = path.join(workDir, `${uniqueName}-clean.wav`);
+  const mp3Path = path.join(workDir, `${uniqueName}-clean.mp3`);
+  try {
+    await (dependencies.download || downloadFile)(inputUrl, inputPath);
+    const scriptPath = path.join(__dirname, 'audioCleaner.py');
+    const pythonBinary = process.env.AUDIO_CLEANER_PYTHON || 'python3';
+    const pythonResult = await (dependencies.execute || execute)(pythonBinary, [scriptPath, inputPath, wavPath, normalizedMethod]);
+    await ensureSafeDuration(inputPath, wavPath, dependencies);
+    await (dependencies.execute || execute)('ffmpeg', ['-y', '-i', wavPath, '-codec:a', 'libmp3lame', '-ac', '1', '-ar', '16000', '-b:a', '96k', mp3Path]);
+
     const outputDir = path.join(__dirname, '../../public/cleaned-audio');
-
-    // Ensure folders exist
-    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
-    if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
-
-    const tempInputFile = path.join(tempDir, `temp_input_${fileId}.wav`);
-    const tempOutputFileWav = path.join(tempDir, `temp_output_${fileId}.wav`);
-    const finalOutputFileMp3 = path.join(outputDir, `${fileId}_cleaned.mp3`);
-
-    try {
-      console.log(`[AudioCleaner] Downloading audio for cleaning...`);
-      await downloadFile(inputUrl, tempInputFile);
-
-      const scriptPath = path.join(__dirname, 'audioCleaner.py');
-      console.log(`[AudioCleaner] Executing Python script: ${scriptPath}`);
-
-      execFile('python3', [scriptPath, tempInputFile, tempOutputFileWav, method], async (error, stdout, stderr) => {
-        // Clean up temporary downloaded file
-        if (fs.existsSync(tempInputFile)) fs.unlinkSync(tempInputFile);
-
-        if (error) {
-          console.error(`[AudioCleaner] Script execution error:`, error, stderr);
-          if (fs.existsSync(tempOutputFileWav)) fs.unlinkSync(tempOutputFileWav);
-          reject(new Error(`Python processing error: ${error.message}`));
-          return;
-        }
-
-        console.log(`[AudioCleaner] Output:\n${stdout}`);
-
-        // 2. Convert WAV to MP3 using FFmpeg (mono, 96k bitrate, 16kHz sampling rate for STT optimization)
-        const { exec } = require('child_process');
-        exec(`ffmpeg -y -i "${tempOutputFileWav}" -codec:a libmp3lame -ac 1 -ar 16000 -b:a 96k "${finalOutputFileMp3}"`, async (ffErr, ffStdout, ffStderr) => {
-          // Clean up temp WAV output
-          if (fs.existsSync(tempOutputFileWav)) fs.unlinkSync(tempOutputFileWav);
-
-          if (ffErr) {
-            console.error(`[AudioCleaner] FFmpeg conversion error:`, ffErr, ffStderr);
-            reject(new Error(`FFmpeg MP3 conversion error: ${ffErr.message}`));
-            return;
-          }
-
-          console.log(`[AudioCleaner] FFmpeg conversion completed: ${finalOutputFileMp3}`);
-
-          let finalUrlPath = `/cleaned-audio/${fileId}_cleaned.mp3`;
-          let finalPath = finalOutputFileMp3;
-
-          if (storageService.isR2Configured()) {
-            const r2Key = `cleaned-audio/${fileId}_cleaned.mp3`;
-            try {
-              const storedKey = await storageService.uploadFile(finalOutputFileMp3, r2Key);
-              finalUrlPath = storedKey; // "r2:cleaned-audio/xxx.mp3"
-              finalPath = null;
-              if (fs.existsSync(finalOutputFileMp3)) fs.unlinkSync(finalOutputFileMp3);
-              console.log(`[AudioCleaner] Uploaded MP3 to R2: ${r2Key}`);
-            } catch (r2Err) {
-              console.warn(`[AudioCleaner] R2 upload failed, keeping local: ${r2Err.message}`);
-            }
-          }
-
-          resolve({
-            absolutePath: finalPath,
-            urlPath: finalUrlPath,
-            methodUsed: stdout.includes('traditional DSP') ? 'dsp' : 'ai'
-          });
-        });
-      });
-
-    } catch (err) {
-      if (fs.existsSync(tempInputFile)) fs.unlinkSync(tempInputFile);
-      if (fs.existsSync(tempOutputFileWav)) fs.unlinkSync(tempOutputFileWav);
-      reject(err);
+    const outputName = `${String(fileId).replace(/[^a-zA-Z0-9_-]/g, '_')}_cleaned.mp3`;
+    if (storage.isR2Configured()) {
+      const storedKey = await storage.uploadFile(mp3Path, `cleaned-audio/${outputName}`);
+      return { absolutePath: null, urlPath: storedKey, methodUsed: resolveMethod(pythonResult.stdout) };
     }
-  });
+    await fsp.mkdir(outputDir, { recursive: true });
+    const finalPath = path.join(outputDir, outputName);
+    await fsp.copyFile(mp3Path, finalPath);
+    return { absolutePath: finalPath, urlPath: `/cleaned-audio/${outputName}`, methodUsed: resolveMethod(pythonResult.stdout) };
+  } finally {
+    await fsp.rm(workDir, { recursive: true, force: true });
+  }
 }
 
-module.exports = {
-  cleanAudio
-};
+function resolveMethod(output = '') {
+  if (output.includes('DeepFilterNet AI Denoising completed')) return 'ai';
+  if (output.includes('FFmpeg Voice Enhancement v2 completed') || output.includes('FFmpeg Filter Chain completed')) return 'ffmpeg-v2';
+  if (output.includes('DSP Spectral Gating completed')) return 'dsp';
+  return 'original';
+}
+
+module.exports = { cleanAudio, downloadFile, execute, getAudioDuration, ensureSafeDuration, resolveMethod };

@@ -1,0 +1,67 @@
+:root{
+  --font-body:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --font-heading:'Lexend',var(--font-body);
+  --text-xs:11px;--text-sm:12px;--text-md:13px;--text-base:14px;
+  --text-lg:16px;--text-xl:20px;--text-2xl:28px;
+  --leading-tight:1.3;--leading-body:1.55;
+}
+html{font-size:16px}body,button,input,select,textarea{font-family:var(--font-body)}body{font-size:var(--text-base);line-height:1.55;letter-spacing:0}h1,h2,h3,h4,h5,h6{font-family:var(--font-heading);letter-spacing:-.025em}button,input,select,textarea{font-size:var(--text-md)}input,select{min-height:38px}textarea{line-height:1.55}.btn-primary,.btn-secondary{font-size:var(--text-md);letter-spacing:0}.section-label{font-size:var(--text-sm)}
+main h1{font-size:var(--text-2xl)!important;line-height:1.2}main h2{line-height:1.3}main table th{font-size:var(--text-xs)!important}main table td{font-size:var(--text-md)!important}
+
+/* Baseline for every authenticated feature screen. Component CSS may change
+   hierarchy, but interactive and reading text must stay on this shared scale. */
+main button,main input,main select,main textarea{font-size:var(--text-md)!important}
+main label{font-size:var(--text-sm)!important}
+main p{font-size:var(--text-md)!important;line-height:var(--leading-body)}
+main small,main time,main code{font-size:var(--text-xs)!important}
+
+/* Navigation typography */
+.workspace-sidebar .workspace-sidebar-brand-copy strong{font-size:15px}.workspace-sidebar .workspace-sidebar-brand-copy span{font-size:10px}.workspace-sidebar .workspace-nav-label{font-size:10px}.workspace-sidebar .workspace-nav-item{font-size:12px}.workspace-sidebar .workspace-nav-item em{font-size:9px}.workspace-sidebar .workspace-user-avatar{font-size:11px}.workspace-sidebar .workspace-user-copy strong{font-size:12px}.workspace-sidebar .workspace-user-copy span{font-size:10px}
+
+/* Shared table, badge and form scale */
+table th{font-size:var(--text-xs)}table td{font-size:var(--text-md)}.status-badge,.badge-pending,.badge-processing,.badge-done{font-size:var(--text-xs)}.glass-input{font-size:var(--text-md)}
+
+/* Feature headings and supporting copy */
+.submission-list-page h1,.submission-detail-page h1,.mapping-page h1,.agent-page h1,.user-admin-page h1,.change-password-page h1,.tts-studio-page h1{font-size:var(--text-2xl)}.submission-list-page p,.submission-detail-page p,.mapping-page p,.agent-page p{font-size:var(--text-md);line-height:var(--leading-body)}
+
+/* Keep compact metadata readable without inflating dense layouts */
+.workspace-tool-grid small,.metric-card small,.submission-meta small,.mapping-meta small,.agent-card small{font-size:var(--text-xs)}
+
+/* Agent management — normalize the legacy 6–11px compact scale. */
+.agent-header>div>span,.mapping-eyebrow{font-size:var(--text-xs)}
+.agent-header h1,.mapping-header h1{font-size:var(--text-2xl);line-height:1.2}
+.agent-header p,.mapping-header p{font-size:var(--text-base)!important}
+.agent-button,.mapping-button{font-size:var(--text-md)}
+.agent-metrics small,.mapping-metrics span,.mapping-metrics small{font-size:var(--text-sm)}
+.agent-metrics strong,.mapping-metrics strong{font-size:22px}
+.agent-coverage h2,.mapping-toolbar h2{font-size:var(--text-lg)}
+.agent-coverage p{font-size:var(--text-sm)}
+.agent-coverage b{font-size:var(--text-xs)}
+.agent-coverage em{font-size:10px}
+.agent-tabs button,.agent-toolbar input,.mapping-toolbar input{font-size:var(--text-md)}
+.agent-card>header strong{font-size:var(--text-base)}
+.agent-card>header small{font-size:var(--text-xs)}
+.agent-card>p{height:39px;font-size:var(--text-sm)}
+.agent-endpoint>span{font-size:var(--text-xs)}
+.agent-endpoint em{font-size:10px}
+.agent-groups span{font-size:10px}
+.agent-card>footer{font-size:var(--text-xs)}
+.agent-empty strong,.mapping-empty strong{font-size:var(--text-md)}
+.agent-empty span,.mapping-empty span{font-size:var(--text-sm)}
+.agent-modal h2,.mapping-modal h2{font-size:var(--text-xl)}
+.agent-modal>header p,.mapping-modal>p{font-size:var(--text-md)}
+.agent-type-picker strong{font-size:var(--text-md)}
+.agent-type-picker small{font-size:var(--text-xs)}
+.agent-form-grid label,.mapping-form-grid label{font-size:var(--text-sm)}
+.agent-form-grid input,.agent-form-grid select,.mapping-form-grid input{font-size:var(--text-md)}
+.agent-form-grid label>small{font-size:var(--text-xs)}
+.agent-group-picker>header strong{font-size:var(--text-md)}
+.agent-group-picker>header span,.agent-group-picker>header button{font-size:var(--text-xs)}
+.agent-group-picker>div>span{font-size:var(--text-xs)}
+.agent-group-picker label{min-height:36px;font-size:var(--text-xs)}
+.agent-test-result,.mapping-sync-state span{font-size:var(--text-sm)}
+.mapping-toolbar>div span,.mapping-table em,.mapping-table time,.mapping-pagination{font-size:var(--text-xs)}
+.mapping-table code{font-size:var(--text-xs)}
+.mapping-sync-state strong{font-size:var(--text-md)}
+
+@media(max-width:640px){:root{--text-2xl:24px}.workspace-sidebar .workspace-nav-item{font-size:12px}}

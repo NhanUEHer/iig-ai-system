@@ -1,0 +1,38 @@
+ALTER TABLE keycode_mappings
+  ADD COLUMN IF NOT EXISTS student_name VARCHAR(255),
+  ADD COLUMN IF NOT EXISTS test_name VARCHAR(255);
+
+ALTER TABLE mocktest_submissions
+  ADD COLUMN IF NOT EXISTS overall_score VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS scored_date TIMESTAMP,
+  ADD COLUMN IF NOT EXISTS synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+
+ALTER TABLE ai_agents
+  ADD COLUMN IF NOT EXISTS stt_target VARCHAR(50) NOT NULL DEFAULT 'student_answer';
+
+ALTER TABLE submission_answers
+  ADD COLUMN IF NOT EXISTS questionnaire_type SMALLINT,
+  ADD COLUMN IF NOT EXISTS question_title VARCHAR(255),
+  ADD COLUMN IF NOT EXISTS question_name TEXT,
+  ADD COLUMN IF NOT EXISTS context_audio_file_id VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS context_text TEXT,
+  ADD COLUMN IF NOT EXISTS question_audio_file_id VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS prep_time VARCHAR(10),
+  ADD COLUMN IF NOT EXISTS recording_time VARCHAR(10),
+  ADD COLUMN IF NOT EXISTS max_writing_length SMALLINT;
+
+ALTER TABLE ai_evaluation_results
+  ADD COLUMN IF NOT EXISTS cleaned_audio_url TEXT,
+  ADD COLUMN IF NOT EXISTS cohesion_score VARCHAR(50),
+  ADD COLUMN IF NOT EXISTS cohesion_rationale TEXT,
+  ADD COLUMN IF NOT EXISTS grammar_score VARCHAR(50),
+  ADD COLUMN IF NOT EXISTS grammar_rationale TEXT,
+  ADD COLUMN IF NOT EXISTS vocabulary_score VARCHAR(50),
+  ADD COLUMN IF NOT EXISTS vocabulary_rationale TEXT,
+  ADD COLUMN IF NOT EXISTS completeness_score VARCHAR(50),
+  ADD COLUMN IF NOT EXISTS completeness_rationale TEXT,
+  ADD COLUMN IF NOT EXISTS relevance_score VARCHAR(50),
+  ADD COLUMN IF NOT EXISTS relevance_rationale TEXT,
+  ADD COLUMN IF NOT EXISTS teacher_note TEXT;
+

@@ -1,7 +1,7 @@
 const axios = require('axios');
 
-const DIFY_API_URL = 'http://178.105.45.146:8080/v1';
-const DIFY_API_KEY = 'app-PQjJkFe0WeOEKgkriBN0OtD0';
+const DIFY_API_URL = process.env.DIFY_API_URL;
+const DIFY_API_KEY = process.env.DIFY_API_KEY;
 
 const difyClient = {
   /**
@@ -10,6 +10,9 @@ const difyClient = {
    * @param {string} promptText The original passage the student was supposed to read
    */
   async evaluateSpeech(audioUrl, promptText) {
+    if (!DIFY_API_URL || !DIFY_API_KEY) {
+      throw new Error('Missing DIFY_API_URL or DIFY_API_KEY environment variable.');
+    }
     const url = `${DIFY_API_URL}/workflows/run`;
     
     const headers = {

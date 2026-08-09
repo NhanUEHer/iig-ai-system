@@ -1,0 +1,8 @@
+/* Responsive column sizing kept separate from the component theme rules. */
+.kpi-config-table{min-width:950px}
+.kpi-config-row{grid-template-columns:68px 76px minmax(190px,1.6fr) 90px 108px 108px 92px 70px;padding-inline:14px;gap:8px}
+
+@media(max-width:1180px){
+  .kpi-config-table{min-width:900px}
+  .kpi-config-row{grid-template-columns:62px 70px minmax(175px,1.5fr) 82px 100px 100px 86px 66px;padding-inline:12px;gap:7px}
+}

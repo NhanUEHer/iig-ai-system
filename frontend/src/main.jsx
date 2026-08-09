@@ -4,6 +4,9 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import App from './App.jsx';
+import './styles/typography.css';
+import './styles/design-system.css';
+import './services/authSession';
 
 class ErrorBoundary extends Component {
   constructor(props) {

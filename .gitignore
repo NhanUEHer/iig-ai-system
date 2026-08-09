@@ -2,6 +2,30 @@
 node_modules/
 frontend/node_modules/
 
+# Local Python model runtimes and checkpoints
+voice_clone_env/
+voice_clone_models/
+__pycache__/
+*.py[cod]
+backups/
+asset/
+
+# Runtime model weights are provisioned outside Git. Keep bridge/config code.
+src/models/**/*.onnx
+src/models/**/*.bin
+src/models/**/*.pt
+src/models/**/*.pth
+src/models/**/*.npy
+src/models/**/*.safetensors
+
+# Generated media and temporary audio manifests
+public/cleaned-audio/
+public/local_audio/
+public/local_voices/
+public/tmp_local/
+public/dialogues/
+public/custom_voices/
+
 # Environment variables (highly sensitive)
 .env
 .env*.local

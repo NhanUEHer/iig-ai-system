@@ -2,13 +2,16 @@ const axios = require('axios');
 require('dotenv').config();
 
 const IIG_API_URL = process.env.IIG_API_URL || 'https://elearningapi.iigvietnam.com';
-const API_KEY = process.env.IIG_API_KEY || '4NsZEebAKUTliY1vHL5MQhsIuGUWivAy';
+const API_KEY = process.env.IIG_API_KEY;
 
 const iigClient = {
   /**
    * Logs in as admin and returns the token response
    */
   async loginAdmin() {
+    if (!API_KEY || !process.env.IIG_USERNAME || !process.env.IIG_PASSWORD) {
+      throw new Error('Missing IIG_API_KEY, IIG_USERNAME, or IIG_PASSWORD environment variable.');
+    }
     const url = `${IIG_API_URL}/identity/api/Auth/login-admin`;
     const payload = {
       username: process.env.IIG_USERNAME,
