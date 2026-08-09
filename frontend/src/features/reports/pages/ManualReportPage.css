@@ -130,6 +130,8 @@
 .revenue-kpi-table td { min-width: 110px; }
 .revenue-kpi-table td:nth-child(2) { min-width: 230px; }
 .formula-cell { color: #176843; background: #f4fbf8; font-size: 12px; font-weight: 800; white-space: nowrap; }
+.formula-cell.formula-good { color: #087b54; background: #e7f8f0; }
+.formula-cell.formula-bad { color: #c9362b; background: #fff0ef; }
 .evaluation-badge { display: inline-flex; padding: 5px 8px; border-radius: 7px; background: #eef2f7; color: #536078; font-size: 11px; font-weight: 800; white-space: nowrap; }
 .evaluation-badge.đạt { color: #087b54; background: #e4f7ef; }
 .evaluation-badge.chưa-đạt { color: #c9362b; background: #ffeded; }
