@@ -1,0 +1,3 @@
+ALTER TABLE report_manual_submissions
+  ADD COLUMN IF NOT EXISTS revision INTEGER NOT NULL DEFAULT 1;
+

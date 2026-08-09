@@ -27,7 +27,7 @@ const groups = [
     label: 'Báo cáo',
     items: [
       { id: 'report-kpi', label: 'Dashboard KPI', icon: LayoutGrid, path: '/reports/kpi', permission: 'reports.view' },
-      { id: 'report-manage', label: 'Quản lý báo cáo', icon: FileText, path: '/reports/manage', permission: 'reports.view' },
+      { id: 'report-manage', label: 'Quản lý báo cáo', icon: FileText, path: '/reports/manage', permissions: ['reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'] },
       { id: 'report-kpi-config', label: 'Cấu hình KPI', icon: Settings2, path: '/reports/kpi-config', permission: 'reports.manage' }
     ]
   },
@@ -55,7 +55,7 @@ export default function Sidebar({
     <nav className="workspace-sidebar-nav">
       {groups.map(group => <section className="workspace-nav-group" key={group.label}>
         {!sidebarCollapsed && <div className="workspace-nav-label">{group.label}</div>}
-        {group.items.filter(item => !item.permission || currentUser?.permissions?.includes(item.permission)).map(item => {
+        {group.items.filter(item => (!item.permission || currentUser?.permissions?.includes(item.permission))&&(!item.permissions||item.permissions.some(permission=>currentUser?.permissions?.includes(permission)))).map(item => {
           const Icon = item.icon;
           return <button
             key={item.id}

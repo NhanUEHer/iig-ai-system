@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const { buildPasswordActionEmail } = require('./emailTemplates/passwordActionEmail');
+const { buildReportNotificationEmail } = require('./emailTemplates/reportNotificationEmail');
 
 function createTransport() {
   if (!process.env.SMTP_HOST) return null;
@@ -34,4 +35,10 @@ async function sendPasswordActionEmail({ email, name, actionUrl, purpose }) {
   return {};
 }
 
-module.exports = { sendPasswordActionEmail };
+async function sendReportNotification(payload) {
+  const message=buildReportNotificationEmail(payload);const transport=createTransport();
+  if(!transport){if(process.env.NODE_ENV!=='production'){console.log(`[Email preview] ${message.subject} for ${payload.email}: ${payload.actionUrl}`);return {previewUrl:payload.actionUrl};}throw new Error('SMTP is not configured.');}
+  await transport.sendMail({from:process.env.SMTP_FROM||'IIG Workspace <nhannguyen14.dev@gmail.com>',to:payload.email,...message});return {};
+}
+
+module.exports = { sendPasswordActionEmail,sendReportNotification };

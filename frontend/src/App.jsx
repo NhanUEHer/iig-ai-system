@@ -116,7 +116,9 @@ function App() {
         setCurrentUser(userObj);
         saveSession(userObj);
         showMsg(`Chào mừng ${userObj.name}!`, 'success');
-        navigate('/submissions');
+        const returnTo=location.state?.from||sessionStorage.getItem('auth_return_to')||'/submissions';
+        sessionStorage.removeItem('auth_return_to');
+        navigate(returnTo,{replace:true});
       } else {
         showMsg(res.data.error || 'Đăng nhập thất bại', 'error');
       }
@@ -395,7 +397,7 @@ function App() {
           <Route path="/forgot-password" element={<LoginPage message={message} />} />
           <Route path="/reset-password" element={<LoginPage message={message} />} />
           <Route path="/setup-password" element={<LoginPage message={message} />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={(()=>{const returnTo=`${location.pathname}${location.search}`;sessionStorage.setItem('auth_return_to',returnTo);return <Navigate to="/login" replace state={{from:returnTo}}/>;})()} />
         </Routes>
       ) : (
         <>
@@ -484,13 +486,13 @@ function App() {
                 hasPermission('reports.view') ? <Navigate to="/reports/manage" replace /> : <Navigate to="/submissions" replace />
               } />
               <Route path="/reports/manage" element={
-                hasPermission('reports.view') ? <ReportPeriodManagementPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                ['reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <ReportPeriodManagementPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
               } />
               <Route path="/reports/manage/:periodId" element={
-                hasPermission('reports.view') ? <ManualReportPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                ['reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <ManualReportPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
               } />
               <Route path="/reports/manage/:periodId/:teamCode" element={
-                hasPermission('reports.view') ? <ManualReportPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                ['reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <ManualReportPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
               } />
               <Route path="/reports/kpi-config" element={
                 hasPermission('reports.manage') ? <KpiConfigurationPage showMsg={showMsg} /> : <Navigate to="/reports/manage" replace />

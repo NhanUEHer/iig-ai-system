@@ -16,10 +16,11 @@ async function insertRows(client,versionId,detailKey,rows) {
 }
 
 module.exports={
-  async listPeriods({year,status}) {
+  async listPeriods({year,status,assignedUserId}) {
     const values=[];const where=[];
     if(year){values.push(year);where.push(`p.year=$${values.length}`);}
     if(status){values.push(status);where.push(`p.status=$${values.length}`);}
+    if(assignedUserId){values.push(assignedUserId);where.push(`EXISTS(SELECT 1 FROM report_manual_submissions own_s JOIN report_data_versions own_v ON own_v.id=own_s.version_id WHERE own_s.period_id=p.id AND own_s.assigned_user_id=$${values.length} AND own_v.id=v.id)`);}
     const result=await db.query(`SELECT p.id,p.year,p.month,p.status,p.submission_deadline,p.created_at,p.updated_at,
       v.id AS version_id,v.version_no,v.status AS version_status,v.source_type,
       COUNT(s.id)::int AS total_teams,
@@ -64,25 +65,25 @@ module.exports={
   },
   async findPeriod(year,month) {
     const result=await db.query(`SELECT p.*,v.id AS draft_version_id,v.version_no AS draft_version_no,
-      COALESCE(json_agg(json_build_object('id',s.id,'teamCode',t.code,'teamName',t.name,'status',s.status,'errors',jsonb_array_length(s.validation_result->'errors'),'warnings',jsonb_array_length(s.validation_result->'warnings')) ORDER BY t.display_order) FILTER(WHERE s.id IS NOT NULL),'[]') submissions
+      COALESCE(json_agg(json_build_object('id',s.id,'teamCode',t.code,'teamName',t.name,'status',s.status,'errors',jsonb_array_length(s.validation_result->'errors'),'warnings',jsonb_array_length(s.validation_result->'warnings'),'assignedUserId',s.assigned_user_id,'assigneeName',u.name,'assigneeEmail',u.email) ORDER BY t.display_order) FILTER(WHERE s.id IS NOT NULL),'[]') submissions
       FROM report_periods p LEFT JOIN LATERAL(SELECT * FROM report_data_versions WHERE period_id=p.id AND source_type='manual_entry' AND status='draft' ORDER BY version_no DESC LIMIT 1)v ON TRUE
-      LEFT JOIN report_manual_submissions s ON s.version_id=v.id LEFT JOIN report_teams t ON t.id=s.team_id
+      LEFT JOIN report_manual_submissions s ON s.version_id=v.id LEFT JOIN report_teams t ON t.id=s.team_id LEFT JOIN users u ON u.id=s.assigned_user_id
       WHERE p.year=$1 AND p.month=$2 GROUP BY p.id,v.id,v.version_no`,[year,month]);
     return result.rows[0]||null;
   },
   async getPeriod(periodId) {
     const result=await db.query(`SELECT p.*,v.id AS draft_version_id,v.version_no AS draft_version_no,v.status AS version_status,
-      COALESCE(json_agg(json_build_object('id',s.id,'teamCode',t.code,'teamName',t.name,'status',COALESCE(s.status,'approved'),'errors',COALESCE(jsonb_array_length(s.validation_result->'errors'),0),'warnings',COALESCE(jsonb_array_length(s.validation_result->'warnings'),0)) ORDER BY t.display_order) FILTER(WHERE t.id IS NOT NULL),'[]') submissions
+      COALESCE(json_agg(json_build_object('id',s.id,'teamCode',t.code,'teamName',t.name,'status',COALESCE(s.status,'approved'),'errors',COALESCE(jsonb_array_length(s.validation_result->'errors'),0),'warnings',COALESCE(jsonb_array_length(s.validation_result->'warnings'),0),'assignedUserId',s.assigned_user_id,'assigneeName',u.name,'assigneeEmail',u.email) ORDER BY t.display_order) FILTER(WHERE t.id IS NOT NULL),'[]') submissions
       FROM report_periods p LEFT JOIN LATERAL(SELECT * FROM report_data_versions WHERE period_id=p.id ORDER BY version_no DESC LIMIT 1)v ON TRUE
-      LEFT JOIN report_teams t ON t.is_active=TRUE LEFT JOIN report_manual_submissions s ON s.version_id=v.id AND s.team_id=t.id
+      LEFT JOIN report_teams t ON t.is_active=TRUE LEFT JOIN report_manual_submissions s ON s.version_id=v.id AND s.team_id=t.id LEFT JOIN users u ON u.id=s.assigned_user_id
       WHERE p.id=$1 GROUP BY p.id,v.id,v.version_no,v.status`,[periodId]);
     return result.rows[0]||null;
   },
   async getWorkspace(periodId,teamCode) {
     const base=await db.query(`SELECT p.id period_id,p.year,p.month,p.status period_status,p.submission_deadline,v.id version_id,v.version_no,
-      s.id submission_id,COALESCE(s.status,'approved') submission_status,COALESCE(s.validation_result,'{"errors":[],"warnings":[]}'::jsonb) validation_result,s.review_note,t.id team_id,t.code team_code,t.name team_name
+      s.id submission_id,COALESCE(s.status,'approved') submission_status,COALESCE(s.revision,1) revision,COALESCE(s.validation_result,'{"errors":[],"warnings":[]}'::jsonb) validation_result,s.review_note,s.assigned_user_id,u.name assignee_name,u.email assignee_email,t.id team_id,t.code team_code,t.name team_name
       FROM report_periods p JOIN LATERAL(SELECT * FROM report_data_versions WHERE period_id=p.id ORDER BY version_no DESC LIMIT 1)v ON TRUE
-      JOIN report_teams t ON t.code=$2 AND t.is_active=TRUE LEFT JOIN report_manual_submissions s ON s.version_id=v.id AND s.team_id=t.id
+      JOIN report_teams t ON t.code=$2 AND t.is_active=TRUE LEFT JOIN report_manual_submissions s ON s.version_id=v.id AND s.team_id=t.id LEFT JOIN users u ON u.id=s.assigned_user_id
       WHERE p.id=$1 AND t.code=$2 ORDER BY v.version_no DESC LIMIT 1`,[periodId,teamCode]);
     if(!base.rows[0])return null;const item=base.rows[0];
     const [kpis,note]=await Promise.all([
@@ -105,10 +106,11 @@ module.exports={
     ) history`,[previousYear,previousMonth,year-1,month]);
     return result.rows;
   },
-  async saveWorkspace({base,detailKey,rows,extraDetails,kpis,note,validation,userId}) {
+  async saveWorkspace({base,detailKey,rows,extraDetails,kpis,note,validation,userId,expectedRevision}) {
     return db.transaction(async client=>{
-      const locked=await client.query(`SELECT status FROM report_manual_submissions WHERE id=$1 FOR UPDATE`,[base.submission_id]);
+      const locked=await client.query(`SELECT status,revision FROM report_manual_submissions WHERE id=$1 FOR UPDATE`,[base.submission_id]);
       if(!locked.rows[0])return null;if(!['draft','editing','returned'].includes(locked.rows[0].status))return {conflict:true,status:locked.rows[0].status};
+      if(Number(expectedRevision??base.revision)!==Number(locked.rows[0].revision))return {stale:true,revision:Number(locked.rows[0].revision)};
       await insertRows(client,base.version_id,detailKey,rows);
       if(extraDetails)await insertRows(client,base.version_id,extraDetails.detailKey,extraDetails.rows);
       for(const kpi of kpis) await client.query(`UPDATE report_kpi_values SET target_value=$3,actual_value=$4,evaluation=$5,note=$6,updated_by=$7,updated_at=CURRENT_TIMESTAMP
@@ -116,7 +118,7 @@ module.exports={
         [base.version_id,base.team_id,kpi.target_value,kpi.actual_value,kpi.evaluation,kpi.note||null,userId,kpi.code]);
       await client.query(`INSERT INTO report_notes(version_id,team_id,highlights,issues,risks,proposals,next_month_plan,approval_status)
         VALUES($1,$2,$3,$4,$5,$6,$7,'Đang cập nhật') ON CONFLICT(version_id,team_id) DO UPDATE SET highlights=EXCLUDED.highlights,issues=EXCLUDED.issues,risks=EXCLUDED.risks,proposals=EXCLUDED.proposals,next_month_plan=EXCLUDED.next_month_plan,updated_at=CURRENT_TIMESTAMP`,[base.version_id,base.team_id,note.highlights||null,note.issues||null,note.risks||null,note.proposals||null,note.next_month_plan||null]);
-      await client.query(`UPDATE report_manual_submissions SET status='editing',validation_result=$2::jsonb,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[base.submission_id,JSON.stringify(validation)]);
+      await client.query(`UPDATE report_manual_submissions SET status='editing',validation_result=$2::jsonb,revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[base.submission_id,JSON.stringify(validation)]);
       await client.query(`UPDATE report_periods SET status='in_progress',updated_at=CURRENT_TIMESTAMP WHERE id=$1 AND status IN('open','draft','reopened')`,[base.period_id]);
       await client.query(`INSERT INTO report_entry_audit_logs(period_id,version_id,team_id,action,actor_id,change_summary) VALUES($1,$2,$3,'workspace_saved',$4,$5::jsonb)`,[base.period_id,base.version_id,base.team_id,userId,JSON.stringify({rows:rows.length,kpis:kpis.length,errors:validation.errors.length,warnings:validation.warnings.length})]);
       return {saved:true,validation};
@@ -129,6 +131,7 @@ module.exports={
       const transitions={submit:{from:['editing','returned'],to:'submitted'},approve:{from:['submitted'],to:'approved'},return:{from:['submitted'],to:'returned'}};const rule=transitions[action];
       if(!rule||!rule.from.includes(s.status))return {conflict:true,status:s.status};
       if(action==='submit'&&(s.validation_result?.errors||[]).length)return {validation:s.validation_result};
+      if(action==='approve'&&String(s.submitted_by||'')===String(userId||''))return {selfReview:true};
       await client.query(`UPDATE report_manual_submissions SET status=$2,review_note=$3,submitted_by=CASE WHEN $4='submit' THEN $5 ELSE submitted_by END,submitted_at=CASE WHEN $4='submit' THEN CURRENT_TIMESTAMP ELSE submitted_at END,reviewed_by=CASE WHEN $4 IN('approve','return') THEN $5 ELSE reviewed_by END,reviewed_at=CASE WHEN $4 IN('approve','return') THEN CURRENT_TIMESTAMP ELSE reviewed_at END,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[s.id,rule.to,note||null,action,userId]);
       await client.query(`INSERT INTO report_entry_audit_logs(period_id,version_id,team_id,action,actor_id,change_summary) VALUES($1,$2,$3,$4,$5,$6::jsonb)`,[periodId,s.version_id,s.team_id,action,userId,JSON.stringify({note:note||null})]);return {status:rule.to};
     });
@@ -137,6 +140,7 @@ module.exports={
     return db.transaction(async client=>{
       const period=await client.query('SELECT * FROM report_periods WHERE id=$1 FOR UPDATE',[periodId]);if(!period.rows[0])return null;
       const version=await client.query(`SELECT * FROM report_data_versions WHERE period_id=$1 AND source_type='manual_entry' AND status='draft' ORDER BY version_no DESC LIMIT 1 FOR UPDATE`,[periodId]);if(!version.rows[0])return {noDraft:true};
+      const unassigned=await client.query(`SELECT COUNT(*)::int count FROM report_manual_submissions WHERE version_id=$1 AND assigned_user_id IS NULL`,[version.rows[0].id]);if(unassigned.rows[0].count)return {unassigned:unassigned.rows[0].count};
       const pending=await client.query(`SELECT COUNT(*)::int count FROM report_manual_submissions WHERE version_id=$1 AND status<>'approved'`,[version.rows[0].id]);if(pending.rows[0].count)return {pending:pending.rows[0].count};
       await client.query(`UPDATE report_data_versions SET status='superseded' WHERE period_id=$1 AND status='published'`,[periodId]);
       await client.query(`UPDATE report_data_versions SET status='published',published_by=$2,published_at=CURRENT_TIMESTAMP WHERE id=$1`,[version.rows[0].id,userId]);
@@ -144,7 +148,7 @@ module.exports={
       await client.query(`INSERT INTO report_entry_audit_logs(period_id,version_id,action,actor_id) VALUES($1,$2,'published',$3)`,[periodId,version.rows[0].id,userId]);return {versionId:version.rows[0].id,versionNo:Number(version.rows[0].version_no)};
     });
   },
-  async reopen(periodId,userId) {
+  async reopen(periodId,userId,reason) {
     return db.transaction(async client=>{
       const periodResult=await client.query('SELECT * FROM report_periods WHERE id=$1 FOR UPDATE',[periodId]);
       const period=periodResult.rows[0];if(!period)return null;
@@ -165,10 +169,11 @@ module.exports={
       }
       await client.query(`INSERT INTO report_notes(version_id,team_id,executive_summary,highlights,issues,risks,proposals,next_month_plan,approval_status)
         SELECT $1,team_id,executive_summary,highlights,issues,risks,proposals,next_month_plan,'Đang cập nhật' FROM report_notes WHERE version_id=$2`,[versionId,sourceVersionId]);
-      await client.query(`INSERT INTO report_manual_submissions(period_id,version_id,team_id,status,validation_result)
-        SELECT $1,$2,id,'returned','{"errors":[],"warnings":[]}'::jsonb FROM report_teams WHERE is_active=TRUE`,[periodId,versionId]);
+      await client.query(`INSERT INTO report_manual_submissions(period_id,version_id,team_id,status,validation_result,assigned_user_id,assigned_by,assigned_at)
+        SELECT $1,$2,t.id,'returned','{"errors":[],"warnings":[]}'::jsonb,old.assigned_user_id,$3,CASE WHEN old.assigned_user_id IS NOT NULL THEN CURRENT_TIMESTAMP END
+        FROM report_teams t LEFT JOIN report_manual_submissions old ON old.version_id=$4 AND old.team_id=t.id WHERE t.is_active=TRUE`,[periodId,versionId,userId,sourceVersionId]);
       await client.query(`UPDATE report_periods SET status='reopened',approved_by=NULL,approved_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[periodId]);
-      await client.query(`INSERT INTO report_entry_audit_logs(period_id,version_id,action,actor_id,change_summary) VALUES($1,$2,'reopened',$3,$4::jsonb)`,[periodId,versionId,userId,JSON.stringify({sourceVersionId})]);
+      await client.query(`INSERT INTO report_entry_audit_logs(period_id,version_id,action,actor_id,change_summary) VALUES($1,$2,'reopened',$3,$4::jsonb)`,[periodId,versionId,userId,JSON.stringify({sourceVersionId,reason})]);
       return {periodId,versionId,versionNo:Number(version.rows[0].version_no)};
     });
   },
@@ -183,5 +188,67 @@ module.exports={
       await client.query('DELETE FROM report_periods WHERE id=$1',[periodId]);
       return {deleted:true};
     });
+  },
+  async getMasterData() {
+    const result=await db.query('SELECT category,code,label FROM report_lookup_values WHERE is_active=TRUE ORDER BY category,display_order');
+    const masterData={};
+    result.rows.forEach(row=>{if(!masterData[row.category])masterData[row.category]=[];masterData[row.category].push({code:row.code,label:row.label});});
+    return masterData;
+  },
+  async listAssignees() {
+    const result=await db.query(`SELECT u.id,u.name,u.email,u.role,r.name role_name
+      FROM users u JOIN roles r ON r.slug=u.role
+      WHERE u.is_active=TRUE AND (r.permissions ? 'reports.entry' OR r.permissions ? 'reports.manage')
+      ORDER BY u.name,u.email`);
+    return result.rows;
+  },
+  async updateDeadline(periodId,deadline,actorId) {
+    return db.transaction(async client=>{
+      const current=await client.query('SELECT id,submission_deadline,status FROM report_periods WHERE id=$1 FOR UPDATE',[periodId]);if(!current.rows[0])return null;if(['published','locked'].includes(current.rows[0].status))return {protected:true,status:current.rows[0].status};
+      const result=await client.query('UPDATE report_periods SET submission_deadline=$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING *',[periodId,deadline]);
+      await client.query(`INSERT INTO report_entry_audit_logs(period_id,action,actor_id,change_summary) VALUES($1,'deadline_changed',$2,$3::jsonb)`,[periodId,actorId,JSON.stringify({from:current.rows[0].submission_deadline,to:deadline})]);
+      return result.rows[0];
+    });
+  },
+  async listAudit(periodId,{teamCode,limit}) {
+    const values=[periodId];let teamFilter='';if(teamCode){values.push(teamCode);teamFilter=`AND (t.code=$${values.length} OR l.team_id IS NULL)`;}values.push(limit);
+    const result=await db.query(`SELECT l.id,l.action,l.change_summary,l.created_at,t.code team_code,t.name team_name,u.id actor_id,u.name actor_name,u.email actor_email
+      FROM report_entry_audit_logs l LEFT JOIN report_teams t ON t.id=l.team_id LEFT JOIN users u ON u.id=l.actor_id
+      WHERE l.period_id=$1 ${teamFilter} ORDER BY l.created_at DESC LIMIT $${values.length}`,values);
+    return result.rows;
+  },
+  async assignSubmission({periodId,teamCode,userId,actorId}) {
+    return db.transaction(async client=>{
+      if(userId){const eligible=await client.query(`SELECT u.id FROM users u JOIN roles r ON r.slug=u.role
+        WHERE u.id=$1 AND u.is_active=TRUE AND (r.permissions ? 'reports.entry' OR r.permissions ? 'reports.manage')`,[userId]);if(!eligible.rows[0])return {invalidUser:true};}
+      const current=await client.query(`SELECT s.id,s.status FROM report_manual_submissions s JOIN report_teams t ON t.id=s.team_id JOIN report_data_versions v ON v.id=s.version_id
+        WHERE s.period_id=$1 AND t.code=$2 AND v.status='draft' FOR UPDATE OF s`,[periodId,teamCode]);
+      if(!current.rows[0])return null;if(!['draft','editing','returned'].includes(current.rows[0].status))return {locked:true,status:current.rows[0].status};
+      const result=await client.query(`UPDATE report_manual_submissions s SET assigned_user_id=$3,assigned_by=$4,assigned_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP
+        FROM report_teams t,report_data_versions v WHERE s.team_id=t.id AND s.version_id=v.id AND s.period_id=$1 AND t.code=$2 AND v.status='draft'
+        RETURNING s.id,s.assigned_user_id`,[periodId,teamCode,userId||null,actorId]);
+      if(!result.rows[0])return null;
+      await client.query(`INSERT INTO report_entry_audit_logs(period_id,version_id,team_id,action,actor_id,change_summary)
+        SELECT s.period_id,s.version_id,s.team_id,'assignee_changed',$2,$3::jsonb FROM report_manual_submissions s WHERE s.id=$1`,[result.rows[0].id,actorId,JSON.stringify({assignedUserId:userId||null})]);
+      return result.rows[0];
+    });
+  }
+  ,async notificationContext(periodId,teamCode,userId=null) {
+    const values=[periodId,teamCode];let userFilter='';if(userId){values.push(userId);userFilter=`AND u.id=$${values.length}`;}
+    const result=await db.query(`SELECT p.year,p.month,p.submission_deadline,t.code team_code,t.name team_name,u.id user_id,u.name user_name,u.email
+      FROM report_periods p JOIN report_data_versions v ON v.period_id=p.id AND v.status='draft' JOIN report_manual_submissions s ON s.version_id=v.id
+      JOIN report_teams t ON t.id=s.team_id JOIN users u ON u.id=s.assigned_user_id WHERE p.id=$1 AND t.code=$2 ${userFilter} ORDER BY v.version_no DESC LIMIT 1`,values);
+    return result.rows[0]||null;
+  },
+  async publishChecklist(periodId) {
+    const result=await db.query(`SELECT t.code team_code,t.name team_name,s.status,s.assigned_user_id,
+      COALESCE(jsonb_array_length(s.validation_result->'errors'),0)::int errors,
+      COUNT(k.id) FILTER(WHERE k.target_value IS NULL OR k.actual_value IS NULL)::int incomplete_kpis,
+      CASE WHEN n.id IS NULL OR NULLIF(TRIM(n.highlights),'') IS NULL OR NULLIF(TRIM(n.issues),'') IS NULL OR NULLIF(TRIM(n.risks),'') IS NULL OR NULLIF(TRIM(n.proposals),'') IS NULL THEN 1 ELSE 0 END notes_missing
+      FROM report_periods p JOIN report_data_versions v ON v.period_id=p.id AND v.status='draft' JOIN report_manual_submissions s ON s.version_id=v.id
+      JOIN report_teams t ON t.id=s.team_id LEFT JOIN report_kpi_values k ON k.version_id=v.id AND k.kpi_definition_id IN(SELECT id FROM report_kpi_definitions WHERE team_id=t.id)
+      LEFT JOIN report_notes n ON n.version_id=v.id AND n.team_id=t.id WHERE p.id=$1 GROUP BY t.id,t.code,t.name,s.status,s.assigned_user_id,s.validation_result,n.id`,[periodId]);
+    const teams=result.rows.map(row=>({...row,ready:Boolean(row.assigned_user_id&&row.status==='approved'&&!row.errors&&!row.incomplete_kpis&&!row.notes_missing)}));
+    return {ready:teams.length>0&&teams.every(item=>item.ready),teams};
   }
 };

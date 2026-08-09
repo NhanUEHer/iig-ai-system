@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, CheckCircle2, ChevronRight, Clock3, Download, FileSpreadsheet, Gauge, RefreshCw, Search, Target } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate,useSearchParams } from 'react-router-dom';
 import api from '../../../services/api';
 import { healthScore, healthStatus as health, numberOrNull as num } from '../utils/reportMetrics';
 import './KpiReportPage.css';
@@ -73,16 +73,17 @@ function ReportNotes({note}) {
 
 export default function KpiReportPage({currentUser,showMsg}) {
   const navigate=useNavigate();
+  const [query]=useSearchParams();const previewPeriodId=query.get('previewPeriodId');const previewTeam=query.get('team');
   const canUpload=currentUser?.permissions?.includes('reports.upload');
   const [bootstrap,setBootstrap]=useState({periods:[],teams:[]});
-  const [year,setYear]=useState(now.getFullYear()); const [month,setMonth]=useState(now.getMonth()+1); const [tab,setTab]=useState('OVERVIEW');
+  const [year,setYear]=useState(now.getFullYear()); const [month,setMonth]=useState(now.getMonth()+1); const [tab,setTab]=useState(previewTeam||'OVERVIEW');
   const [dashboard,setDashboard]=useState(null); const [overview,setOverview]=useState(null); const [trend,setTrend]=useState([]); const [loading,setLoading]=useState(true); const [loadedKey,setLoadedKey]=useState(null);
   const [search,setSearch]=useState('');
   const showMsgRef=useRef(showMsg); const dashboardRequestRef=useRef(0);
   useEffect(()=>{showMsgRef.current=showMsg;},[showMsg]);
 
-  const loadBase=useCallback(async()=>{const base=await api.get('/reports/bootstrap');const data=base.data.data;setBootstrap(data);if(data.periods.length){setYear(data.periods[0].year);setMonth(data.periods[0].month);}},[]);
-  const loadDashboard=useCallback(async()=>{const requestKey=`${year}-${month}-${tab}`;const requestId=++dashboardRequestRef.current;setLoading(true);try{if(tab==='OVERVIEW'){const [overviewResult,trendResult]=await Promise.all([api.get('/reports/overview',{params:{year,month}}),api.get('/reports/trend',{params:{year}})]);if(requestId!==dashboardRequestRef.current)return;setOverview(overviewResult.data.data);setTrend(trendResult.data.data);setDashboard(null);}else{const [dashboardResult,trendResult]=await Promise.all([api.get('/reports/dashboard',{params:{year,month,team:tab}}),api.get('/reports/trend',{params:{year,team:tab}})]);if(requestId!==dashboardRequestRef.current)return;setDashboard(dashboardResult.data.data);setTrend(trendResult.data.data);setOverview(null);}}catch(error){if(requestId!==dashboardRequestRef.current)return;setDashboard(null);setOverview(null);setTrend([]);if(error.response?.status!==404)showMsgRef.current(error.response?.data?.error||'Không thể tải báo cáo.','error');}finally{if(requestId===dashboardRequestRef.current){setLoadedKey(requestKey);setLoading(false);}}},[year,month,tab]);
+  const loadBase=useCallback(async()=>{const base=await api.get('/reports/bootstrap');const data=base.data.data;setBootstrap(data);const selected=previewPeriodId?data.periods.find(item=>String(item.id)===String(previewPeriodId)):data.periods[0];if(selected){setYear(selected.year);setMonth(selected.month);}},[previewPeriodId]);
+  const loadDashboard=useCallback(async()=>{const requestKey=`${year}-${month}-${tab}`;const requestId=++dashboardRequestRef.current;setLoading(true);try{if(tab==='OVERVIEW'){if(previewPeriodId){setTab(previewTeam||bootstrap.teams[0]?.code||'REV');return;}const [overviewResult,trendResult]=await Promise.all([api.get('/reports/overview',{params:{year,month}}),api.get('/reports/trend',{params:{year}})]);if(requestId!==dashboardRequestRef.current)return;setOverview(overviewResult.data.data);setTrend(trendResult.data.data);setDashboard(null);}else{const [dashboardResult,trendResult]=await Promise.all([previewPeriodId?api.get(`/reports/manual/periods/${previewPeriodId}/preview/${tab}`):api.get('/reports/dashboard',{params:{year,month,team:tab}}),api.get('/reports/trend',{params:{year,team:tab}})]);if(requestId!==dashboardRequestRef.current)return;setDashboard(dashboardResult.data.data);setTrend(trendResult.data.data);setOverview(null);}}catch(error){if(requestId!==dashboardRequestRef.current)return;setDashboard(null);setOverview(null);setTrend([]);if(error.response?.status!==404)showMsgRef.current(error.response?.data?.error||'Không thể tải báo cáo.','error');}finally{if(requestId===dashboardRequestRef.current){setLoadedKey(requestKey);setLoading(false);}}},[year,month,tab,previewPeriodId,previewTeam,bootstrap.teams]);
   useEffect(()=>{loadBase().catch(()=>showMsgRef.current('Không thể tải cấu hình báo cáo.','error'));},[loadBase]); useEffect(()=>{loadDashboard();},[loadDashboard]);
 
   const dataKey=`${year}-${month}-${tab}`; const dataIsCurrent=loadedKey===dataKey; const departmentName=bootstrap.teams.find(item=>item.code===tab)?.name; const title=tab==='OVERVIEW'?'Tổng quan Phòng Dịch vụ số':departmentName;
@@ -92,7 +93,8 @@ export default function KpiReportPage({currentUser,showMsg}) {
 
   const exportCsv=()=>{if(!filteredDetails.length)return;const columns=detailColumns;const csv=[columns.map(key=>DETAIL_LABELS[key]||key),...filteredDetails.map(row=>columns.map(key=>String(detailValue(row,key)??'').replaceAll('"','""')))].map(row=>row.map(value=>`"${value}"`).join(',')).join('\n');const link=document.createElement('a');link.href=URL.createObjectURL(new Blob(['\ufeff',csv],{type:'text/csv'}));link.download=`bao-cao-${tab.toLowerCase()}-${month}-${year}.csv`;link.click();URL.revokeObjectURL(link.href);};
 
-  return <div className="report-page">
+  return <div className={`report-page ${previewPeriodId?'draft-preview':''}`}>
+    {previewPeriodId&&<div style={{padding:'10px 18px',background:'#fff4d6',color:'#8a5600',fontWeight:700,borderRadius:10,marginBottom:12}}>BẢN XEM TRƯỚC · Dữ liệu nháp, chưa được publish</div>}
     <header className="report-header"><div><span className="report-eyebrow">Báo cáo KPI</span><h1>{title} <b>• Tháng {month}/{year}</b></h1><p>Đánh giá sức khỏe KPI, tiến độ thực hiện và dữ liệu chi tiết theo từng mảng.</p></div><div className="report-actions">{canUpload&&<button className="primary" onClick={()=>navigate('/reports/manage')}><FileSpreadsheet/>Nhập dữ liệu báo cáo</button>}<button onClick={()=>window.print()}><Download/>Xuất PDF</button></div></header>
     <section className="report-controls"><div className="report-tabs"><button className={tab==='OVERVIEW'?'active':''} onClick={()=>setTab('OVERVIEW')}>Overview</button>{bootstrap.teams.map(item=><button className={tab===item.code?'active':''} onClick={()=>setTab(item.code)} key={item.code}>{item.name}</button>)}</div><div className="report-period"><select value={year} onChange={e=>setYear(Number(e.target.value))}>{[year-1,year,year+1].filter((v,i,a)=>a.indexOf(v)===i).sort().map(item=><option key={item}>{item}</option>)}</select><select value={month} onChange={e=>setMonth(Number(e.target.value))}>{Array.from({length:12},(_,i)=><option value={i+1} key={i}>Tháng {i+1}</option>)}</select><button onClick={loadDashboard}><RefreshCw/>Làm mới</button></div></section>
 

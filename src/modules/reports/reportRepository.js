@@ -120,8 +120,10 @@ module.exports = {
     lookups.rows.forEach(row => { if (!masterData[row.category]) masterData[row.category]=[]; masterData[row.category].push({code:row.code,label:row.label}); });
     return { periods:periods.rows, teams:teams.rows, masterData, template:template.rows[0] || null };
   },
-  async getDashboard({ year, month, teamCode }) {
-    const version = await db.query(`SELECT v.id,v.version_no,v.source_type,p.status,p.year,p.month FROM report_periods p JOIN report_data_versions v ON v.id=p.current_version_id WHERE p.year=$1 AND p.month=$2`, [year,month]);
+  async getDashboard({ year, month, teamCode,periodId=null,draft=false }) {
+    const version = periodId&&draft
+      ? await db.query(`SELECT v.id,v.version_no,v.source_type,p.status,p.year,p.month FROM report_periods p JOIN LATERAL(SELECT * FROM report_data_versions WHERE period_id=p.id AND status='draft' ORDER BY version_no DESC LIMIT 1)v ON TRUE WHERE p.id=$1`,[periodId])
+      : await db.query(`SELECT v.id,v.version_no,v.source_type,p.status,p.year,p.month FROM report_periods p JOIN report_data_versions v ON v.id=p.current_version_id WHERE p.year=$1 AND p.month=$2`, [year,month]);
     if (!version.rows[0]) return null;
     const versionId = version.rows[0].id;
     const [kpis,note] = await Promise.all([
