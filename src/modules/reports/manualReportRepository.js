@@ -7,8 +7,8 @@ async function insertRows(client,versionId,detailKey,rows) {
   if(!table) throw new Error('Unsupported report detail type.');
   await client.query(`DELETE FROM ${table} WHERE version_id=$1`,[versionId]);
   if(!rows.length)return;
-  const values=[];const tuples=rows.map(row=>{
-    const normalized={...row,row_key:String(row.row_key||crypto.randomUUID()).slice(0,160)};
+  const values=[];const tuples=rows.map((row,index)=>{
+    const normalized={...row,row_key:String(row.row_key||crypto.randomUUID()).slice(0,160),display_order:index+1};
     const rowValues=[versionId,...columns.map(column=>normalized[column]??null)];
     return `(${rowValues.map(value=>{values.push(value);return `$${values.length}`;}).join(',')})`;
   });
@@ -95,7 +95,7 @@ module.exports={
     ]);
     return {...item,kpis:kpis.rows,note:note.rows[0]||{},};
   },
-  async getDetails(versionId,detailKey) { const [table]=DETAIL_CONFIG[detailKey];const result=await db.query(`SELECT * FROM ${table} WHERE version_id=$1 ORDER BY id`,[versionId]);return result.rows; },
+  async getDetails(versionId,detailKey) { const [table]=DETAIL_CONFIG[detailKey];const result=await db.query(`SELECT * FROM ${table} WHERE version_id=$1 ORDER BY display_order,row_key`,[versionId]);return result.rows; },
   async getRevenueHistory(year,month) {
     const previousYear=month===1?year-1:year,previousMonth=month===1?12:month-1;
     const result=await db.query(`SELECT source_period,product_group,product_name,revenue FROM (

@@ -12,16 +12,16 @@ const DETAIL_CONFIG = {
 
 async function insertDetailRows(client, versionId, key, data) {
   const [table, columns, fields] = DETAIL_CONFIG[key];
-  const chunkSize = Math.max(1, Math.floor(60000 / (fields.length + 1)));
+  const chunkSize = Math.max(1, Math.floor(60000 / (fields.length + 2)));
   for (let start = 0; start < data.length; start += chunkSize) {
     const chunk = data.slice(start, start + chunkSize);
     const values = [];
-    const tuples = chunk.map(row => {
-      const rowValues = [versionId, ...fields.map(field => row[field] ?? null)];
+    const tuples = chunk.map((row,index) => {
+      const rowValues = [versionId, start + index + 1, ...fields.map(field => row[field] ?? null)];
       const placeholders = rowValues.map(value => { values.push(value); return `$${values.length}`; });
       return `(${placeholders.join(',')})`;
     });
-    await client.query(`INSERT INTO ${table} (version_id,${columns.join(',')}) VALUES ${tuples.join(',')}`, values);
+    await client.query(`INSERT INTO ${table} (version_id,display_order,${columns.join(',')}) VALUES ${tuples.join(',')}`, values);
   }
   return { table, count: data.length };
 }
@@ -138,10 +138,10 @@ module.exports = {
     ]);
     const detailMap = { REV:'report_revenue_details',ADS:'report_ads_channel_details',COM:'report_social_details',TRADE:'report_trade_details',TRAIN:'report_training_details',PROD:'report_product_details' };
     const table = detailMap[teamCode] || detailMap.REV;
-    const details = await db.query(`SELECT * FROM ${table} WHERE version_id=$1 ORDER BY row_key`, [versionId]);
+    const details = await db.query(`SELECT * FROM ${table} WHERE version_id=$1 ORDER BY display_order,row_key`, [versionId]);
     const detailSections=[{key:teamCode==='ADS'?'adsChannels':teamCode.toLowerCase(),title:teamCode==='ADS'?'Hiệu quả theo nguồn Ads':'Dữ liệu chi tiết',rows:details.rows}];
     if(teamCode==='ADS'){
-      const products=await db.query('SELECT * FROM report_ads_product_details WHERE version_id=$1 ORDER BY row_key',[versionId]);
+      const products=await db.query('SELECT * FROM report_ads_product_details WHERE version_id=$1 ORDER BY display_order,row_key',[versionId]);
       detailSections.push({key:'adsProducts',title:'Tỷ trọng Ads theo sản phẩm',rows:products.rows});
     }
     return { period:version.rows[0],teamCode,kpis:kpis.rows,note:note.rows[0] || null,details:details.rows,detailSections };

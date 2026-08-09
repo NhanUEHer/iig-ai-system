@@ -14,13 +14,13 @@ const TEAM_ENTRY_CONFIG = {
 };
 
 const DETAIL_CONFIG = {
-  revenue:['report_revenue_details',['row_key','product_group','product_code','product_name','order_count','revenue','monthly_target','previous_revenue','prior_year_revenue','note']],
-  adsChannels:['report_ads_channel_details',['row_key','channel_code','traffic_source','budget_target','budget_actual','lead_count','order_count','revenue','previous_revenue','trend','note']],
-  adsProducts:['report_ads_product_details',['row_key','product_group','product_code','product_name','ad_cost','revenue','lead_count','qualified_lead_count','order_count','note']],
-  social:['report_social_details',['row_key','channel_code','channel_name','followers_current','followers_previous','reach_current','reach_previous','organic_reach','video_views','engagement_count','engagement_rate','lead_count','order_count','revenue','budget','note']],
-  trade:['report_trade_details',['row_key','organization_code','organization_name','organization_type','region','activity_type','activity_date_text','activity_days','workshop_count','social_post_count','reach','lead_count','order_count','budget','revenue','is_new_contract','note']],
-  training:['report_training_details',['row_key','course_code','course_name','class_count','active_student_count','student_target','new_student_count','completed_student_count','qualified_student_count','output_rate','teacher_count','started_class_count','completed_class_count','upsell_revenue','upsell_revenue_target','status','note']],
-  products:['report_product_details',['row_key','product_group','activity_code','activity_name','activity_type','owner_unit','cooperating_unit','planned_start_date','planned_end_date','actual_start_date','actual_end_date','target_quantity','actual_quantity','progress_status','output_url','implementation_result','evaluation_result','next_action','note']]
+  revenue:['report_revenue_details',['row_key','display_order','product_group','product_code','product_name','order_count','revenue','monthly_target','previous_revenue','prior_year_revenue','note']],
+  adsChannels:['report_ads_channel_details',['row_key','display_order','channel_code','traffic_source','budget_target','budget_actual','lead_count','order_count','revenue','previous_revenue','trend','note']],
+  adsProducts:['report_ads_product_details',['row_key','display_order','product_group','product_code','product_name','ad_cost','revenue','lead_count','qualified_lead_count','order_count','note']],
+  social:['report_social_details',['row_key','display_order','channel_code','channel_name','followers_current','followers_previous','reach_current','reach_previous','organic_reach','video_views','engagement_count','engagement_rate','lead_count','order_count','revenue','budget','note']],
+  trade:['report_trade_details',['row_key','display_order','organization_code','organization_name','organization_type','region','activity_type','activity_date_text','activity_days','workshop_count','social_post_count','reach','lead_count','order_count','budget','revenue','is_new_contract','note']],
+  training:['report_training_details',['row_key','display_order','course_code','course_name','class_count','active_student_count','student_target','new_student_count','completed_student_count','qualified_student_count','output_rate','teacher_count','started_class_count','completed_class_count','upsell_revenue','upsell_revenue_target','status','note']],
+  products:['report_product_details',['row_key','display_order','product_group','activity_code','activity_name','activity_type','owner_unit','cooperating_unit','planned_start_date','planned_end_date','actual_start_date','actual_end_date','target_quantity','actual_quantity','progress_status','output_url','implementation_result','evaluation_result','next_action','note']]
 };
 
 module.exports={TEAM_ENTRY_CONFIG,DETAIL_CONFIG};
