@@ -277,7 +277,7 @@ Never commit `.env`, model environments, checkpoints, generated audio, reference
 - Deployment preserves `.env`, database data, generated media, `tts_env`, model `asset/`, and the server backup directory. Other legacy code is removed from the active application directory.
 - PM2 receives the production environment using `--update-env`. Final smoke validation calls backend port `5005`; Nginx serves the SPA on port `3100`.
 
-Never put the Hetzner password in any repository file. Provide `VPS_PASSWORD` only in the process environment for a backup/deploy command.
+Never put the Hetzner password in any repository file. Provide `VPS_PASSWORD` only in the process environment, or store it in macOS Keychain under service `ai-scoring-vps` and account `root@<VPS_IP>`; `deploy.sh` can read that item without printing the secret.
 
 ## Database migrations
 

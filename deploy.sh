@@ -13,7 +13,14 @@ BACKUP_ID="${DEPLOY_ID%%-v*}"
 STAGE_DIR="${VPS_DIR}.stage-${DEPLOY_ID}"
 
 if [ -z "${VPS_PASSWORD:-}" ]; then
-  echo "VPS_PASSWORD is required. Export it in the current shell; never commit it."
+  if command -v security >/dev/null 2>&1; then
+    VPS_PASSWORD="$(security find-generic-password -a "root@${VPS_IP}" -s ai-scoring-vps -w 2>/dev/null || true)"
+    export VPS_PASSWORD
+  fi
+fi
+
+if [ -z "${VPS_PASSWORD:-}" ]; then
+  echo "VPS_PASSWORD is required. Export it or store it in macOS Keychain service ai-scoring-vps; never commit it."
   exit 1
 fi
 
