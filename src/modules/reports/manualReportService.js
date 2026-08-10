@@ -10,13 +10,28 @@ async function notifyAssignee(context,eventName,message){if(!context?.email)retu
 
 const validPeriod=(year,month)=>{year=Number(year);month=Number(month);if(!Number.isInteger(year)||year<2000||year>2100||!Number.isInteger(month)||month<1||month>12)throw new HttpError('Kỳ báo cáo không hợp lệ.',400,'REPORT_PERIOD_INVALID');return{year,month};};
 const numeric=value=>value===null||value===undefined||value===''?null:Number(value);
+const decimal=value=>{
+  if(value===null||value===undefined||value==='')return null;
+  const text=String(value).trim();
+  return /^-?\d+(?:\.\d+)?$/.test(text)&&Number.isFinite(Number(text))?text:null;
+};
 const direction=value=>['increase_good','decrease_good','monitor'].includes(value)?value:'monitor';
+const DATE_COLUMNS=new Set(['planned_start_date','planned_end_date','actual_start_date','actual_end_date']);
+const normalizeDate=(value,rowNumber,column)=>{
+  if(value===null||value===undefined||value==='')return null;
+  const text=String(value).trim();
+  const iso=text.match(/^(\d{4}-\d{2}-\d{2})/);
+  if(iso)return iso[1];
+  const date=new Date(text);
+  if(Number.isNaN(date.getTime()))throw new HttpError(`Dòng ${rowNumber}: ${column} không đúng định dạng ngày.`,400,'REPORT_DATE_INVALID');
+  return date.toISOString().slice(0,10);
+};
 const evaluation=(target,actual,directionValue)=>target===null||actual===null?null:directionValue==='monitor'?'Theo dõi':directionValue==='increase_good'?(actual>=target?'Đạt':'Chưa đạt'):(actual<=target?'Đạt':'Chưa đạt');
 const rate=(actual,base)=>actual===null||base===null||Number(base)===0?null:(actual-base)/base;
 const achievement=(target,actual,directionValue)=>target===null||actual===null||directionValue==='monitor'?null:directionValue==='decrease_good'?(actual<=0?1.2:target/actual):(target===0?(actual>0?1.2:null):actual/target);
 function sanitizeRows(detailKey,rows) {
   const columns=new Set(DETAIL_CONFIG[detailKey][1]);
-  return (Array.isArray(rows)?rows:[]).map(row=>Object.fromEntries([...columns].map(key=>[key,row?.[key]===''||row?.[key]===undefined?null:row[key]])));
+  return (Array.isArray(rows)?rows:[]).map((row,index)=>Object.fromEntries([...columns].map(key=>{const value=row?.[key]===''||row?.[key]===undefined?null:row[key];return[key,DATE_COLUMNS.has(key)?normalizeDate(value,index+1,key):value];})));
 }
 async function workspace(periodId,teamCode) {
   teamCode=String(teamCode||'').toUpperCase();const config=TEAM_ENTRY_CONFIG[teamCode];if(!config)throw new HttpError('Bộ phận không hợp lệ.',400,'REPORT_TEAM_INVALID');
@@ -58,7 +73,7 @@ module.exports={
     const expectedCodes=current.kpis.map(item=>item.code);const incomingCodes=incomingRows.map(item=>String(item.code||'').trim().toUpperCase());
     if(incomingCodes.length!==expectedCodes.length||expectedCodes.some(code=>!incoming.has(code)))throw new HttpError('Bộ KPI của phiếu đã được cố định theo cấu hình kỳ báo cáo.',409,'REPORT_KPI_SET_LOCKED');
     const derived=calculate(current.team_code,rows,{});
-    const kpis=current.kpis.map(kpi=>{const item=incoming.get(kpi.code)||{};const directionValue=direction(kpi.evaluation_direction);const target=numeric(item.target_value);const manualActual=numeric(item.actual_value);const actual=kpi.input_mode==='derived'&&Object.hasOwn(derived,kpi.code)?numeric(derived[kpi.code]):manualActual;return{...kpi,target_value:target,actual_value:actual,evaluation:evaluation(target,actual,directionValue),note:item.note||null};});
+    const kpis=current.kpis.map(kpi=>{const item=incoming.get(kpi.code)||{};const directionValue=direction(kpi.evaluation_direction);const target=decimal(item.target_value);const manualActual=decimal(item.actual_value);const actual=kpi.input_mode==='derived'&&Object.hasOwn(derived,kpi.code)?decimal(derived[kpi.code]):manualActual;return{...kpi,target_value:target,actual_value:actual,evaluation:evaluation(numeric(target),numeric(actual),directionValue),note:item.note||null};});
     const validation=validateWorkspace(kpis,rows,config.fields);const result=await repository.saveWorkspace({base:current,detailKey:config.detailKey,rows,extraDetails:current.team_code==='ADS'?{detailKey:'adsProducts',rows:adsProducts}:null,kpis,note:body?.note||{},validation,userId,expectedRevision:body?.revision});if(!result)throw new HttpError('Không tìm thấy phiếu nhập liệu.',404,'REPORT_WORKSPACE_NOT_FOUND');if(result.conflict)throw new HttpError(`Phiếu đang ở trạng thái ${result.status}.`,409,'REPORT_SUBMISSION_STATE_INVALID');if(result.stale)throw new HttpError('Phiếu đã được cập nhật ở cửa sổ khác. Hãy tải lại trước khi tiếp tục.',409,'REPORT_REVISION_CONFLICT',{revision:result.revision});return workspace(periodId,teamCode);},
   async transition(periodId,teamCode,body,userId,auth){const action=String(body?.action||'');const note=String(body?.note||'').trim();teamCode=String(teamCode).toUpperCase();if(action==='return'&&note.length<5)throw new HttpError('Vui lòng nhập lý do trả lại phiếu (ít nhất 5 ký tự).',400,'REPORT_RETURN_REASON_REQUIRED');const current=await workspace(periodId,teamCode);if(action==='submit')ensureFormAccess(current,auth,true);if(['approve','return'].includes(action)&&!['reports.review','reports.manage'].some(key=>auth.permissions?.includes(key)))throw new HttpError('Bạn không có quyền duyệt báo cáo.',403,'PERMISSION_DENIED');const result=await repository.transition({periodId,teamCode,action,note,userId});if(!result)throw new HttpError('Không tìm thấy phiếu nhập liệu.',404,'REPORT_WORKSPACE_NOT_FOUND');if(result.conflict)throw new HttpError(`Không thể ${action} khi phiếu ở trạng thái ${result.status}.`,409,'REPORT_SUBMISSION_STATE_INVALID');if(result.selfReview)throw new HttpError('Người gửi phiếu không được tự duyệt. Vui lòng chuyển cho người duyệt khác.',409,'REPORT_SELF_APPROVAL_FORBIDDEN');if(result.validation)throw new HttpError('Phiếu còn lỗi dữ liệu, chưa thể gửi duyệt.',400,'REPORT_VALIDATION_FAILED',result.validation);if(action==='return'){const context=await repository.notificationContext(periodId,teamCode);if(context){context.period_id=periodId;await notifyAssignee(context,'Phiếu báo cáo được trả lại',`Phiếu cần được cập nhật lại. Lý do: ${note}`);}}return result;},
   async assignees(){return repository.listAssignees();},

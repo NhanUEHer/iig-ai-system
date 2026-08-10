@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const XLSX = require('xlsx');
 const { TEAM_ENTRY_CONFIG } = require('../src/modules/reports/manualReportConfig');
-const { buildTemplate, parseTemplate, parseNumber } = require('../src/modules/reports/manualReportWorkbook');
+const { buildTemplate, parseTemplate, parseNumber, parseDate } = require('../src/modules/reports/manualReportWorkbook');
 
 function workspace(teamCode) {
   const config = TEAM_ENTRY_CONFIG[teamCode];
@@ -35,7 +35,7 @@ test('manual report templates contain exactly three sheets for every department'
     for (const field of TEAM_ENTRY_CONFIG[teamCode].fields.filter(item => item[2] === 'computed')) {
       assert.equal(labels.includes(field[1]), false, `${teamCode} must omit computed field ${field[1]}`);
     }
-    assert.equal(workbook.Sheets.KPI.E7.z, '#,##0.00');
+    assert.equal(workbook.Sheets.KPI.E7.z, '#,##0.############################');
   }
 });
 
@@ -43,8 +43,8 @@ test('manual report template round-trip preserves editable KPI and note data', (
   const current = workspace('REV');
   const parsed = parseTemplate(buildTemplate(current), current);
   assert.deepEqual(parsed.errors, []);
-  assert.equal(parsed.kpis[0].target_value, 10);
-  assert.equal(parsed.kpis[0].actual_value, 11);
+  assert.equal(parsed.kpis[0].target_value, '10.000000000');
+  assert.equal(parsed.kpis[0].actual_value, '11.000000000');
   assert.equal(parsed.kpis[1].actual_value, '0.500000000');
   assert.equal(parsed.note.highlights, 'Nổi bật');
   assert.equal(parsed.summary.kpis, 2);
@@ -83,9 +83,29 @@ test('Ads import remains compatible with templates downloaded before the trend c
 });
 
 test('template number parser accepts Vietnamese and international formats', () => {
-  assert.equal(parseNumber('4,711772500'), 4.7117725);
-  assert.equal(parseNumber('1.234.567,89'), 1234567.89);
-  assert.equal(parseNumber('1,234,567.89'), 1234567.89);
+  assert.equal(parseNumber('4,711772500'), '4.711772500');
+  assert.equal(parseNumber('1.234.567,89'), '1234567.89');
+  assert.equal(parseNumber('1,234,567.89'), '1234567.89');
+});
+
+test('template number parser preserves imported decimal scale without rounding', () => {
+  assert.equal(parseNumber('4,711772500'), '4.711772500');
+  assert.equal(parseNumber('4.711774'), '4.711774');
+  assert.equal(parseNumber('34'), '34');
+});
+
+test('template date parser normalizes Excel serials and API date strings', () => {
+  assert.equal(parseDate(46203), '2026-06-30');
+  assert.equal(parseDate('2026-06-30T00:00:00.000Z'), '2026-06-30');
+  assert.equal(parseDate('Tue Jun 30 2026 00:00:00 GMT+0000 (Coordinated Universal Time)'), '2026-06-30');
+});
+
+test('product template import converts Excel dates to YYYY-MM-DD', () => {
+  const current=workspace('PROD');
+  current.details=[{product_group:'TOEIC LR',activity_name:'Pre TOEIC',actual_end_date:'2026-06-30'}];
+  const parsed=parseTemplate(buildTemplate(current),current);
+  assert.deepEqual(parsed.errors,[]);
+  assert.equal(parsed.details[0].actual_end_date,'2026-06-30');
 });
 
 test('import rejects changed KPI metadata', () => {
@@ -111,6 +131,6 @@ test('import restores comma-formatted integer counts misread by Excel locale', (
   workbook.Sheets['Chi tiết'].D7.v = 6.786;
   workbook.Sheets['Chi tiết'].D7.t = 'n';
   const parsed = parseTemplate(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }), current);
-  assert.equal(parsed.details[0].lead_count, 6786);
-  assert.equal(parsed.details[0].order_count, 777);
+  assert.equal(parsed.details[0].lead_count, '6786');
+  assert.equal(parsed.details[0].order_count, '777');
 });

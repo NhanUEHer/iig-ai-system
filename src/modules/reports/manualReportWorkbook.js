@@ -31,9 +31,23 @@ const INTEGER_FIELDS = new Set([
 const normalize = value => String(value ?? '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9]+/g,' ' ).trim();
 const inputFields = fields => fields.filter(field => field[2] !== 'computed');
 const safeCell = value => value === null || value === undefined ? '' : value;
+const padDatePart=value=>String(value).padStart(2,'0');
+const parseDate = value => {
+  if(value === null || value === undefined || value === '') return null;
+  if(typeof value === 'number') {
+    const date=XLSX.SSF.parse_date_code(value);
+    return date?`${date.y}-${padDatePart(date.m)}-${padDatePart(date.d)}`:null;
+  }
+  if(value instanceof Date&&!Number.isNaN(value.getTime()))return value.toISOString().slice(0,10);
+  const text=String(value).trim();
+  const iso=text.match(/^(\d{4}-\d{2}-\d{2})/);
+  if(iso)return iso[1];
+  const date=new Date(text);
+  return Number.isNaN(date.getTime())?null:date.toISOString().slice(0,10);
+};
 const parseNumber = value => {
   if(value === null || value === undefined || value === '') return null;
-  if(typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if(typeof value === 'number') return Number.isFinite(value) ? String(value) : null;
   const text = String(value).trim().replace(/\s/g,'');
   if(!text) return null;
   const commas = (text.match(/,/g)||[]).length;
@@ -44,14 +58,14 @@ const parseNumber = value => {
     normalizedValue = normalizedValue.replaceAll(decimal === ',' ? '.' : ',','').replace(decimal,'.');
   } else if(commas) normalizedValue = commas > 1 || normalizedValue.split(',').at(-1).length === 3 ? normalizedValue.replaceAll(',','') : normalizedValue.replace(',','.');
   else if(dots) normalizedValue = dots > 1 || normalizedValue.split('.').at(-1).length === 3 ? normalizedValue.replaceAll('.','') : normalizedValue;
-  const number = Number(normalizedValue);
-  return Number.isFinite(number) ? number : null;
+  if(!/^-?\d+(?:\.\d+)?$/.test(normalizedValue)) return null;
+  return Number.isFinite(Number(normalizedValue)) ? normalizedValue : null;
 };
 const parseFieldNumber = (value,fieldKey) => {
   const number=parseNumber(value);
   // Excel configured with a comma-decimal locale can store "6,786" as 6.786.
   // Count fields are integers, so restore the intended thousands value on import.
-  if(typeof value==='number'&&INTEGER_FIELDS.has(fieldKey)&&number!==null&&!Number.isInteger(number))return Math.round(number*1000);
+  if(typeof value==='number'&&INTEGER_FIELDS.has(fieldKey)&&number!==null&&!Number.isInteger(Number(number)))return String(Math.round(Number(number)*1000));
   return number;
 };
 
@@ -83,7 +97,7 @@ function formatNumericColumns(sheet, headerRow, fields, lastRow) {
     for(let row=headerRow+1;row<=lastRow;row++){
       const address=XLSX.utils.encode_cell({r:row,c:column});
       const cell=sheet[address];
-      if(cell)cell.z='#,##0.00';
+      if(cell)cell.z='#,##0.############################';
     }
   });
 }
@@ -104,8 +118,8 @@ function buildTemplate(workspace) {
   const kpiSheet=XLSX.utils.aoa_to_sheet(kpiRows);
   styleSheet(kpiSheet,[14,38,18,20,18,18,34],[4,5,6]);
   for(let row=6;row<kpiRows.length;row++) {
-    kpiSheet[`E${row+1}`].z='#,##0.00';
-    if(kpiSheet[`F${row+1}`])kpiSheet[`F${row+1}`].z='#,##0.00';
+    kpiSheet[`E${row+1}`].z='#,##0.############################';
+    if(kpiSheet[`F${row+1}`])kpiSheet[`F${row+1}`].z='#,##0.############################';
     if(workspace.kpis[row-6]?.input_mode==='derived') {
       const cell=kpiSheet[`F${row+1}`]||(kpiSheet[`F${row+1}`]={t:'s',v:''});
       cell.c=[{a:'IIG Admin',t:'Chỉ số này được hệ thống tự tính từ sheet Chi tiết. Không nhập giá trị tại đây.'}];
@@ -160,7 +174,7 @@ function objectRows(rows, headerIndex, fields, stopTitle=null) {
     if(stopTitle&&normalize(row[0])===normalize(stopTitle))break;
     if(!row.some(value=>value!==null&&String(value).trim()!==''))continue;
     const item={row_key:crypto.randomUUID()};
-    fields.forEach((field,fieldIndex)=>{const value=indexes[fieldIndex]>=0?row[indexes[fieldIndex]]:null;item[field[0]]=field[2]==='number'?parseFieldNumber(value,field[0]):value===null?null:String(value).trim();});
+    fields.forEach((field,fieldIndex)=>{const value=indexes[fieldIndex]>=0?row[indexes[fieldIndex]]:null;item[field[0]]=field[2]==='number'?parseFieldNumber(value,field[0]):field[2]==='date'?parseDate(value):value===null?null:String(value).trim();});
     result.push(item);
   }
   return result;
@@ -183,7 +197,7 @@ function validateLookups(rows, fields, masterData = {}, errors) {
 
 function parseTemplate(buffer, workspace) {
   if(!Buffer.isBuffer(buffer)||!buffer.length||buffer.length>MAX_FILE_SIZE)throw new HttpError('File trống hoặc vượt quá 10 MB.',400,'REPORT_TEMPLATE_FILE_INVALID');
-  let workbook;try{workbook=XLSX.read(buffer,{type:'buffer',cellDates:true});}catch{throw new HttpError('Không thể đọc file Excel.',400,'REPORT_TEMPLATE_PARSE_FAILED');}
+  let workbook;try{workbook=XLSX.read(buffer,{type:'buffer',cellDates:false});}catch{throw new HttpError('Không thể đọc file Excel.',400,'REPORT_TEMPLATE_PARSE_FAILED');}
   const required=['KPI','Chi tiết','Nhận xét'];const missing=required.filter(name=>!workbook.Sheets[name]);
   if(missing.length)throw new HttpError(`Thiếu sheet: ${missing.join(', ')}.`,400,'REPORT_TEMPLATE_SHEETS_MISSING');
   const kpiRows=rowsOf(workbook.Sheets.KPI),detailRows=rowsOf(workbook.Sheets['Chi tiết']),noteRows=rowsOf(workbook.Sheets['Nhận xét']);
@@ -228,4 +242,4 @@ function parseTemplate(buffer, workspace) {
   return {kpis,details,adsProducts,note,errors,warnings,summary:{kpis:kpis.length,details:details.length,adsProducts:adsProducts.length,notes:NOTE_ROWS.filter(([key])=>note[key]).length}};
 }
 
-module.exports={TEMPLATE_VERSION,MAX_FILE_SIZE,buildTemplate,parseTemplate,parseNumber};
+module.exports={TEMPLATE_VERSION,MAX_FILE_SIZE,buildTemplate,parseTemplate,parseNumber,parseDate};

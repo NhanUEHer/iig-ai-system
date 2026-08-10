@@ -10,7 +10,15 @@ const PERIOD_STATUS={draft:'Bản nháp',open:'Chưa nhập',in_progress:'Đang 
 const AUDIT_ACTION={period_created:'Tạo kỳ báo cáo',assignee_changed:'Thay đổi người thực hiện',workspace_saved:'Lưu dữ liệu phiếu',submit:'Gửi duyệt',return:'Trả lại phiếu',approve:'Duyệt phiếu',published:'Publish dashboard',reopened:'Thu hồi báo cáo',deadline_changed:'Thay đổi hạn nhập liệu'};
 const emptyNote={highlights:'',issues:'',risks:'',proposals:'',next_month_plan:''};
 const valueOf=value=>value===null||value===undefined?'':value;
-const displayNumber=value=>value===null||value===undefined||value===''?'—':Number(value).toLocaleString('vi-VN',{maximumFractionDigits:2});
+const dateValueOf=value=>{
+  if(value===null||value===undefined||value==='')return '';
+  const text=String(value);
+  const iso=text.match(/^(\d{4}-\d{2}-\d{2})/);
+  if(iso)return iso[1];
+  const date=new Date(value);
+  return Number.isNaN(date.getTime())?'':date.toISOString().slice(0,10);
+};
+const displayNumber=value=>value===null||value===undefined||value===''?'—':formatInputNumber(value);
 const displayPercent=value=>value===null||value===undefined||!Number.isFinite(Number(value))?'—':`${(Number(value)*100).toLocaleString('vi-VN',{maximumFractionDigits:1})}%`;
 const DIRECTION_OPTIONS=[['increase_good','Tăng tốt'],['decrease_good','Giảm tốt'],['monitor','Theo dõi']];
 
@@ -23,24 +31,26 @@ function parseFlexibleNumber(raw){
   else if(dots){normalized=dots>1||cleaned.split('.').at(-1).length===3?cleaned.replaceAll('.',''):cleaned;}
   return /^-?\d+(?:\.\d+)?$/.test(normalized)&&Number.isFinite(Number(normalized))?normalized:null;
 }
-function formatInputNumber(value,decimals=2){
+function formatInputNumber(value){
   if(value===null||value===undefined||value==='')return '';
   const normalized=String(value).replace(',','.');
   if(!/^-?\d+(?:\.\d+)?$/.test(normalized))return String(value);
   const [rawInteger,rawFraction='']=normalized.split('.');
   const sign=rawInteger.startsWith('-')?'-':'';
   const integer=rawInteger.replace('-','').replace(/^0+(?=\d)/,'').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
-  const fraction=decimals>0?rawFraction.slice(0,decimals).padEnd(decimals,'0'):'';
+  // Keep the exact imported/entered decimal scale. An all-zero fraction is an
+  // integer and should not be displayed as ",000…".
+  const fraction=/^0*$/.test(rawFraction)?'':rawFraction;
   return `${sign}${integer}${fraction?`,${fraction}`:''}`;
 }
 const performanceClass=(value,threshold=1)=>value===null||value===undefined||!Number.isFinite(Number(value))?'':Number(value)>=threshold?'formula-good':'formula-bad';
 const evaluationClass=value=>value==='Đạt'?'formula-good':value==='Chưa đạt'?'formula-bad':'';
 const trendClass=(value,direction)=>value===null||value===undefined||direction==='monitor'?'':direction==='decrease_good'?(Number(value)<=0?'formula-good':'formula-bad'):(Number(value)>=0?'formula-good':'formula-bad');
 
-function NumericInput({value,onChange,disabled,placeholder,ariaLabel,decimals=2}){
-  const [draft,setDraft]=useState(()=>formatInputNumber(value,decimals));const [focused,setFocused]=useState(false);
-  useEffect(()=>{if(!focused)setDraft(formatInputNumber(value,decimals));},[value,focused,decimals]);
-  return <input disabled={disabled} inputMode="decimal" aria-label={ariaLabel} placeholder={placeholder} value={draft} onFocus={()=>setFocused(true)} onChange={event=>{const raw=event.target.value;setDraft(raw);if(!raw.trim())onChange(null);else{const parsed=parseFlexibleNumber(raw);if(parsed!==null)onChange(parsed);}}} onBlur={()=>{setFocused(false);setDraft(formatInputNumber(parseFlexibleNumber(draft),decimals));}}/>;
+function NumericInput({value,onChange,disabled,placeholder,ariaLabel}){
+  const [draft,setDraft]=useState(()=>formatInputNumber(value));const [focused,setFocused]=useState(false);
+  useEffect(()=>{if(!focused)setDraft(formatInputNumber(value));},[value,focused]);
+  return <input disabled={disabled} inputMode="decimal" aria-label={ariaLabel} placeholder={placeholder} value={draft} onFocus={()=>setFocused(true)} onChange={event=>{const raw=event.target.value;setDraft(raw);if(!raw.trim())onChange(null);else{const parsed=parseFlexibleNumber(raw);if(parsed!==null)onChange(parsed);}}} onBlur={()=>{setFocused(false);setDraft(formatInputNumber(parseFlexibleNumber(draft)));}}/>;
 }
 
 function FieldInput({field,value,onChange,lookups,disabled}){
@@ -48,7 +58,7 @@ function FieldInput({field,value,onChange,lookups,disabled}){
   if(field.type==='select')return <select disabled={disabled} value={valueOf(value)} onChange={e=>onChange(e.target.value)}><option value="">Chọn...</option>{(lookups[field.lookup]||[]).map(item=><option key={item.code} value={item.label}>{item.label}</option>)}</select>;
   if(field.type==='boolean')return <input disabled={disabled} type="checkbox" checked={value===true} onChange={e=>onChange(e.target.checked)}/>;
   if(field.type==='number')return <NumericInput disabled={disabled} value={value} onChange={onChange}/>;
-  return <input disabled={disabled} type={field.type==='date'?'date':'text'} value={valueOf(value)} onChange={e=>onChange(e.target.value)}/>;
+  return <input disabled={disabled} type={field.type==='date'?'date':'text'} value={field.type==='date'?dateValueOf(value):valueOf(value)} onChange={e=>onChange(e.target.value)}/>;
 }
 
 function RevenueDetailTable({details,editable,masterData,updateRow,removeRow}){
