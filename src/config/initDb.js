@@ -15,11 +15,13 @@ async function seedUsers() {
   const passwordError = validatePassword(password);
   if (passwordError) throw new Error(`Invalid BOOTSTRAP_ADMIN_PASSWORD: ${passwordError}`);
   const passwordHash = await hashPassword(password);
-  await db.query(
+  const created = await db.query(
     `INSERT INTO users (name, email, username, password, password_hash, role)
-     VALUES ($1, LOWER($2), LOWER($2), '', $3, 'admin')`,
+     VALUES ($1, LOWER($2), LOWER($2), '', $3, 'admin') RETURNING id`,
     [process.env.BOOTSTRAP_ADMIN_NAME || 'System Administrator', email, passwordHash]
   );
+  await db.query(`INSERT INTO user_roles(user_id,role_id,is_primary)
+    SELECT $1,id,TRUE FROM roles WHERE slug='admin' ON CONFLICT DO NOTHING`, [created.rows[0].id]);
 }
 
 async function initDb() {

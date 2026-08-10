@@ -76,7 +76,7 @@ export default function Sidebar({
       <button className="workspace-nav-item" onClick={() => navigate('/change-password')} title="Đổi mật khẩu"><KeyRound /><span className="workspace-nav-text">Đổi mật khẩu</span></button>
       <div className="workspace-user-card">
         <div className="workspace-user-avatar">{(currentUser?.name || 'US').trim().slice(0, 2).toUpperCase()}</div>
-        {!sidebarCollapsed && <div className="workspace-user-copy"><strong>{currentUser?.name}</strong><span>{currentUser?.roleName || currentUser?.role}</span></div>}
+        {!sidebarCollapsed && <div className="workspace-user-copy"><strong>{currentUser?.name}</strong><span>{currentUser?.roles?.map(role => role.name).join(', ') || currentUser?.roleName || currentUser?.role}</span></div>}
         <div className="workspace-user-actions">
           <button onClick={toggleTheme} title={isLightTheme ? 'Dùng giao diện tối' : 'Dùng giao diện sáng'}>{isLightTheme ? <Moon /> : <Sun />}</button>
           <button onClick={handleLogout} title="Đăng xuất"><LogOut /></button>

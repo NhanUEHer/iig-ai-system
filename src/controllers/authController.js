@@ -3,8 +3,14 @@ const authService = require('../modules/auth/authService');
 const HttpError = require('../http/httpError');
 const roleRepository = require('../modules/auth/roleRepository');
 
-async function validateRole(role) {
-  if (!role || !await roleRepository.findBySlug(role)) throw new HttpError('Vai trò không hợp lệ.', 400, 'VALIDATION_ERROR');
+async function validateRoles(input = {}) {
+  const roleSlugs = [...new Set((Array.isArray(input.roleSlugs) ? input.roleSlugs : [input.role]).filter(Boolean))];
+  if (!roleSlugs.length) throw new HttpError('Tài khoản phải có ít nhất một vai trò.', 400, 'ROLES_REQUIRED');
+  const roles = await roleRepository.findBySlugs(roleSlugs);
+  if (roles.length !== roleSlugs.length) throw new HttpError('Có vai trò không tồn tại.', 400, 'INVALID_ROLE');
+  const primaryRoleSlug = input.primaryRoleSlug || input.role || roleSlugs[0];
+  if (!roleSlugs.includes(primaryRoleSlug)) throw new HttpError('Vai trò chính phải thuộc danh sách vai trò đã chọn.', 400, 'INVALID_PRIMARY_ROLE');
+  return { roleSlugs, primaryRoleSlug, roles };
 }
 
 module.exports = {
@@ -52,14 +58,14 @@ module.exports = {
   },
 
   async createUser(req, res) {
-    const { name, email, role } = req.body || {};
+    const { name, email } = req.body || {};
     if (!name?.trim() || !email?.trim()) {
       throw new HttpError('Tên, email và role hợp lệ là bắt buộc.', 400, 'VALIDATION_ERROR');
     }
-    await validateRole(role);
+    const assignment = await validateRoles(req.body);
     let user;
     try {
-      user = await authRepository.createUser({ name: name.trim(), email: email.trim(), role });
+      user = await authRepository.createUser({ name: name.trim(), email: email.trim(), ...assignment, assignedBy: req.auth.userId });
     } catch (error) {
       if (error.code === '23505') throw new HttpError('Email đã tồn tại.', 409, 'EMAIL_EXISTS');
       throw error;
@@ -81,13 +87,17 @@ module.exports = {
   },
 
   async updateUser(req, res) {
-    const { name, email, role, isActive = true } = req.body || {};
+    const { name, email, isActive = true } = req.body || {};
     if (!name?.trim() || !email?.trim()) {
       throw new HttpError('Tên, email và role hợp lệ là bắt buộc.', 400, 'VALIDATION_ERROR');
     }
-    await validateRole(role);
+    const assignment = await validateRoles(req.body);
+    const keepsRoleManagement = assignment.roles.some(role => role.permissions?.includes('roles.manage')) && Boolean(isActive);
+    if (!keepsRoleManagement && await authRepository.countOtherPermissionHolders(req.params.id, 'roles.manage') === 0) {
+      throw new HttpError('Không thể gỡ quyền quản lý vai trò khỏi quản trị viên hoạt động cuối cùng.', 409, 'LAST_ROLE_ADMIN');
+    }
     const user = await authRepository.updateUser(req.params.id, {
-      name: name.trim(), email: email.trim(), role, isActive: Boolean(isActive)
+      name: name.trim(), email: email.trim(), ...assignment, isActive: Boolean(isActive), assignedBy: req.auth.userId
     });
     if (!user) throw new HttpError('Không tìm thấy tài khoản.', 404, 'USER_NOT_FOUND');
     if (!user.is_active) await authRepository.revokeUserSessions(user.id);

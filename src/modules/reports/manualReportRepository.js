@@ -196,10 +196,11 @@ module.exports={
     return masterData;
   },
   async listAssignees() {
-    const result=await db.query(`SELECT u.id,u.name,u.email,u.role,r.name role_name
-      FROM users u JOIN roles r ON r.slug=u.role
+    const result=await db.query(`SELECT u.id,u.name,u.email,u.role,
+      string_agg(DISTINCT r.name, ', ' ORDER BY r.name) role_name
+      FROM users u JOIN user_roles ur ON ur.user_id=u.id JOIN roles r ON r.id=ur.role_id
       WHERE u.is_active=TRUE AND (r.permissions ? 'reports.entry' OR r.permissions ? 'reports.manage')
-      ORDER BY u.name,u.email`);
+      GROUP BY u.id ORDER BY u.name,u.email`);
     return result.rows;
   },
   async updateDeadline(periodId,deadline,actorId) {
@@ -219,8 +220,9 @@ module.exports={
   },
   async assignSubmission({periodId,teamCode,userId,actorId}) {
     return db.transaction(async client=>{
-      if(userId){const eligible=await client.query(`SELECT u.id FROM users u JOIN roles r ON r.slug=u.role
-        WHERE u.id=$1 AND u.is_active=TRUE AND (r.permissions ? 'reports.entry' OR r.permissions ? 'reports.manage')`,[userId]);if(!eligible.rows[0])return {invalidUser:true};}
+      if(userId){const eligible=await client.query(`SELECT u.id FROM users u
+        WHERE u.id=$1 AND u.is_active=TRUE AND EXISTS (SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id
+          WHERE ur.user_id=u.id AND (r.permissions ? 'reports.entry' OR r.permissions ? 'reports.manage'))`,[userId]);if(!eligible.rows[0])return {invalidUser:true};}
       const current=await client.query(`SELECT s.id,s.status FROM report_manual_submissions s JOIN report_teams t ON t.id=s.team_id JOIN report_data_versions v ON v.id=s.version_id
         WHERE s.period_id=$1 AND t.code=$2 AND v.status='draft' FOR UPDATE OF s`,[periodId,teamCode]);
       if(!current.rows[0])return null;if(!['draft','editing','returned'].includes(current.rows[0].status))return {locked:true,status:current.rows[0].status};

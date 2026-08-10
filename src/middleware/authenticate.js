@@ -30,21 +30,23 @@ async function authenticate(req, res, next) {
     const refreshedToken = signAccessToken({
       userId: session.user_id,
       sessionId: session.id,
-      role: session.role,
       expiresAt: idleExpiresAt,
       absoluteExpiresAt
     });
     res.setHeader('x-access-token', refreshedToken);
     res.setHeader('x-token-expires-at', idleExpiresAt.toISOString());
-    const role = await roleRepository.findBySlug(session.role);
-    const permissions = role?.permissions || [];
-    req.auth = { userId: session.user_id, sessionId: session.id, role: session.role, permissions };
+    const roles = await roleRepository.findForUser(session.user_id);
+    const primaryRole = roles.find(role => role.is_primary) || roles[0];
+    const permissions = [...new Set(roles.flatMap(role => role.permissions || []))];
+    const roleSlugs = roles.map(role => role.slug);
+    req.auth = { userId: session.user_id, sessionId: session.id, role: primaryRole?.slug, roles: roleSlugs, permissions };
     req.user = {
       id: session.user_id,
       name: session.name,
       email: session.email,
-      role: session.role,
-      roleName: role?.name || session.role,
+      role: primaryRole?.slug || session.role,
+      roleName: primaryRole?.name || session.role,
+      roles: roles.map(({ id, slug, name, is_primary }) => ({ id, slug, name, isPrimary: is_primary })),
       permissions,
       forcePasswordChange: session.force_password_change
     };
@@ -55,7 +57,7 @@ async function authenticate(req, res, next) {
 }
 
 function requireRole(...roles) {
-  return (req, res, next) => roles.includes(req.auth?.role)
+  return (req, res, next) => roles.some(role => req.auth?.roles?.includes(role))
     ? next()
     : next(new HttpError('Bạn không có quyền thực hiện thao tác này.', 403, 'FORBIDDEN'));
 }

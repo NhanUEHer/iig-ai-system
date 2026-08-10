@@ -6,11 +6,13 @@ const emailService = require('../../services/emailService');
 const HttpError = require('../../http/httpError');
 const roleRepository = require('./roleRepository');
 
-const publicUser = user => ({
+const publicUser = (user, roles = []) => ({
   id: user.id,
   name: user.name || user.username,
   email: user.email,
   role: user.role,
+  roleName: roles.find(role => role.is_primary)?.name || roles[0]?.name || user.role,
+  roles: roles.map(({ id, slug, name, is_primary }) => ({ id, slug, name, isPrimary: is_primary })),
   forcePasswordChange: user.force_password_change,
   isActive: user.is_active
 });
@@ -49,13 +51,17 @@ async function login(input, dependencies = {}) {
   const token = signAccessToken({
     userId: user.id,
     sessionId: session.id,
-    role: user.role,
     expiresAt: idleExpiresAt,
     absoluteExpiresAt
   });
-  const roles = dependencies.roleRepository || (dependencies.repository ? null : roleRepository);
-  const role = roles ? await roles.findBySlug(user.role) : null;
-  return { user: { ...publicUser(user), roleName: role?.name || user.role, permissions: role?.permissions || [] }, token, expiresAt: idleExpiresAt, absoluteExpiresAt };
+  const rolesRepository = dependencies.roleRepository || (dependencies.repository ? null : roleRepository);
+  let assignedRoles = rolesRepository ? await rolesRepository.findForUser(user.id) : [];
+  if (!assignedRoles.length && user.role) {
+    const legacyRole = rolesRepository?.findBySlug ? await rolesRepository.findBySlug(user.role) : null;
+    if (legacyRole) assignedRoles = [{ ...legacyRole, is_primary: true }];
+  }
+  const permissions = [...new Set(assignedRoles.flatMap(role => role.permissions || []))];
+  return { user: { ...publicUser(user, assignedRoles), permissions }, token, expiresAt: idleExpiresAt, absoluteExpiresAt };
 }
 
 async function issuePasswordAction(user, purpose, dependencies = {}) {

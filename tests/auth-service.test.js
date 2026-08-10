@@ -42,6 +42,28 @@ test('login creates a 24-hour sliding session with a 7-day hard limit', async ()
   assert.equal(payload.sub, 'user-1');
 });
 
+test('login returns the union of permissions from every assigned role', async () => {
+  const passwordHash = await hashPassword('SecurePass123');
+  const repository = {
+    findUserByEmail: async () => ({
+      id: 'multi-role-user', name: 'Minh Anh', email: 'minh@example.com', role: 'content',
+      is_active: true, force_password_change: false, password_hash: passwordHash
+    }),
+    createSession: async () => ({ id: 'multi-role-session' }),
+    touchLogin: async () => {}
+  };
+  const roleRepository = {
+    findForUser: async () => [
+      { id: 'role-1', slug: 'content', name: 'Nội dung', is_primary: true, permissions: ['audio.view', 'audio.manage'] },
+      { id: 'role-2', slug: 'scorer', name: 'Chấm bài', is_primary: false, permissions: ['audio.view', 'scoring.grade'] }
+    ]
+  };
+  const result = await authService.login({ email: 'minh@example.com', password: 'SecurePass123' }, { repository, roleRepository });
+  assert.deepEqual(result.user.roles.map(role => role.slug), ['content', 'scorer']);
+  assert.deepEqual(result.user.permissions.sort(), ['audio.manage', 'audio.view', 'scoring.grade']);
+  assert.equal(result.user.roleName, 'Nội dung');
+});
+
 test('forgot password does not reveal whether an email exists', async () => {
   const result = await authService.requestPasswordReset('missing@example.com', {
     repository: { findUserByEmail: async () => null }
