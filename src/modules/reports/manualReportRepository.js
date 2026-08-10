@@ -250,7 +250,9 @@ module.exports={
       FROM report_periods p JOIN report_data_versions v ON v.period_id=p.id AND v.status='draft' JOIN report_manual_submissions s ON s.version_id=v.id
       JOIN report_teams t ON t.id=s.team_id LEFT JOIN report_kpi_values k ON k.version_id=v.id AND k.kpi_definition_id IN(SELECT id FROM report_kpi_definitions WHERE team_id=t.id)
       LEFT JOIN report_notes n ON n.version_id=v.id AND n.team_id=t.id WHERE p.id=$1 GROUP BY t.id,t.code,t.name,s.status,s.assigned_user_id,s.validation_result,n.id`,[periodId]);
-    const teams=result.rows.map(row=>({...row,ready:Boolean(row.assigned_user_id&&row.status==='approved'&&!row.errors&&!row.incomplete_kpis&&!row.notes_missing)}));
+    // Publishing is a workflow decision. Content completeness is returned for
+    // visibility, but it no longer blocks an already approved submission.
+    const teams=result.rows.map(row=>({...row,ready:Boolean(row.assigned_user_id&&row.status==='approved')}));
     return {ready:teams.length>0&&teams.every(item=>item.ready),teams};
   }
 };
