@@ -59,26 +59,6 @@ function App() {
     });
   };
 
-  const [isLightTheme, setIsLightTheme] = useState(() => {
-    return localStorage.getItem('theme') === 'light';
-  });
-
-  useEffect(() => {
-    if (isLightTheme) {
-      document.documentElement.classList.add('light-theme');
-    } else {
-      document.documentElement.classList.remove('light-theme');
-    }
-  }, [isLightTheme]);
-
-  const toggleTheme = () => {
-    setIsLightTheme(prev => {
-      const next = !prev;
-      localStorage.setItem('theme', next ? 'light' : 'dark');
-      return next;
-    });
-  };
-
   const [message, setMessage] = useState(null);
   const showMsg = (text, type = 'success') => {
     setMessage({ text, type });
@@ -408,8 +388,6 @@ function App() {
             navigate={navigate}
             currentUser={currentUser}
             handleLogout={handleLogout}
-            toggleTheme={toggleTheme}
-            isLightTheme={isLightTheme}
           />
 
           <main style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>

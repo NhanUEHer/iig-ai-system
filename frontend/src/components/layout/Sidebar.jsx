@@ -1,7 +1,7 @@
 import {
   AudioLines, Bot, ChevronLeft, ChevronRight, ClipboardCheck, FileSearch,
-  FileText, KeyRound, LayoutGrid, LogOut, Moon, NotebookPen, ScrollText, Settings2,
-  Sun, UserRoundCog, ShieldCheck
+  FileText, KeyRound, LayoutGrid, LogOut, NotebookPen, ScrollText, Settings2,
+  UserRoundCog, ShieldCheck
 } from 'lucide-react';
 import './Sidebar.css';
 import { buildInfo } from '../../services/buildInfo';
@@ -43,7 +43,7 @@ const groups = [
 
 export default function Sidebar({
   sidebarCollapsed, toggleSidebar, activeTab, navigate, currentUser,
-  handleLogout, toggleTheme, isLightTheme
+  handleLogout
 }) {
   return <aside className={`workspace-sidebar${sidebarCollapsed ? ' collapsed' : ''}`}>
     <header className="workspace-sidebar-brand">
@@ -78,7 +78,6 @@ export default function Sidebar({
         <div className="workspace-user-avatar">{(currentUser?.name || 'US').trim().slice(0, 2).toUpperCase()}</div>
         {!sidebarCollapsed && <div className="workspace-user-copy"><strong>{currentUser?.name}</strong><span>{currentUser?.roles?.map(role => role.name).join(', ') || currentUser?.roleName || currentUser?.role}</span></div>}
         <div className="workspace-user-actions">
-          <button onClick={toggleTheme} title={isLightTheme ? 'Dùng giao diện tối' : 'Dùng giao diện sáng'}>{isLightTheme ? <Moon /> : <Sun />}</button>
           <button onClick={handleLogout} title="Đăng xuất"><LogOut /></button>
         </div>
       </div>

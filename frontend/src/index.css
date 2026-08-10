@@ -48,6 +48,7 @@
 
 /* Light Theme Variables - Ultra Clean Slate Light */
 :root.light-theme {
+  color-scheme: light;
   --bg:                  #f7f9fb;
   --surface-low:         #f2f4f6;
   --surface:             #ffffff;
@@ -931,4 +932,3 @@ body {
   visibility: visible !important;
   transform: translate(-50%, -4px) !important;
 }
-
