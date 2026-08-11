@@ -1,0 +1,38 @@
+.role-pill-list {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.role-more { font-size: 11px; color: var(--on-surface-var); font-weight: 700; }
+.multi-role-field { margin-bottom: 14px; }
+.multi-role-field > strong { display: block; font-size: 12px; }
+.multi-role-field > small { display: block; font-size: 11px; color: var(--on-surface-var); margin: 4px 0 8px; }
+.multi-role-options { display: grid; gap: 7px; max-height: 220px; overflow: auto; }
+.multi-role-options label {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  border: 1px solid var(--bento-border);
+  border-radius: 9px;
+  padding: 10px;
+  cursor: pointer;
+}
+.multi-role-options label.selected { border-color: #6172f3; background: color-mix(in srgb, #6172f3 9%, var(--surface)); }
+.multi-role-options input { width: auto; margin-top: 3px; }
+.multi-role-options span { display: flex; flex-direction: column; gap: 3px; }
+.multi-role-options b { font-size: 12px; }
+.multi-role-options small { font-size: 10px; color: var(--on-surface-var); }
+.effective-permissions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px;
+  border-radius: 9px;
+  background: var(--surface-variant);
+  margin-bottom: 14px;
+}
+.effective-permissions svg { width: 17px; color: #6172f3; }
+.effective-permissions span { display: flex; flex-direction: column; }
+.effective-permissions strong { font-size: 12px; }
+.effective-permissions small { font-size: 10px; color: var(--on-surface-var); margin-top: 2px; }

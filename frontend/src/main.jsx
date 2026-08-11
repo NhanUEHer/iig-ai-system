@@ -8,6 +8,11 @@ import './styles/typography.css';
 import './styles/design-system.css';
 import './services/authSession';
 
+// The admin workspace currently supports one visual theme only. Apply it
+// before React mounts so a saved browser preference cannot cause a dark flash.
+document.documentElement.classList.add('light-theme');
+localStorage.setItem('theme', 'light');
+
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);

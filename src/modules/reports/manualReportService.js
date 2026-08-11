@@ -4,29 +4,43 @@ const dashboardRepository=require('./reportRepository');
 const {TEAM_ENTRY_CONFIG,DETAIL_CONFIG}=require('./manualReportConfig');
 const {calculate,validateWorkspace}=require('./manualReportCalculator');
 const workbookService=require('./manualReportWorkbook');
+const {enrichRevenueDetails}=require('./reportRevenueMetrics');
 const {sendReportNotification}=require('../../services/emailService');
 const appUrl=()=>String(process.env.APP_URL||'http://localhost:5173').replace(/\/$/,'');
 async function notifyAssignee(context,eventName,message){if(!context?.email)return;try{await sendReportNotification({email:context.email,name:context.user_name,eventName,periodLabel:`Tháng ${context.month}/${context.year}`,teamName:context.team_name,deadline:context.submission_deadline,actionUrl:`${appUrl()}/reports/manage/${context.period_id}/${context.team_code}`,message});}catch(error){console.error('[Report email]',error.message);}}
 
 const validPeriod=(year,month)=>{year=Number(year);month=Number(month);if(!Number.isInteger(year)||year<2000||year>2100||!Number.isInteger(month)||month<1||month>12)throw new HttpError('Kỳ báo cáo không hợp lệ.',400,'REPORT_PERIOD_INVALID');return{year,month};};
 const numeric=value=>value===null||value===undefined||value===''?null:Number(value);
+const decimal=value=>{
+  if(value===null||value===undefined||value==='')return null;
+  const text=String(value).trim();
+  return /^-?\d+(?:\.\d+)?$/.test(text)&&Number.isFinite(Number(text))?text:null;
+};
 const direction=value=>['increase_good','decrease_good','monitor'].includes(value)?value:'monitor';
+const DATE_COLUMNS=new Set(['planned_start_date','planned_end_date','actual_start_date','actual_end_date']);
+const normalizeDate=(value,rowNumber,column)=>{
+  if(value===null||value===undefined||value==='')return null;
+  const text=String(value).trim();
+  const iso=text.match(/^(\d{4}-\d{2}-\d{2})/);
+  if(iso)return iso[1];
+  const date=new Date(text);
+  if(Number.isNaN(date.getTime()))throw new HttpError(`Dòng ${rowNumber}: ${column} không đúng định dạng ngày.`,400,'REPORT_DATE_INVALID');
+  return date.toISOString().slice(0,10);
+};
 const evaluation=(target,actual,directionValue)=>target===null||actual===null?null:directionValue==='monitor'?'Theo dõi':directionValue==='increase_good'?(actual>=target?'Đạt':'Chưa đạt'):(actual<=target?'Đạt':'Chưa đạt');
 const rate=(actual,base)=>actual===null||base===null||Number(base)===0?null:(actual-base)/base;
 const achievement=(target,actual,directionValue)=>target===null||actual===null||directionValue==='monitor'?null:directionValue==='decrease_good'?(actual<=0?1.2:target/actual):(target===0?(actual>0?1.2:null):actual/target);
 function sanitizeRows(detailKey,rows) {
   const columns=new Set(DETAIL_CONFIG[detailKey][1]);
-  return (Array.isArray(rows)?rows:[]).map(row=>Object.fromEntries([...columns].map(key=>[key,row?.[key]===''||row?.[key]===undefined?null:row[key]])));
+  return (Array.isArray(rows)?rows:[]).map((row,index)=>Object.fromEntries([...columns].map(key=>{const value=row?.[key]===''||row?.[key]===undefined?null:row[key];return[key,DATE_COLUMNS.has(key)?normalizeDate(value,index+1,key):value];})));
 }
 async function workspace(periodId,teamCode) {
   teamCode=String(teamCode||'').toUpperCase();const config=TEAM_ENTRY_CONFIG[teamCode];if(!config)throw new HttpError('Bộ phận không hợp lệ.',400,'REPORT_TEAM_INVALID');
   const base=await repository.getWorkspace(periodId,teamCode);if(!base)throw new HttpError('Không tìm thấy phiếu nhập liệu.',404,'REPORT_WORKSPACE_NOT_FOUND');
   let details=await repository.getDetails(base.version_id,config.detailKey);
   if(teamCode==='REV') {
-    const history=await repository.getRevenueHistory(base.year,base.month);const key=row=>`${String(row.product_group||'').trim().toLowerCase()}|${String(row.product_name||'').trim().toLowerCase()}`;
-    const previous=new Map(history.filter(x=>x.source_period==='previous').map(x=>[key(x),numeric(x.revenue)||0]));const prior=new Map(history.filter(x=>x.source_period==='prior_year').map(x=>[key(x),numeric(x.revenue)||0]));
-    const total=details.reduce((sum,row)=>sum+(numeric(row.revenue)||0),0);
-    details=details.map(row=>{const revenue=numeric(row.revenue),target=numeric(row.monthly_target),previousRevenue=previous.get(key(row))??0,priorYearRevenue=prior.get(key(row))??0;return{...row,previous_revenue:previousRevenue,prior_year_revenue:priorYearRevenue,revenue_share:total?revenue/total:null,achievement_rate:target?revenue/target:null,previous_change:rate(revenue,previousRevenue),prior_year_change:rate(revenue,priorYearRevenue)};});
+    const history=await repository.getRevenueHistory(base.year,base.month);
+    details=enrichRevenueDetails(details,history);
   }
   if(teamCode==='COM')details=details.map(row=>({...row,followers_growth:rate(numeric(row.followers_current),numeric(row.followers_previous)),reach_growth:rate(numeric(row.reach_current),numeric(row.reach_previous))}));
   if(teamCode==='TRAIN')details=details.map(row=>({...row,student_achievement:numeric(row.student_target)?numeric(row.active_student_count)/numeric(row.student_target):null,output_rate:numeric(row.output_rate)??(numeric(row.completed_student_count)?numeric(row.qualified_student_count)/numeric(row.completed_student_count):null)}));
@@ -58,7 +72,7 @@ module.exports={
     const expectedCodes=current.kpis.map(item=>item.code);const incomingCodes=incomingRows.map(item=>String(item.code||'').trim().toUpperCase());
     if(incomingCodes.length!==expectedCodes.length||expectedCodes.some(code=>!incoming.has(code)))throw new HttpError('Bộ KPI của phiếu đã được cố định theo cấu hình kỳ báo cáo.',409,'REPORT_KPI_SET_LOCKED');
     const derived=calculate(current.team_code,rows,{});
-    const kpis=current.kpis.map(kpi=>{const item=incoming.get(kpi.code)||{};const directionValue=direction(kpi.evaluation_direction);const target=numeric(item.target_value);const manualActual=numeric(item.actual_value);const actual=kpi.input_mode==='derived'&&Object.hasOwn(derived,kpi.code)?numeric(derived[kpi.code]):manualActual;return{...kpi,target_value:target,actual_value:actual,evaluation:evaluation(target,actual,directionValue),note:item.note||null};});
+    const kpis=current.kpis.map(kpi=>{const item=incoming.get(kpi.code)||{};const directionValue=direction(kpi.evaluation_direction);const target=decimal(item.target_value);const manualActual=decimal(item.actual_value);const actual=kpi.input_mode==='derived'&&Object.hasOwn(derived,kpi.code)?decimal(derived[kpi.code]):manualActual;return{...kpi,target_value:target,actual_value:actual,evaluation:evaluation(numeric(target),numeric(actual),directionValue),note:item.note||null};});
     const validation=validateWorkspace(kpis,rows,config.fields);const result=await repository.saveWorkspace({base:current,detailKey:config.detailKey,rows,extraDetails:current.team_code==='ADS'?{detailKey:'adsProducts',rows:adsProducts}:null,kpis,note:body?.note||{},validation,userId,expectedRevision:body?.revision});if(!result)throw new HttpError('Không tìm thấy phiếu nhập liệu.',404,'REPORT_WORKSPACE_NOT_FOUND');if(result.conflict)throw new HttpError(`Phiếu đang ở trạng thái ${result.status}.`,409,'REPORT_SUBMISSION_STATE_INVALID');if(result.stale)throw new HttpError('Phiếu đã được cập nhật ở cửa sổ khác. Hãy tải lại trước khi tiếp tục.',409,'REPORT_REVISION_CONFLICT',{revision:result.revision});return workspace(periodId,teamCode);},
   async transition(periodId,teamCode,body,userId,auth){const action=String(body?.action||'');const note=String(body?.note||'').trim();teamCode=String(teamCode).toUpperCase();if(action==='return'&&note.length<5)throw new HttpError('Vui lòng nhập lý do trả lại phiếu (ít nhất 5 ký tự).',400,'REPORT_RETURN_REASON_REQUIRED');const current=await workspace(periodId,teamCode);if(action==='submit')ensureFormAccess(current,auth,true);if(['approve','return'].includes(action)&&!['reports.review','reports.manage'].some(key=>auth.permissions?.includes(key)))throw new HttpError('Bạn không có quyền duyệt báo cáo.',403,'PERMISSION_DENIED');const result=await repository.transition({periodId,teamCode,action,note,userId});if(!result)throw new HttpError('Không tìm thấy phiếu nhập liệu.',404,'REPORT_WORKSPACE_NOT_FOUND');if(result.conflict)throw new HttpError(`Không thể ${action} khi phiếu ở trạng thái ${result.status}.`,409,'REPORT_SUBMISSION_STATE_INVALID');if(result.selfReview)throw new HttpError('Người gửi phiếu không được tự duyệt. Vui lòng chuyển cho người duyệt khác.',409,'REPORT_SELF_APPROVAL_FORBIDDEN');if(result.validation)throw new HttpError('Phiếu còn lỗi dữ liệu, chưa thể gửi duyệt.',400,'REPORT_VALIDATION_FAILED',result.validation);if(action==='return'){const context=await repository.notificationContext(periodId,teamCode);if(context){context.period_id=periodId;await notifyAssignee(context,'Phiếu báo cáo được trả lại',`Phiếu cần được cập nhật lại. Lý do: ${note}`);}}return result;},
   async assignees(){return repository.listAssignees();},
@@ -67,7 +81,7 @@ module.exports={
   async audit(periodId,query,auth){const limit=Math.min(100,Math.max(1,Number(query?.limit)||50)),teamCode=query?.teamCode?String(query.teamCode).toUpperCase():null;if(!canAccessAllForms(auth)){if(!teamCode)throw new HttpError('Vui lòng chọn phiếu cần xem lịch sử.',400,'REPORT_TEAM_REQUIRED');const current=await workspace(periodId,teamCode);ensureFormAccess(current,auth);}return repository.listAudit(periodId,{teamCode,limit});},
   async checklist(periodId){return repository.publishChecklist(periodId);},
   async preview(periodId,teamCode,auth){const current=await workspace(periodId,teamCode);ensureFormAccess(current,auth);const result=await dashboardRepository.getDashboard({periodId,draft:true,teamCode:String(teamCode).toUpperCase()});if(!result)throw new HttpError('Chưa có dữ liệu nháp để xem trước.',404,'REPORT_PREVIEW_NOT_FOUND');return{...result,preview:true};},
-  async publish(periodId,userId){const checklist=await repository.publishChecklist(periodId);if(!checklist.ready)throw new HttpError('Kỳ báo cáo chưa đạt checklist publish.',409,'REPORT_PUBLISH_CHECKLIST_FAILED',checklist);const result=await repository.publish(periodId,userId);if(!result)throw new HttpError('Không tìm thấy kỳ báo cáo.',404,'REPORT_PERIOD_NOT_FOUND');if(result.noDraft)throw new HttpError('Kỳ không có phiên nhập liệu để publish.',409,'REPORT_MANUAL_DRAFT_NOT_FOUND');if(result.unassigned)throw new HttpError(`Còn ${result.unassigned} phiếu chưa được phân công.`,409,'REPORT_TEAMS_UNASSIGNED');if(result.pending)throw new HttpError(`Còn ${result.pending} bộ phận chưa được duyệt.`,409,'REPORT_TEAMS_PENDING');return result;},
+  async publish(periodId,userId){const result=await repository.publish(periodId,userId);if(!result)throw new HttpError('Không tìm thấy kỳ báo cáo.',404,'REPORT_PERIOD_NOT_FOUND');if(result.noDraft)throw new HttpError('Kỳ không có phiên nhập liệu để publish.',409,'REPORT_MANUAL_DRAFT_NOT_FOUND');if(result.unassigned)throw new HttpError(`Còn ${result.unassigned} phiếu chưa được phân công.`,409,'REPORT_TEAMS_UNASSIGNED');if(result.pending)throw new HttpError(`Còn ${result.pending} bộ phận chưa được duyệt.`,409,'REPORT_TEAMS_PENDING');return result;},
   async reopen(periodId,userId,body){const reason=String(body?.reason||'').trim();if(reason.length<5)throw new HttpError('Vui lòng nhập lý do thu hồi báo cáo (ít nhất 5 ký tự).',400,'REPORT_REOPEN_REASON_REQUIRED');const result=await repository.reopen(periodId,userId,reason);if(!result)throw new HttpError('Không tìm thấy kỳ báo cáo.',404,'REPORT_PERIOD_NOT_FOUND');if(result.conflict)throw new HttpError('Chỉ có thể thu hồi kỳ đã publish.',409,'REPORT_PERIOD_NOT_PUBLISHED');if(result.draftExists)throw new HttpError('Kỳ báo cáo đã có phiên chỉnh sửa đang mở.',409,'REPORT_MANUAL_DRAFT_EXISTS');return result;},
   async remove(periodId){const result=await repository.deletePeriod(periodId);if(!result)throw new HttpError('Không tìm thấy kỳ báo cáo.',404,'REPORT_PERIOD_NOT_FOUND');if(result.protected)throw new HttpError('Không thể xóa kỳ đã publish hoặc đã khóa.',409,'REPORT_PERIOD_DELETE_PROTECTED');return result;}
 };

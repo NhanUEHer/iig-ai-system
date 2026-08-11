@@ -95,6 +95,13 @@ Audio Studio creates English passage or multi-speaker dialogue audio locally. It
 
 Permission definitions live in `src/modules/auth/permissions.js`. Default role assignments are created by migration `006_role_permissions.sql`.
 
+Users can hold multiple roles through the `user_roles` join table introduced by
+`029_user_multiple_roles.sql`. The migration backfills every legacy `users.role`
+assignment and keeps that column temporarily as the primary-role compatibility
+field. Effective permissions are the de-duplicated union of all assigned roles;
+API authorization always reloads these assignments from PostgreSQL so changes
+take effect on the next authenticated request.
+
 ### Generation flow
 
 ```mermaid

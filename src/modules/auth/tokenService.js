@@ -2,11 +2,10 @@ const crypto = require('node:crypto');
 const jwt = require('jsonwebtoken');
 const { jwtSecret } = require('./authConfig');
 
-function signAccessToken({ userId, sessionId, role, expiresAt, absoluteExpiresAt }) {
+function signAccessToken({ userId, sessionId, expiresAt, absoluteExpiresAt }) {
   return jwt.sign({
     sub: userId,
     sid: sessionId,
-    role,
     exp: Math.floor(new Date(expiresAt).getTime() / 1000),
     absoluteExp: Math.floor(new Date(absoluteExpiresAt).getTime() / 1000)
   }, jwtSecret(), { algorithm: 'HS256' });

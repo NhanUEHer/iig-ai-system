@@ -18,6 +18,14 @@ test('database migrations include core, Local TTS, and secure auth tables', () =
   assert.match(authSchema, /CREATE TABLE IF NOT EXISTS password_action_tokens/);
 });
 
+test('multi-role migration creates assignments, audit history, and legacy backfill', () => {
+  const migration = read('src/database/migrations/029_user_multiple_roles.sql');
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS user_roles/);
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS user_role_audit_logs/);
+  assert.match(migration, /SELECT u\.id, r\.id, TRUE/);
+  assert.match(migration, /ON CONFLICT \(user_id, role_id\)/);
+});
+
 test('voice cloning uses the local OpenVoice engine and requires a successful preview draft', () => {
   const cloneService = read('src/services/voiceCloneService.js');
   const controller = read('src/controllers/localTtsController.js');

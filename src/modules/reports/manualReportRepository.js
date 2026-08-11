@@ -99,10 +99,10 @@ module.exports={
   async getDetails(versionId,detailKey) { const [table]=DETAIL_CONFIG[detailKey];const result=await db.query(`SELECT * FROM ${table} WHERE version_id=$1 ORDER BY display_order,row_key`,[versionId]);return result.rows; },
   async getRevenueHistory(year,month) {
     const previousYear=month===1?year-1:year,previousMonth=month===1?12:month-1;
-    const result=await db.query(`SELECT source_period,product_group,product_name,revenue FROM (
-      SELECT 'previous' source_period,d.product_group,d.product_name,d.revenue FROM report_periods p JOIN report_revenue_details d ON d.version_id=p.current_version_id WHERE p.year=$1 AND p.month=$2
+    const result=await db.query(`SELECT source_period,product_code,product_group,product_name,revenue FROM (
+      SELECT 'previous' source_period,d.product_code,d.product_group,d.product_name,d.revenue FROM report_periods p JOIN report_revenue_details d ON d.version_id=p.current_version_id WHERE p.year=$1 AND p.month=$2
       UNION ALL
-      SELECT 'prior_year',d.product_group,d.product_name,d.revenue FROM report_periods p JOIN report_revenue_details d ON d.version_id=p.current_version_id WHERE p.year=$3 AND p.month=$4
+      SELECT 'prior_year',d.product_code,d.product_group,d.product_name,d.revenue FROM report_periods p JOIN report_revenue_details d ON d.version_id=p.current_version_id WHERE p.year=$3 AND p.month=$4
     ) history`,[previousYear,previousMonth,year-1,month]);
     return result.rows;
   },
@@ -196,10 +196,11 @@ module.exports={
     return masterData;
   },
   async listAssignees() {
-    const result=await db.query(`SELECT u.id,u.name,u.email,u.role,r.name role_name
-      FROM users u JOIN roles r ON r.slug=u.role
+    const result=await db.query(`SELECT u.id,u.name,u.email,u.role,
+      string_agg(DISTINCT r.name, ', ' ORDER BY r.name) role_name
+      FROM users u JOIN user_roles ur ON ur.user_id=u.id JOIN roles r ON r.id=ur.role_id
       WHERE u.is_active=TRUE AND (r.permissions ? 'reports.entry' OR r.permissions ? 'reports.manage')
-      ORDER BY u.name,u.email`);
+      GROUP BY u.id ORDER BY u.name,u.email`);
     return result.rows;
   },
   async updateDeadline(periodId,deadline,actorId) {
@@ -219,8 +220,9 @@ module.exports={
   },
   async assignSubmission({periodId,teamCode,userId,actorId}) {
     return db.transaction(async client=>{
-      if(userId){const eligible=await client.query(`SELECT u.id FROM users u JOIN roles r ON r.slug=u.role
-        WHERE u.id=$1 AND u.is_active=TRUE AND (r.permissions ? 'reports.entry' OR r.permissions ? 'reports.manage')`,[userId]);if(!eligible.rows[0])return {invalidUser:true};}
+      if(userId){const eligible=await client.query(`SELECT u.id FROM users u
+        WHERE u.id=$1 AND u.is_active=TRUE AND EXISTS (SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id
+          WHERE ur.user_id=u.id AND (r.permissions ? 'reports.entry' OR r.permissions ? 'reports.manage'))`,[userId]);if(!eligible.rows[0])return {invalidUser:true};}
       const current=await client.query(`SELECT s.id,s.status FROM report_manual_submissions s JOIN report_teams t ON t.id=s.team_id JOIN report_data_versions v ON v.id=s.version_id
         WHERE s.period_id=$1 AND t.code=$2 AND v.status='draft' FOR UPDATE OF s`,[periodId,teamCode]);
       if(!current.rows[0])return null;if(!['draft','editing','returned'].includes(current.rows[0].status))return {locked:true,status:current.rows[0].status};
@@ -248,7 +250,9 @@ module.exports={
       FROM report_periods p JOIN report_data_versions v ON v.period_id=p.id AND v.status='draft' JOIN report_manual_submissions s ON s.version_id=v.id
       JOIN report_teams t ON t.id=s.team_id LEFT JOIN report_kpi_values k ON k.version_id=v.id AND k.kpi_definition_id IN(SELECT id FROM report_kpi_definitions WHERE team_id=t.id)
       LEFT JOIN report_notes n ON n.version_id=v.id AND n.team_id=t.id WHERE p.id=$1 GROUP BY t.id,t.code,t.name,s.status,s.assigned_user_id,s.validation_result,n.id`,[periodId]);
-    const teams=result.rows.map(row=>({...row,ready:Boolean(row.assigned_user_id&&row.status==='approved'&&!row.errors&&!row.incomplete_kpis&&!row.notes_missing)}));
+    // Publishing is a workflow decision. Content completeness is returned for
+    // visibility, but it no longer blocks an already approved submission.
+    const teams=result.rows.map(row=>({...row,ready:Boolean(row.assigned_user_id&&row.status==='approved')}));
     return {ready:teams.length>0&&teams.every(item=>item.ready),teams};
   }
 };

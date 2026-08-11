@@ -8,7 +8,7 @@ module.exports = {
     return res.status(202).json({ success: true, message: 'Đã đưa các câu cần chấm vào hàng đợi.', data: job });
   },
   async detail(req, res) {
-    const job = await gradingJobRepository.findById(req.params.id, req.auth.userId, req.auth.role === 'admin');
+    const job = await gradingJobRepository.findById(req.params.id, req.auth.userId, req.auth.permissions?.includes('roles.manage'));
     if (!job) throw new HttpError('Không tìm thấy job chấm điểm.', 404, 'JOB_NOT_FOUND');
     return res.json({ success: true, data: job });
   }
