@@ -4,6 +4,7 @@ const dashboardRepository=require('./reportRepository');
 const {TEAM_ENTRY_CONFIG,DETAIL_CONFIG}=require('./manualReportConfig');
 const {calculate,validateWorkspace}=require('./manualReportCalculator');
 const workbookService=require('./manualReportWorkbook');
+const {enrichRevenueDetails}=require('./reportRevenueMetrics');
 const {sendReportNotification}=require('../../services/emailService');
 const appUrl=()=>String(process.env.APP_URL||'http://localhost:5173').replace(/\/$/,'');
 async function notifyAssignee(context,eventName,message){if(!context?.email)return;try{await sendReportNotification({email:context.email,name:context.user_name,eventName,periodLabel:`Tháng ${context.month}/${context.year}`,teamName:context.team_name,deadline:context.submission_deadline,actionUrl:`${appUrl()}/reports/manage/${context.period_id}/${context.team_code}`,message});}catch(error){console.error('[Report email]',error.message);}}
@@ -38,10 +39,8 @@ async function workspace(periodId,teamCode) {
   const base=await repository.getWorkspace(periodId,teamCode);if(!base)throw new HttpError('Không tìm thấy phiếu nhập liệu.',404,'REPORT_WORKSPACE_NOT_FOUND');
   let details=await repository.getDetails(base.version_id,config.detailKey);
   if(teamCode==='REV') {
-    const history=await repository.getRevenueHistory(base.year,base.month);const key=row=>`${String(row.product_group||'').trim().toLowerCase()}|${String(row.product_name||'').trim().toLowerCase()}`;
-    const previous=new Map(history.filter(x=>x.source_period==='previous').map(x=>[key(x),numeric(x.revenue)||0]));const prior=new Map(history.filter(x=>x.source_period==='prior_year').map(x=>[key(x),numeric(x.revenue)||0]));
-    const total=details.reduce((sum,row)=>sum+(numeric(row.revenue)||0),0);
-    details=details.map(row=>{const revenue=numeric(row.revenue),target=numeric(row.monthly_target),previousRevenue=previous.get(key(row))??0,priorYearRevenue=prior.get(key(row))??0;return{...row,previous_revenue:previousRevenue,prior_year_revenue:priorYearRevenue,revenue_share:total?revenue/total:null,achievement_rate:target?revenue/target:null,previous_change:rate(revenue,previousRevenue),prior_year_change:rate(revenue,priorYearRevenue)};});
+    const history=await repository.getRevenueHistory(base.year,base.month);
+    details=enrichRevenueDetails(details,history);
   }
   if(teamCode==='COM')details=details.map(row=>({...row,followers_growth:rate(numeric(row.followers_current),numeric(row.followers_previous)),reach_growth:rate(numeric(row.reach_current),numeric(row.reach_previous))}));
   if(teamCode==='TRAIN')details=details.map(row=>({...row,student_achievement:numeric(row.student_target)?numeric(row.active_student_count)/numeric(row.student_target):null,output_rate:numeric(row.output_rate)??(numeric(row.completed_student_count)?numeric(row.qualified_student_count)/numeric(row.completed_student_count):null)}));

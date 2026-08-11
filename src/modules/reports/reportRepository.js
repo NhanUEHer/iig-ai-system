@@ -1,4 +1,5 @@
 const db = require('../../config/db');
+const {enrichRevenueDetails}=require('./reportRevenueMetrics');
 
 const DETAIL_CONFIG = {
   revenue: ['report_revenue_details',['row_key','product_group','product_code','product_name','order_count','revenue','monthly_target','previous_revenue','prior_year_revenue','note'],['rowKey','productGroup','productCode','productName','orderCount','revenue','monthlyTarget','previousRevenue','priorYearRevenue','note']],
@@ -141,12 +142,22 @@ module.exports = {
     const detailMap = { REV:'report_revenue_details',ADS:'report_ads_channel_details',COM:'report_social_details',TRADE:'report_trade_details',TRAIN:'report_training_details',PROD:'report_product_details' };
     const table = detailMap[teamCode] || detailMap.REV;
     const details = await db.query(`SELECT * FROM ${table} WHERE version_id=$1 ORDER BY display_order,row_key`, [versionId]);
-    const detailSections=[{key:teamCode==='ADS'?'adsChannels':teamCode.toLowerCase(),title:teamCode==='ADS'?'Hiệu quả theo nguồn Ads':'Dữ liệu chi tiết',rows:details.rows}];
+    let detailRows=details.rows;
+    if(teamCode==='REV'){
+      const period=version.rows[0],previousYear=Number(period.month)===1?Number(period.year)-1:Number(period.year),previousMonth=Number(period.month)===1?12:Number(period.month)-1;
+      const history=await db.query(`SELECT source_period,product_code,product_group,product_name,revenue FROM (
+        SELECT 'previous' source_period,d.product_code,d.product_group,d.product_name,d.revenue FROM report_periods p JOIN report_revenue_details d ON d.version_id=p.current_version_id WHERE p.year=$1 AND p.month=$2
+        UNION ALL
+        SELECT 'prior_year',d.product_code,d.product_group,d.product_name,d.revenue FROM report_periods p JOIN report_revenue_details d ON d.version_id=p.current_version_id WHERE p.year=$3 AND p.month=$4
+      ) revenue_history`,[previousYear,previousMonth,Number(period.year)-1,Number(period.month)]);
+      detailRows=enrichRevenueDetails(detailRows,history.rows);
+    }
+    const detailSections=[{key:teamCode==='ADS'?'adsChannels':teamCode.toLowerCase(),title:teamCode==='ADS'?'Hiệu quả theo nguồn Ads':'Dữ liệu chi tiết',rows:detailRows}];
     if(teamCode==='ADS'){
       const products=await db.query('SELECT * FROM report_ads_product_details WHERE version_id=$1 ORDER BY display_order,row_key',[versionId]);
       detailSections.push({key:'adsProducts',title:'Tỷ trọng Ads theo sản phẩm',rows:products.rows});
     }
-    return { period:version.rows[0],teamCode,kpis:kpis.rows,note:note.rows[0] || null,details:details.rows,detailSections };
+    return { period:version.rows[0],teamCode,kpis:kpis.rows,note:note.rows[0] || null,details:detailRows,detailSections };
   },
   async getOverviewRows({ year, month }) {
     const result = await db.query(`SELECT p.year,p.month,v.published_at,t.code AS team_code,t.name AS team_name,
