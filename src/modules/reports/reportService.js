@@ -74,8 +74,8 @@ module.exports = {
     const teamCode=query.team?String(query.team).toUpperCase():null;
     if (teamCode && !VALID_TEAM_CODES.has(teamCode)) throw new HttpError('Bộ phận báo cáo không hợp lệ.',400,'REPORT_TEAM_INVALID');
     const rows=await repository.getTrendRows({year,teamCode});
-    const months=new Map(); rows.forEach(row=>{const key=Number(row.month);if(!months.has(key))months.set(key,{month:key,sum:0,count:0,good:0,near:0,risk:0});const item=months.get(key);const score=healthScore(row);const status=healthStatus(score);if(status!=='missing')item[status]++;if(score!==null){item.sum+=Math.min(score,1.2);item.count++;}});
-    return [...months.values()].map(item=>({month:item.month,average:item.count?item.sum/item.count:null,good:item.good,near:item.near,risk:item.risk}));
+    const months=new Map(); rows.forEach(row=>{const key=Number(row.month);if(!months.has(key))months.set(key,{month:key,sum:0,count:0});const item=months.get(key);const score=healthScore(row);if(score!==null){item.sum+=score;item.count++;}});
+    return [...months.values()].map(item=>({month:item.month,average:item.count?item.sum/item.count:null,total:item.count}));
   },
   history: query => repository.listImports(Math.min(100,Math.max(1,Number(query.limit)||20)))
 };

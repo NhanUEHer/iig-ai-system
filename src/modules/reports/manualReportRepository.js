@@ -99,10 +99,10 @@ module.exports={
   async getDetails(versionId,detailKey) { const [table]=DETAIL_CONFIG[detailKey];const result=await db.query(`SELECT * FROM ${table} WHERE version_id=$1 ORDER BY display_order,row_key`,[versionId]);return result.rows; },
   async getRevenueHistory(year,month) {
     const previousYear=month===1?year-1:year,previousMonth=month===1?12:month-1;
-    const result=await db.query(`SELECT source_period,product_group,product_name,revenue FROM (
-      SELECT 'previous' source_period,d.product_group,d.product_name,d.revenue FROM report_periods p JOIN report_revenue_details d ON d.version_id=p.current_version_id WHERE p.year=$1 AND p.month=$2
+    const result=await db.query(`SELECT source_period,product_code,product_group,product_name,revenue FROM (
+      SELECT 'previous' source_period,d.product_code,d.product_group,d.product_name,d.revenue FROM report_periods p JOIN report_revenue_details d ON d.version_id=p.current_version_id WHERE p.year=$1 AND p.month=$2
       UNION ALL
-      SELECT 'prior_year',d.product_group,d.product_name,d.revenue FROM report_periods p JOIN report_revenue_details d ON d.version_id=p.current_version_id WHERE p.year=$3 AND p.month=$4
+      SELECT 'prior_year',d.product_code,d.product_group,d.product_name,d.revenue FROM report_periods p JOIN report_revenue_details d ON d.version_id=p.current_version_id WHERE p.year=$3 AND p.month=$4
     ) history`,[previousYear,previousMonth,year-1,month]);
     return result.rows;
   },
