@@ -25,14 +25,16 @@ test('manual report routes protect assignment and workflow with granular permiss
   assert.match(routes,/publish'.*reports\.publish/s);
 });
 
-test('manual report workflow enforces assignment, deadline and separation of duties',()=>{
+test('manual report workflow enforces assignment and deadline while supporting targeted recalls',()=>{
   const service=fs.readFileSync(path.join(root,'src/modules/reports/manualReportService.js'),'utf8');
   const repository=fs.readFileSync(path.join(root,'src/modules/reports/manualReportRepository.js'),'utf8');
   assert.match(service,/REPORT_SUBMISSION_UNASSIGNED/);
   assert.match(service,/REPORT_SUBMISSION_DEADLINE_PASSED/);
   assert.match(service,/REPORT_RETURN_REASON_REQUIRED/);
   assert.match(service,/REPORT_REOPEN_REASON_REQUIRED/);
-  assert.match(repository,/submitted_by.*userId.*selfReview/);
+  assert.match(repository,/recall:\{from:\['approved'\],to:'returned'\}/);
+  assert.match(repository,/t\.id,'approved',COALESCE\(old\.validation_result/);
+  assert.match(repository,/reports\.review'.*reports\.manage/s);
   assert.match(repository,/assigned_user_id IS NULL/);
   assert.match(service,/REPORT_DEADLINE_LOCKED/);
   assert.match(repository,/deadline_changed/);

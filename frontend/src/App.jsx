@@ -458,7 +458,7 @@ function App() {
               } />
 
               <Route path="/reports/kpi" element={
-                hasPermission('reports.view') ? <KpiReportPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                ['reports.view','reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <KpiReportPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
               } />
               <Route path="/reports/kpi/input" element={
                 hasPermission('reports.view') ? <Navigate to="/reports/manage" replace /> : <Navigate to="/submissions" replace />

@@ -128,10 +128,9 @@ module.exports={
     return db.transaction(async client=>{
       const found=await client.query(`SELECT s.*,t.code FROM report_manual_submissions s JOIN report_teams t ON t.id=s.team_id JOIN report_data_versions v ON v.id=s.version_id
         WHERE s.period_id=$1 AND t.code=$2 AND v.status='draft' FOR UPDATE OF s`,[periodId,teamCode]);const s=found.rows[0];if(!s)return null;
-      const transitions={submit:{from:['editing','returned'],to:'submitted'},approve:{from:['submitted'],to:'approved'},return:{from:['submitted'],to:'returned'}};const rule=transitions[action];
+      const transitions={submit:{from:['editing','returned'],to:'submitted'},approve:{from:['submitted'],to:'approved'},return:{from:['submitted'],to:'returned'},recall:{from:['approved'],to:'returned'}};const rule=transitions[action];
       if(!rule||!rule.from.includes(s.status))return {conflict:true,status:s.status};
       if(action==='submit'&&(s.validation_result?.errors||[]).length)return {validation:s.validation_result};
-      if(action==='approve'&&String(s.submitted_by||'')===String(userId||''))return {selfReview:true};
       await client.query(`UPDATE report_manual_submissions SET status=$2,review_note=$3,submitted_by=CASE WHEN $4='submit' THEN $5 ELSE submitted_by END,submitted_at=CASE WHEN $4='submit' THEN CURRENT_TIMESTAMP ELSE submitted_at END,reviewed_by=CASE WHEN $4 IN('approve','return') THEN $5 ELSE reviewed_by END,reviewed_at=CASE WHEN $4 IN('approve','return') THEN CURRENT_TIMESTAMP ELSE reviewed_at END,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[s.id,rule.to,note||null,action,userId]);
       await client.query(`INSERT INTO report_entry_audit_logs(period_id,version_id,team_id,action,actor_id,change_summary) VALUES($1,$2,$3,$4,$5,$6::jsonb)`,[periodId,s.version_id,s.team_id,action,userId,JSON.stringify({note:note||null})]);return {status:rule.to};
     });
@@ -169,8 +168,8 @@ module.exports={
       }
       await client.query(`INSERT INTO report_notes(version_id,team_id,executive_summary,highlights,issues,risks,proposals,next_month_plan,approval_status)
         SELECT $1,team_id,executive_summary,highlights,issues,risks,proposals,next_month_plan,'Đang cập nhật' FROM report_notes WHERE version_id=$2`,[versionId,sourceVersionId]);
-      await client.query(`INSERT INTO report_manual_submissions(period_id,version_id,team_id,status,validation_result,assigned_user_id,assigned_by,assigned_at)
-        SELECT $1,$2,t.id,'returned','{"errors":[],"warnings":[]}'::jsonb,old.assigned_user_id,$3,CASE WHEN old.assigned_user_id IS NOT NULL THEN CURRENT_TIMESTAMP END
+      await client.query(`INSERT INTO report_manual_submissions(period_id,version_id,team_id,status,validation_result,assigned_user_id,assigned_by,assigned_at,submitted_by,submitted_at,reviewed_by,reviewed_at)
+        SELECT $1,$2,t.id,'approved',COALESCE(old.validation_result,'{"errors":[],"warnings":[]}'::jsonb),old.assigned_user_id,$3,CASE WHEN old.assigned_user_id IS NOT NULL THEN CURRENT_TIMESTAMP END,old.submitted_by,old.submitted_at,old.reviewed_by,old.reviewed_at
         FROM report_teams t LEFT JOIN report_manual_submissions old ON old.version_id=$4 AND old.team_id=t.id WHERE t.is_active=TRUE`,[periodId,versionId,userId,sourceVersionId]);
       await client.query(`UPDATE report_periods SET status='reopened',approved_by=NULL,approved_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[periodId]);
       await client.query(`INSERT INTO report_entry_audit_logs(period_id,version_id,action,actor_id,change_summary) VALUES($1,$2,'reopened',$3,$4::jsonb)`,[periodId,versionId,userId,JSON.stringify({sourceVersionId,reason})]);
@@ -199,7 +198,7 @@ module.exports={
     const result=await db.query(`SELECT u.id,u.name,u.email,u.role,
       string_agg(DISTINCT r.name, ', ' ORDER BY r.name) role_name
       FROM users u JOIN user_roles ur ON ur.user_id=u.id JOIN roles r ON r.id=ur.role_id
-      WHERE u.is_active=TRUE AND (r.permissions ? 'reports.entry' OR r.permissions ? 'reports.manage')
+      WHERE u.is_active=TRUE AND (r.permissions ? 'reports.entry' OR r.permissions ? 'reports.review' OR r.permissions ? 'reports.manage')
       GROUP BY u.id ORDER BY u.name,u.email`);
     return result.rows;
   },
@@ -222,7 +221,7 @@ module.exports={
     return db.transaction(async client=>{
       if(userId){const eligible=await client.query(`SELECT u.id FROM users u
         WHERE u.id=$1 AND u.is_active=TRUE AND EXISTS (SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id
-          WHERE ur.user_id=u.id AND (r.permissions ? 'reports.entry' OR r.permissions ? 'reports.manage'))`,[userId]);if(!eligible.rows[0])return {invalidUser:true};}
+          WHERE ur.user_id=u.id AND (r.permissions ? 'reports.entry' OR r.permissions ? 'reports.review' OR r.permissions ? 'reports.manage'))`,[userId]);if(!eligible.rows[0])return {invalidUser:true};}
       const current=await client.query(`SELECT s.id,s.status FROM report_manual_submissions s JOIN report_teams t ON t.id=s.team_id JOIN report_data_versions v ON v.id=s.version_id
         WHERE s.period_id=$1 AND t.code=$2 AND v.status='draft' FOR UPDATE OF s`,[periodId,teamCode]);
       if(!current.rows[0])return null;if(!['draft','editing','returned'].includes(current.rows[0].status))return {locked:true,status:current.rows[0].status};
