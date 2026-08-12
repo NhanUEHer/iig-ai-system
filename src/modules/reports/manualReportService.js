@@ -33,7 +33,7 @@ const rate=(actual,base)=>actual===null||base===null||Number(base)===0?null:(act
 const achievement=(target,actual,directionValue)=>target===null||actual===null||directionValue==='monitor'?null:directionValue==='decrease_good'?(actual<=0?1.2:target/actual):(target===0?(actual>0?1.2:null):actual/target);
 function sanitizeRows(detailKey,rows) {
   const columns=new Set(DETAIL_CONFIG[detailKey][1]);
-  return (Array.isArray(rows)?rows:[]).map((row,index)=>Object.fromEntries([...columns].map(key=>{const value=row?.[key]===''||row?.[key]===undefined?null:row[key];if(key==='activity_date_text'&&value!==null){const parsed=parseDeploymentDate(value);if(!parsed)throw new HttpError(`Dòng ${index+1}: Ngày triển khai phải có dạng DD/MM/YYYY hoặc DD/MM/YYYY - DD/MM/YYYY.`,400,'REPORT_DATE_INVALID');return[key,parsed];}return[key,DATE_COLUMNS.has(key)?normalizeDate(value,index+1,key):value];})));
+  return (Array.isArray(rows)?rows:[]).map((row,index)=>Object.fromEntries([...columns].map(key=>{const value=row?.[key]===''||row?.[key]===undefined?null:row[key];if(key==='activity_date_text'&&value!==null){const parsed=parseDeploymentDate(value);if(!parsed)throw new HttpError(`Dòng ${index+1}: Ngày triển khai phải là một ngày, một khoảng ngày hoặc danh sách ngày phân cách bằng dấu chấm phẩy.`,400,'REPORT_DATE_INVALID');return[key,parsed];}return[key,DATE_COLUMNS.has(key)?normalizeDate(value,index+1,key):value];})));
 }
 async function workspace(periodId,teamCode) {
   teamCode=String(teamCode||'').toUpperCase();const config=TEAM_ENTRY_CONFIG[teamCode];if(!config)throw new HttpError('Bộ phận không hợp lệ.',400,'REPORT_TEAM_INVALID');

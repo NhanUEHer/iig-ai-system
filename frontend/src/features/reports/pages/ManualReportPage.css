@@ -113,6 +113,17 @@
 .kpi-entry-table td:first-child > span { min-width: 210px; margin-top: 4px; color: #657289; font-size: 12px; }
 .unit-pill { display: inline-flex; padding: 5px 8px; border-radius: 7px; background: #f0f3f7; color: #536078; font-size: 11px; font-weight: 700; white-space: nowrap; }
 .kpi-entry-table input, .kpi-entry-table select, .detail-entry-table input, .detail-entry-table select { height: 39px; box-sizing: border-box; min-width: 125px; padding: 0 10px; border: 1px solid #cfd8e5; border-radius: 8px; outline: 0; background: #fff; color: #273248; font: inherit; transition: .15s ease; }
+.deployment-date-input { min-width: 235px; padding: 7px; display: grid; gap: 7px; border: 1px solid #dbe3ee; border-radius: 10px; background: #f8fafc; }
+.deployment-date-input.deployment-date-invalid { border-color: #dc2626; background: #fff1f2; }
+.deployment-date-input > select { width: 100%; min-width: 0; height: 32px; font-size: 12px; font-weight: 700; }
+.deployment-date-values { display: grid; gap: 6px; }
+.deployment-date-values > div { display: flex; align-items: center; gap: 5px; }
+.deployment-date-values > span { color: #667085; font-size: 11px; text-align: center; }
+.deployment-date-values input { width: 100%; min-width: 150px; }
+.deployment-date-values button, .deployment-date-input .add-deployment-date { height: 30px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid #ccd6e4; border-radius: 7px; background: #fff; color: #526178; cursor: pointer; }
+.deployment-date-values button { width: 30px; flex: 0 0 30px; padding: 0; }
+.deployment-date-values button svg, .deployment-date-input .add-deployment-date svg { width: 14px; }
+.deployment-date-input .add-deployment-date { width: 100%; color: #245bea; font-size: 11px; font-weight: 750; }
 .kpi-entry-table input { width: 100%; min-width: 135px; }
 .kpi-entry-table input:focus, .kpi-entry-table select:focus, .detail-entry-table input:focus, .detail-entry-table select:focus { border-color: #6e96f8; box-shadow: 0 0 0 3px rgba(53,109,255,.10); }
 .kpi-entry-table input::placeholder { color: #a1aabb; font-size: 11px; }

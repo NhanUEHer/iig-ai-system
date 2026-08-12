@@ -7,5 +7,13 @@ function parseSingleDate(value,xlsx=null){
   const text=String(value).trim();let match=text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(match)return formatParts(match[1],match[2],match[3]);
   match=text.match(/^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/);return match?formatParts(match[3],match[2],match[1]):null;
 }
-function parseDeploymentDate(value,xlsx=null){const single=parseSingleDate(value,xlsx);if(single)return single;if(typeof value!=='string')return null;const range=value.trim().match(/^(.+?)\s+(?:-|–|—)\s+(.+)$/);if(!range)return null;const start=parseSingleDate(range[1],xlsx),end=parseSingleDate(range[2],xlsx);return start&&end?`${start} - ${end}`:null;}
-module.exports={parseSingleDate,parseDeploymentDate};
+const timestamp=value=>{const [day,month,year]=value.split('/').map(Number);return Date.UTC(year,month-1,day);};
+function parseDeploymentDate(value,xlsx=null){
+  const single=parseSingleDate(value,xlsx);if(single)return single;if(typeof value!=='string')return null;
+  const text=value.trim();
+  if(text.includes(';')){const dates=text.split(';').map(item=>parseSingleDate(item,xlsx));if(dates.some(date=>!date))return null;const unique=[...new Set(dates)].sort((a,b)=>timestamp(a)-timestamp(b));return unique.length===dates.length&&unique.length>1?unique.join('; '):null;}
+  const range=text.match(/^(.+?)\s+(?:-|–|—)\s+(.+)$/);if(!range)return null;
+  const start=parseSingleDate(range[1],xlsx),end=parseSingleDate(range[2],xlsx);return start&&end&&timestamp(start)<=timestamp(end)?`${start} - ${end}`:null;
+}
+function deploymentDayCount(value){const parsed=parseDeploymentDate(value);if(!parsed)return null;if(parsed.includes(';'))return parsed.split(';').length;if(parsed.includes(' - ')){const [start,end]=parsed.split(' - ');return Math.floor((timestamp(end)-timestamp(start))/86400000)+1;}return 1;}
+module.exports={parseSingleDate,parseDeploymentDate,deploymentDayCount};

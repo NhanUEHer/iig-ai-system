@@ -113,6 +113,24 @@ test('product template import converts Excel dates to YYYY-MM-DD', () => {
   assert.equal(parsed.details[0].actual_end_date,'2026-06-30');
 });
 
+test('Trade template keeps deployment dates as DD/MM/YYYY text cells', () => {
+  const current=workspace('TRADE');
+  current.details=[{organization_name:'Trường A',activity_date_text:'01/08/2026 - 03/08/2026',activity_days:7}];
+  const workbook=XLSX.read(buildTemplate(current),{type:'buffer',cellNF:true});
+  const sheet=workbook.Sheets['Chi tiết'];
+  assert.equal(sheet.D7.z,'@');
+  assert.match(sheet.D6.c[0].t,/DD\/MM\/YYYY/);
+  const parsed=parseTemplate(buildTemplate(current),current);
+  assert.equal(parsed.details[0].activity_days,'7');
+});
+
+test('Product template displays editable dates as DD/MM/YYYY', () => {
+  const current=workspace('PROD');
+  const workbook=XLSX.read(buildTemplate(current),{type:'buffer',cellNF:true});
+  const sheet=workbook.Sheets['Chi tiết'];
+  assert.equal(sheet.I7.z,'dd/mm/yyyy');
+});
+
 test('import rejects changed KPI metadata', () => {
   const current = workspace('REV');
   const workbook = XLSX.read(buildTemplate(current), { type: 'buffer' });

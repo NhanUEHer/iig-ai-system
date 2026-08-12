@@ -102,6 +102,21 @@ function formatNumericColumns(sheet, headerRow, fields, lastRow) {
   });
 }
 
+function formatInputColumns(sheet, headerRow, fields, lastRow) {
+  fields.forEach((field,column)=>{
+    const headerAddress=XLSX.utils.encode_cell({r:headerRow,c:column});
+    const headerCell=sheet[headerAddress];
+    if(field[2]==='date_text'&&headerCell)headerCell.c=[{a:'IIG Admin',t:'Nhập một ngày DD/MM/YYYY; khoảng DD/MM/YYYY - DD/MM/YYYY; hoặc nhiều ngày phân cách bằng dấu chấm phẩy.'}];
+    if(field[2]==='date'&&headerCell)headerCell.c=[{a:'IIG Admin',t:'Nhập ngày theo định dạng DD/MM/YYYY.'}];
+    if(!['date_text','date'].includes(field[2]))return;
+    for(let row=headerRow+1;row<=lastRow;row++){
+      const address=XLSX.utils.encode_cell({r:row,c:column});
+      const cell=sheet[address]||(sheet[address]={t:'s',v:''});
+      cell.z=field[2]==='date_text'?'@':'dd/mm/yyyy';
+    }
+  });
+}
+
 function buildSectionRows(title, fields, rows) {
   const result=[[title],fields.map(field=>field[1])];
   rows.forEach(row=>result.push(fields.map(field=>field[2]==='number'?numericCell(row[field[0]]):safeCell(row[field[0]]))));
@@ -135,11 +150,12 @@ function buildTemplate(workspace) {
     detailRows.push([],...buildSectionRows('PHÂN BỔ ADS THEO SẢN PHẨM',ADS_PRODUCT_FIELDS,workspace.adsProducts||[]));
   }
   const detailSheet=XLSX.utils.aoa_to_sheet(detailRows);
-  const primaryWidths=fields.map(field=>field[2]==='text'?32:field[2]==='date'?16:20);
+  const primaryWidths=fields.map(field=>field[2]==='text'?32:['date','date_text'].includes(field[2])?24:20);
   const secondaryHeader=workspace.team_code==='ADS'?detailRows.findIndex(row=>normalize(row?.[0])===normalize(ADS_PRODUCT_FIELDS[0][1])):-1;
   const detailWidths=Array.from({length:Math.max(primaryWidths.length,workspace.team_code==='ADS'?ADS_PRODUCT_FIELDS.length:0)},(_,index)=>Math.max(primaryWidths[index]||0,workspace.team_code==='ADS'?(ADS_PRODUCT_FIELDS[index]?.[2]==='text'?32:20):0));
   styleSheet(detailSheet,detailWidths,detailWidths.map((_,index)=>index),secondaryHeader>=0?[5,secondaryHeader]:[5]);
   formatNumericColumns(detailSheet,5,fields,workspace.team_code==='ADS'?secondaryHeader-3:detailRows.length-1);
+  formatInputColumns(detailSheet,5,fields,workspace.team_code==='ADS'?secondaryHeader-3:detailRows.length-1);
   if(secondaryHeader>=0)formatNumericColumns(detailSheet,secondaryHeader,ADS_PRODUCT_FIELDS,detailRows.length-1);
   detailSheet['!autofilter']=undefined;
   XLSX.utils.book_append_sheet(workbook,detailSheet,'Chi tiết');
@@ -174,7 +190,7 @@ function objectRows(rows, headerIndex, fields, stopTitle=null, errors=[],section
     if(stopTitle&&normalize(row[0])===normalize(stopTitle))break;
     if(!row.some(value=>value!==null&&String(value).trim()!==''))continue;
     const item={row_key:crypto.randomUUID()};
-    fields.forEach((field,fieldIndex)=>{const value=indexes[fieldIndex]>=0?row[indexes[fieldIndex]]:null;if(field[2]==='number'){item[field[0]]=parseFieldNumber(value,field[0]);if(value!==null&&value!==undefined&&String(value).trim()!==''&&item[field[0]]===null)errors.push(`${section} dòng ${index-headerIndex}: “${value}” tại ${field[1]} sai định dạng số Việt Nam.`);}else if(field[2]==='date_text'){item[field[0]]=value===null?null:parseDeploymentDate(value,XLSX);if(value!==null&&value!==undefined&&String(value).trim()!==''&&!item[field[0]])errors.push(`${section} dòng ${index-headerIndex}: “${value}” tại ${field[1]} phải có dạng DD/MM/YYYY.`);}else item[field[0]]=field[2]==='date'?parseDate(value):value===null?null:String(value).trim();});
+    fields.forEach((field,fieldIndex)=>{const value=indexes[fieldIndex]>=0?row[indexes[fieldIndex]]:null;if(field[2]==='number'){item[field[0]]=parseFieldNumber(value,field[0]);if(value!==null&&value!==undefined&&String(value).trim()!==''&&item[field[0]]===null)errors.push(`${section} dòng ${index-headerIndex}: “${value}” tại ${field[1]} sai định dạng số Việt Nam.`);}else if(field[2]==='date_text'){item[field[0]]=value===null?null:parseDeploymentDate(value,XLSX);if(value!==null&&value!==undefined&&String(value).trim()!==''&&!item[field[0]])errors.push(`${section} dòng ${index-headerIndex}: “${value}” tại ${field[1]} phải là một ngày, khoảng ngày hoặc nhiều ngày phân cách bằng dấu chấm phẩy.`);}else item[field[0]]=field[2]==='date'?parseDate(value):value===null?null:String(value).trim();});
     result.push(item);
   }
   return result;
