@@ -106,6 +106,13 @@ module.exports={
     ) history`,[previousYear,previousMonth,year-1,month]);
     return result.rows;
   },
+  async getSocialReachHistory(year,month) {
+    const previousYear=month===1?year-1:year,previousMonth=month===1?12:month-1;
+    const result=await db.query(`SELECT d.channel_code,d.channel_name,d.reach_current
+      FROM report_periods p JOIN report_social_details d ON d.version_id=p.current_version_id
+      WHERE p.year=$1 AND p.month=$2`,[previousYear,previousMonth]);
+    return result.rows;
+  },
   async saveWorkspace({base,detailKey,rows,extraDetails,kpis,note,validation,userId,expectedRevision}) {
     return db.transaction(async client=>{
       const locked=await client.query(`SELECT status,revision FROM report_manual_submissions WHERE id=$1 FOR UPDATE`,[base.submission_id]);

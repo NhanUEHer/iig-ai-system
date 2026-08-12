@@ -30,6 +30,8 @@ const normalizeDate=(value,rowNumber,column)=>{
 };
 const evaluation=(target,actual,directionValue)=>target===null||actual===null?null:directionValue==='monitor'?'Theo dõi':directionValue==='increase_good'?(actual>=target?'Đạt':'Chưa đạt'):(actual<=target?'Đạt':'Chưa đạt');
 const rate=(actual,base)=>actual===null||base===null||Number(base)===0?null:(actual-base)/base;
+const historyKey=value=>String(value||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9]+/g,'');
+const enrichSocialReach=(rows,history)=>{const byCode=new Map(),byName=new Map();for(const item of history||[]){if(item.channel_code)byCode.set(historyKey(item.channel_code),item.reach_current);if(item.channel_name)byName.set(historyKey(item.channel_name),item.reach_current);}return rows.map(row=>({...row,reach_previous:(row.channel_code&&byCode.has(historyKey(row.channel_code))?byCode.get(historyKey(row.channel_code)):byName.get(historyKey(row.channel_name)))??null}));};
 const achievement=(target,actual,directionValue)=>target===null||actual===null||directionValue==='monitor'?null:directionValue==='decrease_good'?(actual<=0?1.2:target/actual):(target===0?(actual>0?1.2:null):actual/target);
 function sanitizeRows(detailKey,rows) {
   const columns=new Set(DETAIL_CONFIG[detailKey][1]);
@@ -43,7 +45,7 @@ async function workspace(periodId,teamCode) {
     const history=await repository.getRevenueHistory(base.year,base.month);
     details=enrichRevenueDetails(details,history);
   }
-  if(teamCode==='COM')details=details.map(row=>({...row,followers_growth:rate(numeric(row.followers_current),numeric(row.followers_previous)),reach_growth:rate(numeric(row.reach_current),numeric(row.reach_previous))}));
+  if(teamCode==='COM'){const history=await repository.getSocialReachHistory(base.year,base.month);details=enrichSocialReach(details,history).map(row=>({...row,followers_growth:rate(numeric(row.followers_current),numeric(row.followers_previous)),reach_growth:rate(numeric(row.reach_current),numeric(row.reach_previous))}));}
   if(teamCode==='TRAIN')details=details.map(row=>({...row,student_achievement:numeric(row.student_target)?numeric(row.active_student_count)/numeric(row.student_target):null,output_rate:numeric(row.output_rate)??(numeric(row.completed_student_count)?numeric(row.qualified_student_count)/numeric(row.completed_student_count):null)}));
   let adsProducts=[];
   if(teamCode==='ADS')adsProducts=await repository.getDetails(base.version_id,'adsProducts');
@@ -69,7 +71,7 @@ module.exports={
   async exportTemplate(periodId,teamCode,auth){const current=await workspace(periodId,teamCode);ensureFormAccess(current,auth);current.masterData=await repository.getMasterData();return{buffer:workbookService.buildTemplate(current),fileName:`Bao_cao_${current.team_code}_Thang_${current.month}_${current.year}.xlsx`};},
   async importTemplate(periodId,teamCode,body,auth){const current=await workspace(periodId,teamCode);ensureFormAccess(current,auth,true);if(!['draft','editing','returned'].includes(current.submission_status))throw new HttpError('Phiếu nhập liệu không còn ở trạng thái chỉnh sửa.',409,'REPORT_SUBMISSION_LOCKED');const encoded=String(body?.fileBase64||'').replace(/^data:.*?;base64,/,'');if(!encoded)throw new HttpError('Vui lòng chọn file Excel.',400,'REPORT_TEMPLATE_FILE_REQUIRED');current.masterData=await repository.getMasterData();return workbookService.parseTemplate(Buffer.from(encoded,'base64'),current);},
   async save(periodId,teamCode,body,userId,auth){const current=await workspace(periodId,teamCode);ensureFormAccess(current,auth,true);const config=TEAM_ENTRY_CONFIG[current.team_code];if(!['draft','editing','returned'].includes(current.submission_status))throw new HttpError('Phiếu nhập liệu không còn ở trạng thái chỉnh sửa.',409,'REPORT_SUBMISSION_LOCKED');
-    const rows=sanitizeRows(config.detailKey,body?.details);const adsProducts=current.team_code==='ADS'?sanitizeRows('adsProducts',body?.adsProducts):[];const incomingRows=Array.isArray(body?.kpis)?body.kpis:[];const incoming=new Map(incomingRows.map(item=>[String(item.code||'').trim().toUpperCase(),item]));
+    let rows=sanitizeRows(config.detailKey,body?.details);if(current.team_code==='COM')rows=enrichSocialReach(rows,await repository.getSocialReachHistory(current.year,current.month));const adsProducts=current.team_code==='ADS'?sanitizeRows('adsProducts',body?.adsProducts):[];const incomingRows=Array.isArray(body?.kpis)?body.kpis:[];const incoming=new Map(incomingRows.map(item=>[String(item.code||'').trim().toUpperCase(),item]));
     const expectedCodes=current.kpis.map(item=>item.code);const incomingCodes=incomingRows.map(item=>String(item.code||'').trim().toUpperCase());
     if(incomingCodes.length!==expectedCodes.length||expectedCodes.some(code=>!incoming.has(code)))throw new HttpError('Bộ KPI của phiếu đã được cố định theo cấu hình kỳ báo cáo.',409,'REPORT_KPI_SET_LOCKED');
     const derived=calculate(current.team_code,rows,{});

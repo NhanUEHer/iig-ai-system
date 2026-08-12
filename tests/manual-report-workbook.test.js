@@ -131,6 +131,15 @@ test('Product template displays editable dates as DD/MM/YYYY', () => {
   assert.equal(sheet.I7.z,'dd/mm/yyyy');
 });
 
+test('Communication template excludes system-derived previous reach', () => {
+  const current=workspace('COM');
+  const workbook=XLSX.read(buildTemplate(current),{type:'buffer'});
+  const rows=XLSX.utils.sheet_to_json(workbook.Sheets['Chi tiết'],{header:1,defval:null});
+  assert.ok(rows[5].includes('Reach kỳ này'));
+  assert.ok(!rows[5].includes('Reach kỳ trước'));
+  assert.ok(!rows[5].includes('% vs TTr Reach'));
+});
+
 test('import rejects changed KPI metadata', () => {
   const current = workspace('REV');
   const workbook = XLSX.read(buildTemplate(current), { type: 'buffer' });

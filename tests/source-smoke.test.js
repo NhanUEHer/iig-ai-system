@@ -123,6 +123,16 @@ test('Trade date picker keeps date inputs mounted and blank added dates local',(
   assert.match(page,/RangeDateInput/);
 });
 
+test('communication previous reach is derived from the prior month and excluded from import',()=>{
+  const config=read('src/modules/reports/manualReportConfig.js');
+  const service=read('src/modules/reports/manualReportService.js');
+  const repository=read('src/modules/reports/manualReportRepository.js');
+  assert.match(config,/\['reach_previous','Reach kỳ trước','computed'/);
+  assert.match(service,/getSocialReachHistory\(base\.year,base\.month\)/);
+  assert.match(service,/getSocialReachHistory\(current\.year,current\.month\)/);
+  assert.match(repository,/month===1\?12:month-1/);
+});
+
 test('manual report forms allocate input width by data type',()=>{
   const page=read('frontend/src/features/reports/pages/ManualReportPage.jsx');
   const styles=read('frontend/src/features/reports/pages/ManualReportPage.css');
