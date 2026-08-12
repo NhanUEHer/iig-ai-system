@@ -51,6 +51,12 @@ function MaskedDateInput({value,onChange,disabled,label='Ngày triển khai'}){
   return <input disabled={disabled} inputMode="numeric" aria-label={label} aria-invalid={invalid} className={invalid?'date-invalid deployment-date-invalid':''} placeholder="DD/MM/YYYY" value={draft} onFocus={()=>setFocused(true)} onChange={event=>{const next=maskDateDigits(event.target.value);setDraft(next);const date=parseDisplayDate(next);if(date)onChange(date);else if(!next)onChange('');}} onBlur={()=>{setFocused(false);setTouched(true);}}/>;
 }
 
+function ReportDateInput({value,onChange,disabled,label='Ngày'}){
+  const normalized=dateValueOf(value);const [draft,setDraft]=useState(()=>toDisplayDate(normalized));const [focused,setFocused]=useState(false);const [touched,setTouched]=useState(false);const parsed=parseDisplayDate(draft);const invalid=Boolean(draft)&&((draft.length===10&&!parsed)||(!focused&&touched&&!parsed));
+  useEffect(()=>{if(!focused)setDraft(toDisplayDate(dateValueOf(value)));},[value,focused]);
+  return <input disabled={disabled} inputMode="numeric" aria-label={label} aria-invalid={invalid} className={invalid?'report-date-invalid':''} title={invalid?'Nhập ngày hợp lệ theo định dạng DD/MM/YYYY.':undefined} placeholder="DD/MM/YYYY" value={draft} onFocus={()=>setFocused(true)} onChange={event=>{const next=maskDateDigits(event.target.value);setDraft(next);const date=parseDisplayDate(next);if(date)onChange(date);else if(!next)onChange('');}} onBlur={()=>{setFocused(false);setTouched(true);}}/>;
+}
+
 function RangeDateInput({dates,onChange,disabled}){
   const [draft,setDraft]=useState(()=>dates[0]&&dates[1]?`${toDisplayDate(dates[0])} - ${toDisplayDate(dates[1])}`:'');const [focused,setFocused]=useState(false);const [touched,setTouched]=useState(false);const [calendarOpen,setCalendarOpen]=useState(false);
   useEffect(()=>{if(!focused)setDraft(dates[0]&&dates[1]?`${toDisplayDate(dates[0])} - ${toDisplayDate(dates[1])}`:'');},[dates,focused]);
@@ -80,7 +86,8 @@ function FieldInput({field,value,onChange,lookups,disabled}){
   if(field.type==='number')return <NumericInput disabled={disabled} value={value} onChange={onChange}/>;
   if(field.type==='date_text')return <DeploymentDateInput disabled={disabled} value={value} onChange={onChange}/>;
   if(LONG_TEXT_FIELDS.has(field.key))return <CompactTextArea disabled={disabled} value={value} onChange={onChange} placeholder={field.label}/>;
-  return <input disabled={disabled} type={field.type==='date'?'date':'text'} value={field.type==='date'?dateValueOf(value):valueOf(value)} onChange={e=>onChange(e.target.value)}/>;
+  if(field.type==='date')return <ReportDateInput disabled={disabled} value={value} label={field.label} onChange={onChange}/>;
+  return <input disabled={disabled} type="text" value={valueOf(value)} onChange={e=>onChange(e.target.value)}/>;
 }
 
 function RevenueDetailTable({details,editable,masterData,updateRow,removeRow}){

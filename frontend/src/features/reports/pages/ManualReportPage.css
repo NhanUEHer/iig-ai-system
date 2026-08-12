@@ -125,6 +125,7 @@
 .deployment-date-values > span { color: #667085; font-size: 11px; text-align: center; }
 .deployment-date-values input { width: 100%; min-width: 150px; }
 .deployment-date-values input.date-invalid { border-color:#dc2626; background:#fff1f2; }
+.detail-entry-table input.report-date-invalid { border-color:#dc2626; background:#fff1f2; }
 .range-date-control { position: relative; }
 .range-date-control > div:first-child { display: flex; align-items: center; }
 .range-date-control > div:first-child input { min-width: 245px; padding-right: 42px; }
