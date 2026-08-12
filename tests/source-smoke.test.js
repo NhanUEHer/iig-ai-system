@@ -123,13 +123,15 @@ test('Trade date picker keeps date inputs mounted and blank added dates local',(
   assert.match(page,/RangeDateInput/);
 });
 
-test('communication previous reach is derived from the prior month and excluded from import',()=>{
+test('communication previous followers and reach are derived from the prior month and excluded from import',()=>{
   const config=read('src/modules/reports/manualReportConfig.js');
   const service=read('src/modules/reports/manualReportService.js');
   const repository=read('src/modules/reports/manualReportRepository.js');
+  assert.match(config,/\['followers_previous','Followers kỳ trước','computed'/);
   assert.match(config,/\['reach_previous','Reach kỳ trước','computed'/);
-  assert.match(service,/getSocialReachHistory\(base\.year,base\.month\)/);
-  assert.match(service,/getSocialReachHistory\(current\.year,current\.month\)/);
+  assert.match(service,/getSocialHistory\(base\.year,base\.month\)/);
+  assert.match(service,/getSocialHistory\(current\.year,current\.month\)/);
+  assert.match(repository,/followers_current,d\.reach_current/);
   assert.match(repository,/month===1\?12:month-1/);
 });
 

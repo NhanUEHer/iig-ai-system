@@ -106,9 +106,9 @@ module.exports={
     ) history`,[previousYear,previousMonth,year-1,month]);
     return result.rows;
   },
-  async getSocialReachHistory(year,month) {
+  async getSocialHistory(year,month) {
     const previousYear=month===1?year-1:year,previousMonth=month===1?12:month-1;
-    const result=await db.query(`SELECT d.channel_code,d.channel_name,d.reach_current
+    const result=await db.query(`SELECT d.channel_code,d.channel_name,d.followers_current,d.reach_current
       FROM report_periods p JOIN report_social_details d ON d.version_id=p.current_version_id
       WHERE p.year=$1 AND p.month=$2`,[previousYear,previousMonth]);
     return result.rows;

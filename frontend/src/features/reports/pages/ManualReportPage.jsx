@@ -81,7 +81,7 @@ function DeploymentDateInput({value,onChange,disabled}){
 }
 
 function FieldInput({field,value,onChange,lookups,disabled}){
-  if(field.type==='computed')return <div className="derived-value detail-derived"><span>{field.key==='reach_previous'?displayNumber(value):displayPercent(value)}</span><em>{field.key==='reach_previous'?'Từ tháng trước':'Tự tính'}</em></div>;
+  if(field.type==='computed'){const previousField=['followers_previous','reach_previous'].includes(field.key);return <div className="derived-value detail-derived"><span>{previousField?displayNumber(value):displayPercent(value)}</span><em>{previousField?'Từ tháng trước':'Tự tính'}</em></div>;}
   if(field.type==='select')return <select disabled={disabled} value={valueOf(value)} onChange={e=>onChange(e.target.value)}><option value="">Chọn...</option>{(lookups[field.lookup]||[]).map(item=><option key={item.code} value={item.label}>{item.label}</option>)}</select>;
   if(field.type==='boolean')return <input disabled={disabled} type="checkbox" checked={value===true} onChange={e=>onChange(e.target.checked)}/>;
   if(field.type==='number')return <NumericInput disabled={disabled} value={value} onChange={onChange}/>;
