@@ -82,16 +82,21 @@ test('Ads import remains compatible with templates downloaded before the trend c
   assert.ok(parsed.warnings.some(message => message.includes('phiên bản cũ')));
 });
 
-test('template number parser accepts Vietnamese and international formats', () => {
+test('template number parser follows Vietnamese separators for text cells', () => {
   assert.equal(parseNumber('4,711772500'), '4.711772500');
   assert.equal(parseNumber('1.234.567,89'), '1234567.89');
-  assert.equal(parseNumber('1,234,567.89'), '1234567.89');
+  assert.equal(parseNumber('0,317'), '0.317');
+  assert.equal(parseNumber('1.000'), '1000');
 });
 
 test('template number parser preserves imported decimal scale without rounding', () => {
   assert.equal(parseNumber('4,711772500'), '4.711772500');
-  assert.equal(parseNumber('4.711774'), '4.711774');
+  assert.equal(parseNumber(4.711774), '4.711774');
   assert.equal(parseNumber('34'), '34');
+});
+
+test('template number parser rejects malformed or international text separators',()=>{
+  for(const value of ['1.00','1.0000','1,2,3','1,234,567.89','1.234,56.7'])assert.equal(parseNumber(value),null,value);
 });
 
 test('template date parser normalizes Excel serials and API date strings', () => {
