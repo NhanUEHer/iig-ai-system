@@ -31,6 +31,12 @@ const INTEGER_FIELDS = new Set([
 const normalize = value => String(value ?? '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9]+/g,' ' ).trim();
 const inputFields = fields => fields.filter(field => field[2] !== 'computed');
 const safeCell = value => value === null || value === undefined ? '' : value;
+const numericCell=value=>{
+  if(value===null||value===undefined||value==='')return '';
+  if(typeof value==='number')return value;
+  const text=String(value).trim();
+  return /^-?\d+\.\d+$/.test(text)?text.replace('.',','):text;
+};
 const padDatePart=value=>String(value).padStart(2,'0');
 const parseDate = value => {
   if(value === null || value === undefined || value === '') return null;
@@ -50,15 +56,8 @@ const parseNumber = value => {
   if(typeof value === 'number') return Number.isFinite(value) ? String(value) : null;
   const text = String(value).trim().replace(/\s/g,'');
   if(!text) return null;
-  const commas = (text.match(/,/g)||[]).length;
-  const dots = (text.match(/\./g)||[]).length;
-  let normalizedValue = text.replace(/[^0-9,.-]/g,'');
-  if(commas && dots) {
-    const decimal = normalizedValue.lastIndexOf(',') > normalizedValue.lastIndexOf('.') ? ',' : '.';
-    normalizedValue = normalizedValue.replaceAll(decimal === ',' ? '.' : ',','').replace(decimal,'.');
-  } else if(commas) normalizedValue = commas > 1 || normalizedValue.split(',').at(-1).length === 3 ? normalizedValue.replaceAll(',','') : normalizedValue.replace(',','.');
-  else if(dots) normalizedValue = dots > 1 || normalizedValue.split('.').at(-1).length === 3 ? normalizedValue.replaceAll('.','') : normalizedValue;
-  if(!/^-?\d+(?:\.\d+)?$/.test(normalizedValue)) return null;
+  if(!/^-?(?:\d{1,3}(?:\.\d{3})*|\d+)(?:,\d+)?$/.test(text))return null;
+  const normalizedValue=text.replaceAll('.','').replace(',','.');
   return Number.isFinite(Number(normalizedValue)) ? normalizedValue : null;
 };
 const parseFieldNumber = (value,fieldKey) => {
@@ -104,7 +103,7 @@ function formatNumericColumns(sheet, headerRow, fields, lastRow) {
 
 function buildSectionRows(title, fields, rows) {
   const result=[[title],fields.map(field=>field[1])];
-  rows.forEach(row=>result.push(fields.map(field=>safeCell(row[field[0]]))));
+  rows.forEach(row=>result.push(fields.map(field=>field[2]==='number'?numericCell(row[field[0]]):safeCell(row[field[0]]))));
   for(let index=rows.length;index<DETAIL_ENTRY_ROWS;index++)result.push(fields.map(()=>''));
   return result;
 }
@@ -114,7 +113,7 @@ function buildTemplate(workspace) {
   workbook.Props={Title:`Phiếu báo cáo ${workspace.team_name} tháng ${workspace.month}/${workspace.year}`,Company:'IIG Vietnam',Comments:TEMPLATE_VERSION};
 
   const kpiRows=[];addMetadata(kpiRows,workspace,`PHIẾU KPI — ${workspace.team_name}`);kpiRows.push(KPI_HEADERS);
-  workspace.kpis.forEach(kpi=>kpiRows.push([kpi.code,kpi.name,kpi.unit,DIRECTION_LABEL[kpi.evaluation_direction]||'Theo dõi',safeCell(kpi.target_value),kpi.input_mode==='derived'?'':safeCell(kpi.actual_value),safeCell(kpi.note)]));
+  workspace.kpis.forEach(kpi=>kpiRows.push([kpi.code,kpi.name,kpi.unit,DIRECTION_LABEL[kpi.evaluation_direction]||'Theo dõi',numericCell(kpi.target_value),kpi.input_mode==='derived'?'':numericCell(kpi.actual_value),safeCell(kpi.note)]));
   const kpiSheet=XLSX.utils.aoa_to_sheet(kpiRows);
   styleSheet(kpiSheet,[14,38,18,20,18,18,34],[4,5,6]);
   for(let row=6;row<kpiRows.length;row++) {
@@ -129,7 +128,7 @@ function buildTemplate(workspace) {
 
   const fields=inputFields(workspace.config.fields.map(field=>[field.key,field.label,field.type,field.lookup,field.required]));
   const detailRows=[];addMetadata(detailRows,workspace,`DỮ LIỆU CHI TIẾT — ${workspace.config.title}`);detailRows.push(fields.map(field=>field[1]));
-  workspace.details.forEach(row=>detailRows.push(fields.map(field=>safeCell(row[field[0]]))));
+  workspace.details.forEach(row=>detailRows.push(fields.map(field=>field[2]==='number'?numericCell(row[field[0]]):safeCell(row[field[0]]))));
   for(let index=workspace.details.length;index<DETAIL_ENTRY_ROWS;index++)detailRows.push(fields.map(()=>''));
   if(workspace.team_code==='ADS') {
     detailRows.push([],...buildSectionRows('PHÂN BỔ ADS THEO SẢN PHẨM',ADS_PRODUCT_FIELDS,workspace.adsProducts||[]));
@@ -164,7 +163,7 @@ function findHeader(rows, labels, start=0) {
   const wanted=labels.map(normalize);
   return rows.findIndex((row,index)=>index>=start&&wanted.every(label=>(row||[]).map(normalize).includes(label)));
 }
-function objectRows(rows, headerIndex, fields, stopTitle=null) {
+function objectRows(rows, headerIndex, fields, stopTitle=null, errors=[],section='Chi tiết') {
   if(headerIndex<0)return [];
   const header=(rows[headerIndex]||[]).map(normalize);
   const indexes=fields.map(field=>header.indexOf(normalize(field[1])));
@@ -174,7 +173,7 @@ function objectRows(rows, headerIndex, fields, stopTitle=null) {
     if(stopTitle&&normalize(row[0])===normalize(stopTitle))break;
     if(!row.some(value=>value!==null&&String(value).trim()!==''))continue;
     const item={row_key:crypto.randomUUID()};
-    fields.forEach((field,fieldIndex)=>{const value=indexes[fieldIndex]>=0?row[indexes[fieldIndex]]:null;item[field[0]]=field[2]==='number'?parseFieldNumber(value,field[0]):field[2]==='date'?parseDate(value):value===null?null:String(value).trim();});
+    fields.forEach((field,fieldIndex)=>{const value=indexes[fieldIndex]>=0?row[indexes[fieldIndex]]:null;if(field[2]==='number'){item[field[0]]=parseFieldNumber(value,field[0]);if(value!==null&&value!==undefined&&String(value).trim()!==''&&item[field[0]]===null)errors.push(`${section} dòng ${index-headerIndex}: “${value}” tại ${field[1]} sai định dạng số Việt Nam.`);}else item[field[0]]=field[2]==='date'?parseDate(value):value===null?null:String(value).trim();});
     result.push(item);
   }
   return result;
@@ -211,7 +210,10 @@ function parseTemplate(buffer, workspace) {
   else for(const row of kpiRows.slice(kpiHeader+1)) {
     const code=String(row[0]||'').trim().toUpperCase();if(!code)continue;
     if(incomingKpis.has(code)){errors.push(`Mã KPI ${code} bị trùng.`);continue;}
-    incomingKpis.set(code,{name:String(row[1]||'').trim(),unit:String(row[2]||'').trim(),direction:String(row[3]||'').trim(),target_value:parseNumber(row[4]),actual_value:parseNumber(row[5]),note:row[6]===null?null:String(row[6]||'').trim()});
+    const target=parseNumber(row[4]),actual=parseNumber(row[5]);
+    if(row[4]!==null&&row[4]!==undefined&&String(row[4]).trim()!==''&&target===null)errors.push(`KPI ${code}: Kế hoạch “${row[4]}” sai định dạng số Việt Nam.`);
+    if(row[5]!==null&&row[5]!==undefined&&String(row[5]).trim()!==''&&actual===null)errors.push(`KPI ${code}: Thực hiện “${row[5]}” sai định dạng số Việt Nam.`);
+    incomingKpis.set(code,{name:String(row[1]||'').trim(),unit:String(row[2]||'').trim(),direction:String(row[3]||'').trim(),target_value:target,actual_value:actual,note:row[6]===null?null:String(row[6]||'').trim()});
   }
   const kpis=workspace.kpis.map(kpi=>{const value=incomingKpis.get(kpi.code);if(!value){errors.push(`Thiếu KPI ${kpi.code}.`);return kpi;}
     if(normalize(value.name)!==normalize(kpi.name)||normalize(value.unit)!==normalize(kpi.unit)||normalize(value.direction)!==normalize(DIRECTION_LABEL[kpi.evaluation_direction]||'Theo dõi'))errors.push(`Thông tin cấu hình của KPI ${kpi.code} đã bị thay đổi.`);
@@ -225,14 +227,14 @@ function parseTemplate(buffer, workspace) {
     if(detailHeader>=0)warnings.push('Template Ads phiên bản cũ chưa có cột Xu hướng; hệ thống sẽ để trống trường này.');
   }
   if(detailHeader<0)errors.push('Sheet Chi tiết không có đúng hàng tiêu đề của bộ phận.');
-  const details=objectRows(detailRows,detailHeader,configFields,workspace.team_code==='ADS'?'PHÂN BỔ ADS THEO SẢN PHẨM':null);
+  const details=objectRows(detailRows,detailHeader,configFields,workspace.team_code==='ADS'?'PHÂN BỔ ADS THEO SẢN PHẨM':null,errors,'Chi tiết');
   validateLookups(details,configFields,workspace.masterData,errors);
   let adsProducts=[];
   if(workspace.team_code==='ADS') {
     const productTitle=detailRows.findIndex(row=>normalize(row?.[0])===normalize('PHÂN BỔ ADS THEO SẢN PHẨM'));
     const productHeader=findHeader(detailRows,ADS_PRODUCT_FIELDS.map(field=>field[1]),productTitle+1);
     if(productTitle<0||productHeader<0)errors.push('Sheet Chi tiết thiếu khối Phân bổ Ads theo sản phẩm.');
-    else {adsProducts=objectRows(detailRows,productHeader,ADS_PRODUCT_FIELDS);validateLookups(adsProducts,ADS_PRODUCT_FIELDS,workspace.masterData,errors);}
+    else {adsProducts=objectRows(detailRows,productHeader,ADS_PRODUCT_FIELDS,null,errors,'Phân bổ Ads');validateLookups(adsProducts,ADS_PRODUCT_FIELDS,workspace.masterData,errors);}
   }
 
   const noteHeader=findHeader(noteRows,['Nội dung','Nhập nhận xét']);const note={};
