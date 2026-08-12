@@ -1,0 +1,4 @@
+const test=require('node:test');const assert=require('node:assert/strict');const XLSX=require('xlsx');
+const {parseSingleDate,parseDeploymentDate}=require('../src/modules/reports/reportDateFormat');
+test('deployment dates normalize to DD/MM/YYYY strings',()=>{assert.equal(parseSingleDate('30/6/2026'),'30/06/2026');assert.equal(parseSingleDate('2026-06-30'),'30/06/2026');assert.equal(parseSingleDate('2026-06-30T00:00:00.000Z'),'30/06/2026');assert.equal(parseSingleDate(46203,XLSX),'30/06/2026');assert.equal(parseDeploymentDate('01/06/2026 - 03/06/2026'),'01/06/2026 - 03/06/2026');});
+test('deployment date validation rejects impossible and ambiguous values',()=>{for(const value of ['31/02/2026','06/30/2026','30-06-2026','2026/06/30','abc'])assert.equal(parseDeploymentDate(value),null,value);});

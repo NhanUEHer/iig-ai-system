@@ -77,6 +77,20 @@ test('source does not contain known hard-coded service credentials', () => {
   assert.doesNotMatch(authController, /password="\$\{password\}"/);
 });
 
+test('production deploy is locked, immutable, identity-verified and rollback-capable',()=>{
+  const deployScript=read('deploy.sh');
+  const backupScript=read('scripts/backup-production.sh');
+  assert.match(deployScript,/ai-scoring-deploy\.lock/);
+  assert.match(deployScript,/RELEASES_DIR/);
+  assert.match(deployScript,/origin\/main/);
+  assert.match(deployScript,/x\.build\?\.version===/);
+  assert.match(deployScript,/x\.build\?\.commit===/);
+  assert.match(deployScript,/Health verification failed; rolling back/);
+  assert.match(backupScript,/\.partial-/);
+  assert.match(backupScript,/SHA256SUMS/);
+  assert.match(backupScript,/NR>3/);
+});
+
 test('audio cleaner preserves natural pauses and validates output duration', () => {
   const pythonSource = read('src/services/audioCleaner.py');
   const serviceSource = read('src/services/audioCleanerService.js');

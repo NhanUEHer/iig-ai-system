@@ -278,11 +278,13 @@ Never commit `.env`, model environments, checkpoints, generated audio, reference
 
 ## Production backup, data sync and deployment
 
-- `scripts/backup-production.sh` creates a full PostgreSQL custom dump, a focused scoring-data dump, row counts, media archive, and server-side code rollback archive. Database manifests are generated with the production `pg_restore` version before downloads are accepted.
+- `scripts/backup-production.sh` creates a full PostgreSQL custom dump, a focused scoring-data dump, row counts, and a media archive in `.partial-*` directories. It publishes a backup only after manifests and SHA-256 checks pass, removes partial output on failure, and retains the three newest server backups.
 - `scripts/sync-production-scoring-to-local.sh` first backs up the local database, exports production scoring rows as portable column inserts, then replaces the four local business tables inside one transaction.
-- `deploy.sh` verifies the project, builds a Production frontend, requires a verified backup, uploads to a staging directory, installs dependencies, and only then activates the release with `rsync --delete`.
-- Deployment preserves `.env`, database data, generated media, `tts_env`, model `asset/`, and the server backup directory. Other legacy code is removed from the active application directory.
-- PM2 receives the production environment using `--update-env`. Final smoke validation calls backend port `5005`; Nginx serves the SPA on port `3100`.
+- `deploy.sh` requires a clean, tagged `main` synchronized with `origin/main`, matching backend/frontend versions, at least 2 GB free on production, and an exclusive remote deploy lock. `ALLOW_UNPUSHED_RELEASE=true` is an emergency-only override.
+- Releases are immutable under `/opt/ai-scoring-releases/<deploy-id>`. Shared `.env`, generated media, model files, and Python environments remain under `/opt/ai-scoring`; `/opt/ai-scoring-current` points to the active release.
+- Activation switches `/opt/ai-scoring-current`, restarts PM2, and verifies the exact production version and commit on port `5005`. A failed identity/health check automatically restores the previous release and restarts PM2.
+- A new verified backup is the default. `PREVERIFIED_BACKUP_ID=<id>` reuses a checksum/manifest-backed backup; `SKIP_BACKUP=true` is an explicit emergency choice and prints a warning.
+- The three newest immutable releases are retained for fast rollback. Nginx serves the SPA and generated media through `/opt/ai-scoring-current` on port `3100`.
 
 Never put the Hetzner password in any repository file. Provide `VPS_PASSWORD` only in the process environment, or store it in macOS Keychain under service `ai-scoring-vps` and account `root@<VPS_IP>`; `deploy.sh` can read that item without printing the secret.
 

@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const XLSX = require('xlsx');
 const HttpError = require('../../http/httpError');
+const {parseDeploymentDate}=require('./reportDateFormat');
 
 const TEMPLATE_VERSION = 'IIG-MANUAL-REPORT-1';
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -173,7 +174,7 @@ function objectRows(rows, headerIndex, fields, stopTitle=null, errors=[],section
     if(stopTitle&&normalize(row[0])===normalize(stopTitle))break;
     if(!row.some(value=>value!==null&&String(value).trim()!==''))continue;
     const item={row_key:crypto.randomUUID()};
-    fields.forEach((field,fieldIndex)=>{const value=indexes[fieldIndex]>=0?row[indexes[fieldIndex]]:null;if(field[2]==='number'){item[field[0]]=parseFieldNumber(value,field[0]);if(value!==null&&value!==undefined&&String(value).trim()!==''&&item[field[0]]===null)errors.push(`${section} dòng ${index-headerIndex}: “${value}” tại ${field[1]} sai định dạng số Việt Nam.`);}else item[field[0]]=field[2]==='date'?parseDate(value):value===null?null:String(value).trim();});
+    fields.forEach((field,fieldIndex)=>{const value=indexes[fieldIndex]>=0?row[indexes[fieldIndex]]:null;if(field[2]==='number'){item[field[0]]=parseFieldNumber(value,field[0]);if(value!==null&&value!==undefined&&String(value).trim()!==''&&item[field[0]]===null)errors.push(`${section} dòng ${index-headerIndex}: “${value}” tại ${field[1]} sai định dạng số Việt Nam.`);}else if(field[2]==='date_text'){item[field[0]]=value===null?null:parseDeploymentDate(value,XLSX);if(value!==null&&value!==undefined&&String(value).trim()!==''&&!item[field[0]])errors.push(`${section} dòng ${index-headerIndex}: “${value}” tại ${field[1]} phải có dạng DD/MM/YYYY.`);}else item[field[0]]=field[2]==='date'?parseDate(value):value===null?null:String(value).trim();});
     result.push(item);
   }
   return result;

@@ -37,6 +37,7 @@ function FieldInput({field,value,onChange,lookups,disabled}){
   if(field.type==='select')return <select disabled={disabled} value={valueOf(value)} onChange={e=>onChange(e.target.value)}><option value="">Chọn...</option>{(lookups[field.lookup]||[]).map(item=><option key={item.code} value={item.label}>{item.label}</option>)}</select>;
   if(field.type==='boolean')return <input disabled={disabled} type="checkbox" checked={value===true} onChange={e=>onChange(e.target.checked)}/>;
   if(field.type==='number')return <NumericInput disabled={disabled} value={value} onChange={onChange}/>;
+  if(field.type==='date_text')return <input disabled={disabled} inputMode="numeric" placeholder="DD/MM/YYYY" value={valueOf(value)} onChange={e=>onChange(e.target.value)}/>;
   return <input disabled={disabled} type={field.type==='date'?'date':'text'} value={field.type==='date'?dateValueOf(value):valueOf(value)} onChange={e=>onChange(e.target.value)}/>;
 }
 
