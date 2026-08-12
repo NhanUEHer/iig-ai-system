@@ -107,3 +107,29 @@ test('production nginx serves generated Local TTS media before the SPA fallback'
   assert.match(nginx, /location \/local_voices\//);
   assert.match(nginx, /location \/tmp_local\//);
 });
+
+test('Trade date picker keeps date inputs mounted and blank added dates local',()=>{
+  const page=read('frontend/src/features/reports/pages/ManualReportPage.jsx');
+  assert.match(page,/const addDate=\(\)=>\{editingSchedule\.current=true;setDates\(items=>\[\.\.\.items,''\]\);\}/);
+  assert.match(page,/\['range','multiple'\]\.includes\(next\)\?\['',''\]/);
+  assert.match(page,/if\(dates\.length<=2\)return/);
+  assert.match(page,/editingSchedule=useRef\(false\)/);
+  assert.match(page,/if\(editingSchedule\.current&&!incoming\)return/);
+  assert.match(page,/dates\.map\(\(date,index\)=><div key=\{index\}>/);
+  assert.doesNotMatch(page,/key=\{`\$\{index\}-\$\{date\}`\}/);
+  assert.match(page,/maskDateDigits/);
+  assert.match(page,/maskRangeDigits/);
+  assert.match(page,/DD\/MM\/YYYY - DD\/MM\/YYYY/);
+  assert.match(page,/RangeDateInput/);
+});
+
+test('manual report forms allocate input width by data type',()=>{
+  const page=read('frontend/src/features/reports/pages/ManualReportPage.jsx');
+  const styles=read('frontend/src/features/reports/pages/ManualReportPage.css');
+  assert.match(page,/LONG_TEXT_FIELDS/);
+  assert.match(page,/CompactTextArea/);
+  assert.match(page,/field-\$\{field\.type\}/);
+  assert.match(styles,/\.detail-entry-table input, \.detail-entry-table select \{ width: 100%/);
+  assert.match(styles,/\.detail-entry-table th\.field-text/);
+  assert.match(styles,/min-height: 130px/);
+});
