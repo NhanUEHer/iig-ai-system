@@ -18,6 +18,12 @@ const transactionTables = [
   'report_periods',
 ];
 
+const configurationTables = [
+  'report_kpi_definition_audit_logs',
+  'report_detail_row_templates',
+  'report_kpi_definitions',
+];
+
 async function countRows(client) {
   const counts = {};
   for (const table of transactionTables) {
@@ -36,12 +42,15 @@ async function main() {
     const before = await countRows(client);
     await client.query('UPDATE report_periods SET current_version_id = NULL');
     await client.query(`TRUNCATE TABLE ${transactionTables.join(', ')} RESTART IDENTITY CASCADE`);
+    if (process.env.CLEAR_REPORT_CONFIG === 'yes') {
+      await client.query(`TRUNCATE TABLE ${configurationTables.join(', ')} RESTART IDENTITY CASCADE`);
+    }
     const after = await countRows(client);
     const master = await client.query(`SELECT
       (SELECT COUNT(*)::integer FROM report_teams) AS teams,
       (SELECT COUNT(*)::integer FROM report_kpi_definitions WHERE is_active) AS active_kpis,
       (SELECT COUNT(*)::integer FROM report_lookup_values WHERE is_active) AS lookup_values`);
-    return { before, after, master: master.rows[0] };
+    return { before, after, configurationCleared: process.env.CLEAR_REPORT_CONFIG === 'yes', master: master.rows[0] };
   });
 
   console.log(JSON.stringify(result, null, 2));

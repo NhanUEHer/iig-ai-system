@@ -1,5 +1,22 @@
 const db = require('../../config/db');
 const {enrichRevenueDetails}=require('./reportRevenueMetrics');
+const {enrichKpiHistory,enrichSocialHistory,applyComKpiFallback}=require('./reportHistoryMetrics');
+
+async function getKpiHistory(year,month,teamCode=null) {
+  const previousYear=Number(month)===1?Number(year)-1:Number(year),previousMonth=Number(month)===1?12:Number(month)-1;
+  const params=[previousYear,previousMonth,Number(year)-1,Number(month)];let filter='';
+  if(teamCode){params.push(teamCode);filter=` AND t.code=$${params.length}`;}
+  const result=await db.query(`SELECT source_period,team_code,code,actual_value FROM (
+    SELECT 'previous' source_period,t.code team_code,COALESCE(k.kpi_code,d.code) code,k.actual_value
+    FROM report_periods p JOIN report_kpi_values k ON k.version_id=p.current_version_id JOIN report_kpi_definitions d ON d.id=k.kpi_definition_id JOIN report_teams t ON t.id=d.team_id
+    WHERE p.year=$1 AND p.month=$2${filter}
+    UNION ALL
+    SELECT 'prior_year',t.code,COALESCE(k.kpi_code,d.code),k.actual_value
+    FROM report_periods p JOIN report_kpi_values k ON k.version_id=p.current_version_id JOIN report_kpi_definitions d ON d.id=k.kpi_definition_id JOIN report_teams t ON t.id=d.team_id
+    WHERE p.year=$3 AND p.month=$4${filter}
+  ) history`,params);
+  return result.rows;
+}
 
 const DETAIL_CONFIG = {
   revenue: ['report_revenue_details',['row_key','product_group','product_code','product_name','order_count','revenue','monthly_target','previous_revenue','prior_year_revenue','note'],['rowKey','productGroup','productCode','productName','orderCount','revenue','monthlyTarget','previousRevenue','priorYearRevenue','note']],
@@ -127,17 +144,17 @@ module.exports = {
       : await db.query(`SELECT v.id,v.version_no,v.source_type,p.status,p.year,p.month FROM report_periods p JOIN report_data_versions v ON v.id=p.current_version_id WHERE p.year=$1 AND p.month=$2`, [year,month]);
     if (!version.rows[0]) return null;
     const versionId = version.rows[0].id;
-    const [kpis,note] = await Promise.all([
+    const [kpis,note,kpiHistory] = await Promise.all([
       db.query(`SELECT COALESCE(v.kpi_code,d.code) code,COALESCE(v.kpi_name,d.name) name,COALESCE(v.unit_snapshot,d.unit) unit,
         COALESCE(v.evaluation_direction_snapshot,d.evaluation_direction) evaluation_direction,COALESCE(v.aggregation_method_snapshot,d.aggregation_method) aggregation_method,
-        v.target_value,v.actual_value,v.previous_value,v.prior_year_value,v.evaluation,v.note,
+        t.code team_code,v.target_value,v.actual_value,v.previous_value,v.prior_year_value,v.evaluation,v.note,
         CASE WHEN v.target_value IS NULL OR v.actual_value IS NULL OR COALESCE(v.evaluation_direction_snapshot,d.evaluation_direction)='monitor' THEN NULL
           WHEN COALESCE(v.evaluation_direction_snapshot,d.evaluation_direction)='decrease_good' THEN CASE WHEN v.actual_value<=0 THEN 1.2 ELSE v.target_value/v.actual_value END
-          WHEN v.target_value=0 THEN CASE WHEN v.actual_value>0 THEN 1.2 ELSE NULL END ELSE v.actual_value/v.target_value END AS achievement,
-        CASE WHEN v.previous_value IS NULL OR v.previous_value=0 THEN NULL ELSE (v.actual_value-v.previous_value)/v.previous_value END AS vs_previous
+          WHEN v.target_value=0 THEN CASE WHEN v.actual_value>0 THEN 1.2 ELSE NULL END ELSE v.actual_value/v.target_value END AS achievement
         FROM report_kpi_values v JOIN report_kpi_definitions d ON d.id=v.kpi_definition_id JOIN report_teams t ON t.id=d.team_id
         WHERE v.version_id=$1 AND t.code=$2 ORDER BY COALESCE(v.display_order_snapshot,d.display_order)`, [versionId,teamCode]),
-      db.query(`SELECT n.* FROM report_notes n JOIN report_teams t ON t.id=n.team_id WHERE n.version_id=$1 AND t.code=$2`, [versionId,teamCode])
+      db.query(`SELECT n.* FROM report_notes n JOIN report_teams t ON t.id=n.team_id WHERE n.version_id=$1 AND t.code=$2`, [versionId,teamCode]),
+      getKpiHistory(version.rows[0].year,version.rows[0].month,teamCode)
     ]);
     const detailMap = { REV:'report_revenue_details',ADS:'report_ads_channel_details',COM:'report_social_details',TRADE:'report_trade_details',TRAIN:'report_training_details',PROD:'report_product_details' };
     const table = detailMap[teamCode] || detailMap.REV;
@@ -152,24 +169,33 @@ module.exports = {
       ) revenue_history`,[previousYear,previousMonth,Number(period.year)-1,Number(period.month)]);
       detailRows=enrichRevenueDetails(detailRows,history.rows);
     }
+    if(teamCode==='COM'){
+      const period=version.rows[0],previousYear=Number(period.month)===1?Number(period.year)-1:Number(period.year),previousMonth=Number(period.month)===1?12:Number(period.month)-1;
+      const history=await db.query(`SELECT d.channel_code,d.channel_name,d.followers_current,d.reach_current FROM report_periods p JOIN report_social_details d ON d.version_id=p.current_version_id WHERE p.year=$1 AND p.month=$2`,[previousYear,previousMonth]);
+      detailRows=enrichSocialHistory(detailRows,history.rows);
+    }
     const detailSections=[{key:teamCode==='ADS'?'adsChannels':teamCode.toLowerCase(),title:teamCode==='ADS'?'Hiệu quả theo nguồn Ads':'Dữ liệu chi tiết',rows:detailRows}];
     if(teamCode==='ADS'){
       const products=await db.query('SELECT * FROM report_ads_product_details WHERE version_id=$1 ORDER BY display_order,row_key',[versionId]);
       detailSections.push({key:'adsProducts',title:'Tỷ trọng Ads theo sản phẩm',rows:products.rows});
     }
-    return { period:version.rows[0],teamCode,kpis:kpis.rows,note:note.rows[0] || null,details:detailRows,detailSections };
+    const kpiRows=teamCode==='COM'?applyComKpiFallback(kpis.rows,detailRows):kpis.rows;
+    return { period:version.rows[0],teamCode,kpis:enrichKpiHistory(kpiRows,kpiHistory),note:note.rows[0] || null,details:detailRows,detailSections };
   },
   async getOverviewRows({ year, month }) {
-    const result = await db.query(`SELECT p.year,p.month,v.published_at,t.code AS team_code,t.name AS team_name,
+    const [result,social]=await Promise.all([db.query(`SELECT p.year,p.month,v.published_at,t.code AS team_code,t.name AS team_name,
       COALESCE(k.kpi_code,d.code) code,COALESCE(k.kpi_name,d.name) name,COALESCE(k.unit_snapshot,d.unit) unit,
-      COALESCE(k.evaluation_direction_snapshot,d.evaluation_direction) evaluation_direction,k.target_value,k.actual_value,k.previous_value,k.evaluation,
+      COALESCE(k.evaluation_direction_snapshot,d.evaluation_direction) evaluation_direction,k.target_value,k.actual_value,k.previous_value,k.prior_year_value,k.evaluation,
       CASE WHEN k.target_value IS NULL OR k.actual_value IS NULL OR COALESCE(k.evaluation_direction_snapshot,d.evaluation_direction)='monitor' THEN NULL
         WHEN COALESCE(k.evaluation_direction_snapshot,d.evaluation_direction)='decrease_good' THEN CASE WHEN k.actual_value<=0 THEN 1.2 ELSE k.target_value/k.actual_value END
         WHEN k.target_value=0 THEN CASE WHEN k.actual_value>0 THEN 1.2 ELSE NULL END ELSE k.actual_value/k.target_value END AS achievement
       FROM report_periods p JOIN report_data_versions v ON v.id=p.current_version_id
       JOIN report_kpi_values k ON k.version_id=v.id JOIN report_kpi_definitions d ON d.id=k.kpi_definition_id
-      JOIN report_teams t ON t.id=d.team_id WHERE p.year=$1 AND p.month=$2 ORDER BY t.display_order,COALESCE(k.display_order_snapshot,d.display_order)`, [year,month]);
-    return result.rows;
+      JOIN report_teams t ON t.id=d.team_id WHERE p.year=$1 AND p.month=$2 ORDER BY t.display_order,COALESCE(k.display_order_snapshot,d.display_order)`, [year,month]),
+      db.query(`SELECT d.* FROM report_periods p JOIN report_social_details d ON d.version_id=p.current_version_id WHERE p.year=$1 AND p.month=$2`,[year,month])]);
+    const rows=applyComKpiFallback(result.rows.filter(row=>row.team_code==='COM'),social.rows);
+    const comByCode=new Map(rows.map(row=>[row.code,row]));
+    return enrichKpiHistory(result.rows.map(row=>row.team_code==='COM'?comByCode.get(row.code):row),await getKpiHistory(year,month));
   },
   async getTrendRows({ year, teamCode }) {
     const params=[year]; let teamFilter='';

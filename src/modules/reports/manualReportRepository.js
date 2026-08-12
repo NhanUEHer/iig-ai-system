@@ -1,6 +1,7 @@
 const crypto=require('crypto');
 const db=require('../../config/db');
 const {DETAIL_CONFIG}=require('./manualReportConfig');
+const detailRowConfigRepository=require('./detailRowConfigRepository');
 
 async function insertRows(client,versionId,detailKey,rows) {
   const [table,columns]=DETAIL_CONFIG[detailKey];
@@ -59,6 +60,7 @@ module.exports={
         WHERE d.is_active=TRUE`,[versionId,userId,period.current_version_id,month,copyTargets,year]);
       await client.query(`INSERT INTO report_manual_submissions(period_id,version_id,team_id)
         SELECT $1,$2,id FROM report_teams WHERE is_active=TRUE`,[period.id,versionId]);
+      await detailRowConfigRepository.createPeriodRows(client,versionId);
       await client.query(`INSERT INTO report_entry_audit_logs(period_id,version_id,action,actor_id,change_summary) VALUES($1,$2,'period_created',$3,$4::jsonb)`,[period.id,versionId,userId,JSON.stringify({year,month,copyTargets})]);
       return {periodId:period.id,versionId,versionNo:Number(version.rows[0].version_no)};
     });
@@ -111,6 +113,19 @@ module.exports={
     const result=await db.query(`SELECT d.channel_code,d.channel_name,d.followers_current,d.reach_current
       FROM report_periods p JOIN report_social_details d ON d.version_id=p.current_version_id
       WHERE p.year=$1 AND p.month=$2`,[previousYear,previousMonth]);
+    return result.rows;
+  },
+  async getKpiHistory(year,month,teamCode) {
+    const previousYear=month===1?year-1:year,previousMonth=month===1?12:month-1;
+    const result=await db.query(`SELECT source_period,team_code,code,actual_value FROM (
+      SELECT 'previous' source_period,t.code team_code,COALESCE(k.kpi_code,d.code) code,k.actual_value
+      FROM report_periods p JOIN report_kpi_values k ON k.version_id=p.current_version_id JOIN report_kpi_definitions d ON d.id=k.kpi_definition_id JOIN report_teams t ON t.id=d.team_id
+      WHERE p.year=$1 AND p.month=$2 AND t.code=$5
+      UNION ALL
+      SELECT 'prior_year',t.code,COALESCE(k.kpi_code,d.code),k.actual_value
+      FROM report_periods p JOIN report_kpi_values k ON k.version_id=p.current_version_id JOIN report_kpi_definitions d ON d.id=k.kpi_definition_id JOIN report_teams t ON t.id=d.team_id
+      WHERE p.year=$3 AND p.month=$4 AND t.code=$5
+    ) history`,[previousYear,previousMonth,year-1,month,teamCode]);
     return result.rows;
   },
   async saveWorkspace({base,detailKey,rows,extraDetails,kpis,note,validation,userId,expectedRevision}) {

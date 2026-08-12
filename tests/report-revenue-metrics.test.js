@@ -28,3 +28,11 @@ test('missing revenue history stays null instead of becoming a false zero',()=>{
   assert.equal(row.prior_year_revenue,null);
   assert.equal(row.prior_year_change,null);
 });
+
+test('revenue detail preserves imported baselines when historical periods do not exist',()=>{
+  const [row]=enrichRevenueDetails([{product_code:'SP_01',revenue:120,previous_revenue:100,prior_year_revenue:80}],[]);
+  assert.equal(row.previous_revenue,100);
+  assert.equal(row.prior_year_revenue,80);
+  assert.equal(row.previous_change,0.2);
+  assert.equal(row.prior_year_change,0.5);
+});
