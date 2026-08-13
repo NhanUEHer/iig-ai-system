@@ -129,8 +129,8 @@ test('communication previous followers and reach are derived from the prior mont
   const repository=read('src/modules/reports/manualReportRepository.js');
   assert.match(config,/\['followers_previous','Followers kỳ trước','computed'/);
   assert.match(config,/\['reach_previous','Reach kỳ trước','computed'/);
-  assert.match(service,/getSocialHistory\(base\.year,base\.month\)/);
-  assert.match(service,/getSocialHistory\(current\.year,current\.month\)/);
+  assert.match(service,/getSocialHistory\(base\.year,base\.month,base\.version_id\)/);
+  assert.match(service,/getSocialHistory\(current\.year,current\.month,current\.version_id\)/);
   assert.match(repository,/followers_current,d\.reach_current/);
   assert.match(repository,/month===1\?12:month-1/);
 });

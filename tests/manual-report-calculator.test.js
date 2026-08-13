@@ -1,10 +1,10 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {calculate,validateWorkspace}=require('../src/modules/reports/manualReportCalculator');
+const {calculate,validateWorkspace,reconcileWorkspace}=require('../src/modules/reports/manualReportCalculator');
 
-test('revenue summary keeps manually entered KPI values',()=>{
+test('revenue summary derives auditable KPIs and preserves manual-only values',()=>{
   const result=calculate('REV',[{revenue:100,order_count:4},{revenue:50,order_count:1}],{DT_02:500,DT_06:3});
-  assert.deepEqual(result,{DT_02:500,DT_06:3});
+  assert.deepEqual(result,{DT_02:500,DT_06:3,DT_01:150,DT_03:5,DT_04:30});
 });
 
 test('manual Ads and communication entry uses ratio of sums',()=>{
@@ -21,4 +21,18 @@ test('manual validation distinguishes required fields, negative values and warni
 
 test('empty detail does not create false zero KPI results',()=>{
   assert.deepEqual(calculate('ADS',[],{}),{});
+});
+
+test('all auditable training and product KPIs derive from detail rows',()=>{
+  const training=calculate('TRAIN',[{started_class_count:2,class_count:4,completed_class_count:1,active_student_count:20,new_student_count:5,completed_student_count:3,evaluated_student_count:2,qualified_student_count:1,upsell_revenue:100}],{});
+  assert.equal(training.DAO_04,0.5);assert.equal(training.DAO_05,2);assert.equal(training.DAO_06,4);assert.equal(training.DAO_07,1);
+  const product=calculate('PROD',[{kpi_code:'SP_02',contribution_value:'0.5'},{kpi_code:'SP_02 · Khóa TOEIC',contribution_value:'0.5'}],{});
+  assert.equal(product.SP_02,1);
+});
+
+test('cross-section reconciliation reports differences without hiding draft data',()=>{
+  const ads=reconcileWorkspace('ADS',[],[{budget_actual:100}],[{ad_cost:90}]);
+  assert.equal(ads.errors.length,0);assert.equal(ads.warnings.length,1);
+  const product=reconcileWorkspace('PROD',[],[{contribution_value:0.5,kpi_code:null}],[]);
+  assert.equal(product.errors.length,1);
 });

@@ -2,17 +2,17 @@ const db = require('../../config/db');
 const {enrichRevenueDetails}=require('./reportRevenueMetrics');
 const {enrichKpiHistory,enrichSocialHistory,applyComKpiFallback}=require('./reportHistoryMetrics');
 
-async function getKpiHistory(year,month,teamCode=null) {
+async function getKpiHistory(year,month,teamCode=null,versionId=null) {
   const previousYear=Number(month)===1?Number(year)-1:Number(year),previousMonth=Number(month)===1?12:Number(month)-1;
-  const params=[previousYear,previousMonth,Number(year)-1,Number(month)];let filter='';
+  const params=[previousYear,previousMonth,Number(year)-1,Number(month),versionId];let filter='';
   if(teamCode){params.push(teamCode);filter=` AND t.code=$${params.length}`;}
   const result=await db.query(`SELECT source_period,team_code,code,actual_value FROM (
     SELECT 'previous' source_period,t.code team_code,COALESCE(k.kpi_code,d.code) code,k.actual_value
-    FROM report_periods p JOIN report_kpi_values k ON k.version_id=p.current_version_id JOIN report_kpi_definitions d ON d.id=k.kpi_definition_id JOIN report_teams t ON t.id=d.team_id
+    FROM report_periods p JOIN report_kpi_values k ON k.version_id=COALESCE((SELECT source_version_id FROM report_history_snapshots WHERE version_id=$5 AND comparison_type='previous_period'),p.current_version_id) JOIN report_kpi_definitions d ON d.id=k.kpi_definition_id JOIN report_teams t ON t.id=d.team_id
     WHERE p.year=$1 AND p.month=$2${filter}
     UNION ALL
     SELECT 'prior_year',t.code,COALESCE(k.kpi_code,d.code),k.actual_value
-    FROM report_periods p JOIN report_kpi_values k ON k.version_id=p.current_version_id JOIN report_kpi_definitions d ON d.id=k.kpi_definition_id JOIN report_teams t ON t.id=d.team_id
+    FROM report_periods p JOIN report_kpi_values k ON k.version_id=COALESCE((SELECT source_version_id FROM report_history_snapshots WHERE version_id=$5 AND comparison_type='prior_year'),p.current_version_id) JOIN report_kpi_definitions d ON d.id=k.kpi_definition_id JOIN report_teams t ON t.id=d.team_id
     WHERE p.year=$3 AND p.month=$4${filter}
   ) history`,params);
   return result.rows;
@@ -24,8 +24,8 @@ const DETAIL_CONFIG = {
   adsProducts: ['report_ads_product_details',['row_key','product_group','product_code','product_name','ad_cost','revenue','lead_count','qualified_lead_count','order_count','note'],['rowKey','productGroup','productCode','productName','adCost','revenue','leadCount','qualifiedLeadCount','orderCount','note']],
   social: ['report_social_details',['row_key','channel_code','channel_name','followers_current','followers_previous','reach_current','reach_previous','organic_reach','video_views','engagement_count','engagement_rate','lead_count','order_count','revenue','budget','note'],['rowKey','channelCode','channelName','followersCurrent','followersPrevious','reachCurrent','reachPrevious','organicReach','videoViews','engagementCount','engagementRate','leadCount','orderCount','revenue','budget','note']],
   trade: ['report_trade_details',['row_key','organization_code','organization_name','organization_type','region','activity_type','activity_date_text','activity_days','workshop_count','social_post_count','reach','lead_count','order_count','budget','revenue','is_new_contract','note'],['rowKey','organizationCode','organizationName','organizationType','region','activityType','activityDateText','activityDays','workshopCount','socialPostCount','reach','leadCount','orderCount','budget','revenue','isNewContract','note']],
-  training: ['report_training_details',['row_key','course_code','course_name','class_count','active_student_count','student_target','new_student_count','completed_student_count','qualified_student_count','output_rate','teacher_count','started_class_count','completed_class_count','upsell_revenue','upsell_revenue_target','status','note'],['rowKey','courseCode','courseName','classCount','activeStudentCount','studentTarget','newStudentCount','completedStudentCount','qualifiedStudentCount','outputRate','teacherCount','startedClassCount','completedClassCount','upsellRevenue','upsellRevenueTarget','status','note']],
-  products: ['report_product_details',['row_key','product_group','activity_code','activity_name','activity_type','owner_unit','cooperating_unit','planned_start_date','planned_end_date','actual_start_date','actual_end_date','target_quantity','actual_quantity','progress_status','output_url','implementation_result','evaluation_result','next_action','note'],['rowKey','productGroup','activityCode','activityName','activityType','ownerUnit','cooperatingUnit','plannedStartDate','plannedEndDate','actualStartDate','actualEndDate','targetQuantity','actualQuantity','progressStatus','outputUrl','implementationResult','evaluationResult','nextAction','note']]
+  training: ['report_training_details',['row_key','course_code','course_name','class_count','active_student_count','student_target','new_student_count','completed_student_count','evaluated_student_count','qualified_student_count','output_rate','teacher_count','started_class_count','completed_class_count','upsell_revenue','upsell_revenue_target','status','note'],['rowKey','courseCode','courseName','classCount','activeStudentCount','studentTarget','newStudentCount','completedStudentCount','evaluatedStudentCount','qualifiedStudentCount','outputRate','teacherCount','startedClassCount','completedClassCount','upsellRevenue','upsellRevenueTarget','status','note']],
+  products: ['report_product_details',['row_key','product_group','activity_code','activity_name','activity_type','kpi_code','contribution_value','progress_percent','owner_unit','cooperating_unit','planned_start_date','planned_end_date','actual_start_date','actual_end_date','target_quantity','actual_quantity','progress_status','output_url','implementation_result','evaluation_result','next_action','note'],['rowKey','productGroup','activityCode','activityName','activityType','kpiCode','contributionValue','progressPercent','ownerUnit','cooperatingUnit','plannedStartDate','plannedEndDate','actualStartDate','actualEndDate','targetQuantity','actualQuantity','progressStatus','outputUrl','implementationResult','evaluationResult','nextAction','note']]
 };
 
 async function insertDetailRows(client, versionId, key, data) {
@@ -154,7 +154,7 @@ module.exports = {
         FROM report_kpi_values v JOIN report_kpi_definitions d ON d.id=v.kpi_definition_id JOIN report_teams t ON t.id=d.team_id
         WHERE v.version_id=$1 AND t.code=$2 ORDER BY COALESCE(v.display_order_snapshot,d.display_order)`, [versionId,teamCode]),
       db.query(`SELECT n.* FROM report_notes n JOIN report_teams t ON t.id=n.team_id WHERE n.version_id=$1 AND t.code=$2`, [versionId,teamCode]),
-      getKpiHistory(version.rows[0].year,version.rows[0].month,teamCode)
+      getKpiHistory(version.rows[0].year,version.rows[0].month,teamCode,versionId)
     ]);
     const detailMap = { REV:'report_revenue_details',ADS:'report_ads_channel_details',COM:'report_social_details',TRADE:'report_trade_details',TRAIN:'report_training_details',PROD:'report_product_details' };
     const table = detailMap[teamCode] || detailMap.REV;
@@ -172,7 +172,7 @@ module.exports = {
     if(teamCode==='COM'){
       const period=version.rows[0],previousYear=Number(period.month)===1?Number(period.year)-1:Number(period.year),previousMonth=Number(period.month)===1?12:Number(period.month)-1;
       const history=await db.query(`SELECT d.channel_code,d.channel_name,d.followers_current,d.reach_current FROM report_periods p JOIN report_social_details d ON d.version_id=p.current_version_id WHERE p.year=$1 AND p.month=$2`,[previousYear,previousMonth]);
-      detailRows=enrichSocialHistory(detailRows,history.rows);
+      detailRows=enrichSocialHistory(detailRows,history.rows).map(row=>({...row,followers_growth:row.followers_previous?Number(row.followers_current)/Number(row.followers_previous)-1:null,reach_growth:row.reach_previous?Number(row.reach_current)/Number(row.reach_previous)-1:null,organic_rate:row.reach_current?Number(row.organic_reach)/Number(row.reach_current):null,engagement_rate:row.reach_current?Number(row.engagement_count)/Number(row.reach_current):null}));
     }
     const detailSections=[{key:teamCode==='ADS'?'adsChannels':teamCode.toLowerCase(),title:teamCode==='ADS'?'Hiệu quả theo nguồn Ads':'Dữ liệu chi tiết',rows:detailRows}];
     if(teamCode==='ADS'){

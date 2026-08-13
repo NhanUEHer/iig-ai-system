@@ -26,7 +26,7 @@ const INTEGER_FIELDS = new Set([
   'reach_current','reach_previous','video_views','engagement_count','class_count',
   'active_student_count','student_target','new_student_count','completed_student_count',
   'qualified_student_count','teacher_count','started_class_count','completed_class_count',
-  'workshop_count','social_post_count','target_quantity','actual_quantity'
+  'evaluated_student_count','workshop_count','social_post_count','target_quantity','actual_quantity'
 ]);
 
 const normalize = value => String(value ?? '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9]+/g,' ' ).trim();
@@ -190,7 +190,7 @@ function objectRows(rows, headerIndex, fields, stopTitle=null, errors=[],section
     if(stopTitle&&normalize(row[0])===normalize(stopTitle))break;
     if(!row.some(value=>value!==null&&String(value).trim()!==''))continue;
     const item={row_key:crypto.randomUUID()};
-    fields.forEach((field,fieldIndex)=>{const value=indexes[fieldIndex]>=0?row[indexes[fieldIndex]]:null;if(field[2]==='number'){item[field[0]]=parseFieldNumber(value,field[0]);if(value!==null&&value!==undefined&&String(value).trim()!==''&&item[field[0]]===null)errors.push(`${section} dòng ${index-headerIndex}: “${value}” tại ${field[1]} sai định dạng số Việt Nam.`);}else if(field[2]==='date_text'){item[field[0]]=value===null?null:parseDeploymentDate(value,XLSX);if(value!==null&&value!==undefined&&String(value).trim()!==''&&!item[field[0]])errors.push(`${section} dòng ${index-headerIndex}: “${value}” tại ${field[1]} phải là một ngày, khoảng ngày hoặc nhiều ngày phân cách bằng dấu chấm phẩy.`);}else item[field[0]]=field[2]==='date'?parseDate(value):value===null?null:String(value).trim();});
+    fields.forEach((field,fieldIndex)=>{const value=indexes[fieldIndex]>=0?row[indexes[fieldIndex]]:null;if(field[2]==='number'){item[field[0]]=parseFieldNumber(value,field[0]);if(value!==null&&value!==undefined&&String(value).trim()!==''&&item[field[0]]===null)errors.push(`${section} dòng ${index-headerIndex}: “${value}” tại ${field[1]} sai định dạng số Việt Nam.`);}else if(field[2]==='boolean'){const normalized=normalize(value);item[field[0]]=['co','yes','true','1','x'].includes(normalized);if(value!==null&&value!==undefined&&String(value).trim()!==''&&!['co','khong','yes','no','true','false','1','0','x'].includes(normalized))errors.push(`${section} dòng ${index-headerIndex}: ${field[1]} chỉ nhận Có/Không.`);}else if(field[2]==='date_text'){item[field[0]]=value===null?null:parseDeploymentDate(value,XLSX);if(value!==null&&value!==undefined&&String(value).trim()!==''&&!item[field[0]])errors.push(`${section} dòng ${index-headerIndex}: “${value}” tại ${field[1]} phải là một ngày, khoảng ngày hoặc nhiều ngày phân cách bằng dấu chấm phẩy.`);}else item[field[0]]=field[2]==='date'?parseDate(value):value===null?null:String(value).trim();});
     result.push(item);
   }
   return result;

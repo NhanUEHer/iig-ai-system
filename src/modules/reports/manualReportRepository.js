@@ -99,33 +99,33 @@ module.exports={
     return {...item,kpis:kpis.rows,note:note.rows[0]||{},};
   },
   async getDetails(versionId,detailKey) { const [table]=DETAIL_CONFIG[detailKey];const result=await db.query(`SELECT * FROM ${table} WHERE version_id=$1 ORDER BY display_order,row_key`,[versionId]);return result.rows; },
-  async getRevenueHistory(year,month) {
+  async getRevenueHistory(year,month,versionId=null) {
     const previousYear=month===1?year-1:year,previousMonth=month===1?12:month-1;
     const result=await db.query(`SELECT source_period,product_code,product_group,product_name,revenue FROM (
-      SELECT 'previous' source_period,d.product_code,d.product_group,d.product_name,d.revenue FROM report_periods p JOIN report_revenue_details d ON d.version_id=p.current_version_id WHERE p.year=$1 AND p.month=$2
+      SELECT 'previous' source_period,d.product_code,d.product_group,d.product_name,d.revenue FROM report_periods p JOIN report_revenue_details d ON d.version_id=COALESCE((SELECT source_version_id FROM report_history_snapshots WHERE version_id=$5 AND comparison_type='previous_period'),p.current_version_id) WHERE p.year=$1 AND p.month=$2
       UNION ALL
-      SELECT 'prior_year',d.product_code,d.product_group,d.product_name,d.revenue FROM report_periods p JOIN report_revenue_details d ON d.version_id=p.current_version_id WHERE p.year=$3 AND p.month=$4
-    ) history`,[previousYear,previousMonth,year-1,month]);
+      SELECT 'prior_year',d.product_code,d.product_group,d.product_name,d.revenue FROM report_periods p JOIN report_revenue_details d ON d.version_id=COALESCE((SELECT source_version_id FROM report_history_snapshots WHERE version_id=$5 AND comparison_type='prior_year'),p.current_version_id) WHERE p.year=$3 AND p.month=$4
+    ) history`,[previousYear,previousMonth,year-1,month,versionId]);
     return result.rows;
   },
-  async getSocialHistory(year,month) {
+  async getSocialHistory(year,month,versionId=null) {
     const previousYear=month===1?year-1:year,previousMonth=month===1?12:month-1;
     const result=await db.query(`SELECT d.channel_code,d.channel_name,d.followers_current,d.reach_current
-      FROM report_periods p JOIN report_social_details d ON d.version_id=p.current_version_id
-      WHERE p.year=$1 AND p.month=$2`,[previousYear,previousMonth]);
+      FROM report_periods p JOIN report_social_details d ON d.version_id=COALESCE((SELECT source_version_id FROM report_history_snapshots WHERE version_id=$3 AND comparison_type='previous_period'),p.current_version_id)
+      WHERE p.year=$1 AND p.month=$2`,[previousYear,previousMonth,versionId]);
     return result.rows;
   },
-  async getKpiHistory(year,month,teamCode) {
+  async getKpiHistory(year,month,teamCode,versionId=null) {
     const previousYear=month===1?year-1:year,previousMonth=month===1?12:month-1;
     const result=await db.query(`SELECT source_period,team_code,code,actual_value FROM (
       SELECT 'previous' source_period,t.code team_code,COALESCE(k.kpi_code,d.code) code,k.actual_value
-      FROM report_periods p JOIN report_kpi_values k ON k.version_id=p.current_version_id JOIN report_kpi_definitions d ON d.id=k.kpi_definition_id JOIN report_teams t ON t.id=d.team_id
+      FROM report_periods p JOIN report_kpi_values k ON k.version_id=COALESCE((SELECT source_version_id FROM report_history_snapshots WHERE version_id=$6 AND comparison_type='previous_period'),p.current_version_id) JOIN report_kpi_definitions d ON d.id=k.kpi_definition_id JOIN report_teams t ON t.id=d.team_id
       WHERE p.year=$1 AND p.month=$2 AND t.code=$5
       UNION ALL
       SELECT 'prior_year',t.code,COALESCE(k.kpi_code,d.code),k.actual_value
-      FROM report_periods p JOIN report_kpi_values k ON k.version_id=p.current_version_id JOIN report_kpi_definitions d ON d.id=k.kpi_definition_id JOIN report_teams t ON t.id=d.team_id
+      FROM report_periods p JOIN report_kpi_values k ON k.version_id=COALESCE((SELECT source_version_id FROM report_history_snapshots WHERE version_id=$6 AND comparison_type='prior_year'),p.current_version_id) JOIN report_kpi_definitions d ON d.id=k.kpi_definition_id JOIN report_teams t ON t.id=d.team_id
       WHERE p.year=$3 AND p.month=$4 AND t.code=$5
-    ) history`,[previousYear,previousMonth,year-1,month,teamCode]);
+    ) history`,[previousYear,previousMonth,year-1,month,teamCode,versionId]);
     return result.rows;
   },
   async saveWorkspace({base,detailKey,rows,extraDetails,kpis,note,validation,userId,expectedRevision}) {
@@ -163,6 +163,14 @@ module.exports={
       const version=await client.query(`SELECT * FROM report_data_versions WHERE period_id=$1 AND source_type='manual_entry' AND status='draft' ORDER BY version_no DESC LIMIT 1 FOR UPDATE`,[periodId]);if(!version.rows[0])return {noDraft:true};
       const unassigned=await client.query(`SELECT COUNT(*)::int count FROM report_manual_submissions WHERE version_id=$1 AND assigned_user_id IS NULL`,[version.rows[0].id]);if(unassigned.rows[0].count)return {unassigned:unassigned.rows[0].count};
       const pending=await client.query(`SELECT COUNT(*)::int count FROM report_manual_submissions WHERE version_id=$1 AND status<>'approved'`,[version.rows[0].id]);if(pending.rows[0].count)return {pending:pending.rows[0].count};
+      const previousYear=Number(period.rows[0].month)===1?Number(period.rows[0].year)-1:Number(period.rows[0].year),previousMonth=Number(period.rows[0].month)===1?12:Number(period.rows[0].month)-1;
+      await client.query(`INSERT INTO report_history_snapshots(version_id,comparison_type,source_period_id,source_version_id)
+        SELECT $1,source.comparison_type,p.id,p.current_version_id FROM (VALUES
+          ('previous_period'::varchar,$2::int,$3::int),('prior_year'::varchar,$4::int,$5::int)
+        ) source(comparison_type,year,month) JOIN report_periods p ON p.year=source.year AND p.month=source.month
+        JOIN report_data_versions source_version ON source_version.id=p.current_version_id AND source_version.status='published'
+        ON CONFLICT(version_id,comparison_type) DO UPDATE SET source_period_id=EXCLUDED.source_period_id,source_version_id=EXCLUDED.source_version_id,captured_at=CURRENT_TIMESTAMP`,
+        [version.rows[0].id,previousYear,previousMonth,Number(period.rows[0].year)-1,Number(period.rows[0].month)]);
       await client.query(`UPDATE report_data_versions SET status='superseded' WHERE period_id=$1 AND status='published'`,[periodId]);
       await client.query(`UPDATE report_data_versions SET status='published',published_by=$2,published_at=CURRENT_TIMESTAMP WHERE id=$1`,[version.rows[0].id,userId]);
       await client.query(`UPDATE report_periods SET current_version_id=$2,status='published',approved_by=$3,approved_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[periodId,version.rows[0].id,userId]);

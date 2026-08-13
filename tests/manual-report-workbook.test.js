@@ -118,8 +118,11 @@ test('Trade template keeps deployment dates as DD/MM/YYYY text cells', () => {
   current.details=[{organization_name:'Trường A',activity_date_text:'01/08/2026 - 03/08/2026',activity_days:7}];
   const workbook=XLSX.read(buildTemplate(current),{type:'buffer',cellNF:true});
   const sheet=workbook.Sheets['Chi tiết'];
-  assert.equal(sheet.D7.z,'@');
-  assert.match(sheet.D6.c[0].t,/DD\/MM\/YYYY/);
+  const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:null});
+  const column=rows[5].indexOf('Ngày triển khai');
+  const header=XLSX.utils.encode_cell({r:5,c:column}),value=XLSX.utils.encode_cell({r:6,c:column});
+  assert.equal(sheet[value].z,'@');
+  assert.match(sheet[header].c[0].t,/DD\/MM\/YYYY/);
   const parsed=parseTemplate(buildTemplate(current),current);
   assert.equal(parsed.details[0].activity_days,'7');
 });
@@ -128,7 +131,9 @@ test('Product template displays editable dates as DD/MM/YYYY', () => {
   const current=workspace('PROD');
   const workbook=XLSX.read(buildTemplate(current),{type:'buffer',cellNF:true});
   const sheet=workbook.Sheets['Chi tiết'];
-  assert.equal(sheet.I7.z,'dd/mm/yyyy');
+  const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:null});
+  const column=rows[5].indexOf('Ngày hoàn thành');
+  assert.equal(sheet[XLSX.utils.encode_cell({r:6,c:column})].z,'dd/mm/yyyy');
 });
 
 test('Communication template excludes system-derived previous followers and reach', () => {
