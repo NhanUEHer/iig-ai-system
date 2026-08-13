@@ -13,4 +13,11 @@ export function healthScore(kpi) {
   return actual / target;
 }
 
+export function actualTargetRatio(kpi) {
+  const target = numberOrNull(kpi.target_value);
+  const actual = numberOrNull(kpi.actual_value);
+  if (target === null || actual === null || target === 0) return null;
+  return actual / target;
+}
+
 export const healthStatus = score => score === null ? 'missing' : score >= 1 ? 'good' : score >= 0.85 ? 'near' : 'risk';

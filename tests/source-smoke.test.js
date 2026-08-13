@@ -18,6 +18,14 @@ test('database migrations include core, Local TTS, and secure auth tables', () =
   assert.match(authSchema, /CREATE TABLE IF NOT EXISTS password_action_tokens/);
 });
 
+test('revenue template rows copy and backfill their configured product group', () => {
+  const config = read('src/modules/reports/detailRowConfig.js');
+  const migration = read('src/database/migrations/035_backfill_revenue_product_groups.sql');
+  assert.match(config, /REV:\{detailKey:'revenue',codeField:'product_code',nameField:'product_name',groupField:'product_group'\}/);
+  assert.match(migration, /detail\.product_code = template\.row_code/);
+  assert.match(migration, /SET product_group = template\.row_group/);
+});
+
 test('multi-role migration creates assignments, audit history, and legacy backfill', () => {
   const migration = read('src/database/migrations/029_user_multiple_roles.sql');
   assert.match(migration, /CREATE TABLE IF NOT EXISTS user_roles/);

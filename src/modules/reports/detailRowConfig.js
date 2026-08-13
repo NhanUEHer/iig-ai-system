@@ -1,5 +1,5 @@
 const CONFIG={
-  REV:{detailKey:'revenue',codeField:'product_code',nameField:'product_name'},
+  REV:{detailKey:'revenue',codeField:'product_code',nameField:'product_name',groupField:'product_group'},
   ADS:{sections:{traffic:{detailKey:'adsChannels',codeField:'channel_code',nameField:'traffic_source'},products:{detailKey:'adsProducts',codeField:'product_code',nameField:'product_name',groupField:'product_group'}}},
   COM:{detailKey:'social',codeField:'channel_code',nameField:'channel_name'},
   TRADE:{detailKey:'trade',codeField:'organization_code',nameField:'organization_name'},
