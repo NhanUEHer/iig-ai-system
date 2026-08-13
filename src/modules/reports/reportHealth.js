@@ -13,8 +13,15 @@ function healthScore(item) {
   return actual / target;
 }
 
+function actualTargetRatio(item) {
+  const target = numericOrNull(item.target_value);
+  const actual = numericOrNull(item.actual_value);
+  if (target === null || actual === null || target === 0) return null;
+  return actual / target;
+}
+
 function healthStatus(score) {
   return score === null ? 'missing' : score >= 1 ? 'good' : score >= 0.85 ? 'near' : 'risk';
 }
 
-module.exports = { numericOrNull, healthScore, healthStatus };
+module.exports = { numericOrNull, healthScore, actualTargetRatio, healthStatus };

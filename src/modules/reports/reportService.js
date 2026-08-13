@@ -3,7 +3,7 @@ const path = require('path');
 const HttpError = require('../../http/httpError');
 const repository = require('./reportRepository');
 const { parseWorkbook } = require('./reportWorkbookParser');
-const { healthScore, healthStatus } = require('./reportHealth');
+const { actualTargetRatio, healthScore, healthStatus } = require('./reportHealth');
 const { validatePeriodMatch, validateKpiCatalog } = require('./reportImportValidation');
 const VALID_TEAM_CODES = new Set(['REV','ADS','COM','TRADE','TRAIN','PROD']);
 
@@ -74,8 +74,8 @@ module.exports = {
     const teamCode=query.team?String(query.team).toUpperCase():null;
     if (teamCode && !VALID_TEAM_CODES.has(teamCode)) throw new HttpError('Bộ phận báo cáo không hợp lệ.',400,'REPORT_TEAM_INVALID');
     const rows=await repository.getTrendRows({year,teamCode});
-    const months=new Map(); rows.forEach(row=>{const key=Number(row.month);if(!months.has(key))months.set(key,{month:key,sum:0,count:0});const item=months.get(key);const score=healthScore(row);if(score!==null){item.sum+=score;item.count++;}});
-    return [...months.values()].map(item=>({month:item.month,average:item.count?item.sum/item.count:null,total:item.count}));
+    const months=new Map(); rows.forEach(row=>{const key=Number(row.month);if(!months.has(key))months.set(key,{month:key,sum:0,count:0,evaluated:0,monitored:0});const item=months.get(key);const monitor=row.evaluation_direction==='monitor';const ratio=monitor?actualTargetRatio(row):healthScore(row);if(ratio!==null){item.sum+=Math.min(ratio,1.2);item.count++;if(monitor)item.monitored++;else item.evaluated++;}});
+    return [...months.values()].map(item=>({month:item.month,average:item.count?item.sum/item.count:null,total:item.count,evaluated:item.evaluated,monitored:item.monitored}));
   },
   history: query => repository.listImports(Math.min(100,Math.max(1,Number(query.limit)||20)))
 };

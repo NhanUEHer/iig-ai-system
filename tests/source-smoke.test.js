@@ -26,6 +26,20 @@ test('revenue template rows copy and backfill their configured product group', (
   assert.match(migration, /SET product_group = template\.row_group/);
 });
 
+test('monitor KPIs show TH/KH ratios but remain excluded from aggregate completion', () => {
+  const dashboard = read('frontend/src/features/reports/pages/KpiReportPage.jsx');
+  assert.match(dashboard, /monitor\?actualTargetRatio\(kpi\):healthScore\(kpi\)/);
+  assert.match(dashboard, /KPI được đánh giá/);
+  assert.match(dashboard, /KPI theo dõi/);
+});
+
+test('KPI hover details expose unrounded plan, actual and achieved ratio', () => {
+  const dashboard = read('frontend/src/features/reports/pages/KpiReportPage.jsx');
+  assert.match(dashboard, /Kế hoạch<\/dt><dd>\{fullMetric/);
+  assert.match(dashboard, /Thực hiện<\/dt><dd>\{fullMetric/);
+  assert.match(dashboard, /Tỷ lệ đạt được<\/dt><dd>\{fullPercent/);
+});
+
 test('multi-role migration creates assignments, audit history, and legacy backfill', () => {
   const migration = read('src/database/migrations/029_user_multiple_roles.sql');
   assert.match(migration, /CREATE TABLE IF NOT EXISTS user_roles/);
