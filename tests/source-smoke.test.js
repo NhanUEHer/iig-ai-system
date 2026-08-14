@@ -182,8 +182,32 @@ test('communication tables show a formula-aware total row in entry and dashboard
   const dashboard=read('frontend/src/features/reports/pages/KpiReportPage.jsx');
   assert.match(entry,/function CommunicationTotalRow/);
   assert.match(entry,/team==='COM'&&details\.length>0&&<CommunicationTotalRow/);
-  assert.match(dashboard,/tab==='COM'&&filteredDetails\.length>0&&<tr className="dashboard-total-row"/);
+  assert.match(dashboard,/tab==='COM'\?communicationTotals\[key\]:detailTotals\[key\]/);
   assert.match(dashboard,/engagement_rate:dashboard\?\.kpis\?\.find\(kpi=>kpi\.code==='TT_05'\)\?\.actual_value/);
+});
+
+test('all report detail tables show totals with ratios recalculated from aggregate data',()=>{
+  const entry=read('frontend/src/features/reports/pages/ManualReportPage.jsx');
+  const dashboard=read('frontend/src/features/reports/pages/KpiReportPage.jsx');
+  assert.match(entry,/function GenericDetailTotalRow/);
+  assert.match(entry,/\['TRADE','TRAIN','PROD'\]\.includes\(team\).*<GenericDetailTotalRow/);
+  assert.match(entry,/sum\('student_target'\)\?sum\('active_student_count'\)\/sum\('student_target'\)/);
+  assert.match(dashboard,/filteredDetails\.length>0&&<tr className="dashboard-total-row"/);
+  assert.match(dashboard,/student_achievement:ratio\(sum\('active_student_count'\),sum\('student_target'\)\)/);
+  assert.match(dashboard,/progress_percent:average\('progress_percent'\)/);
+});
+
+test('training detail matches the compact source Excel layout',()=>{
+  const config=read('src/modules/reports/manualReportConfig.js');
+  const dashboard=read('frontend/src/features/reports/pages/KpiReportPage.jsx');
+  const service=read('src/modules/reports/manualReportService.js');
+  const migration=read('src/database/migrations/039_align_training_form_with_excel.sql');
+  assert.match(config,/TRAIN:\{detailKey:'training'[\s\S]*?\['course_name','Khóa học'[\s\S]*?\['class_count','Số lớp'[\s\S]*?\['output_rate','Tỷ lệ đạt đầu ra','number'/);
+  assert.doesNotMatch(config,/\['started_class_count','Lớp khai giảng'/);
+  assert.doesNotMatch(config,/\['evaluated_student_count','HV được đánh giá'/);
+  assert.match(dashboard,/TRAIN:\['course_name','class_count','active_student_count','student_target','student_achievement','new_student_count','completed_student_count','teacher_count','output_rate','upsell_revenue','status','note'\]/);
+  assert.doesNotMatch(service,/output_rate:numeric\(row\.evaluated_student_count\)/);
+  assert.match(migration,/definition\.code IN \('DAO_05','DAO_07'\)/);
 });
 
 test('Trade new-contract count is summary input and is absent from detail forms',()=>{

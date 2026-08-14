@@ -23,9 +23,12 @@ test('empty detail does not create false zero KPI results',()=>{
   assert.deepEqual(calculate('ADS',[],{}),{});
 });
 
-test('all auditable training and product KPIs derive from detail rows',()=>{
-  const training=calculate('TRAIN',[{started_class_count:2,class_count:4,completed_class_count:1,active_student_count:20,new_student_count:5,completed_student_count:3,evaluated_student_count:2,qualified_student_count:1,upsell_revenue:100}],{});
-  assert.equal(training.DAO_04,0.5);assert.equal(training.DAO_05,2);assert.equal(training.DAO_06,4);assert.equal(training.DAO_07,1);
+test('training detail derives only KPIs represented by the source Excel columns',()=>{
+  const training=calculate('TRAIN',[{class_count:4,active_student_count:20,new_student_count:5,completed_student_count:3,output_rate:0.4,upsell_revenue:100},{class_count:2,active_student_count:10,new_student_count:2,completed_student_count:1,output_rate:0.6,upsell_revenue:50}],{DAO_05:3,DAO_07:1});
+  assert.equal(training.DAO_04,0.5);assert.equal(training.DAO_05,3);assert.equal(training.DAO_06,6);assert.equal(training.DAO_07,1);
+});
+
+test('product KPIs derive from mapped contribution rows',()=>{
   const product=calculate('PROD',[{kpi_code:'SP_02',contribution_value:'0.5'},{kpi_code:'SP_02 · Khóa TOEIC',contribution_value:'0.5'}],{});
   assert.equal(product.SP_02,1);
 });
