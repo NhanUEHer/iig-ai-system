@@ -20,7 +20,7 @@ const DETAIL_COLUMNS={
   COM:['channel_name','followers_current','followers_previous','followers_growth','reach_current','reach_previous','reach_growth','video_views','engagement_rate','lead_count','revenue','note'],
   TRADE:['organization_name','organization_type','region','activity_date_text','activity_days','workshop_count','reach','lead_count','budget','revenue','note'],
   TRAIN:['course_name','class_count','active_student_count','student_target','student_achievement','new_student_count','completed_student_count','teacher_count','output_rate','upsell_revenue','status','note'],
-  PROD:['product_group','activity_name','activity_type','kpi_code','target_quantity','actual_quantity','contribution_value','owner_unit','cooperating_unit','next_action','implementation_result','progress_status','progress_percent','planned_end_date','actual_end_date','output_url','note']
+  PROD:['product_group','activity_name','activity_type','owner_unit','cooperating_unit','next_action','implementation_result','progress_status','actual_end_date','output_url','note']
 };
 const DETAIL_TITLES={REV:'Doanh thu theo sản phẩm',ADS:'Hiệu quả theo nguồn Ads',COM:'Hiệu quả theo kênh truyền thông',TRADE:'Chi tiết trường / sự kiện',TRAIN:'Kết quả theo khóa học',PROD:'Công việc / sản phẩm'};
 const TEAM_DETAIL_LABELS={REV:{monthly_target:'KH tháng',previous_revenue:'DT tháng trước'},ADS:{order_count:'Đơn hàng'},PROD:{contribution_value:'Giá trị KPI ghi nhận'}};

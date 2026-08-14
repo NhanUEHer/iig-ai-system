@@ -28,14 +28,14 @@ test('training detail derives only KPIs represented by the source Excel columns'
   assert.equal(training.DAO_04,0.5);assert.equal(training.DAO_05,3);assert.equal(training.DAO_06,6);assert.equal(training.DAO_07,1);
 });
 
-test('product KPIs derive from mapped contribution rows',()=>{
-  const product=calculate('PROD',[{kpi_code:'SP_02',contribution_value:'0.5'},{kpi_code:'SP_02 · Khóa TOEIC',contribution_value:'0.5'}],{});
-  assert.equal(product.SP_02,1);
+test('product KPIs remain manual because the Excel detail is explanatory only',()=>{
+  const product=calculate('PROD',[{activity_name:'Pre TOEIC'}],{SP_02:0.4});
+  assert.equal(product.SP_02,0.4);
 });
 
-test('cross-section reconciliation ignores Ads cost differences and reports blocking product mappings',()=>{
+test('cross-section reconciliation ignores Ads cost differences and explanatory product rows',()=>{
   const ads=reconcileWorkspace('ADS',[],[{budget_actual:100}],[{ad_cost:90}]);
   assert.equal(ads.errors.length,0);assert.equal(ads.warnings.length,0);
-  const product=reconcileWorkspace('PROD',[],[{contribution_value:0.5,kpi_code:null}],[]);
-  assert.equal(product.errors.length,1);
+  const product=reconcileWorkspace('PROD',[],[{activity_name:'Pre TOEIC'}],[]);
+  assert.equal(product.errors.length,0);
 });

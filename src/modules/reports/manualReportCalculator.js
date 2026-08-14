@@ -11,7 +11,6 @@ function calculate(teamCode,rows,manual={}) {
   if(teamCode==='COM') { const fc=sum(rows,'followers_current'),fp=sum(rows,'followers_previous'),reach=sum(rows,'reach_current');result.TT_01=fc;result.TT_02=ratio(fc-fp,fp);result.TT_03=reach;result.TT_06=sum(rows,'video_views');result.TT_07=sum(rows,'lead_count');result.TT_09=sum(rows,'revenue'); }
   if(teamCode==='TRADE') { const schoolRows=rows.filter(row=>!['Email','Threads','ZBS'].includes(String(row.organization_name||'').trim()));result.TRADE_03=new Set(schoolRows.map(r=>String(r.organization_code||r.organization_name||'').trim()).filter(Boolean)).size;result.TRADE_04=sum(rows,'activity_days');result.TRADE_05=sum(rows,'workshop_count');result.TRADE_07=sum(rows,'reach');result.TRADE_08=sum(rows,'lead_count');result.TRADE_09=sum(rows,'budget');result.TRADE_10=sum(rows,'revenue');result.TRADE_11=ratio(result.TRADE_09,result.TRADE_10); }
   if(teamCode==='TRAIN') { result.DAO_01=sum(rows,'active_student_count');result.DAO_02=sum(rows,'new_student_count');result.DAO_03=sum(rows,'completed_student_count');result.DAO_04=average(rows,'output_rate');result.DAO_06=sum(rows,'class_count');result.DAO_09=sum(rows,'upsell_revenue'); }
-  if(teamCode==='PROD') for(const code of ['SP_01','SP_02','SP_03','SP_04','SP_05']) result[code]=rows.filter(row=>String(row.kpi_code||'').toUpperCase().startsWith(code)).reduce((total,row)=>total+(n(row.contribution_value)||0),0);
   return result;
 }
 
@@ -28,7 +27,6 @@ function reconcileWorkspace(teamCode,kpis,rows,extraRows=[]) {
   const errors=[];const warnings=[];const kpi=code=>kpis.find(item=>String(item.code).toUpperCase()===code);const differs=(a,b)=>Math.abs(Number(a||0)-Number(b||0))>0.000001;
   if(teamCode==='REV'&&kpi('DT_01')?.target_value!==null&&differs(kpi('DT_01').target_value,sum(rows,'monthly_target')))warnings.push('Tổng KH tháng theo sản phẩm chưa khớp kế hoạch DT_01.');
   if(teamCode==='TRAIN'&&kpi('DAO_01')?.target_value!==null&&differs(kpi('DAO_01').target_value,sum(rows,'student_target')))warnings.push('Tổng KH học viên theo khóa chưa khớp kế hoạch DAO_01.');
-  if(teamCode==='PROD')rows.forEach((row,index)=>{if(n(row.contribution_value)!==null&&!String(row.kpi_code||'').trim())errors.push(`Dòng ${index+1}: Phải chọn KPI đóng góp khi nhập giá trị KPI ghi nhận.`);});
   return {errors,warnings};
 }
 

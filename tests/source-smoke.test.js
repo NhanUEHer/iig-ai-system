@@ -217,6 +217,16 @@ test('training completion is recalculated immediately from the edited detail row
   assert.match(source,/value=\{detailFieldValue\(row,field\)\}/);
 });
 
+test('product detail matches the explanatory source Excel layout',()=>{
+  const config=read('src/modules/reports/manualReportConfig.js');
+  const dashboard=read('frontend/src/features/reports/pages/KpiReportPage.jsx');
+  const migration=read('src/database/migrations/040_align_product_form_with_excel.sql');
+  assert.match(dashboard,/PROD:\['product_group','activity_name','activity_type','owner_unit','cooperating_unit','next_action','implementation_result','progress_status','actual_end_date','output_url','note'\]/);
+  for(const key of ['kpi_code','target_quantity','actual_quantity','contribution_value','progress_percent','planned_end_date'])assert.doesNotMatch(config,new RegExp(`\\['${key}'`));
+  assert.match(migration,/input_mode_snapshot='manual'/);
+  assert.match(migration,/value\.kpi_code IN\('SP_01','SP_02','SP_03','SP_04','SP_05'\)/);
+});
+
 test('configured report rows may be removed for an individual period',()=>{
   const source=read('src/modules/reports/manualReportService.js');
   assert.doesNotMatch(source,/incomingRows\.length!==currentRows\.length/);
