@@ -234,6 +234,14 @@ test('product document URLs render as safe dashboard links',()=>{
   assert.match(source,/target="_blank" rel="noopener noreferrer"/);
 });
 
+test('report percentages use exactly two decimal places including hover details',()=>{
+  const dashboard=read('frontend/src/features/reports/pages/KpiReportPage.jsx');
+  const entry=read('frontend/src/features/reports/pages/ManualReportPage.jsx');
+  assert.match(dashboard,/minimumFractionDigits:2,maximumFractionDigits:2/);
+  assert.doesNotMatch(dashboard,/maximumFractionDigits:20/);
+  assert.match(entry,/minimumFractionDigits:2,maximumFractionDigits:2/);
+});
+
 test('configured report rows may be removed for an individual period',()=>{
   const source=read('src/modules/reports/manualReportService.js');
   assert.doesNotMatch(source,/incomingRows\.length!==currentRows\.length/);

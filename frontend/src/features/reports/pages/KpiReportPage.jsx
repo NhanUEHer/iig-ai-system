@@ -35,16 +35,16 @@ const SUM_DETAIL_KEYS=new Set([...NUMBER_DETAIL_KEYS].filter(key=>!['revenue_per
 const displayDate=value=>{if(!value)return '—';const match=String(value).match(/^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/);if(!match)return String(value);const date=new Date(Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3])));return date.getUTCFullYear()===Number(match[1])&&date.getUTCMonth()===Number(match[2])-1&&date.getUTCDate()===Number(match[3])?`${match[3]}/${match[2]}/${match[1]}`:String(value);};
 const safeDocumentUrl=value=>{try{const url=new URL(String(value||'').trim());return ['http:','https:'].includes(url.protocol)?url.href:null;}catch{return null;}};
 const detailDisplay=(key,value)=>{if(key==='output_url'){const href=safeDocumentUrl(value);return href?<a className="detail-document-link" href={href} target="_blank" rel="noopener noreferrer" title={href}>Liên kết</a>:'—';}return PERCENT_DETAIL_KEYS.has(key)?percent(value):NUMBER_DETAIL_KEYS.has(key)?plainNumber(value):DATE_DETAIL_KEYS.has(key)?displayDate(value):value||'—';};
-const percent = value => num(value) === null || !Number.isFinite(num(value)) ? '—' : `${(num(value)*100).toLocaleString('vi-VN',{maximumFractionDigits:1})}%`;
+const percent = value => num(value) === null || !Number.isFinite(num(value)) ? '—' : `${(num(value)*100).toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}%`;
 const fullNumber=value=>{if(value===null||value===undefined||value==='')return'—';const text=String(value).trim();const match=text.match(/^(-?)(\d+)(?:\.(\d+))?$/);if(!match)return text;const grouped=match[2].replace(/\B(?=(\d{3})+(?!\d))/g,'.');return`${match[1]}${grouped}${match[3]?`,${match[3]}`:''}`;};
-const fullPercent=value=>num(value)===null||!Number.isFinite(num(value))?'—':`${(num(value)*100).toLocaleString('vi-VN',{useGrouping:true,maximumFractionDigits:20})}%`;
+const fullPercent=value=>num(value)===null||!Number.isFinite(num(value))?'—':`${(num(value)*100).toLocaleString('vi-VN',{useGrouping:true,minimumFractionDigits:2,maximumFractionDigits:2})}%`;
 const fullMetric=(value,unit='')=>{if(value===null||value===undefined||value==='')return'—';if(unit==='%')return fullPercent(value);return`${fullNumber(value)}${unit?` ${unit}`:''}`;};
 const plainNumber = value => num(value) === null || !Number.isFinite(num(value)) ? '—' : num(value).toLocaleString('vi-VN',{maximumFractionDigits:2});
 const metric = (value,unit='') => {
   let number=num(value); if(number===null || !Number.isFinite(number)) return '—';
   let suffix=unit;
   if(unit==='Tỷ đồng'){number/=1e9;suffix='B';} else if(unit==='Triệu đồng'){number/=1e6;suffix='M';}
-  if(unit==='%') return `${(number*100).toLocaleString('vi-VN',{maximumFractionDigits:1})}%`;
+  if(unit==='%') return `${(number*100).toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}%`;
   return `${number.toLocaleString('vi-VN',{maximumFractionDigits:number<10?2:1})}${suffix?` ${suffix}`:''}`;
 };
 function HorizontalBars({kpis=[]}) {
