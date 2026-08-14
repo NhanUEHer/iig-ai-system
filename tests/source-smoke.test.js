@@ -170,3 +170,12 @@ test('manual report forms allocate input width by data type',()=>{
   assert.match(styles,/\.detail-entry-table th\.field-text/);
   assert.match(styles,/min-height: 130px/);
 });
+
+test('Ads product revenue is manually editable and is not overwritten from REV',()=>{
+  const page=read('frontend/src/features/reports/pages/ManualReportPage.jsx');
+  const service=read('src/modules/reports/manualReportService.js');
+  assert.match(page,/<th>Doanh thu<\/th>/);
+  assert.match(page,/<NumericInput disabled={!editable} value={row\.revenue} onChange={value=>updateRow\(index,'revenue',value\)}\/>/);
+  assert.doesNotMatch(page,/Từ báo cáo REV|Doanh thu từ REV/);
+  assert.doesNotMatch(service,/referenceAdsRevenue|Doanh thu theo sản phẩm được làm mới từ báo cáo REV/);
+});
