@@ -41,6 +41,7 @@ test('KPI hover details expose unrounded plan, actual and achieved ratio', () =>
   const css = read('frontend/src/features/reports/pages/KpiReportPage.css');
   assert.match(css, /\.report-bars \.bar-track i:after\{display:none!important\}/);
   assert.match(css, /background:#172033;color:#fff/);
+  assert.match(css, /\.report-chart-grid\.redesigned \.report-bars>div>\.kpi-hover-detail\{[^}]*height:auto;overflow:visible;[^}]*background:#172033/);
 });
 
 test('multi-role migration creates assignments, audit history, and legacy backfill', () => {
@@ -178,4 +179,16 @@ test('Ads product revenue is manually editable and is not overwritten from REV',
   assert.match(page,/<NumericInput disabled={!editable} value={row\.revenue} onChange={value=>updateRow\(index,'revenue',value\)}\/>/);
   assert.doesNotMatch(page,/Từ báo cáo REV|Doanh thu từ REV/);
   assert.doesNotMatch(service,/referenceAdsRevenue|Doanh thu theo sản phẩm được làm mới từ báo cáo REV/);
+});
+
+test('Ads dashboard detail tables match the entry forms and formulas',()=>{
+  const dashboard=read('frontend/src/features/reports/pages/KpiReportPage.jsx');
+  assert.match(dashboard,/ADS:\['traffic_source','budget_target','budget_actual','budget_completion','lead_count','order_count','revenue','closing_rate','revenue_per_order','cpr','trend','note'\]/);
+  assert.match(dashboard,/ADS_PRODUCT_COLUMNS=\['product_group','product_name','ad_cost','ad_share','revenue','revenue_share_ads','note'\]/);
+  assert.match(dashboard,/key==='budget_completion'\?ratio\(row\.budget_actual,row\.budget_target\)/);
+  assert.match(dashboard,/key==='closing_rate'\?ratio\(row\.order_count,row\.lead_count\)/);
+  assert.match(dashboard,/key==='cpr'\?ratio\(row\.budget_actual,row\.revenue\)/);
+  assert.match(dashboard,/className="dashboard-total-row"/);
+  assert.match(dashboard,/DETAIL_TITLES=\{REV:'Doanh thu theo sản phẩm',ADS:'Hiệu quả theo nguồn Ads',COM:'Hiệu quả theo kênh truyền thông'/);
+  assert.match(dashboard,/TEAM_DETAIL_LABELS=\{REV:\{monthly_target:'KH tháng',previous_revenue:'DT tháng trước'\},ADS:\{order_count:'Đơn hàng'\}/);
 });
