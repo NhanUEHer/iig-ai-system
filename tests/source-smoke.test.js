@@ -227,6 +227,13 @@ test('product detail matches the explanatory source Excel layout',()=>{
   assert.match(migration,/value\.kpi_code IN\('SP_01','SP_02','SP_03','SP_04','SP_05'\)/);
 });
 
+test('product document URLs render as safe dashboard links',()=>{
+  const source=read('frontend/src/features/reports/pages/KpiReportPage.jsx');
+  assert.match(source,/\['http:','https:'\]\.includes\(url\.protocol\)/);
+  assert.match(source,/className="detail-document-link"[\s\S]*?>Liên kết<\/a>/);
+  assert.match(source,/target="_blank" rel="noopener noreferrer"/);
+});
+
 test('configured report rows may be removed for an individual period',()=>{
   const source=read('src/modules/reports/manualReportService.js');
   assert.doesNotMatch(source,/incomingRows\.length!==currentRows\.length/);
