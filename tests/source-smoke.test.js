@@ -169,6 +169,8 @@ test('communication detail matches the source Excel columns and summary-only KPI
   assert.match(communicationConfig,/\['engagement_rate','Engagement Rate','number'\]/);
   for(const field of ['organic_reach','organic_rate','engagement_count','budget'])assert.doesNotMatch(communicationConfig,new RegExp(`\\['${field}'`));
   for(const code of ['TT_04','TT_05','TT_08'])assert.doesNotMatch(calculator,new RegExp(`result\\.${code}=`));
+  assert.match(migration,/definition\.team_id=team\.id/);
+  assert.match(migration,/team\.code='COM'/);
   assert.match(migration,/value\.kpi_code IN \('TT_04','TT_05','TT_08'\)/);
 });
 
