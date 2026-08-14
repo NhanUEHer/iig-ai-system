@@ -127,9 +127,13 @@
 .deployment-date-values input.date-invalid { border-color:#dc2626; background:#fff1f2; }
 .detail-entry-table input.report-date-invalid { border-color:#dc2626; background:#fff1f2; }
 .range-date-control { position: relative; }
-.range-date-control > div:first-child { display: flex; align-items: center; }
-.range-date-control > div:first-child input { min-width: 245px; padding-right: 42px; }
-.range-date-control > div:first-child > button { width: 36px; height: 36px; margin-left: -39px; border: 0; background: transparent; color: #426bc2; }
+.range-date-fields { display: grid!important; grid-template-columns: minmax(135px,1fr) auto minmax(135px,1fr) 32px; align-items: end!important; gap: 6px; }
+.range-date-fields label { display: grid; gap: 3px; }
+.range-date-fields label > span { color: #667085; font-size: 10px; font-weight: 750; }
+.range-date-fields input { min-width: 135px!important; }
+.range-date-fields > i { padding-bottom: 10px; color: #8290a5; font-style: normal; }
+.range-date-fields > button { width: 32px!important; height: 36px!important; margin: 0!important; border: 0!important; background: transparent!important; color: #426bc2!important; }
+.range-date-control > small { display: block; margin-top: 4px; color: #c9362b; font-size: 10px; }
 .range-calendar-popover { position: absolute; z-index: 8; top: calc(100% + 6px); left: 0; width: 290px; padding: 10px; display: grid; gap: 8px; border: 1px solid #d5deeb; border-radius: 10px; background: #fff; box-shadow: 0 14px 34px rgba(30,48,78,.18); }
 .range-calendar-popover label { display: grid; grid-template-columns: 68px 1fr; align-items: center; gap: 8px; color: #667085; font-size: 11px; font-weight: 700; }
 .range-calendar-popover input { min-width: 0; }
