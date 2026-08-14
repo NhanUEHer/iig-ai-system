@@ -210,6 +210,13 @@ test('training detail matches the compact source Excel layout',()=>{
   assert.match(migration,/definition\.code IN \('DAO_05','DAO_07'\)/);
 });
 
+test('training completion is recalculated immediately from the edited detail row',()=>{
+  const source=read('frontend/src/features/reports/pages/ManualReportPage.jsx');
+  assert.match(source,/field\.key==='student_achievement'/);
+  assert.match(source,/actual\/target/);
+  assert.match(source,/value=\{detailFieldValue\(row,field\)\}/);
+});
+
 test('Trade new-contract count is summary input and is absent from detail forms',()=>{
   const config=read('src/modules/reports/manualReportConfig.js');
   const calculator=read('src/modules/reports/manualReportCalculator.js');
