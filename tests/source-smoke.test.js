@@ -323,3 +323,19 @@ test('Ads cost reconciliation never blocks report submission',()=>{
   assert.doesNotMatch(calculator,/Tổng chi phí Ads theo sản phẩm chưa khớp ngân sách thực hiện theo nguồn Traffic/);
   assert.match(repository,/action==='submit'&&\(s\.validation_result\?\.errors\|\|\[\]\)\.length/);
 });
+
+test('KPI hover shows previous-month and prior-year comparison data',()=>{
+  const dashboard=read('frontend/src/features/reports/pages/KpiReportPage.jsx');
+  assert.match(dashboard,/<dt>Tháng trước<\/dt><dd>\{fullMetric\(kpi\.previous_value,kpi\.unit\)\}/);
+  assert.match(dashboard,/<dt>% vs tháng trước<\/dt><dd>\{fullPercent\(kpi\.vs_previous\)\}/);
+  assert.match(dashboard,/<dt>Cùng kỳ<\/dt><dd>\{fullMetric\(kpi\.prior_year_value,kpi\.unit\)\}/);
+  assert.match(dashboard,/<dt>% vs cùng kỳ<\/dt><dd>\{fullPercent\(kpi\.prior_year_change\)\}/);
+});
+
+test('dashboard detail tables can sort every displayed data column',()=>{
+  const dashboard=read('frontend/src/features/reports/pages/KpiReportPage.jsx');
+  assert.match(dashboard,/detailColumns\.map\(key=><th key=\{key\}><button className=\{`sort-header/);
+  assert.match(dashboard,/ADS_PRODUCT_COLUMNS\.map\(key=><th key=\{key\}><button className=\{`sort-header/);
+  assert.match(dashboard,/sortedDetails\.map/);
+  assert.match(dashboard,/sortedAdsProductRows\.map/);
+});
