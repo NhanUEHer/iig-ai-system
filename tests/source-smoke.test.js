@@ -38,6 +38,9 @@ test('KPI hover details expose unrounded plan, actual and achieved ratio', () =>
   assert.match(dashboard, /Kế hoạch<\/dt><dd>\{fullMetric/);
   assert.match(dashboard, /Thực hiện<\/dt><dd>\{fullMetric/);
   assert.match(dashboard, /Tỷ lệ đạt được<\/dt><dd>\{fullPercent/);
+  const css = read('frontend/src/features/reports/pages/KpiReportPage.css');
+  assert.match(css, /\.report-bars \.bar-track i:after\{display:none!important\}/);
+  assert.match(css, /background:#172033;color:#fff/);
 });
 
 test('multi-role migration creates assignments, audit history, and legacy backfill', () => {
