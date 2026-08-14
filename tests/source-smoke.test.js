@@ -174,6 +174,15 @@ test('communication detail matches the source Excel columns and summary-only KPI
   assert.match(migration,/value\.kpi_code IN \('TT_04','TT_05','TT_08'\)/);
 });
 
+test('communication tables show a formula-aware total row in entry and dashboard views',()=>{
+  const entry=read('frontend/src/features/reports/pages/ManualReportPage.jsx');
+  const dashboard=read('frontend/src/features/reports/pages/KpiReportPage.jsx');
+  assert.match(entry,/function CommunicationTotalRow/);
+  assert.match(entry,/team==='COM'&&details\.length>0&&<CommunicationTotalRow/);
+  assert.match(dashboard,/tab==='COM'&&filteredDetails\.length>0&&<tr className="dashboard-total-row"/);
+  assert.match(dashboard,/engagement_rate:dashboard\?\.kpis\?\.find\(kpi=>kpi\.code==='TT_05'\)\?\.actual_value/);
+});
+
 test('manual report forms allocate input width by data type',()=>{
   const page=read('frontend/src/features/reports/pages/ManualReportPage.jsx');
   const styles=read('frontend/src/features/reports/pages/ManualReportPage.css');
