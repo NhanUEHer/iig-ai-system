@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {AlertCircle,ArrowLeft,CalendarDays,Check,Download,Eye,FileSpreadsheet,Plus,RefreshCw,RotateCcw,Save,Send,Trash2,Upload,X} from 'lucide-react';
+import {AlertCircle,ArrowLeft,Check,Download,Eye,FileSpreadsheet,Plus,RefreshCw,RotateCcw,Save,Send,Trash2,Upload,X} from 'lucide-react';
 import {useNavigate,useParams} from 'react-router-dom';
 import api from '../../../services/api';
 import {formatVietnameseNumber,parseVietnameseNumber} from '../utils/vietnameseNumber';
@@ -59,9 +59,9 @@ function ReportDateInput({value,onChange,disabled,label='Ngày'}){
 }
 
 function RangeDateInput({dates,onChange,disabled}){
-  const [calendarOpen,setCalendarOpen]=useState(false);const start=dates[0]||'',end=dates[1]||'';const invalid=Boolean(start&&end&&end<start);
-  const choose=(index,next)=>{const values=[start,end];values[index]=next;if(index===0&&values[1]&&values[1]<next)values[1]='';onChange(values);if(values[0]&&values[1]&&values[1]>=values[0])setCalendarOpen(false);};
-  return <div className={`range-date-control ${invalid?'deployment-date-invalid':''}`}><div className="range-date-fields"><label><span>Từ ngày</span><MaskedDateInput disabled={disabled} value={start} label="Từ ngày triển khai" onChange={next=>choose(0,next)}/></label><i>→</i><label><span>Đến ngày</span><MaskedDateInput disabled={disabled} value={end} label="Đến ngày triển khai" onChange={next=>choose(1,next)}/></label><button type="button" disabled={disabled} aria-label="Chọn khoảng ngày bằng lịch" onClick={()=>setCalendarOpen(open=>!open)}><CalendarDays/></button></div>{invalid&&<small>Đến ngày phải bằng hoặc sau Từ ngày.</small>}{calendarOpen&&<div className="range-calendar-popover"><label><span>Từ ngày</span><input type="date" value={start} onChange={event=>choose(0,event.target.value)}/></label><label><span>Đến ngày</span><input type="date" min={start||undefined} value={end} onChange={event=>choose(1,event.target.value)}/></label></div>}</div>;
+  const start=dates[0]||'',end=dates[1]||'';const invalid=Boolean(start&&end&&end<start);
+  const choose=(index,next)=>{const values=[start,end];values[index]=next;if(index===0&&values[1]&&values[1]<next)values[1]='';onChange(values);};
+  return <div className={`range-date-control ${invalid?'deployment-date-invalid':''}`}><div className="range-date-fields"><label><span>Từ ngày</span><input type="date" disabled={disabled} value={start} aria-label="Từ ngày triển khai" onChange={event=>choose(0,event.target.value)}/></label><i>→</i><label><span>Đến ngày</span><input type="date" disabled={disabled} min={start||undefined} value={end} aria-label="Đến ngày triển khai" onChange={event=>choose(1,event.target.value)}/></label></div>{invalid&&<small>Đến ngày phải bằng hoặc sau Từ ngày.</small>}</div>;
 }
 
 function DeploymentDateInput({value,onChange,disabled}){

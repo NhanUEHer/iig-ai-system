@@ -144,8 +144,9 @@ test('Trade date picker keeps date inputs mounted and blank added dates local',(
   assert.match(page,/dates\.map\(\(date,index\)=><div key=\{index\}>/);
   assert.doesNotMatch(page,/key=\{`\$\{index\}-\$\{date\}`\}/);
   assert.match(page,/maskDateDigits/);
-  assert.match(page,/label="Từ ngày triển khai"/);
-  assert.match(page,/label="Đến ngày triển khai"/);
+  assert.match(page,/aria-label="Từ ngày triển khai"/);
+  assert.match(page,/aria-label="Đến ngày triển khai"/);
+  assert.match(page,/type="date"/);
   assert.match(page,/min=\{start\|\|undefined\}/);
   assert.match(page,/values\[1\]&&values\[1\]<next/);
   assert.match(page,/RangeDateInput/);
