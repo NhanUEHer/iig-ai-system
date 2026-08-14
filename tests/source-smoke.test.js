@@ -192,3 +192,10 @@ test('Ads dashboard detail tables match the entry forms and formulas',()=>{
   assert.match(dashboard,/DETAIL_TITLES=\{REV:'Doanh thu theo sản phẩm',ADS:'Hiệu quả theo nguồn Ads',COM:'Hiệu quả theo kênh truyền thông'/);
   assert.match(dashboard,/TEAM_DETAIL_LABELS=\{REV:\{monthly_target:'KH tháng',previous_revenue:'DT tháng trước'\},ADS:\{order_count:'Đơn hàng'\}/);
 });
+
+test('Ads cost reconciliation never blocks report submission',()=>{
+  const calculator=read('src/modules/reports/manualReportCalculator.js');
+  const repository=read('src/modules/reports/manualReportRepository.js');
+  assert.doesNotMatch(calculator,/Tổng chi phí Ads theo sản phẩm chưa khớp ngân sách thực hiện theo nguồn Traffic/);
+  assert.match(repository,/action==='submit'&&\(s\.validation_result\?\.errors\|\|\[\]\)\.length/);
+});

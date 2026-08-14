@@ -30,9 +30,9 @@ test('all auditable training and product KPIs derive from detail rows',()=>{
   assert.equal(product.SP_02,1);
 });
 
-test('cross-section reconciliation reports differences without hiding draft data',()=>{
+test('cross-section reconciliation ignores Ads cost differences and reports blocking product mappings',()=>{
   const ads=reconcileWorkspace('ADS',[],[{budget_actual:100}],[{ad_cost:90}]);
-  assert.equal(ads.errors.length,0);assert.equal(ads.warnings.length,1);
+  assert.equal(ads.errors.length,0);assert.equal(ads.warnings.length,0);
   const product=reconcileWorkspace('PROD',[],[{contribution_value:0.5,kpi_code:null}],[]);
   assert.equal(product.errors.length,1);
 });

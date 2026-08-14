@@ -26,7 +26,6 @@ function validateWorkspace(kpis,rows,fields) {
 function reconcileWorkspace(teamCode,kpis,rows,extraRows=[]) {
   const errors=[];const warnings=[];const kpi=code=>kpis.find(item=>String(item.code).toUpperCase()===code);const differs=(a,b)=>Math.abs(Number(a||0)-Number(b||0))>0.000001;
   if(teamCode==='REV'&&kpi('DT_01')?.target_value!==null&&differs(kpi('DT_01').target_value,sum(rows,'monthly_target')))warnings.push('Tổng KH tháng theo sản phẩm chưa khớp kế hoạch DT_01.');
-  if(teamCode==='ADS'&&differs(sum(rows,'budget_actual'),sum(extraRows,'ad_cost')))warnings.push('Tổng chi phí Ads theo sản phẩm chưa khớp ngân sách thực hiện theo nguồn Traffic.');
   if(teamCode==='TRAIN'&&kpi('DAO_01')?.target_value!==null&&differs(kpi('DAO_01').target_value,sum(rows,'student_target')))warnings.push('Tổng KH học viên theo khóa chưa khớp kế hoạch DAO_01.');
   if(teamCode==='PROD')rows.forEach((row,index)=>{if(n(row.contribution_value)!==null&&!String(row.kpi_code||'').trim())errors.push(`Dòng ${index+1}: Phải chọn KPI đóng góp khi nhập giá trị KPI ghi nhận.`);});
   return {errors,warnings};
