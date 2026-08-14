@@ -217,6 +217,13 @@ test('training completion is recalculated immediately from the edited detail row
   assert.match(source,/value=\{detailFieldValue\(row,field\)\}/);
 });
 
+test('configured report rows may be removed for an individual period',()=>{
+  const source=read('src/modules/reports/manualReportService.js');
+  assert.doesNotMatch(source,/incomingRows\.length!==currentRows\.length/);
+  assert.match(source,/new Set\(incomingIdentities\)\.size!==incomingIdentities\.length/);
+  assert.match(source,/incomingRows\.some\(row=>!currentByIdentity\.has\(identity\(row\)\)\)/);
+});
+
 test('Trade new-contract count is summary input and is absent from detail forms',()=>{
   const config=read('src/modules/reports/manualReportConfig.js');
   const calculator=read('src/modules/reports/manualReportCalculator.js');

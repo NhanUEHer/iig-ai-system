@@ -14,7 +14,8 @@ function preserveFixedRows(teamCode,currentRows,incomingRows,identityFields=FIXE
   if(!identityFields)return incomingRows;
   const identity=row=>identityFields.map(field=>normalizedKey(row[field])).join('|');
   const currentByIdentity=new Map(currentRows.map(row=>[identity(row),row]));
-  if(incomingRows.length!==currentRows.length||incomingRows.some(row=>!currentByIdentity.has(identity(row))))throw new HttpError('Danh sách dòng của phiếu đã được cố định theo cấu hình kỳ. Chỉ được cập nhật các cột nhập liệu.',409,'REPORT_DETAIL_ROWS_LOCKED');
+  const incomingIdentities=incomingRows.map(identity);
+  if(new Set(incomingIdentities).size!==incomingIdentities.length||incomingRows.some(row=>!currentByIdentity.has(identity(row))))throw new HttpError('Không được thêm dòng ngoài cấu hình kỳ hoặc thay đổi định danh của dòng.',409,'REPORT_DETAIL_ROWS_LOCKED');
   return incomingRows.map(row=>{const source=currentByIdentity.get(identity(row));return{...row,row_key:source.row_key,display_order:source.display_order,...Object.fromEntries(identityFields.map(field=>[field,source[field]]))};});
 }
 const appUrl=()=>String(process.env.APP_URL||'http://localhost:5173').replace(/\/$/,'');
