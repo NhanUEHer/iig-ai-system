@@ -7,11 +7,11 @@ test('revenue summary derives auditable KPIs and preserves manual-only values',(
   assert.deepEqual(result,{DT_02:500,DT_06:3,DT_01:150,DT_03:5,DT_04:30});
 });
 
-test('manual Ads and communication entry uses ratio of sums',()=>{
+test('manual Ads entry uses ratio of sums and communication only derives Excel detail totals',()=>{
   const ads=calculate('ADS',[{budget_actual:20,lead_count:10,order_count:2,revenue:100},{budget_actual:10,lead_count:5,order_count:1,revenue:50}],{});
   assert.equal(ads.ADS_04,0.2);assert.equal(ads.ADS_06,0.2);assert.equal(ads.ADS_07,50);
-  const communication=calculate('COM',[{followers_current:110,followers_previous:100,reach_current:1000,engagement_count:10},{followers_current:55,followers_previous:50,reach_current:100,engagement_count:10}],{});
-  assert.ok(Math.abs(communication.TT_02-0.1)<1e-12);assert.equal(communication.TT_05,20/1100);
+  const communication=calculate('COM',[{followers_current:110,followers_previous:100,reach_current:1000,video_views:20,lead_count:2,revenue:30},{followers_current:55,followers_previous:50,reach_current:100,video_views:5,lead_count:1,revenue:10}],{});
+  assert.ok(Math.abs(communication.TT_02-0.1)<1e-12);assert.deepEqual(Object.keys(communication).sort(),['TT_01','TT_02','TT_03','TT_06','TT_07','TT_09']);assert.equal(communication.TT_06,25);
 });
 
 test('manual validation distinguishes required fields, negative values and warnings',()=>{

@@ -53,7 +53,7 @@ async function workspace(periodId,teamCode) {
     const history=await repository.getRevenueHistory(base.year,base.month,base.version_id);
     details=enrichRevenueDetails(details,history);
   }
-  if(teamCode==='COM'){const history=await repository.getSocialHistory(base.year,base.month,base.version_id);details=enrichSocialHistory(details,history).map(row=>({...row,followers_growth:rate(numeric(row.followers_current),numeric(row.followers_previous)),reach_growth:rate(numeric(row.reach_current),numeric(row.reach_previous)),organic_rate:numeric(row.reach_current)?numeric(row.organic_reach)/numeric(row.reach_current):null,engagement_rate:numeric(row.reach_current)?numeric(row.engagement_count)/numeric(row.reach_current):null}));}
+  if(teamCode==='COM'){const history=await repository.getSocialHistory(base.year,base.month,base.version_id);details=enrichSocialHistory(details,history).map(row=>({...row,followers_growth:rate(numeric(row.followers_current),numeric(row.followers_previous)),reach_growth:rate(numeric(row.reach_current),numeric(row.reach_previous))}));}
   if(teamCode==='TRAIN')details=details.map(row=>({...row,student_achievement:numeric(row.student_target)?numeric(row.active_student_count)/numeric(row.student_target):null,output_rate:numeric(row.evaluated_student_count)?numeric(row.qualified_student_count)/numeric(row.evaluated_student_count):null}));
   let adsProducts=[];
   if(teamCode==='ADS')adsProducts=await repository.getDetails(base.version_id,'adsProducts');

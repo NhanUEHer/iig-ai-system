@@ -172,7 +172,7 @@ module.exports = {
     if(teamCode==='COM'){
       const period=version.rows[0],previousYear=Number(period.month)===1?Number(period.year)-1:Number(period.year),previousMonth=Number(period.month)===1?12:Number(period.month)-1;
       const history=await db.query(`SELECT d.channel_code,d.channel_name,d.followers_current,d.reach_current FROM report_periods p JOIN report_social_details d ON d.version_id=p.current_version_id WHERE p.year=$1 AND p.month=$2`,[previousYear,previousMonth]);
-      detailRows=enrichSocialHistory(detailRows,history.rows).map(row=>({...row,followers_growth:row.followers_previous?Number(row.followers_current)/Number(row.followers_previous)-1:null,reach_growth:row.reach_previous?Number(row.reach_current)/Number(row.reach_previous)-1:null,organic_rate:row.reach_current?Number(row.organic_reach)/Number(row.reach_current):null,engagement_rate:row.reach_current?Number(row.engagement_count)/Number(row.reach_current):null}));
+      detailRows=enrichSocialHistory(detailRows,history.rows).map(row=>({...row,followers_growth:row.followers_previous?Number(row.followers_current)/Number(row.followers_previous)-1:null,reach_growth:row.reach_previous?Number(row.reach_current)/Number(row.reach_previous)-1:null}));
     }
     const detailSections=[{key:teamCode==='ADS'?'adsChannels':teamCode.toLowerCase(),title:teamCode==='ADS'?'Hiệu quả theo nguồn Ads':'Dữ liệu chi tiết',rows:detailRows}];
     if(teamCode==='ADS'){

@@ -161,6 +161,17 @@ test('communication previous followers and reach are derived from the prior mont
   assert.match(repository,/month===1\?12:month-1/);
 });
 
+test('communication detail matches the source Excel columns and summary-only KPIs stay editable',()=>{
+  const config=read('src/modules/reports/manualReportConfig.js');
+  const calculator=read('src/modules/reports/manualReportCalculator.js');
+  const migration=read('src/database/migrations/036_align_communication_form_with_excel.sql');
+  const communicationConfig=config.slice(config.indexOf("COM:{detailKey:'social'"),config.indexOf("TRADE:{detailKey:'trade'"));
+  assert.match(communicationConfig,/\['engagement_rate','Engagement Rate','number'\]/);
+  for(const field of ['organic_reach','organic_rate','engagement_count','budget'])assert.doesNotMatch(communicationConfig,new RegExp(`\\['${field}'`));
+  for(const code of ['TT_04','TT_05','TT_08'])assert.doesNotMatch(calculator,new RegExp(`result\\.${code}=`));
+  assert.match(migration,/value\.kpi_code IN \('TT_04','TT_05','TT_08'\)/);
+});
+
 test('manual report forms allocate input width by data type',()=>{
   const page=read('frontend/src/features/reports/pages/ManualReportPage.jsx');
   const styles=read('frontend/src/features/reports/pages/ManualReportPage.css');
