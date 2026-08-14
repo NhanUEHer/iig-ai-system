@@ -183,6 +183,42 @@ test('communication tables show a formula-aware total row in entry and dashboard
   assert.match(dashboard,/engagement_rate:dashboard\?\.kpis\?\.find\(kpi=>kpi\.code==='TT_05'\)\?\.actual_value/);
 });
 
+test('Trade new-contract count is summary input and is absent from detail forms',()=>{
+  const config=read('src/modules/reports/manualReportConfig.js');
+  const calculator=read('src/modules/reports/manualReportCalculator.js');
+  const dashboard=read('frontend/src/features/reports/pages/KpiReportPage.jsx');
+  const migration=read('src/database/migrations/037_remove_trade_new_contract_input.sql');
+  const tradeConfig=config.slice(config.indexOf("TRADE:{detailKey:'trade'"),config.indexOf("TRAIN:{detailKey:'training'"));
+  assert.doesNotMatch(tradeConfig,/\['is_new_contract'/);
+  assert.doesNotMatch(calculator,/result\.TRADE_02=/);
+  assert.doesNotMatch(dashboard,/is_new_contract:'Ký mới'/);
+  assert.match(migration,/value\.kpi_code='TRADE_02'/);
+});
+
+test('Trade activity type and social-post count are absent from detail forms',()=>{
+  const config=read('src/modules/reports/manualReportConfig.js');
+  const calculator=read('src/modules/reports/manualReportCalculator.js');
+  const dashboard=read('frontend/src/features/reports/pages/KpiReportPage.jsx');
+  const migration=read('src/database/migrations/038_remove_trade_social_post_input.sql');
+  const tradeConfig=config.slice(config.indexOf("TRADE:{detailKey:'trade'"),config.indexOf("TRAIN:{detailKey:'training'"));
+  assert.doesNotMatch(tradeConfig,/\['activity_type'/);
+  assert.doesNotMatch(tradeConfig,/\['social_post_count'/);
+  assert.doesNotMatch(calculator,/result\.TRADE_06=/);
+  assert.doesNotMatch(dashboard,/social_post_count:'Bài Social'/);
+  assert.match(migration,/value\.kpi_code='TRADE_06'/);
+});
+
+test('report autosave does not create audit noise and explicit draft saves remain visible',()=>{
+  const page=read('frontend/src/features/reports/pages/ManualReportPage.jsx');
+  const service=read('src/modules/reports/manualReportService.js');
+  const repository=read('src/modules/reports/manualReportRepository.js');
+  assert.match(page,/auditAction:silent\?null:'save_draft'/);
+  assert.match(service,/auditAction:body\?\.auditAction==='save_draft'\?'draft_saved':null/);
+  assert.match(repository,/if\(auditAction==='draft_saved'\)/);
+  assert.match(repository,/l\.action<>'workspace_saved'/);
+  assert.doesNotMatch(repository,/VALUES\(\$1,\$2,\$3,'workspace_saved'/);
+});
+
 test('manual report forms allocate input width by data type',()=>{
   const page=read('frontend/src/features/reports/pages/ManualReportPage.jsx');
   const styles=read('frontend/src/features/reports/pages/ManualReportPage.css');

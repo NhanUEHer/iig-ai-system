@@ -128,7 +128,7 @@ module.exports={
     ) history`,[previousYear,previousMonth,year-1,month,teamCode,versionId]);
     return result.rows;
   },
-  async saveWorkspace({base,detailKey,rows,extraDetails,kpis,note,validation,userId,expectedRevision}) {
+  async saveWorkspace({base,detailKey,rows,extraDetails,kpis,note,validation,userId,expectedRevision,auditAction}) {
     return db.transaction(async client=>{
       const locked=await client.query(`SELECT status,revision FROM report_manual_submissions WHERE id=$1 FOR UPDATE`,[base.submission_id]);
       if(!locked.rows[0])return null;if(!['draft','editing','returned'].includes(locked.rows[0].status))return {conflict:true,status:locked.rows[0].status};
@@ -142,7 +142,7 @@ module.exports={
         VALUES($1,$2,$3,$4,$5,$6,$7,'Đang cập nhật') ON CONFLICT(version_id,team_id) DO UPDATE SET highlights=EXCLUDED.highlights,issues=EXCLUDED.issues,risks=EXCLUDED.risks,proposals=EXCLUDED.proposals,next_month_plan=EXCLUDED.next_month_plan,updated_at=CURRENT_TIMESTAMP`,[base.version_id,base.team_id,note.highlights||null,note.issues||null,note.risks||null,note.proposals||null,note.next_month_plan||null]);
       await client.query(`UPDATE report_manual_submissions SET status='editing',validation_result=$2::jsonb,revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[base.submission_id,JSON.stringify(validation)]);
       await client.query(`UPDATE report_periods SET status='in_progress',updated_at=CURRENT_TIMESTAMP WHERE id=$1 AND status IN('open','draft','reopened')`,[base.period_id]);
-      await client.query(`INSERT INTO report_entry_audit_logs(period_id,version_id,team_id,action,actor_id,change_summary) VALUES($1,$2,$3,'workspace_saved',$4,$5::jsonb)`,[base.period_id,base.version_id,base.team_id,userId,JSON.stringify({rows:rows.length,kpis:kpis.length,errors:validation.errors.length,warnings:validation.warnings.length})]);
+      if(auditAction==='draft_saved')await client.query(`INSERT INTO report_entry_audit_logs(period_id,version_id,team_id,action,actor_id,change_summary) VALUES($1,$2,$3,'draft_saved',$4,$5::jsonb)`,[base.period_id,base.version_id,base.team_id,userId,JSON.stringify({rows:rows.length,kpis:kpis.length,errors:validation.errors.length,warnings:validation.warnings.length})]);
       return {saved:true,validation};
     });
   },
@@ -244,7 +244,7 @@ module.exports={
     const values=[periodId];let teamFilter='';if(teamCode){values.push(teamCode);teamFilter=`AND (t.code=$${values.length} OR l.team_id IS NULL)`;}values.push(limit);
     const result=await db.query(`SELECT l.id,l.action,l.change_summary,l.created_at,t.code team_code,t.name team_name,u.id actor_id,u.name actor_name,u.email actor_email
       FROM report_entry_audit_logs l LEFT JOIN report_teams t ON t.id=l.team_id LEFT JOIN users u ON u.id=l.actor_id
-      WHERE l.period_id=$1 ${teamFilter} ORDER BY l.created_at DESC LIMIT $${values.length}`,values);
+      WHERE l.period_id=$1 AND l.action<>'workspace_saved' ${teamFilter} ORDER BY l.created_at DESC LIMIT $${values.length}`,values);
     return result.rows;
   },
   async assignSubmission({periodId,teamCode,userId,actorId}) {
