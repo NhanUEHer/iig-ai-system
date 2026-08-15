@@ -112,6 +112,9 @@ test('production deploy is locked, immutable, identity-verified and rollback-cap
   assert.match(deployScript,/x\.build\?\.version===/);
   assert.match(deployScript,/x\.build\?\.commit===/);
   assert.match(deployScript,/Health verification failed; rolling back/);
+  assert.match(deployScript,/Node\.js >= 22\.13\.0/);
+  assert.match(deployScript,/--exclude='\.env\*\.local'/);
+  assert.match(deployScript,/--exclude='tmp'/);
   assert.match(backupScript,/\.partial-/);
   assert.match(backupScript,/SHA256SUMS/);
   assert.match(backupScript,/NR>3/);

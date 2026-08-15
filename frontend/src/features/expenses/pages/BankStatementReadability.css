@@ -1,0 +1,221 @@
+/* Readability layer: bank statements are dense financial data, so keep text >= 12px. */
+.expense-page {
+  font-size: 14px;
+}
+
+.expense-title small,
+.expense-history header small,
+.expense-review > header small {
+  font-size: 11px;
+}
+
+.expense-title h1 {
+  font-size: 28px;
+}
+
+.expense-title p,
+.expense-upload-heading p,
+.expense-review > header p {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.expense-page button {
+  height: 42px;
+  font-size: 13px;
+}
+
+.expense-flow article strong {
+  font-size: 13px;
+}
+
+.expense-flow article small {
+  font-size: 11px;
+}
+
+.expense-flow article > span {
+  width: 30px;
+  height: 30px;
+  font-size: 12px;
+}
+
+.expense-upload-heading h2,
+.expense-history h2 {
+  font-size: 17px;
+}
+
+.expense-upload label,
+.expense-account-form label {
+  font-size: 12px;
+}
+
+.expense-upload select,
+.expense-upload input:not([type=file]),
+.expense-account-form input,
+.expense-account-form select {
+  height: 44px;
+  font-size: 13px;
+}
+
+.expense-file strong {
+  font-size: 14px;
+}
+
+.expense-file small,
+.expense-upload-footer > span,
+.expense-account-form small {
+  font-size: 11px;
+}
+
+.expense-history > header > span,
+.expense-status {
+  font-size: 11px;
+}
+
+.expense-table table {
+  font-size: 13px;
+}
+
+.expense-table th {
+  height: 44px;
+  font-size: 11px;
+}
+
+.expense-table td {
+  height: 58px;
+  font-size: 13px;
+}
+
+.expense-history td:nth-child(2) strong {
+  font-size: 13px;
+}
+
+.expense-history td:nth-child(2) small {
+  font-size: 11px;
+}
+
+.expense-review > header h2,
+.expense-modal.account h2 {
+  font-size: 21px;
+}
+
+.expense-warning {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.expense-balance-strip {
+  height: 46px;
+  font-size: 12px;
+}
+
+.expense-balance-strip strong {
+  font-size: 14px;
+}
+
+.expense-reconciliation article {
+  min-height: 88px;
+  padding: 14px 15px;
+}
+
+.expense-reconciliation article > span {
+  font-size: 13px;
+}
+
+.expense-reconciliation article small {
+  font-size: 10px;
+}
+
+.expense-reconciliation article small strong {
+  margin-top: 4px;
+  font-size: 15px;
+}
+
+.expense-reconciliation article > em {
+  height: 24px;
+  padding: 0 9px;
+  font-size: 10px;
+}
+
+.expense-reconciliation article.fee > strong {
+  font-size: 18px;
+}
+
+.expense-review-title h3 {
+  font-size: 15px;
+}
+
+.expense-review-title p,
+.expense-review > footer > span {
+  font-size: 11px;
+}
+
+.expense-transaction-filters button {
+  height: 40px;
+  padding: 0 13px;
+}
+
+.expense-transaction-filters button span {
+  font-size: 12px;
+}
+
+.expense-transaction-filters button b,
+.expense-transaction-filters button em {
+  font-size: 11px;
+}
+
+.grouped-preview th {
+  font-size: 11px;
+}
+
+.grouped-preview td {
+  height: 54px;
+  font-size: 13px;
+}
+
+.grouped-preview input[type=date] {
+  width: 132px;
+  height: 38px;
+  font-size: 13px;
+}
+
+.grouped-preview .expense-description {
+  width: 420px;
+  min-height: 52px;
+  height: auto;
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  resize: vertical;
+  font-family: Inter, sans-serif;
+  box-sizing: border-box;
+}
+
+.grouped-preview td:nth-child(5) {
+  min-width: 440px;
+  white-space: normal;
+}
+
+.expense-fee-detail td:nth-child(5) {
+  max-width: 520px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.expense-kind {
+  height: 26px;
+  padding: 0 9px;
+  font-size: 10px;
+}
+
+.expense-filter-empty,
+.expense-empty strong {
+  font-size: 13px;
+}
+
+.expense-empty span {
+  font-size: 11px;
+}

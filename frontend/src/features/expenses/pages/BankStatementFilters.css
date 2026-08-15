@@ -1,0 +1,106 @@
+.expense-reconciliation article.debit {
+  border-left: 3px solid #155eef;
+}
+
+.expense-reconciliation article.credit {
+  border-left: 3px solid #12b76a;
+}
+
+.expense-reconciliation article.fee {
+  border-left: 3px solid #f79009;
+}
+
+.expense-reconciliation .unknown {
+  background: #f2f4f7;
+  color: #667085;
+}
+
+.grouped-preview-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.expense-transaction-filters {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 16px 10px;
+}
+
+.expense-transaction-filters button {
+  position: relative;
+  height: 34px;
+  padding: 0 10px;
+  border-color: #e4e7ec;
+  background: #fff;
+  color: #667085;
+  box-shadow: none;
+}
+
+.expense-transaction-filters button span {
+  font-size: 9px;
+}
+
+.expense-transaction-filters button b {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #f2f4f7;
+  color: #475467;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+}
+
+.expense-transaction-filters button em {
+  padding-left: 8px;
+  border-left: 1px solid #e4e7ec;
+  font-size: 8px;
+  font-style: normal;
+}
+
+.expense-transaction-filters button.active {
+  border-color: #84adff;
+  background: #eff4ff;
+  color: #155eef;
+}
+
+.expense-transaction-filters button.credit.active {
+  border-color: #75e0a7;
+  background: #ecfdf3;
+  color: #067647;
+}
+
+.expense-transaction-filters button.fee.active {
+  border-color: #fec84b;
+  background: #fffaeb;
+  color: #b54708;
+}
+
+.expense-filter-empty {
+  height: 160px;
+  display: grid;
+  place-items: center;
+  color: #98a2b3;
+  font-size: 9px;
+}
+
+:root:not(.light-theme) .expense-transaction-filters button {
+  border-color: #333741;
+  background: #1d2433;
+  color: #98a2b3;
+}
+
+@media (max-width: 720px) {
+  .expense-transaction-filters {
+    overflow-x: auto;
+  }
+
+  .expense-transaction-filters button {
+    flex: none;
+  }
+}

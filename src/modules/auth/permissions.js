@@ -27,6 +27,12 @@ const PERMISSION_GROUPS = [
     ['reports.manage', 'Tạo, xóa kỳ và quản lý cấu hình KPI'],
     ['reports.upload', 'Đồng bộ báo cáo Excel cũ (legacy)']
   ] },
+  { key: 'expenses', label: 'Quản lý chi phí', permissions: [
+    ['expenses.view','Xem sao kê và giao dịch'],['expenses.import','Import và xác nhận sao kê'],
+    ['expenses.classify','Phân loại giao dịch'],['expenses.reconcile','Đối soát giao dịch'],
+    ['expenses.review','Duyệt ngoại lệ'],['expenses.config','Cấu hình tài khoản ngân hàng'],
+    ['expenses.manage','Quản trị toàn bộ chi phí']
+  ] },
   { key: 'administration', label: 'Quản trị', permissions: [
     ['users.view', 'Xem tài khoản'], ['users.manage', 'Tạo, sửa và xóa tài khoản'],
     ['roles.view', 'Xem vai trò'], ['roles.manage', 'Tạo, sửa và phân quyền vai trò'],

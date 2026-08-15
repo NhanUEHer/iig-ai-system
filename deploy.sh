@@ -49,6 +49,8 @@ sshpass -p "$VPS_PASSWORD" ssh "${SSH_OPTIONS[@]}" root@"$VPS_IP" "
   available_kb=\$(df -Pk '$VPS_DIR' | awk 'NR==2{print \$4}')
   test \"\$available_kb\" -ge 2097152 || { echo 'Production requires at least 2 GB free.' >&2; rmdir '$REMOTE_LOCK'; exit 1; }
   test -s '$VPS_DIR/.env'
+  command -v node >/dev/null
+  node -e 'const [major,minor]=process.versions.node.split(".").map(Number);if(major<22||(major===22&&minor<13)){console.error("Production requires Node.js >= 22.13.0 for PDF parsing.");process.exit(1)}'
   command -v pm2 >/dev/null
   command -v nginx >/dev/null
 "
@@ -77,7 +79,7 @@ fi
 echo "[5/9] Uploading immutable release ${RELEASE_DIR}..."
 sshpass -p "$VPS_PASSWORD" ssh "${SSH_OPTIONS[@]}" root@"$VPS_IP" "mkdir -p '$RELEASE_DIR'"
 sshpass -p "$VPS_PASSWORD" rsync -az --delete -e "ssh ${SSH_OPTIONS[*]}" \
-  --exclude='node_modules' --exclude='frontend/node_modules' --exclude='.git' --exclude='.env' --exclude='backups' \
+  --exclude='node_modules' --exclude='frontend/node_modules' --exclude='.git' --exclude='.env' --exclude='.env*.local' --exclude='tmp' --exclude='backups' \
   --exclude='voice_clone_env' --exclude='voice_clone_models' --exclude='tts_env' --exclude='asset' --exclude='src/models' \
   --exclude='public/cleaned-audio' --exclude='public/local_audio' --exclude='public/local_voices' --exclude='public/tmp_local' \
   --exclude='public/dialogues' --exclude='public/custom_voices' \

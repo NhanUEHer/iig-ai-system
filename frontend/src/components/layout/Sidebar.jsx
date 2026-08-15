@@ -1,7 +1,7 @@
 import {
   AudioLines, Bot, ChevronLeft, ChevronRight, ClipboardCheck, FileSearch,
   FileText, KeyRound, LayoutGrid, LogOut, NotebookPen, ScrollText, Settings2,
-  UserRoundCog, ShieldCheck
+  UserRoundCog, ShieldCheck, WalletCards, ReceiptText, ChartNoAxesCombined
 } from 'lucide-react';
 import './Sidebar.css';
 import { buildInfo } from '../../services/buildInfo';
@@ -29,6 +29,14 @@ const groups = [
       { id: 'report-kpi', label: 'Dashboard KPI', icon: LayoutGrid, path: '/reports/kpi', permission: 'reports.view' },
       { id: 'report-manage', label: 'Quản lý báo cáo', icon: FileText, path: '/reports/manage', permissions: ['reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'] },
       { id: 'report-kpi-config', label: 'Cấu hình KPI', icon: Settings2, path: '/reports/kpi-config', permission: 'reports.manage' }
+    ]
+  },
+  {
+    label: 'Chi phí',
+    items: [
+      { id: 'expenses', label: 'Import sao kê', icon: WalletCards, path: '/expenses/imports', permissions: ['expenses.view','expenses.import','expenses.manage'] },
+      { id: 'expense-transactions', label: 'Giao dịch ngân hàng', icon: ReceiptText, path: '/expenses/transactions', permissions: ['expenses.view','expenses.manage'] },
+      { id: 'expense-dashboard', label: 'Báo cáo chi phí', icon: ChartNoAxesCombined, path: '/expenses/dashboard', permissions: ['expenses.view','expenses.manage'] }
     ]
   },
   {

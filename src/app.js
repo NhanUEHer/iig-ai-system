@@ -5,6 +5,7 @@ const authRoutes = require('./routes/authRoutes');
 const agentRoutes = require('./routes/agentRoutes');
 const localTtsRoutes = require('./routes/localTtsRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const expenseRoutes = require('./routes/expenseRoutes');
 const requestContext = require('./http/requestContext');
 const errorHandler = require('./http/errorHandler');
 const HttpError = require('./http/httpError');
@@ -32,6 +33,7 @@ app.use('/api/submissions', authenticate, submissionRoutes);
 app.use('/api/agents', authenticate, agentRoutes);
 app.use('/api/local-tts', authenticate, localTtsRoutes);
 app.use('/api/reports', authenticate, reportRoutes);
+app.use('/api/expenses', authenticate, expenseRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

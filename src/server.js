@@ -1,4 +1,5 @@
-require('dotenv').config();
+// Keep rotated/local secrets outside the shared .env. Values loaded first win.
+require('dotenv').config({ path: ['.env.r2.local', '.env'] });
 const app = require('./app');
 const initDb = require('./config/initDb');
 const db = require('./config/db');

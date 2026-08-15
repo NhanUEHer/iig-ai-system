@@ -16,6 +16,9 @@ import KpiReportPage from './features/reports/pages/KpiReportPage';
 import ManualReportPage from './features/reports/pages/ManualReportPage';
 import ReportPeriodManagementPage from './features/reports/pages/ReportPeriodManagementPage';
 import KpiConfigurationPage from './features/reports/pages/KpiConfigurationPage';
+import BankStatementImportsPage from './features/expenses/pages/BankStatementImportsPage';
+import BankTransactionsPage from './features/expenses/pages/BankTransactionsPage';
+import ExpenseDashboardPage from './features/expenses/pages/ExpenseDashboardPage';
 import LogsConsolePage from './features/logs/pages/LogsConsolePage';
 import { clearSession, readSession, saveSession } from './services/authSession';
 import ChangePasswordPage from './features/auth/pages/ChangePasswordPage';
@@ -45,6 +48,9 @@ function App() {
   else if (path.startsWith('/reports/kpi-config')) activeTab = 'report-kpi-config';
   else if (path.startsWith('/reports/manage')) activeTab = 'report-manage';
   else if (path.startsWith('/reports/kpi')) activeTab = 'report-kpi';
+  else if (path.startsWith('/expenses/dashboard')) activeTab = 'expense-dashboard';
+  else if (path.startsWith('/expenses/transactions')) activeTab = 'expense-transactions';
+  else if (path.startsWith('/expenses')) activeTab = 'expenses';
   else if (path.startsWith('/change-password')) activeTab = 'change-password';
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -474,6 +480,15 @@ function App() {
               } />
               <Route path="/reports/kpi-config" element={
                 hasPermission('reports.manage') ? <KpiConfigurationPage showMsg={showMsg} /> : <Navigate to="/reports/manage" replace />
+              } />
+              <Route path="/expenses/imports" element={
+                ['expenses.view','expenses.import','expenses.manage'].some(hasPermission) ? <BankStatementImportsPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+              } />
+              <Route path="/expenses/transactions" element={
+                ['expenses.view','expenses.manage'].some(hasPermission) ? <BankTransactionsPage showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+              } />
+              <Route path="/expenses/dashboard" element={
+                ['expenses.view','expenses.manage'].some(hasPermission) ? <ExpenseDashboardPage showMsg={showMsg} /> : <Navigate to="/submissions" replace />
               } />
 
               <Route path="/" element={<Navigate to="/submissions" replace />} />

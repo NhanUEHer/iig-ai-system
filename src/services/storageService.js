@@ -3,7 +3,7 @@
  * S3-compatible storage client for Cloudflare R2.
  * Used to upload cleaned audio files and generate pre-signed URLs.
  */
-const { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const fs = require('fs');
 const path = require('path');
@@ -83,6 +83,11 @@ async function uploadFile(localFilePath, r2Key) {
   return `r2:${r2Key}`;
 }
 
+async function uploadBuffer(buffer, r2Key, contentType = 'application/octet-stream') {
+  await getClient().send(new PutObjectCommand({ Bucket: R2_BUCKET, Key: r2Key, Body: buffer, ContentType: contentType }));
+  return `r2:${r2Key}`;
+}
+
 /**
  * Generate a pre-signed GET URL for an R2 object key.
  * @param {string} r2KeyOrStoredUrl - either "r2:<key>" (stored format) or raw "<key>"
@@ -107,6 +112,15 @@ async function getSignedAudioUrl(r2KeyOrStoredUrl) {
   return url;
 }
 
+async function downloadBuffer(r2KeyOrStoredUrl) {
+  const key = r2KeyOrStoredUrl.startsWith('r2:') ? r2KeyOrStoredUrl.slice(3) : r2KeyOrStoredUrl;
+  const response = await getClient().send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+  return {
+    buffer: Buffer.from(await response.Body.transformToByteArray()),
+    contentType: response.ContentType || 'application/octet-stream',
+  };
+}
+
 /**
  * Delete an object from R2.
  */
@@ -126,4 +140,4 @@ function isR2Key(storedUrl) {
   return typeof storedUrl === 'string' && storedUrl.startsWith('r2:');
 }
 
-module.exports = { uploadFile, getSignedAudioUrl, deleteFile, isR2Key, isR2Configured, requireR2, objectKey, audioStorageMode: AUDIO_STORAGE_MODE };
+module.exports = { uploadFile, uploadBuffer, downloadBuffer, getSignedAudioUrl, getSignedUrl: getSignedAudioUrl, deleteFile, isR2Key, isR2Configured, requireR2, objectKey, audioStorageMode: AUDIO_STORAGE_MODE };

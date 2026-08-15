@@ -2,15 +2,18 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: '/api',
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json'
-  }
+  timeout: 30000
 });
 
 // Interceptor for Request (attach auth token if needed)
 api.interceptors.request.use(
   (config) => {
+    // Let the browser generate the multipart boundary. Forcing application/json
+    // here makes multer see an empty request and req.file remains undefined.
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+      delete config.headers['content-type'];
+    }
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
       try {

@@ -1,0 +1,17 @@
+const express=require('express'),multer=require('multer');const asyncHandler=require('../http/asyncHandler');const controller=require('../controllers/expenseController');const {requirePermission}=require('../middleware/authenticate');
+const router=express.Router(),upload=multer({storage:multer.memoryStorage(),limits:{fileSize:15*1024*1024,files:1}});
+router.get('/bootstrap',requirePermission('expenses.view','expenses.import','expenses.manage'),asyncHandler(controller.bootstrap));
+router.get('/accounts',requirePermission('expenses.view','expenses.import','expenses.config','expenses.manage'),asyncHandler(controller.accounts));
+router.post('/accounts',requirePermission('expenses.config','expenses.manage'),asyncHandler(controller.createAccount));
+router.get('/imports',requirePermission('expenses.view','expenses.import','expenses.manage'),asyncHandler(controller.list));
+router.get('/transactions',requirePermission('expenses.view','expenses.manage'),asyncHandler(controller.transactions));
+router.get('/dashboard',requirePermission('expenses.view','expenses.manage'),asyncHandler(controller.dashboard));
+router.post('/imports',requirePermission('expenses.import','expenses.manage'),upload.single('file'),asyncHandler(controller.upload));
+router.get('/imports/:id',requirePermission('expenses.view','expenses.import','expenses.manage'),asyncHandler(controller.detail));
+router.get('/imports/:id/source-url',requirePermission('expenses.view','expenses.import','expenses.manage'),asyncHandler(controller.sourceUrl));
+router.get('/imports/:id/source',requirePermission('expenses.view','expenses.import','expenses.manage'),asyncHandler(controller.sourceFile));
+router.put('/imports/:id/draft-transactions',requirePermission('expenses.import','expenses.manage'),asyncHandler(controller.updateDrafts));
+router.post('/imports/:id/commit',requirePermission('expenses.import','expenses.manage'),asyncHandler(controller.commit));
+router.post('/imports/:id/cancel',requirePermission('expenses.import','expenses.manage'),asyncHandler(controller.cancel));
+router.delete('/imports/:id',requirePermission('expenses.import','expenses.manage'),asyncHandler(controller.remove));
+module.exports=router;
