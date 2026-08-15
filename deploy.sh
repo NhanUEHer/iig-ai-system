@@ -50,7 +50,7 @@ sshpass -p "$VPS_PASSWORD" ssh "${SSH_OPTIONS[@]}" root@"$VPS_IP" "
   test \"\$available_kb\" -ge 2097152 || { echo 'Production requires at least 2 GB free.' >&2; rmdir '$REMOTE_LOCK'; exit 1; }
   test -s '$VPS_DIR/.env'
   command -v node >/dev/null
-  node -e 'const [major,minor]=process.versions.node.split(".").map(Number);if(major<22||(major===22&&minor<13)){console.error("Production requires Node.js >= 22.13.0 for PDF parsing.");process.exit(1)}'
+  node -e \"const [major,minor]=process.versions.node.split('.').map(Number);if(major<22||(major===22&&minor<13)){console.error('Production requires Node.js >= 22.13.0 for PDF parsing.');process.exit(1)}\"
   command -v pm2 >/dev/null
   command -v nginx >/dev/null
 "
