@@ -137,6 +137,12 @@ test('production nginx serves generated Local TTS media before the SPA fallback'
   assert.match(nginx, /location \/tmp_local\//);
 });
 
+test('production nginx serves PDF.js module workers with a JavaScript MIME type', () => {
+  const nginx = read('deploy/nginx-ai-scoring.conf');
+  assert.match(nginx, /location ~\* \\\.mjs\$/);
+  assert.match(nginx, /application\/javascript mjs/);
+});
+
 test('Trade date picker keeps date inputs mounted and blank added dates local',()=>{
   const page=read('frontend/src/features/reports/pages/ManualReportPage.jsx');
   assert.match(page,/const addDate=\(\)=>\{editingSchedule\.current=true;setDates\(items=>\[\.\.\.items,''\]\);\}/);
