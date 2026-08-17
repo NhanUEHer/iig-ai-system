@@ -6,6 +6,7 @@ const agentRoutes = require('./routes/agentRoutes');
 const localTtsRoutes = require('./routes/localTtsRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const expenseRoutes = require('./routes/expenseRoutes');
+const keyVocabRoutes = require('./routes/keyVocabRoutes');
 const requestContext = require('./http/requestContext');
 const errorHandler = require('./http/errorHandler');
 const HttpError = require('./http/httpError');
@@ -34,6 +35,7 @@ app.use('/api/agents', authenticate, agentRoutes);
 app.use('/api/local-tts', authenticate, localTtsRoutes);
 app.use('/api/reports', authenticate, reportRoutes);
 app.use('/api/expenses', authenticate, expenseRoutes);
+app.use('/api/key-vocab', authenticate, keyVocabRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

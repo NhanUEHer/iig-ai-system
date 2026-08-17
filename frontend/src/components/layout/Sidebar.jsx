@@ -1,7 +1,7 @@
 import {
   AudioLines, Bot, ChevronLeft, ChevronRight, ClipboardCheck, FileSearch,
   FileText, KeyRound, LayoutGrid, LogOut, NotebookPen, ScrollText, Settings2,
-  UserRoundCog, ShieldCheck, WalletCards, ReceiptText, ChartNoAxesCombined
+  UserRoundCog, ShieldCheck, WalletCards, ReceiptText, ChartNoAxesCombined, BookOpenText
 } from 'lucide-react';
 import './Sidebar.css';
 import { buildInfo } from '../../services/buildInfo';
@@ -19,6 +19,7 @@ const groups = [
     label: 'Content Tools',
     items: [
       { id: 'local-tts', label: 'Audio Studio', icon: AudioLines, path: '/local-tts', permission: 'audio.view' },
+      { id: 'key-vocab', label: 'Gen Key Vocab', icon: BookOpenText, path: '/key-vocab', permissions: ['key_vocab.view','key_vocab.generate','key_vocab.manage'] },
       { id: 'question-gen', label: 'Tạo câu hỏi', icon: NotebookPen, upcoming: true },
       { id: 'lesson-content', label: 'Nội dung bài học', icon: FileText, upcoming: true }
     ]

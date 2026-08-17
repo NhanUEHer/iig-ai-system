@@ -1,0 +1,468 @@
+.key-vocab-page{padding:32px 36px 44px}.key-vocab-header{align-items:center;margin-bottom:24px}.key-vocab-header>div:first-child>span{font-size:11px}.key-vocab-header h1{margin-top:8px;font-size:30px}.key-vocab-header p{margin-top:5px;font-size:14px;line-height:1.55}.key-vocab-tabs{padding:4px;border-radius:11px}.key-vocab-tabs button{height:42px;padding:0 15px;gap:8px;border-radius:8px;font-size:13px}.key-vocab-tabs svg{width:17px;height:17px}.key-vocab-workspace{grid-template-columns:minmax(0,1fr) 300px;align-items:start;gap:18px}.key-vocab-editor,.key-vocab-workspace>aside,.key-vocab-history{border-radius:14px}.key-vocab-editor>header{box-sizing:border-box;min-height:72px;padding:15px 20px}.key-vocab-editor>header>div{gap:12px}.key-vocab-editor>header svg{width:20px;height:20px}.key-vocab-editor strong{font-size:13px}.key-vocab-editor small{margin-top:5px;font-size:12px;line-height:1.4}.key-vocab-editor em{font-size:11px}.key-vocab-editor textarea{display:block;height:330px;min-height:250px;max-height:560px;padding:22px 24px;resize:vertical;font-size:15px;line-height:1.75}.key-vocab-editor>footer{box-sizing:border-box;min-height:68px;padding:13px 20px}.key-vocab-editor>footer>span{font-size:11px}.key-vocab-editor>footer button,.key-vocab-modal .primary{height:42px;padding:0 17px;gap:8px;font-size:13px}.key-vocab-editor button svg,.key-vocab-modal footer svg{width:17px;height:17px}.key-vocab-workspace>aside{padding:22px}.key-vocab-workspace>aside>span{width:42px;height:42px}.key-vocab-workspace>aside h2{margin:16px 0 18px;font-size:15px}.key-vocab-workspace li{gap:12px;padding:15px 0}.key-vocab-workspace li>b{font-size:10px}.key-vocab-workspace li strong{font-size:12px}.key-vocab-workspace li small{margin-top:6px;font-size:11px;line-height:1.55}.key-vocab-history>header{min-height:76px;padding:0 20px}.key-vocab-history h2{font-size:16px}.key-vocab-history p,.key-vocab-history input,.key-vocab-history td,.key-vocab-history>footer{font-size:12px}.key-vocab-history th{padding:12px 16px;font-size:10px}.key-vocab-history td{padding:15px 16px}.key-vocab-history td button{font-size:11px}.key-vocab-history>header label{height:40px}.key-vocab-modal h2{font-size:17px}.key-vocab-modal>header p,.key-vocab-source time{font-size:11px}.key-vocab-source label{font-size:10px}.key-vocab-modal.history .key-vocab-source p{font-size:14px}.key-vocab-list>header strong{font-size:14px}.key-vocab-list>header>div>span{font-size:11px}.key-vocab-read-main h3{font-size:15px}.key-vocab-read-main span{font-size:10px}.key-vocab-read-main code{font-size:12px}.key-vocab-read-main p{font-size:13px}.key-vocab-list .key-vocab-edit-row label{font-size:10px}.key-vocab-list input,.key-vocab-list select{font-size:12px}.key-vocab-modal .secondary{font-size:13px}
+
+.key-vocab-history td:first-child {
+  width: 55%;
+  max-width: none;
+}
+
+.key-vocab-history td:first-child strong {
+  display: -webkit-box;
+  overflow: visible;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-height: 1.55;
+}
+
+.key-vocab-modal-backdrop.history {
+  display: block;
+  overflow-y: auto;
+  padding: 32px 18px;
+}
+
+.key-vocab-modal.history {
+  margin: 0 auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.key-vocab-modal.history > .key-vocab-modal-body {
+  overflow: visible;
+}
+
+.key-vocab-modal.history > header,
+.key-vocab-modal.history > footer {
+  position: sticky;
+  z-index: 3;
+  background: #fff;
+}
+
+.key-vocab-modal.history > header {
+  top: 0;
+  border-radius: 16px 16px 0 0;
+}
+
+.key-vocab-modal.history > footer {
+  bottom: 0;
+  border-radius: 0 0 16px 16px;
+}
+
+.key-vocab-source > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.key-vocab-source time {
+  color: #98a2b3;
+  font-size: 8px;
+}
+
+.key-vocab-modal.history .key-vocab-source {
+  padding: 18px 20px;
+}
+
+.key-vocab-modal.history .key-vocab-source p {
+  max-height: none;
+  overflow: visible;
+  margin-top: 10px;
+  color: #344054;
+  font-size: 10px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.key-vocab-list > header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.key-vocab-list > header > div > span {
+  color: #98a2b3;
+  font-size: 7px;
+}
+
+.key-vocab-read-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.key-vocab-list .key-vocab-read-card {
+  min-height: 104px;
+  margin: 0;
+  padding: 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border-color: #e4e7ec;
+  border-radius: 11px;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.key-vocab-list .key-vocab-read-card:hover {
+  border-color: #b2ccff;
+  box-shadow: 0 5px 16px rgb(16 24 40 / 5%);
+}
+
+.key-vocab-read-index {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border-radius: 8px;
+  background: #eff4ff;
+  color: #155eef;
+  display: grid;
+  place-items: center;
+  font: 700 8px Lexend;
+}
+
+.key-vocab-read-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.key-vocab-read-main > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.key-vocab-read-main h3 {
+  margin: 0;
+  color: #101828;
+  font: 700 12px Lexend;
+  letter-spacing: -.015em;
+}
+
+.key-vocab-read-main span {
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #f2f4f7;
+  color: #475467;
+  font-size: 7px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.key-vocab-read-main code {
+  display: block;
+  margin-top: 7px;
+  color: #155eef;
+  font: 500 9px/1.4 "SFMono-Regular", Consolas, monospace;
+}
+
+.key-vocab-read-main p {
+  margin: 7px 0 0;
+  padding-top: 7px;
+  border-top: 1px solid #eaecf0;
+  color: #475467;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.key-vocab-list .key-vocab-edit-row {
+  display: grid;
+}
+
+.key-vocab-list .key-vocab-edit-row label {
+  display: flex;
+}
+
+:root:not(.light-theme) .key-vocab-modal.history > header,
+:root:not(.light-theme) .key-vocab-modal.history > footer {
+  background: #161b26;
+}
+
+.key-vocab-modal .export {
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid #b2ccff;
+  border-radius: 9px;
+  background: #eff4ff;
+  color: #155eef;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: 650 13px Inter;
+  cursor: pointer;
+}
+
+:root:not(.light-theme) .key-vocab-modal .export {
+  border-color: #1849a9;
+  background: #172554;
+  color: #b2ccff;
+}
+
+:root:not(.light-theme) .key-vocab-modal.history .key-vocab-source p,
+:root:not(.light-theme) .key-vocab-read-main h3 {
+  color: #f9fafb;
+}
+
+:root:not(.light-theme) .key-vocab-read-main span {
+  background: #292f3d;
+  color: #d0d5dd;
+}
+
+:root:not(.light-theme) .key-vocab-read-main p {
+  border-color: #292f3d;
+  color: #b6bac3;
+}
+
+/* Compact, column-based review layout */
+.key-vocab-editor textarea {
+  width: calc(100% - 36px);
+  height: 310px;
+  margin: 16px 18px;
+  border: 1px solid #d0d5dd;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(16 24 40 / 3%);
+}
+
+.key-vocab-editor textarea:focus {
+  border-color: #84adff;
+  box-shadow: 0 0 0 3px #eff4ff;
+}
+
+.key-vocab-history > header label {
+  box-sizing: border-box;
+  padding: 0 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.key-vocab-history > header label input {
+  min-width: 0;
+  width: auto;
+  flex: 1;
+  height: 100%;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  outline: 0;
+  box-shadow: none !important;
+  background: transparent;
+}
+
+.key-vocab-history > header label:focus-within {
+  border-color: #84adff;
+  box-shadow: 0 0 0 3px #eff4ff;
+}
+
+.key-vocab-read-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+}
+
+.key-vocab-list .key-vocab-read-card {
+  min-height: 72px;
+  padding: 12px 14px;
+}
+
+.key-vocab-read-main {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.15fr) minmax(150px, .75fr) minmax(220px, 1.25fr);
+  align-items: center;
+  gap: 18px;
+}
+
+.key-vocab-read-main > div {
+  justify-content: flex-start;
+}
+
+.key-vocab-read-main span {
+  padding: 5px 9px;
+  font-size: 12px;
+}
+
+.key-vocab-read-main code {
+  margin: 0;
+}
+
+.key-vocab-read-main p {
+  margin: 0;
+  padding: 7px 0 7px 18px;
+  border-top: 0;
+  border-left: 1px solid #eaecf0;
+}
+
+:root:not(.light-theme) .key-vocab-editor textarea,
+:root:not(.light-theme) .key-vocab-history > header label {
+  background: #0c111d;
+  border-color: #333741;
+}
+
+@media (max-width: 1050px) and (min-width: 761px) {
+  .key-vocab-read-main {
+    grid-template-columns: minmax(170px, 1fr) minmax(130px, .7fr) minmax(180px, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 760px) {
+  .key-vocab-page { padding: 20px 14px 32px; }
+  .key-vocab-header { align-items: flex-start; }
+  .key-vocab-header h1 { font-size: 26px; }
+  .key-vocab-tabs { width: 100%; }
+  .key-vocab-tabs button { flex: 1; }
+  .key-vocab-editor textarea { height: 300px; }
+  .key-vocab-editor > footer { align-items: stretch; flex-direction: column; gap: 10px; }
+  .key-vocab-editor > footer button { width: 100%; }
+  .key-vocab-modal-backdrop.history { padding: 12px; }
+  .key-vocab-read-grid { grid-template-columns: 1fr; }
+  .key-vocab-read-main { grid-template-columns: 1fr; gap: 7px; }
+  .key-vocab-read-main p { padding: 7px 0 0; border-top: 1px solid #eaecf0; border-left: 0; }
+  .key-vocab-history td:first-child { width: auto; }
+}
+
+/* History detail: fixed passage, only vocabulary list scrolls */
+.key-vocab-modal-backdrop.history {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 16px;
+}
+
+.key-vocab-modal.history {
+  width: min(1180px, 100%);
+  height: calc(100vh - 32px);
+  max-height: calc(100vh - 32px);
+  margin: 0;
+  overflow: hidden;
+}
+
+.key-vocab-modal.history > header {
+  position: static;
+  flex: 0 0 auto;
+  padding: 12px 18px;
+}
+
+.key-vocab-modal.history > header > div > span {
+  width: 34px;
+  height: 34px;
+}
+
+.key-vocab-modal.history > .key-vocab-modal-body {
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.key-vocab-modal.history .key-vocab-source {
+  flex: 0 0 auto;
+  padding: 11px 14px;
+}
+
+.key-vocab-modal.history .key-vocab-source p {
+  margin-top: 7px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.key-vocab-modal.history .key-vocab-list {
+  min-height: 0;
+  flex: 1;
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.key-vocab-modal.history .key-vocab-list > header {
+  flex: 0 0 auto;
+  margin-bottom: 6px;
+}
+
+.key-vocab-modal.history .key-vocab-list > header strong {
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.key-vocab-modal.history .key-vocab-list > header > div > span {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.key-vocab-modal.history .key-vocab-read-grid {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 5px;
+  scrollbar-gutter: stable;
+}
+
+.key-vocab-modal.history .key-vocab-read-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.key-vocab-modal.history .key-vocab-read-grid::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: #cbd5e1;
+  background-clip: padding-box;
+}
+
+.key-vocab-modal.history .key-vocab-read-card {
+  min-height: 56px;
+  padding: 8px 11px;
+  gap: 10px;
+  border-radius: 9px;
+}
+
+.key-vocab-modal.history .key-vocab-read-index {
+  width: 26px;
+  height: 26px;
+  flex-basis: 26px;
+  border-radius: 7px;
+  font-size: 10px;
+}
+
+.key-vocab-modal.history .key-vocab-read-main {
+  grid-template-columns: minmax(190px, 1fr) minmax(155px, .7fr) minmax(220px, 1.1fr);
+  gap: 14px;
+}
+
+.key-vocab-modal.history .key-vocab-read-main h3 {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.key-vocab-modal.history .key-vocab-read-main span {
+  padding: 4px 7px;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.key-vocab-modal.history .key-vocab-read-main code {
+  font-size: 13px;
+  line-height: 1.45;
+  letter-spacing: .01em;
+}
+
+.key-vocab-modal.history .key-vocab-read-main p {
+  padding: 4px 0 4px 14px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.key-vocab-modal.history > footer {
+  position: static;
+  flex: 0 0 auto;
+  padding: 9px 16px;
+}
+
+@media (max-width: 760px) {
+  .key-vocab-modal-backdrop.history { padding: 8px; }
+  .key-vocab-modal.history { height: calc(100vh - 16px); max-height: calc(100vh - 16px); }
+  .key-vocab-modal.history .key-vocab-source p { font-size: 11px; line-height: 1.45; }
+  .key-vocab-modal.history .key-vocab-read-main { grid-template-columns: 1fr; gap: 4px; }
+  .key-vocab-modal.history .key-vocab-read-main p { padding: 4px 0 0; }
+}

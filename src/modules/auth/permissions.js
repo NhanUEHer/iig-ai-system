@@ -17,6 +17,10 @@ const PERMISSION_GROUPS = [
   { key: 'audio', label: 'Audio Studio', permissions: [
     ['audio.view', 'Xem Audio Studio'], ['audio.manage', 'Tạo và quản lý audio/voice']
   ] },
+  { key: 'key_vocab', label: 'Gen Key Vocab', permissions: [
+    ['key_vocab.view', 'Xem lịch sử Key Vocab'], ['key_vocab.generate', 'Tạo Key Vocab bằng AI'],
+    ['key_vocab.manage', 'Chỉnh sửa và lưu Key Vocab']
+  ] },
   { key: 'reports', label: 'Báo cáo', permissions: [
     ['reports.view', 'Xem dashboard báo cáo KPI'],
     ['reports.forms.view', 'Chỉ xem danh sách kỳ và phiếu chi tiết'],
