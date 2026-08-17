@@ -1,6 +1,6 @@
 const XLSX=require('xlsx');
 const HEADERS=['STT','Ngày giao dịch','Ngày cập nhật hệ thống','Loại giao dịch','Ngân hàng','Tên tài khoản/thẻ','Số tài khoản/thẻ','Loại tài khoản','Tiền tệ tài khoản','Số tiền giao dịch gốc','Tiền tệ giao dịch gốc','Ghi nợ','Ghi có','Phí giao dịch','Tổng chi phí','Nhóm chi phí','Nhóm chi phí con / Phân bổ','Loại phí','Tính chất chi phí','Keyword nhận diện','Độ tin cậy','Diễn giải','File sao kê nguồn','Trang nguồn','Dòng tham chiếu','Ngày xác nhận import'];
-const asDate=value=>value?new Date(`${String(value).slice(0,10)}T00:00:00`):null;
+const asDate=value=>{if(!value)return null;if(value instanceof Date)return Number.isNaN(value.getTime())?null:new Date(value);const text=String(value);const parsed=/^\d{4}-\d{2}-\d{2}/.test(text)?new Date(`${text.slice(0,10)}T00:00:00`):new Date(text);return Number.isNaN(parsed.getTime())?null:parsed;};
 const asNumber=value=>Number(value||0);
 const transactionType=row=>asNumber(row.fee_amount)>0?'Phí giao dịch':asNumber(row.credit_amount)>0?'Ghi có':'Ghi nợ';
 function buildTransactionWorkbook(rows){
