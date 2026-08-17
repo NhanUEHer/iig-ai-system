@@ -77,7 +77,7 @@ else
 fi
 
 echo "[5/9] Uploading immutable release ${RELEASE_DIR}..."
-sshpass -p "$VPS_PASSWORD" ssh "${SSH_OPTIONS[@]}" root@"$VPS_IP" "mkdir -p '$RELEASE_DIR'"
+sshpass -p "$VPS_PASSWORD" ssh "${SSH_OPTIONS[@]}" root@"$VPS_IP" "install -d -m 755 '$RELEASE_DIR'"
 sshpass -p "$VPS_PASSWORD" rsync -az --delete -e "ssh ${SSH_OPTIONS[*]}" \
   --exclude='node_modules' --exclude='frontend/node_modules' --exclude='.git' --exclude='.env' --exclude='.env*.local' --exclude='tmp' --exclude='backups' \
   --exclude='voice_clone_env' --exclude='voice_clone_models' --exclude='tts_env' --exclude='asset' --exclude='src/models' \
@@ -99,6 +99,9 @@ sshpass -p "$VPS_PASSWORD" ssh "${SSH_OPTIONS[@]}" root@"$VPS_IP" "
     ln -s '$VPS_DIR/public/'\"\$path\" '$RELEASE_DIR/public/'\"\$path\"
   done
   cd '$RELEASE_DIR'
+  chmod 755 '$RELEASE_DIR'
+  find '$RELEASE_DIR/frontend/dist' -type d -exec chmod 755 {} +
+  find '$RELEASE_DIR/frontend/dist' -type f -exec chmod 644 {} +
   npm ci --omit=dev
   npm run check:syntax
   test \"\$(node -p \"require('./package.json').version\")\" = '$APP_VERSION'
