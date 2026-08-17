@@ -3,6 +3,16 @@ const HttpError = require('../../http/httpError');
 const difyClient = require('../../clients/keyVocabDifyClient');
 
 const ALLOWED_TYPES = new Set(['Noun','Verb','Adjective','Adverb','Noun Phrase','Phrasal Verb','Adjective Phrase','Idiom','Verb Phrase','Preposition','Prepositional Phrase','Prefix','Suffix','Conjunction','Interjection','Phrase']);
+const TARGET_SCORES = new Set([450, 500, 650, 700, 800]);
+const SELECTION_MODES = new Set(['phrase_focused', 'balanced', 'single_word_focused']);
+
+function normalizeSettings(targetScore = 500, selectionMode = 'balanced') {
+  const score = Number(targetScore);
+  const mode = String(selectionMode || 'balanced');
+  if (!TARGET_SCORES.has(score)) throw new HttpError('Level TOEIC không hợp lệ.', 400, 'INVALID_TARGET_SCORE');
+  if (!SELECTION_MODES.has(mode)) throw new HttpError('Mode chọn từ không hợp lệ.', 400, 'INVALID_SELECTION_MODE');
+  return { targetScore: score, selectionMode: mode };
+}
 
 function parseJson(value) {
   if (value && typeof value === 'object') return value;
@@ -11,7 +21,8 @@ function parseJson(value) {
 }
 
 function normalizeVocabulary(payload) {
-  const parsed = parseJson(payload);
+  const value = parseJson(payload);
+  const parsed = value?.result && !value.w ? parseJson(value.result) : value;
   if (!Array.isArray(parsed.w) || !parsed.w.length || parsed.w.length > 30) {
     throw new HttpError('Kết quả AI phải có danh sách từ vựng hợp lệ.', 422, 'INVALID_VOCAB_LIST');
   }
@@ -24,24 +35,28 @@ function normalizeVocabulary(payload) {
   });
 }
 
-async function generate(passage, userId) {
+async function generate(passage, userId, targetScore, selectionMode) {
   const text = String(passage || '').trim();
   if (text.length < 80) throw new HttpError('Đoạn văn cần tối thiểu 80 ký tự.', 400, 'PASSAGE_TOO_SHORT');
   if (text.length > 20000) throw new HttpError('Đoạn văn không được vượt quá 20.000 ký tự.', 400, 'PASSAGE_TOO_LONG');
-  const raw = await difyClient.generate(text, userId);
+  const settings = normalizeSettings(targetScore, selectionMode);
+  const raw = await difyClient.generate(text, userId, settings.targetScore, settings.selectionMode);
   const outputs = raw?.data?.outputs || raw?.outputs || raw;
   const candidate = outputs?.result ?? outputs?.structured_output ?? outputs?.output ?? outputs;
-  return { passage: text, vocabularies: normalizeVocabulary(candidate), workflowRunId: raw?.workflow_run_id || raw?.data?.workflow_run_id || null };
+  return { passage: text, ...settings, vocabularies: normalizeVocabulary(candidate), workflowRunId: raw?.workflow_run_id || raw?.data?.workflow_run_id || null };
 }
 
-async function save({ passage, vocabularies, workflowRunId }, userId) {
+async function save({ passage, vocabularies, workflowRunId, targetScore, selectionMode }, userId) {
   const text = String(passage || '').trim();
   if (text.length < 80 || text.length > 20000) throw new HttpError('Đoạn văn lưu trữ không hợp lệ.', 400, 'INVALID_PASSAGE');
+  const settings = normalizeSettings(targetScore, selectionMode);
   const items = normalizeVocabulary({ w: vocabularies });
   return db.transaction(async client => {
     const generation = await client.query(
-      `INSERT INTO key_vocab_generations (passage, workflow_run_id, created_by) VALUES ($1,$2,$3)
-       RETURNING id, passage, provider, workflow_run_id, created_at`, [text, workflowRunId || null, userId]
+      `INSERT INTO key_vocab_generations
+       (passage, workflow_run_id, target_score, selection_mode, created_by) VALUES ($1,$2,$3,$4,$5)
+       RETURNING id, passage, provider, workflow_run_id, target_score, selection_mode, created_at`,
+      [text, workflowRunId || null, settings.targetScore, settings.selectionMode, userId]
     );
     for (let index = 0; index < items.length; index += 1) {
       const item = items[index];
@@ -57,7 +72,7 @@ async function history({ page = 1, limit = 10, search = '' }) {
   const safePage = Math.max(1, Number(page) || 1); const safeLimit = Math.min(50, Math.max(1, Number(limit) || 10));
   const term = `%${String(search).trim()}%`;
   const [rows, count] = await Promise.all([
-    db.query(`SELECT g.id,g.passage,g.provider,g.created_at,u.name AS created_by_name,
+    db.query(`SELECT g.id,g.passage,g.provider,g.target_score,g.selection_mode,g.created_at,u.name AS created_by_name,
       COUNT(i.id)::int AS item_count FROM key_vocab_generations g JOIN users u ON u.id=g.created_by
       LEFT JOIN key_vocab_items i ON i.generation_id=g.id WHERE g.passage ILIKE $1
       GROUP BY g.id,u.name ORDER BY g.created_at DESC LIMIT $2 OFFSET $3`, [term, safeLimit, (safePage - 1) * safeLimit]),
@@ -69,7 +84,7 @@ async function history({ page = 1, limit = 10, search = '' }) {
 
 async function detail(id) {
   const [generation, items] = await Promise.all([
-    db.query(`SELECT g.id,g.passage,g.provider,g.workflow_run_id,g.created_at,u.name AS created_by_name
+    db.query(`SELECT g.id,g.passage,g.provider,g.workflow_run_id,g.target_score,g.selection_mode,g.created_at,u.name AS created_by_name
       FROM key_vocab_generations g JOIN users u ON u.id=g.created_by WHERE g.id=$1`, [id]),
     db.query(`SELECT term AS t,part_of_speech AS p,pronunciation AS i,meaning_vi AS m
       FROM key_vocab_items WHERE generation_id=$1 ORDER BY display_order`, [id])
@@ -78,4 +93,4 @@ async function detail(id) {
   return { ...generation.rows[0], vocabularies: items.rows };
 }
 
-module.exports = { generate, save, history, detail, ALLOWED_TYPES };
+module.exports = { generate, save, history, detail, normalizeSettings, ALLOWED_TYPES };

@@ -1,6 +1,8 @@
 import api from './api';
 
-export const generateKeyVocab = passage => api.post('/key-vocab/generate', { passage }, { timeout: 120000 }).then(response => response.data.data);
+export const generateKeyVocab = ({ passage, targetScore, selectionMode }) => api.post(
+  '/key-vocab/generate', { passage, targetScore, selectionMode }, { timeout: 120000 }
+).then(response => response.data.data);
 export const saveKeyVocab = data => api.post('/key-vocab', data).then(response => response.data.data);
 export const getKeyVocabHistory = params => api.get('/key-vocab/history', { params }).then(response => response.data);
 export const getKeyVocabDetail = id => api.get(`/key-vocab/history/${id}`).then(response => response.data.data);

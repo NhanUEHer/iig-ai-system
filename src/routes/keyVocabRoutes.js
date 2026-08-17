@@ -6,7 +6,7 @@ const exporter = require('../modules/key-vocab/keyVocabExporter');
 const router = express.Router();
 
 router.post('/generate', requirePermission('key_vocab.generate','key_vocab.manage'), asyncHandler(async (req, res) => {
-  const data = await service.generate(req.body.passage, req.user.id);
+  const data = await service.generate(req.body.passage, req.user.id, req.body.targetScore, req.body.selectionMode);
   res.json({ success: true, data });
 }));
 router.post('/', requirePermission('key_vocab.manage'), asyncHandler(async (req, res) => {
