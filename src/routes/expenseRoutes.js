@@ -5,6 +5,7 @@ router.get('/accounts',requirePermission('expenses.view','expenses.import','expe
 router.post('/accounts',requirePermission('expenses.config','expenses.manage'),asyncHandler(controller.createAccount));
 router.get('/imports',requirePermission('expenses.view','expenses.import','expenses.manage'),asyncHandler(controller.list));
 router.get('/transactions',requirePermission('expenses.view','expenses.manage'),asyncHandler(controller.transactions));
+router.get('/transactions/export',requirePermission('expenses.view','expenses.manage'),asyncHandler(controller.exportTransactions));
 router.get('/dashboard',requirePermission('expenses.view','expenses.manage'),asyncHandler(controller.dashboard));
 router.post('/imports',requirePermission('expenses.import','expenses.manage'),upload.single('file'),asyncHandler(controller.upload));
 router.get('/imports/:id',requirePermission('expenses.view','expenses.import','expenses.manage'),asyncHandler(controller.detail));

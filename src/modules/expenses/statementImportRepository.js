@@ -33,6 +33,22 @@ module.exports={
     const costPicture=(await db.query(`SELECT COALESCE(t.expense_category,'Chi phí khác') AS category,COALESCE(t.expense_subcategory,'Chưa xác định') AS subcategory,COUNT(*)::int AS transaction_count,COALESCE(SUM(t.debit_amount),0) AS total_cost,COALESCE(SUM(CASE WHEN t.cost_nature='fee' THEN t.debit_amount ELSE 0 END),0) AS fee_cost FROM expense_transactions t JOIN expense_statement_imports i ON i.id=t.import_id JOIN expense_bank_accounts a ON a.id=t.bank_account_id ${condition} AND t.debit_amount>0 GROUP BY 1,2 ORDER BY total_cost DESC`,values)).rows;
     return{items,summary,costPicture,pagination:{page,limit,total:Number(summary.transaction_count),pages:Math.max(1,Math.ceil(Number(summary.transaction_count)/limit))}};
   },
+  async exportTransactions(query){
+    const values=[],where=[`i.status='committed'`];
+    const add=(value,clause)=>{values.push(value);where.push(clause.replaceAll('?',`$${values.length}`));};
+    if(query.bankCode)add(String(query.bankCode).toUpperCase(),'a.bank_code=?');
+    if(query.accountId)add(query.accountId,'t.bank_account_id=?');
+    if(query.fromDate)add(query.fromDate,'t.transaction_date>=?::date');
+    if(query.toDate)add(query.toDate,'t.transaction_date<=?::date');
+    if(query.search)add(`%${query.search}%`,'(t.description ILIKE ? OR i.original_filename ILIKE ?)');
+    if(query.type==='debit')where.push(`t.debit_amount>0 AND t.fee_amount=0`);
+    else if(query.type==='credit')where.push(`t.credit_amount>0`);
+    else if(query.type==='fee')where.push(`t.fee_amount>0`);
+    if(query.category)add(query.category,'t.expense_category=?');
+    if(query.subcategory)add(query.subcategory,'t.expense_subcategory=?');
+    if(query.feeType)add(query.feeType,'t.fee_type=?');
+    return (await db.query(`SELECT t.*,a.bank_code,a.account_name,a.account_number_masked,a.account_type,a.currency AS account_currency,a.department_code,i.original_filename,i.statement_date,i.committed_at FROM expense_transactions t JOIN expense_statement_imports i ON i.id=t.import_id JOIN expense_bank_accounts a ON a.id=t.bank_account_id WHERE ${where.join(' AND ')} ORDER BY t.transaction_date DESC,t.posting_date DESC,t.created_at DESC LIMIT 100001`,values)).rows;
+  },
   async dashboard(query){
     const values=[],where=[`i.status='committed'`];const add=(value,clause)=>{values.push(value);where.push(clause.replaceAll('?',`$${values.length}`));};
     if(query.fromDate)add(query.fromDate,'t.transaction_date>=?::date');if(query.toDate)add(query.toDate,'t.transaction_date<=?::date');if(query.bankCode)add(String(query.bankCode).toUpperCase(),'a.bank_code=?');if(query.accountId)add(query.accountId,'t.bank_account_id=?');

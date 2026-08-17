@@ -1,6 +1,9 @@
 .bank-transactions-page { padding: 26px 20px 64px; }
 .bank-transactions-page .bank-transactions-shell { width: 100%; max-width: none; margin: 0; }
 .bank-transactions-header { min-height: 56px; align-items: center; margin-bottom: 18px; }
+.bank-transactions-header-actions { display: flex; gap: 8px; }
+.bank-transactions-header-actions .export { border-color: #12b76a; color: #067647; }
+.bank-transactions-header-actions button:disabled { opacity: .55; cursor: not-allowed; }
 .bank-transactions-title { align-items: center; gap: 0; }
 .bank-transactions-title h1 { margin: 3px 0 4px; }
 .bank-transactions-title p { line-height: 1.4; }
