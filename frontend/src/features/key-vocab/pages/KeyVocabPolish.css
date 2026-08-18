@@ -319,6 +319,93 @@
   .key-vocab-history td:first-child { width: auto; }
 }
 
+/* History list: stable columns and readable passage previews. */
+.key-vocab-history .key-vocab-table-wrap {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.key-vocab-history table {
+  min-width: 980px;
+  table-layout: fixed;
+}
+
+.key-vocab-history th:nth-child(1),
+.key-vocab-history td:nth-child(1) { width: 51%; }
+.key-vocab-history th:nth-child(2),
+.key-vocab-history td:nth-child(2) { width: 13%; }
+.key-vocab-history th:nth-child(3),
+.key-vocab-history td:nth-child(3) { width: 7%; }
+.key-vocab-history th:nth-child(4),
+.key-vocab-history td:nth-child(4) { width: 8%; }
+.key-vocab-history th:nth-child(5),
+.key-vocab-history td:nth-child(5) { width: 13%; }
+.key-vocab-history th:nth-child(6),
+.key-vocab-history td:nth-child(6) { width: 8%; }
+
+.key-vocab-history tbody tr {
+  height: 78px;
+  transition: background-color .15s ease;
+}
+
+.key-vocab-history tbody tr:hover {
+  background: #f8faff;
+}
+
+.key-vocab-history td {
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
+.key-vocab-history td:first-child {
+  width: 51%;
+  max-width: 0;
+}
+
+.key-vocab-history td:first-child strong {
+  display: -webkit-box;
+  overflow: hidden;
+  white-space: normal;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-height: 1.45;
+  max-height: 4.35em;
+  color: #344054;
+  font-weight: 550;
+}
+
+.key-vocab-history td:not(:first-child) {
+  white-space: nowrap;
+}
+
+.key-vocab-history .material-history-settings {
+  flex-wrap: nowrap;
+}
+
+.key-vocab-history td:last-child button {
+  min-width: 58px;
+  height: 32px;
+  padding: 0 9px;
+  border: 1px solid #dbe5ff;
+  border-radius: 8px;
+  background: #f5f8ff;
+  justify-content: center;
+}
+
+:root:not(.light-theme) .key-vocab-history tbody tr:hover {
+  background: #1b2230;
+}
+
+:root:not(.light-theme) .key-vocab-history td:last-child button {
+  border-color: #29447a;
+  background: #172554;
+}
+
+@media (max-width: 760px) {
+  .key-vocab-history table { min-width: 900px; }
+}
+
 /* History detail: fixed passage, only vocabulary list scrolls */
 .key-vocab-modal-backdrop.history {
   display: grid;
