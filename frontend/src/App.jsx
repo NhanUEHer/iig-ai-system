@@ -28,6 +28,23 @@ import KeyVocabPage from './features/key-vocab/pages/KeyVocabPage';
 const API_BASE = '/api/submissions';
 const AUTH_BASE = '/api/auth';
 
+const firstAllowedPath = user => {
+  const permissions = user?.permissions || [];
+  const has = permission => permissions.includes(permission);
+  const hasAny = values => values.some(has);
+  if (has('submissions.view')) return '/submissions';
+  if (has('mappings.view')) return '/mappings';
+  if (has('agents.view')) return '/ai';
+  if (has('audio.view')) return '/local-tts';
+  if (hasAny(['key_vocab.view','key_vocab.generate','key_vocab.manage'])) return '/key-vocab';
+  if (hasAny(['reports.view','reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'])) return '/reports/kpi';
+  if (hasAny(['expenses.view','expenses.import','expenses.manage'])) return '/expenses/dashboard';
+  if (has('users.view')) return '/users';
+  if (has('roles.view')) return '/roles';
+  if (has('logs.view')) return '/logs';
+  return '/change-password';
+};
+
 function App() {
   const [currentUser, setCurrentUser] = useState(() => {
     return readSession();
@@ -38,6 +55,7 @@ function App() {
   const location = useLocation();
   const path = location.pathname;
   const hasPermission = permission => currentUser?.permissions?.includes(permission);
+  const defaultPath = firstAllowedPath(currentUser);
 
   let activeTab = 'submissions';
   if (path.startsWith('/mappings')) activeTab = 'mappings';
@@ -104,7 +122,8 @@ function App() {
         setCurrentUser(userObj);
         saveSession(userObj);
         showMsg(`Chào mừng ${userObj.name}!`, 'success');
-        const returnTo=location.state?.from||sessionStorage.getItem('auth_return_to')||'/submissions';
+        const requestedPath = location.state?.from || sessionStorage.getItem('auth_return_to');
+        const returnTo = requestedPath && requestedPath !== '/login' ? requestedPath : firstAllowedPath(userObj);
         sessionStorage.removeItem('auth_return_to');
         navigate(returnTo,{replace:true});
       } else {
@@ -158,7 +177,7 @@ function App() {
   const [syncPanelMinimized, setSyncPanelMinimized] = useState(false);
 
   const fetchSubmissions = async (params = { page: 1, limit: 10 }) => {
-    if (!currentUser) return;
+    if (!hasPermission('submissions.view')) return;
     setLoading(true);
     try {
       const res = await axios.get(API_BASE, { params });
@@ -197,8 +216,8 @@ function App() {
   const retrySubmissionSync = keycode => runSyncItems([{ keycode, status: 'queued', message: 'Chờ thử lại' }]);
 
   useEffect(() => {
-    if (currentUser) fetchSubmissions();
-  }, [currentUser]);
+    if (!authChecking && path.startsWith('/submissions') && currentUser?.permissions?.includes('submissions.view')) fetchSubmissions();
+  }, [authChecking, currentUser, path]);
 
   const filteredSubmissions = submissions.filter(sub => {
     const matchSearch = (sub.student_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -233,8 +252,8 @@ function App() {
   };
 
   useEffect(() => {
-    if (hasPermission('mappings.view')) fetchMappings();
-  }, [currentUser]);
+    if (!authChecking && path.startsWith('/mappings') && currentUser?.permissions?.includes('mappings.view')) fetchMappings();
+  }, [authChecking, currentUser, path]);
 
   const filteredMappings = mappings.filter(m =>
     (m.keycode || '').toLowerCase().includes(searchMapping.toLowerCase()) ||
@@ -309,8 +328,8 @@ function App() {
   };
 
   useEffect(() => {
-    if (hasPermission('agents.view')) fetchAgents();
-  }, [currentUser]);
+    if (!authChecking && path.startsWith('/ai') && currentUser?.permissions?.includes('agents.view')) fetchAgents();
+  }, [authChecking, currentUser, path]);
 
   // User Management Data
   const [users, setUsers] = useState([]);
@@ -335,8 +354,8 @@ function App() {
   };
 
   useEffect(() => {
-    if (hasPermission('users.view')) fetchUsers();
-  }, [currentUser]);
+    if (!authChecking && path.startsWith('/users') && currentUser?.permissions?.includes('users.view')) fetchUsers();
+  }, [authChecking, currentUser, path]);
 
   const getStatusBadge = (status) => {
     switch (String(status)) {
@@ -413,7 +432,7 @@ function App() {
                   onRefresh={fetchSubmissions}
                   onStartSync={startSubmissionSync}
                   currentUser={currentUser}
-                /> : <Navigate to="/change-password" replace />
+                /> : <Navigate to={defaultPath} replace />
               } />
 
               <Route path="/submissions/:id" element={
@@ -422,7 +441,7 @@ function App() {
                   getStatusBadge={getStatusBadge}
                   addLiveLog={addLiveLog}
                   currentUser={currentUser}
-                /> : <Navigate to="/change-password" replace />
+                /> : <Navigate to={defaultPath} replace />
               } />
 
               <Route path="/mappings" element={
@@ -435,13 +454,13 @@ function App() {
                     showMsg={showMsg}
                     currentUser={currentUser}
                   />
-                ) : <Navigate to="/submissions" replace />
+                ) : <Navigate to={defaultPath} replace />
               } />
 
               <Route path="/ai" element={
                 hasPermission('agents.view') ? (
                   <AIConfigPage showMsg={showMsg} />
-                ) : <Navigate to="/submissions" replace />
+                ) : <Navigate to={defaultPath} replace />
               } />
 
               <Route path="/users" element={
@@ -450,62 +469,62 @@ function App() {
                     currentUser={currentUser}
                     showMsg={showMsg}
                   />
-                ) : <Navigate to="/submissions" replace />
+                ) : <Navigate to={defaultPath} replace />
               } />
 
               <Route path="/roles" element={
-                hasPermission('roles.view') ? <RoleManagementPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                hasPermission('roles.view') ? <RoleManagementPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
               } />
 
-              <Route path="/local-tts" element={hasPermission('audio.view') ? <LocalTTSStudio /> : <Navigate to="/submissions" replace />} />
-              <Route path="/key-vocab" element={['key_vocab.view','key_vocab.generate','key_vocab.manage'].some(hasPermission) ? <KeyVocabPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />} />
+              <Route path="/local-tts" element={hasPermission('audio.view') ? <LocalTTSStudio /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/key-vocab" element={['key_vocab.view','key_vocab.generate','key_vocab.manage'].some(hasPermission) ? <KeyVocabPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
 
               <Route path="/change-password" element={<ChangePasswordPage onChanged={handleLogout} showMsg={showMsg} />} />
 
               <Route path="/logs" element={
-                hasPermission('logs.view') ? <LogsConsolePage liveLogs={liveLogs} setLiveLogs={setLiveLogs} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                hasPermission('logs.view') ? <LogsConsolePage liveLogs={liveLogs} setLiveLogs={setLiveLogs} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
               } />
 
               <Route path="/reports/kpi" element={
-                ['reports.view','reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <KpiReportPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                ['reports.view','reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <KpiReportPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
               } />
               <Route path="/reports/kpi/input" element={
-                hasPermission('reports.view') ? <Navigate to="/reports/manage" replace /> : <Navigate to="/submissions" replace />
+                hasPermission('reports.view') ? <Navigate to="/reports/manage" replace /> : <Navigate to={defaultPath} replace />
               } />
               <Route path="/reports/manage" element={
-                ['reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <ReportPeriodManagementPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                ['reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <ReportPeriodManagementPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
               } />
               <Route path="/reports/manage/:periodId" element={
-                ['reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <ManualReportPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                ['reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <ManualReportPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
               } />
               <Route path="/reports/manage/:periodId/:teamCode" element={
-                ['reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <ManualReportPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                ['reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <ManualReportPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
               } />
               <Route path="/reports/kpi-config" element={
                 hasPermission('reports.manage') ? <KpiConfigurationPage showMsg={showMsg} /> : <Navigate to="/reports/manage" replace />
               } />
               <Route path="/expenses/imports" element={
-                ['expenses.view','expenses.import','expenses.manage'].some(hasPermission) ? <BankStatementImportsPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                ['expenses.view','expenses.import','expenses.manage'].some(hasPermission) ? <BankStatementImportsPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
               } />
               <Route path="/expenses/transactions" element={
-                ['expenses.view','expenses.manage'].some(hasPermission) ? <BankTransactionsPage showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                ['expenses.view','expenses.manage'].some(hasPermission) ? <BankTransactionsPage showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
               } />
               <Route path="/expenses/dashboard" element={
-                ['expenses.view','expenses.manage'].some(hasPermission) ? <ExpenseDashboardPage showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                ['expenses.view','expenses.manage'].some(hasPermission) ? <ExpenseDashboardPage showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
               } />
 
-              <Route path="/" element={<Navigate to="/submissions" replace />} />
-              <Route path="*" element={<Navigate to="/submissions" replace />} />
+              <Route path="/" element={<Navigate to={defaultPath} replace />} />
+              <Route path="*" element={<Navigate to={defaultPath} replace />} />
             </Routes>
           </main>
-          <BulkSyncPanel
+          {hasPermission('submissions.view') && <BulkSyncPanel
             job={syncJob}
             open={syncPanelOpen}
             minimized={syncPanelMinimized}
             onMinimize={() => { setSyncPanelOpen(value => !value); setSyncPanelMinimized(value => !value); }}
             onClose={() => { setSyncPanelOpen(false); setSyncPanelMinimized(false); setSyncJob(null); }}
             onRetry={retrySubmissionSync}
-          />
+          />}
         </>
       )}
     </div>

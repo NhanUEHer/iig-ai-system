@@ -20,8 +20,8 @@ const groups = [
     items: [
       { id: 'local-tts', label: 'Audio Studio', icon: AudioLines, path: '/local-tts', permission: 'audio.view' },
       { id: 'key-vocab', label: 'Tạo học liệu', icon: BookOpenText, path: '/key-vocab', permissions: ['key_vocab.view','key_vocab.generate','key_vocab.manage'] },
-      { id: 'question-gen', label: 'Tạo câu hỏi', icon: NotebookPen, upcoming: true },
-      { id: 'lesson-content', label: 'Nội dung bài học', icon: FileText, upcoming: true }
+      { id: 'question-gen', label: 'Tạo câu hỏi', icon: NotebookPen, upcoming: true, permissions: ['audio.view','key_vocab.view','key_vocab.generate','key_vocab.manage'] },
+      { id: 'lesson-content', label: 'Nội dung bài học', icon: FileText, upcoming: true, permissions: ['audio.view','key_vocab.view','key_vocab.generate','key_vocab.manage'] }
     ]
   },
   {
@@ -54,6 +54,13 @@ export default function Sidebar({
   sidebarCollapsed, toggleSidebar, activeTab, navigate, currentUser,
   handleLogout
 }) {
+  const permissions = currentUser?.permissions || [];
+  const canSee = item => (!item.permission || permissions.includes(item.permission)) &&
+    (!item.permissions || item.permissions.some(permission => permissions.includes(permission)));
+  const visibleGroups = groups
+    .map(group => ({ ...group, items: group.items.filter(canSee) }))
+    .filter(group => group.items.length > 0);
+
   return <aside className={`workspace-sidebar${sidebarCollapsed ? ' collapsed' : ''}`}>
     <header className="workspace-sidebar-brand">
       <div className="workspace-sidebar-logo"><img src="/IIG_logo.webp" alt="IIG" /></div>
@@ -62,9 +69,9 @@ export default function Sidebar({
     </header>
 
     <nav className="workspace-sidebar-nav">
-      {groups.map(group => <section className="workspace-nav-group" key={group.label}>
+      {visibleGroups.map(group => <section className="workspace-nav-group" key={group.label}>
         {!sidebarCollapsed && <div className="workspace-nav-label">{group.label}</div>}
-        {group.items.filter(item => (!item.permission || currentUser?.permissions?.includes(item.permission))&&(!item.permissions||item.permissions.some(permission=>currentUser?.permissions?.includes(permission)))).map(item => {
+        {group.items.map(item => {
           const Icon = item.icon;
           return <button
             key={item.id}
