@@ -18,3 +18,13 @@ test('key vocab rejects an original form not present exactly in the passage', ()
     o: 'implement', t: 'implement', p: 'Verb', i: '/ˈɪmplɪment/', m: 'triển khai'
   }] }, { passage: 'The company implemented the policy.' }), error => error.code === 'VOCAB_NOT_IN_PASSAGE');
 });
+
+test('key vocab safely infers an exact original form for legacy Dify output', () => {
+  const passage = 'The team implemented controls for outstanding orders.';
+  const items = normalizeVocabulary({ w: [
+    { t: 'implemented', p: 'Verb', i: '/ˈɪmplɪmentɪd/', m: 'đã triển khai' },
+    { t: 'outstanding order', p: 'Noun Phrase', i: '/ˌaʊtˈstændɪŋ ˈɔːdə/', m: 'đơn tồn đọng' }
+  ] }, { passage });
+  assert.equal(items[0].o, 'implemented');
+  assert.equal(items[1].o, 'outstanding orders');
+});

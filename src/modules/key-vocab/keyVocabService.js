@@ -25,6 +25,24 @@ const appearsExactly = (passage, original) => new RegExp(
   `(?<![\\p{L}\\p{N}_])${escapePattern(original)}(?![\\p{L}\\p{N}_])`, 'u'
 ).test(passage);
 
+function inferOriginalForm(passage, canonical) {
+  const term = String(canonical || '').trim();
+  if (!passage || !term) return '';
+  const words = term.split(' ');
+  const last = words.pop();
+  const prefix = words.length ? `${words.join(' ')} ` : '';
+  const variants = [term, `${prefix}${last}s`, `${prefix}${last}es`, `${prefix}${last}ed`, `${prefix}${last}ing`];
+  if (last.endsWith('y')) variants.push(`${prefix}${last.slice(0, -1)}ies`);
+  if (last.endsWith('e')) variants.push(`${prefix}${last}d`, `${prefix}${last.slice(0, -1)}ing`);
+  for (const candidate of [...new Set(variants)]) {
+    const match = String(passage).match(new RegExp(
+      `(?<![\\p{L}\\p{N}_])${escapePattern(candidate)}(?![\\p{L}\\p{N}_])`, 'iu'
+    ));
+    if (match) return match[0];
+  }
+  return '';
+}
+
 function normalizeVocabulary(payload, { passage = '', requireOriginal = true } = {}) {
   const value = parseJson(payload);
   const parsed = value?.result && !value.w ? parseJson(value.result) : value;
@@ -33,6 +51,7 @@ function normalizeVocabulary(payload, { passage = '', requireOriginal = true } =
   }
   return parsed.w.map((item, index) => {
     const value = { o: String(item?.o || '').trim(), t: String(item?.t || '').trim(), p: String(item?.p || '').trim(), i: String(item?.i || '').trim(), m: String(item?.m || '').trim() };
+    if (!value.o && passage) value.o = inferOriginalForm(passage, value.t);
     if ((!value.o && requireOriginal) || !value.t || !value.i || !value.m || !ALLOWED_TYPES.has(value.p)) {
       throw new HttpError(`Từ vựng thứ ${index + 1} thiếu dữ liệu hoặc sai loại từ.`, 422, 'INVALID_VOCAB_ITEM');
     }
@@ -102,4 +121,4 @@ async function detail(id) {
   return { ...generation.rows[0], vocabularies: items.rows };
 }
 
-module.exports = { generate, save, history, detail, normalizeSettings, normalizeVocabulary, ALLOWED_TYPES };
+module.exports = { generate, save, history, detail, normalizeSettings, normalizeVocabulary, inferOriginalForm, ALLOWED_TYPES };
