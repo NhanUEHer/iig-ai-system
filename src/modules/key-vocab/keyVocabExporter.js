@@ -9,8 +9,14 @@ const TEMPLATE_PATH = path.join(__dirname, '../../assets/templates/KeyVocabulary
 function normalizeItems(vocabularies) {
   if (!Array.isArray(vocabularies) || !vocabularies.length) throw new HttpError('Không có từ vựng để xuất dữ liệu.', 400, 'EMPTY_VOCAB_EXPORT');
   return vocabularies.map((item, index) => {
-    const value = { t: String(item?.t || '').trim(), p: String(item?.p || '').trim(), i: String(item?.i || '').trim(), m: String(item?.m || '').trim() };
-    if (!value.t || !value.i || !value.m || !ALLOWED_TYPES.has(value.p)) throw new HttpError(`Từ vựng thứ ${index + 1} chưa đủ dữ liệu để export.`, 422, 'INVALID_VOCAB_EXPORT');
+    const value = {
+      o: String(item?.o || item?.t || '').trim(),
+      t: String(item?.t || '').trim(),
+      p: String(item?.p || '').trim(),
+      i: String(item?.i || '').trim(),
+      m: String(item?.m || '').trim()
+    };
+    if (!value.o || !value.t || !value.i || !value.m || !ALLOWED_TYPES.has(value.p)) throw new HttpError(`Từ vựng thứ ${index + 1} chưa đủ dữ liệu để export.`, 422, 'INVALID_VOCAB_EXPORT');
     return value;
   });
 }
@@ -29,14 +35,19 @@ async function createWorkbook(vocabularies) {
   if (!header) throw new HttpError('Không tìm thấy header trong template Key Vocab.', 500, 'INVALID_EXPORT_TEMPLATE');
   const rows = items.map((item, index) => {
     const row = index + 2;
-    const cells = [item.t, item.p, item.i, item.m, ''].map((value, col) => {
+    const cells = [item.o, item.t, item.p, item.i, item.m, ''].map((value, col) => {
       const address = `${String.fromCharCode(65 + col)}${row}`;
       return `<x:c r="${address}" s="0" t="inlineStr"><x:is><x:t xml:space="preserve">${escapeXml(value)}</x:t></x:is></x:c>`;
     }).join('');
-    return `<x:row r="${row}" spans="1:5">${cells}</x:row>`;
+    return `<x:row r="${row}" spans="1:6">${cells}</x:row>`;
   }).join('');
   xml = xml.replace(/<x:sheetData>[\s\S]*?<\/x:sheetData>/, `<x:sheetData>${header}${rows}</x:sheetData>`);
-  xml = xml.replace(/<x:dimension ref="[^"]+"\s*\/>/, `<x:dimension ref="A1:E${items.length + 1}" />`);
+  const dimension = `<x:dimension ref="A1:F${items.length + 1}" />`;
+  if (/<x:dimension ref="[^"]+"\s*\/>/.test(xml)) {
+    xml = xml.replace(/<x:dimension ref="[^"]+"\s*\/>/, dimension);
+  } else {
+    xml = xml.replace(/(<x:worksheet[^>]*>)/, `$1${dimension}`);
+  }
   zip.file('xl/worksheets/sheet1.xml', xml);
   return zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', compressionOptions: { level: 6 } });
 }

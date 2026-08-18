@@ -20,16 +20,25 @@ function parseJson(value) {
   try { return JSON.parse(text); } catch { throw new HttpError('AI Academy trả về JSON không hợp lệ.', 502, 'INVALID_AI_OUTPUT'); }
 }
 
-function normalizeVocabulary(payload) {
+const escapePattern = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const appearsExactly = (passage, original) => new RegExp(
+  `(?<![\\p{L}\\p{N}_])${escapePattern(original)}(?![\\p{L}\\p{N}_])`, 'u'
+).test(passage);
+
+function normalizeVocabulary(payload, { passage = '', requireOriginal = true } = {}) {
   const value = parseJson(payload);
   const parsed = value?.result && !value.w ? parseJson(value.result) : value;
   if (!Array.isArray(parsed.w) || !parsed.w.length || parsed.w.length > 30) {
     throw new HttpError('Kết quả AI phải có danh sách từ vựng hợp lệ.', 422, 'INVALID_VOCAB_LIST');
   }
   return parsed.w.map((item, index) => {
-    const value = { t: String(item?.t || '').trim(), p: String(item?.p || '').trim(), i: String(item?.i || '').trim(), m: String(item?.m || '').trim() };
-    if (!value.t || !value.i || !value.m || !ALLOWED_TYPES.has(value.p)) {
+    const value = { o: String(item?.o || '').trim(), t: String(item?.t || '').trim(), p: String(item?.p || '').trim(), i: String(item?.i || '').trim(), m: String(item?.m || '').trim() };
+    if ((!value.o && requireOriginal) || !value.t || !value.i || !value.m || !ALLOWED_TYPES.has(value.p)) {
       throw new HttpError(`Từ vựng thứ ${index + 1} thiếu dữ liệu hoặc sai loại từ.`, 422, 'INVALID_VOCAB_ITEM');
+    }
+    if (!value.o) value.o = value.t;
+    if (passage && !appearsExactly(passage, value.o)) {
+      throw new HttpError(`Từ vựng thứ ${index + 1} có dạng gốc không xuất hiện chính xác trong đoạn văn.`, 422, 'VOCAB_NOT_IN_PASSAGE');
     }
     return value;
   });
@@ -43,14 +52,14 @@ async function generate(passage, userId, targetScore, selectionMode) {
   const raw = await difyClient.generate(text, userId, settings.targetScore, settings.selectionMode);
   const outputs = raw?.data?.outputs || raw?.outputs || raw;
   const candidate = outputs?.result ?? outputs?.structured_output ?? outputs?.output ?? outputs;
-  return { passage: text, ...settings, vocabularies: normalizeVocabulary(candidate), workflowRunId: raw?.workflow_run_id || raw?.data?.workflow_run_id || null };
+  return { passage: text, ...settings, vocabularies: normalizeVocabulary(candidate, { passage: text }), workflowRunId: raw?.workflow_run_id || raw?.data?.workflow_run_id || null };
 }
 
 async function save({ passage, vocabularies, workflowRunId, targetScore, selectionMode }, userId) {
   const text = String(passage || '').trim();
   if (text.length < 80 || text.length > 20000) throw new HttpError('Đoạn văn lưu trữ không hợp lệ.', 400, 'INVALID_PASSAGE');
   const settings = normalizeSettings(targetScore, selectionMode);
-  const items = normalizeVocabulary({ w: vocabularies });
+  const items = normalizeVocabulary({ w: vocabularies }, { passage: text });
   return db.transaction(async client => {
     const generation = await client.query(
       `INSERT INTO key_vocab_generations
@@ -61,8 +70,8 @@ async function save({ passage, vocabularies, workflowRunId, targetScore, selecti
     for (let index = 0; index < items.length; index += 1) {
       const item = items[index];
       await client.query(`INSERT INTO key_vocab_items
-        (generation_id,term,part_of_speech,pronunciation,meaning_vi,display_order)
-        VALUES ($1,$2,$3,$4,$5,$6)`, [generation.rows[0].id, item.t, item.p, item.i, item.m, index]);
+        (generation_id,original_term,term,part_of_speech,pronunciation,meaning_vi,display_order)
+        VALUES ($1,$2,$3,$4,$5,$6,$7)`, [generation.rows[0].id, item.o, item.t, item.p, item.i, item.m, index]);
     }
     return { ...generation.rows[0], vocabularies: items };
   });
@@ -86,11 +95,11 @@ async function detail(id) {
   const [generation, items] = await Promise.all([
     db.query(`SELECT g.id,g.passage,g.provider,g.workflow_run_id,g.target_score,g.selection_mode,g.created_at,u.name AS created_by_name
       FROM key_vocab_generations g JOIN users u ON u.id=g.created_by WHERE g.id=$1`, [id]),
-    db.query(`SELECT term AS t,part_of_speech AS p,pronunciation AS i,meaning_vi AS m
+    db.query(`SELECT COALESCE(original_term,term) AS o,term AS t,part_of_speech AS p,pronunciation AS i,meaning_vi AS m
       FROM key_vocab_items WHERE generation_id=$1 ORDER BY display_order`, [id])
   ]);
   if (!generation.rows[0]) throw new HttpError('Không tìm thấy lịch sử Key Vocab.', 404, 'KEY_VOCAB_NOT_FOUND');
   return { ...generation.rows[0], vocabularies: items.rows };
 }
 
-module.exports = { generate, save, history, detail, normalizeSettings, ALLOWED_TYPES };
+module.exports = { generate, save, history, detail, normalizeSettings, normalizeVocabulary, ALLOWED_TYPES };
