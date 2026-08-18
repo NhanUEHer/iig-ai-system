@@ -2,6 +2,7 @@ const authRepository = require('../modules/auth/authRepository');
 const authService = require('../modules/auth/authService');
 const HttpError = require('../http/httpError');
 const roleRepository = require('../modules/auth/roleRepository');
+const { hashPassword, validatePassword } = require('../modules/auth/passwordService');
 
 async function validateRoles(input = {}) {
   const roleSlugs = [...new Set((Array.isArray(input.roleSlugs) ? input.roleSlugs : [input.role]).filter(Boolean))];
@@ -33,16 +34,6 @@ module.exports = {
     return res.json({ success: true, user: req.user });
   },
 
-  async forgotPassword(req, res) {
-    const result = await authService.requestPasswordReset(req.body?.email);
-    return res.json({ success: true, ...result });
-  },
-
-  async resetPassword(req, res) {
-    await authService.resetPassword(req.body || {});
-    return res.json({ success: true, message: 'Mật khẩu đã được thiết lập. Bạn có thể đăng nhập.' });
-  },
-
   async changePassword(req, res) {
     await authService.changePassword({
       userId: req.auth.userId,
@@ -58,32 +49,29 @@ module.exports = {
   },
 
   async createUser(req, res) {
-    const { name, email } = req.body || {};
-    if (!name?.trim() || !email?.trim()) {
-      throw new HttpError('Tên, email và role hợp lệ là bắt buộc.', 400, 'VALIDATION_ERROR');
+    const { name, email, password, isActive = true } = req.body || {};
+    const passwordError = validatePassword(password);
+    if (!name?.trim() || !email?.trim() || passwordError) {
+      throw new HttpError(passwordError || 'Tên, email và role hợp lệ là bắt buộc.', 400, 'VALIDATION_ERROR');
     }
     const assignment = await validateRoles(req.body);
     let user;
     try {
-      user = await authRepository.createUser({ name: name.trim(), email: email.trim(), ...assignment, assignedBy: req.auth.userId });
+      user = await authRepository.createUser({ name: name.trim(), email: email.trim(), passwordHash: await hashPassword(password), isActive: Boolean(isActive), ...assignment, assignedBy: req.auth.userId });
     } catch (error) {
       if (error.code === '23505') throw new HttpError('Email đã tồn tại.', 409, 'EMAIL_EXISTS');
       throw error;
     }
-    await authService.issuePasswordAction(user, 'setup');
     return res.status(201).json({
       success: true,
-      message: 'Đã tạo tài khoản và gửi email thiết lập mật khẩu.',
+      message: 'Đã tạo tài khoản.',
       data: user
     });
   },
 
-  async resendInvite(req, res) {
-    const user = await authRepository.findUserById(req.params.id);
-    if (!user) throw new HttpError('Không tìm thấy tài khoản.', 404, 'USER_NOT_FOUND');
-    if (!user.force_password_change) throw new HttpError('Tài khoản đã hoàn tất kích hoạt.', 400, 'ACCOUNT_ALREADY_ACTIVE');
-    await authService.issuePasswordAction(user, 'setup');
-    return res.json({ success: true, message: 'Đã gửi lại email thiết lập mật khẩu.' });
+  async setUserPassword(req, res) {
+    await authService.setUserPassword({ userId: req.params.id, password: req.body?.password });
+    return res.json({ success: true, message: 'Đã đặt lại mật khẩu và thu hồi các phiên đăng nhập cũ.' });
   },
 
   async updateUser(req, res) {

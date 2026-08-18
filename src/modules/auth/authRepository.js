@@ -61,13 +61,13 @@ class AuthRepository {
     return { rows: result.rows, meta: { page: safePage, limit: safeLimit, total, totalPages: Math.max(1, Math.ceil(total / safeLimit)) } };
   }
 
-  async createUser({ name, email, roleSlugs, primaryRoleSlug, assignedBy }) {
+  async createUser({ name, email, passwordHash, roleSlugs, primaryRoleSlug, isActive = true, assignedBy }) {
     return this.db.transaction(async client => {
       const result = await client.query(
-        `INSERT INTO users (name,email,username,password,role,force_password_change)
-         VALUES ($1,LOWER($2),LOWER($2),'',$3,TRUE)
+        `INSERT INTO users (name,email,username,password,password_hash,role,is_active,force_password_change,password_changed_at)
+         VALUES ($1,LOWER($2),LOWER($2),'',$3,$4,$5,FALSE,CURRENT_TIMESTAMP)
          RETURNING id,name,email,username,role,is_active,force_password_change,created_at`,
-        [name, email, primaryRoleSlug]
+        [name, email, passwordHash, primaryRoleSlug, isActive]
       );
       await this.replaceUserRoles(client, result.rows[0].id, roleSlugs, primaryRoleSlug, assignedBy);
       return result.rows[0];
@@ -166,28 +166,6 @@ class AuthRepository {
     );
   }
 
-  async createPasswordToken({ userId, tokenHash, purpose, expiresAt }) {
-    await this.db.query(
-      `UPDATE password_action_tokens SET used_at = CURRENT_TIMESTAMP
-       WHERE user_id = $1 AND purpose = $2 AND used_at IS NULL`,
-      [userId, purpose]
-    );
-    await this.db.query(
-      `INSERT INTO password_action_tokens (user_id, token_hash, purpose, expires_at)
-       VALUES ($1, $2, $3, $4)`,
-      [userId, tokenHash, purpose, expiresAt]
-    );
-  }
-
-  async consumePasswordToken(tokenHash) {
-    const result = await this.db.query(
-      `UPDATE password_action_tokens SET used_at = CURRENT_TIMESTAMP
-       WHERE token_hash = $1 AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP
-       RETURNING user_id, purpose`,
-      [tokenHash]
-    );
-    return result.rows[0] || null;
-  }
 }
 
 module.exports = new AuthRepository();

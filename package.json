@@ -1,6 +1,6 @@
 {
   "name": "ai-scoring-admin",
-  "version": "1.1.55",
+  "version": "1.1.56",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -28,7 +28,6 @@
     "jsonwebtoken": "^9.0.3",
     "jszip": "^3.10.1",
     "multer": "^2.2.0",
-    "nodemailer": "^9.0.5",
     "officecrypto-tool": "^0.0.19",
     "pdfjs-dist": "^5.7.284",
     "pg": "^8.22.0",

@@ -401,9 +401,6 @@ function App() {
               setShowLoginPassword={setShowLoginPassword}
             />
           } />
-          <Route path="/forgot-password" element={<LoginPage message={message} />} />
-          <Route path="/reset-password" element={<LoginPage message={message} />} />
-          <Route path="/setup-password" element={<LoginPage message={message} />} />
           <Route path="*" element={(()=>{const returnTo=`${location.pathname}${location.search}`;sessionStorage.setItem('auth_return_to',returnTo);return <Navigate to="/login" replace state={{from:returnTo}}/>;})()} />
         </Routes>
       ) : (

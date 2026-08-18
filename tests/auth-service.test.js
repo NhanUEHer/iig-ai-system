@@ -64,18 +64,14 @@ test('login returns the union of permissions from every assigned role', async ()
   assert.equal(result.user.roleName, 'Nội dung');
 });
 
-test('forgot password does not reveal whether an email exists', async () => {
-  const result = await authService.requestPasswordReset('missing@example.com', {
-    repository: { findUserByEmail: async () => null }
-  });
-  assert.match(result.message, /Nếu email tồn tại/);
-});
-
-test('reset password rejects invalid or expired action tokens', async () => {
-  await assert.rejects(
-    () => authService.resetPassword({ token: 'expired', password: 'SecurePass123' }, {
-      repository: { consumePasswordToken: async () => null }
-    }),
-    error => error.code === 'INVALID_TOKEN'
-  );
+test('administrator password reset hashes the password and revokes active sessions', async () => {
+  let storedHash;
+  let revoked = false;
+  await authService.setUserPassword({ userId: 'user-1', password: 'SecurePass123' }, { repository: {
+    findUserById: async () => ({ id: 'user-1' }),
+    setPassword: async (_id, hash) => { storedHash = hash; },
+    revokeUserSessions: async () => { revoked = true; }
+  } });
+  assert.equal(await verifyPassword('SecurePass123', storedHash), true);
+  assert.equal(revoked, true);
 });

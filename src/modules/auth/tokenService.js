@@ -1,4 +1,3 @@
-const crypto = require('node:crypto');
 const jwt = require('jsonwebtoken');
 const { jwtSecret } = require('./authConfig');
 
@@ -15,14 +14,4 @@ function verifyAccessToken(token) {
   return jwt.verify(token, jwtSecret(), { algorithms: ['HS256'] });
 }
 
-function createActionToken() {
-  const token = crypto.randomBytes(32).toString('base64url');
-  const hash = crypto.createHash('sha256').update(token).digest('hex');
-  return { token, hash };
-}
-
-function hashActionToken(token) {
-  return crypto.createHash('sha256').update(token).digest('hex');
-}
-
-module.exports = { signAccessToken, verifyAccessToken, createActionToken, hashActionToken };
+module.exports = { signAccessToken, verifyAccessToken };

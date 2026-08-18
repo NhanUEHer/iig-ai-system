@@ -28,13 +28,6 @@ function validateEnv(env = process.env) {
   if (env.NODE_ENV === 'production' && env.APP_URL && !env.APP_URL.startsWith('https://')) {
     throw new Error('APP_URL must use HTTPS in production.');
   }
-  if (env.NODE_ENV === 'production') {
-    const smtpRequired = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_FROM'];
-    const missingSmtp = smtpRequired.filter(name => !env[name]?.trim());
-    if (missingSmtp.length) {
-      throw new Error(`Missing production email variables: ${missingSmtp.join(', ')}`);
-    }
-  }
   if (env.APP_ENV && !['development', 'production'].includes(env.APP_ENV)) {
     throw new Error('APP_ENV must be development or production.');
   }

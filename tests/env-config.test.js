@@ -18,16 +18,13 @@ test('environment validation accepts only known application environments', () =>
   assert.throws(() => validateEnv({ DATABASE_URL: 'postgres://db', APP_ENV: 'staging' }), /APP_ENV/);
 });
 
-test('production requires HTTPS, a secure JWT secret and SMTP configuration', () => {
+test('production requires HTTPS and a secure JWT secret without email configuration', () => {
   const valid = {
     DATABASE_URL: 'postgres://db', NODE_ENV: 'production', APP_ENV: 'production',
-    APP_URL: 'https://admin.iigvn.site', JWT_SECRET: 'a'.repeat(32),
-    SMTP_HOST: 'smtp.gmail.com', SMTP_USER: 'sender@example.com',
-    SMTP_PASSWORD: 'app-password', SMTP_FROM: 'IIG Admin <sender@example.com>'
+    APP_URL: 'https://admin.iigvn.site', JWT_SECRET: 'a'.repeat(32)
   };
   assert.deepEqual(validateEnv(valid), { port: 5000 });
   assert.throws(() => validateEnv({ ...valid, APP_URL: 'http://admin.iigvn.site' }), /HTTPS/);
-  assert.throws(() => validateEnv({ ...valid, SMTP_PASSWORD: '' }), /SMTP_PASSWORD/);
 });
 
 test('build info distinguishes Dev and Production and exposes version', () => {

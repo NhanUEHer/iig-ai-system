@@ -1,8 +1,7 @@
 const authRepository = require('./authRepository');
 const { hashPassword, verifyPassword, validatePassword, isBcryptHash } = require('./passwordService');
-const { signAccessToken, createActionToken, hashActionToken } = require('./tokenService');
-const { IDLE_TTL_MS, ABSOLUTE_TTL_MS, PASSWORD_TOKEN_TTL_MS } = require('./authConfig');
-const emailService = require('../../services/emailService');
+const { signAccessToken } = require('./tokenService');
+const { IDLE_TTL_MS, ABSOLUTE_TTL_MS } = require('./authConfig');
 const HttpError = require('../../http/httpError');
 const roleRepository = require('./roleRepository');
 
@@ -64,41 +63,14 @@ async function login(input, dependencies = {}) {
   return { user: { ...publicUser(user, assignedRoles), permissions }, token, expiresAt: idleExpiresAt, absoluteExpiresAt };
 }
 
-async function issuePasswordAction(user, purpose, dependencies = {}) {
-  const repository = dependencies.repository || authRepository;
-  const mailer = dependencies.emailService || emailService;
-  const now = dependencies.now?.() || new Date();
-  const { token, hash } = createActionToken();
-  await repository.createPasswordToken({
-    userId: user.id,
-    tokenHash: hash,
-    purpose,
-    expiresAt: new Date(now.getTime() + PASSWORD_TOKEN_TTL_MS)
-  });
-  const baseUrl = (process.env.APP_URL || 'http://localhost:5173').replace(/\/$/, '');
-  const actionUrl = `${baseUrl}/${purpose === 'setup' ? 'setup-password' : 'reset-password'}?token=${encodeURIComponent(token)}`;
-  return mailer.sendPasswordActionEmail({ email: user.email, name: user.name, actionUrl, purpose });
-}
-
-async function requestPasswordReset(email, dependencies = {}) {
-  const repository = dependencies.repository || authRepository;
-  if (!email) throw new HttpError('Email là bắt buộc.', 400, 'VALIDATION_ERROR');
-  const user = await repository.findUserByEmail(email.trim());
-  if (user?.is_active) await issuePasswordAction(user, 'reset', dependencies);
-  return { message: 'Nếu email tồn tại, hướng dẫn đặt lại mật khẩu đã được gửi.' };
-}
-
-async function resetPassword({ token, password }, dependencies = {}) {
+async function setUserPassword({ userId, password }, dependencies = {}) {
   const repository = dependencies.repository || authRepository;
   const validationError = validatePassword(password);
-  if (!token || validationError) {
-    throw new HttpError(validationError || 'Token là bắt buộc.', 400, 'VALIDATION_ERROR');
-  }
-  const action = await repository.consumePasswordToken(hashActionToken(token));
-  if (!action) throw new HttpError('Liên kết không hợp lệ hoặc đã hết hạn.', 400, 'INVALID_TOKEN');
-  await repository.setPassword(action.user_id, await hashPassword(password));
-  await repository.revokeUserSessions(action.user_id);
-  return { purpose: action.purpose };
+  if (validationError) throw new HttpError(validationError, 400, 'VALIDATION_ERROR');
+  const user = await repository.findUserById(userId);
+  if (!user) throw new HttpError('Không tìm thấy tài khoản.', 404, 'USER_NOT_FOUND');
+  await repository.setPassword(userId, await hashPassword(password));
+  await repository.revokeUserSessions(userId);
 }
 
 async function changePassword({ userId, currentPassword, newPassword }, dependencies = {}) {
@@ -117,5 +89,5 @@ async function changePassword({ userId, currentPassword, newPassword }, dependen
 }
 
 module.exports = {
-  login, issuePasswordAction, requestPasswordReset, resetPassword, changePassword, publicUser
+  login, setUserPassword, changePassword, publicUser
 };

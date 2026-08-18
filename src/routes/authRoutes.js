@@ -7,8 +7,6 @@ const roleController = require('../controllers/roleController');
 const router = express.Router();
 
 router.post('/login', asyncHandler(authController.login));
-router.post('/forgot-password', asyncHandler(authController.forgotPassword));
-router.post('/reset-password', asyncHandler(authController.resetPassword));
 
 router.get('/me', authenticate, asyncHandler(authController.me));
 router.post('/logout', authenticate, asyncHandler(authController.logout));
@@ -16,7 +14,7 @@ router.post('/change-password', authenticate, asyncHandler(authController.change
 
 router.get('/users', authenticate, requirePermission('users.view'), asyncHandler(authController.listUsers));
 router.post('/users', authenticate, requirePermission('users.manage'), asyncHandler(authController.createUser));
-router.post('/users/:id/resend-invite', authenticate, requirePermission('users.manage'), asyncHandler(authController.resendInvite));
+router.put('/users/:id/password', authenticate, requirePermission('users.manage'), asyncHandler(authController.setUserPassword));
 router.put('/users/:id', authenticate, requirePermission('users.manage'), asyncHandler(authController.updateUser));
 router.delete('/users/:id', authenticate, requirePermission('users.manage'), asyncHandler(authController.deleteUser));
 
