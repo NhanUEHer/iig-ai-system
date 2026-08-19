@@ -16,7 +16,7 @@ const MODE_LABELS = Object.fromEntries(MODES.map(item => [item.value, item.label
 const blankItem = () => ({ o: '', t: '', p: 'Noun', i: '', m: '' });
 const escapePattern = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const highlightPassage = (passage, vocabularies = []) => {
-  const patterns = [...new Set(vocabularies.map(item => String(item.o || item.t || '').trim()).filter(Boolean))]
+  const patterns = [...new Set(vocabularies.map(item => String(item.o || '').trim()).filter(Boolean))]
     .sort((a, b) => b.length - a.length)
     .map(escapePattern);
   if (!patterns.length) return passage;
