@@ -44,7 +44,9 @@ sshpass -p "$VPS_PASSWORD" ssh "${SSH_OPTIONS[@]}" root@"$VPS_IP" "
 "
 
 for file in database.dump scoring-data.dump counts.txt media.tar.gz database.contents.txt scoring-data.contents.txt SHA256SUMS backup-manifest.txt; do
-  sshpass -p "$VPS_PASSWORD" scp "${SSH_OPTIONS[@]}" root@"$VPS_IP":"$REMOTE_PARTIAL/$file" "$LOCAL_PARTIAL/$file"
+  # The production host exposes legacy SCP over SSH but does not enable the
+  # SFTP subsystem used by modern scp by default.
+  sshpass -p "$VPS_PASSWORD" scp -O "${SSH_OPTIONS[@]}" root@"$VPS_IP":"$REMOTE_PARTIAL/$file" "$LOCAL_PARTIAL/$file"
 done
 (cd "$LOCAL_PARTIAL" && shasum -a 256 -c SHA256SUMS)
 mv "$LOCAL_PARTIAL" "$LOCAL_FINAL"
