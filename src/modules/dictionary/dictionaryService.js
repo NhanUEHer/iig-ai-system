@@ -4,6 +4,11 @@ const HttpError = require('../../http/httpError');
 const dify = require('../../clients/dictionaryDifyClient');
 
 const clean = value => String(value ?? '').trim();
+const DEFAULT_MAX_ITEMS = 300;
+const maxItems = () => {
+  const configured = Number.parseInt(process.env.DICTIONARY_MAX_ITEMS || '', 10);
+  return Number.isInteger(configured) && configured > 0 ? Math.min(configured, 1000) : DEFAULT_MAX_ITEMS;
+};
 const outputOf = raw => raw?.data?.outputs?.structured_output ?? raw?.data?.outputs?.result ?? raw?.outputs?.structured_output ?? raw;
 const workflowIdOf = raw => raw?.workflow_run_id || raw?.data?.workflow_run_id || raw?.data?.id || null;
 
@@ -17,7 +22,7 @@ function normalizeExtracted(raw) {
       const key = item.toLocaleLowerCase();
       if (!item || seen.has(key)) return false;
       seen.add(key); return true;
-    }).slice(0, 30);
+    }).slice(0, maxItems());
 }
 
 function normalizeEntry(raw, requestedItem = '') {
@@ -53,7 +58,7 @@ async function saveCandidates(payload, userId) {
   if (passage.length < 80 || passage.length > 20000) throw new HttpError('Đoạn văn lưu trữ không hợp lệ.', 400, 'INVALID_PASSAGE');
   const seen = new Set();
   const items = (payload?.items || []).map(clean).filter(item => { const key=item.toLowerCase(); if(!item||seen.has(key))return false; seen.add(key); return true; });
-  if (!items.length || items.length > 30) throw new HttpError('Danh sách từ không hợp lệ.', 400, 'INVALID_DICTIONARY_LIST');
+  if (!items.length || items.length > maxItems()) throw new HttpError(`Danh sách từ phải có từ 1 đến ${maxItems()} mục.`, 400, 'INVALID_DICTIONARY_LIST');
   return db.transaction(async client => {
     const hash = crypto.createHash('sha256').update(passage).digest('hex');
     const source = await client.query(`INSERT INTO content_passages (content,content_hash,created_by) VALUES ($1,$2,$3)
@@ -134,4 +139,4 @@ async function detail(id, queryable=db) {
   return { ...generation.rows[0], candidates: candidates.rows };
 }
 
-module.exports = { extract, saveCandidates, startGeneration, history, detail, normalizeExtracted, normalizeEntry };
+module.exports = { extract, saveCandidates, startGeneration, history, detail, normalizeExtracted, normalizeEntry, maxItems };

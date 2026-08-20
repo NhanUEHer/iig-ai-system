@@ -1,10 +1,23 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeExtracted, normalizeEntry } = require('../src/modules/dictionary/dictionaryService');
+const { normalizeExtracted, normalizeEntry, maxItems } = require('../src/modules/dictionary/dictionaryService');
 
 test('normalizeExtracted accepts Dify structured output and removes duplicates', () => {
   const raw = { data: { outputs: { structured_output: [' Deadline ', 'deadline', 'eligible for payment'] } } };
   assert.deepEqual(normalizeExtracted(raw), ['Deadline', 'eligible for payment']);
+});
+
+test('dictionary extraction keeps up to the configurable item limit', () => {
+  const previous = process.env.DICTIONARY_MAX_ITEMS;
+  process.env.DICTIONARY_MAX_ITEMS = '300';
+  try {
+    const items = Array.from({ length: 320 }, (_, index) => `item-${index + 1}`);
+    assert.equal(maxItems(), 300);
+    assert.equal(normalizeExtracted({ data: { outputs: { structured_output: items } } }).length, 300);
+  } finally {
+    if (previous === undefined) delete process.env.DICTIONARY_MAX_ITEMS;
+    else process.env.DICTIONARY_MAX_ITEMS = previous;
+  }
 });
 
 test('normalizeEntry maps current Dify dictionary contract', () => {
