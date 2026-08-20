@@ -5,6 +5,7 @@ import { extractDictionaryItems, generateDictionaryCandidates, getDictionaryDeta
 import '../../key-vocab/pages/KeyVocabPage.css';
 import '../../key-vocab/pages/LearningMaterialPage.css';
 import './DictionaryPage.css';
+import './DictionaryPreview.css';
 
 const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 function HighlightedPassage({passage,items}) {
@@ -13,7 +14,38 @@ function HighlightedPassage({passage,items}) {
   const matcher=new RegExp(`(${terms.map(escape).join('|')})`,'gi');
   return String(passage).split(matcher).map((part,index)=>terms.some(term=>term.toLowerCase()===part.toLowerCase())?<mark key={index}>{part}</mark>:part);
 }
-function EntryPreview({candidate,onClose}){return <div className="dictionary-preview-backdrop"><article className="dictionary-preview"><header><div><LibraryBig/><span><strong>{candidate.canonical}</strong><small>{candidate.partOfSpeech} · {candidate.ipa}</small></span></div><button onClick={onClose}><X/></button></header><section><h4>Nghĩa</h4><b>{candidate.meaningVi}</b><p>{candidate.meaningEn}</p><h4>Ngữ cảnh</h4><b>{candidate.originalSentence}</b><p>{candidate.contextExplanation}</p><h4>Ví dụ</h4><b>{candidate.exampleEn}</b><p>{candidate.exampleVi}</p><h4>Collocations</h4><p>{(candidate.collocations||[]).join(' · ')||'—'}</p><h4>Synonyms · Word family</h4><p>{(candidate.synonyms||[]).join(', ')}{candidate.wordFamily?` · ${candidate.wordFamily}`:''}</p></section></article></div>}
+function EntryPreview({candidate,passage,onClose}){
+  const collocations=candidate.collocations||[],synonyms=candidate.synonyms||[];
+  return <div className="dictionary-detail-backdrop" role="presentation" onMouseDown={event=>event.target===event.currentTarget&&onClose()}>
+    <article className="dictionary-detail-modal" role="dialog" aria-modal="true" aria-label={`Preview từ ${candidate.canonical||candidate.originalChunk}`}>
+      <header className="dictionary-detail-toolbar">
+        <div><LibraryBig/><span><strong>Preview từ điển</strong><small>Đối chiếu nội dung với đoạn văn nguồn</small></span></div>
+        <button type="button" onClick={onClose} aria-label="Đóng preview"><X/></button>
+      </header>
+      <section className="dictionary-detail-source">
+        <span>Nội dung nguồn · từ đang xem được highlight</span>
+        <p><HighlightedPassage passage={passage||''} items={[candidate.originalChunk||candidate.canonical]}/></p>
+      </section>
+      <header className="dictionary-detail-word">
+        <div className="dictionary-detail-title">
+          <span className="dictionary-detail-audio"><BookOpenText/></span>
+          <strong>{candidate.canonical||candidate.originalChunk}</strong>
+          {candidate.partOfSpeech&&<em>{candidate.partOfSpeech}</em>}
+          {candidate.ipa&&<span className="dictionary-detail-ipa">/ {String(candidate.ipa).replace(/^\/?|\/?$/g,'')} /</span>}
+        </div>
+        <p><b>Nghĩa:</b> {candidate.meaningVi||'—'}</p>
+      </header>
+      <div className="dictionary-detail-content">
+        <section><h3><Sparkles/>English meaning:</h3><p>{candidate.meaningEn||'—'}</p></section>
+        <section><h3><Sparkles/>Context meaning:</h3><p className="dictionary-detail-label">Câu gốc trong bài:</p><blockquote>“{candidate.originalSentence||'—'}”</blockquote><p className="dictionary-detail-explain">→ {candidate.contextExplanation||'—'}</p></section>
+        <section><h3><Sparkles/>Example:</h3><blockquote>“{candidate.exampleEn||'—'}”</blockquote><p className="dictionary-detail-explain">→ {candidate.exampleVi||'—'}</p></section>
+        <section><h3><Sparkles/>Collocations:</h3>{collocations.length?<ul>{collocations.map((item,index)=><li key={`${item}-${index}`}>{item}</li>)}</ul>:<p>—</p>}</section>
+        <section><h3><Sparkles/>Synonyms:</h3><p>{synonyms.join(', ')||'—'}</p></section>
+        <section><h3><Sparkles/>Word family:</h3><p>{candidate.wordFamily||'—'}</p></section>
+      </div>
+    </article>
+  </div>;
+}
 
 export default function DictionaryPage({showMsg,currentUser}){
   const navigate=useNavigate();
@@ -45,6 +77,6 @@ export default function DictionaryPage({showMsg,currentUser}){
       :<section className="dictionary-workspace"><header><div><strong>Danh sách từ đã lưu</strong><small>Chọn từ để gen; kết quả hoàn tất có thể xem ngay.</small></div><div><button className="secondary" onClick={reset}>Tạo bộ mới</button><button className="select-all" onClick={toggleAll}>{selected.length===selectable.length&&selectable.length?<CheckSquare/>:<Square/>}Chọn tất cả</button><button className="primary" disabled={!selected.length} onClick={()=>queue(selected)}><WandSparkles/>Gen {selected.length} từ đã chọn</button></div></header><article className="dictionary-passage compact"><span>Nội dung nguồn</span><p><HighlightedPassage passage={displayPassage} items={displayItems}/></p></article><div className="dictionary-candidate-list">{workspace.candidates.map((candidate,index)=><article key={candidate.id} className={candidate.status}><button className="check" disabled={candidate.status==='generating'} onClick={()=>toggle(candidate.id)}>{selected.includes(candidate.id)?<CheckSquare/>:<Square/>}</button><b>{String(index+1).padStart(2,'0')}</b><div><strong>{candidate.originalChunk}</strong><small>{candidate.status==='pending'?'Chưa gen':candidate.status==='generating'?'Đang gen…':candidate.status==='completed'?`${candidate.canonical} · ${candidate.meaningVi}`:`Lỗi · ${candidate.errorMessage}`}</small></div>{candidate.status==='completed'&&<button className="preview-button" onClick={()=>setPreview(candidate)}><Eye/>Preview</button>}<button className="generate-one" disabled={candidate.status==='generating'} onClick={()=>queue([candidate.id])}>{candidate.status==='failed'?<RefreshCw/>:<WandSparkles/>}{candidate.status==='completed'?'Gen lại':'Gen từ điển'}</button></article>)}</div></section>}
     </div>}
     {running>0&&<aside className="dictionary-floating-progress"><div><RefreshCw className="spin"/><span><strong>Đang gen từ điển</strong><small>{counts.done}/{counts.total} hoàn tất{counts.failed?` · ${counts.failed} lỗi`:''}</small></span></div><progress value={counts.done+counts.failed} max={counts.total}/></aside>}
-    {preview&&<EntryPreview candidate={preview} onClose={()=>setPreview(null)}/>} 
+    {preview&&<EntryPreview candidate={preview} passage={displayPassage} onClose={()=>setPreview(null)}/>} 
   </div>;
 }
