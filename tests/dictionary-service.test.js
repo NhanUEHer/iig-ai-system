@@ -19,3 +19,9 @@ test('normalizeEntry maps current Dify dictionary contract', () => {
   assert.deepEqual(entry.synonyms, ['qualified']);
   assert.equal(entry.workflowRunId, 'run-1');
 });
+
+test('dictionary source arrays are serialized as JSON rather than PostgreSQL arrays', () => {
+  const source = require('node:fs').readFileSync(require.resolve('../src/modules/dictionary/dictionaryService'), 'utf8');
+  assert.match(source, /JSON\.stringify\(payload\.rawExtractionResponse \?\? null\)/);
+  assert.match(source, /\$3::jsonb/);
+});

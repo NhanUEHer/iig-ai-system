@@ -60,7 +60,7 @@ async function saveCandidates(payload, userId) {
       ON CONFLICT (content_hash) DO UPDATE SET updated_at=CURRENT_TIMESTAMP RETURNING id`, [passage, hash, userId]);
     const generation = await client.query(`INSERT INTO dictionary_generations
       (passage_id,status,extraction_workflow_run_id,raw_extraction_response,failed_items,created_by)
-      VALUES ($1,'draft',$2,$3,'[]'::jsonb,$4) RETURNING id,status,created_at`, [source.rows[0].id, payload.extractionWorkflowRunId || null, payload.rawExtractionResponse || null, userId]);
+      VALUES ($1,'draft',$2,$3::jsonb,'[]'::jsonb,$4) RETURNING id,status,created_at`, [source.rows[0].id, payload.extractionWorkflowRunId || null, JSON.stringify(payload.rawExtractionResponse ?? null), userId]);
     for (let index = 0; index < items.length; index += 1) {
       await client.query('INSERT INTO dictionary_candidates (generation_id,original_chunk,display_order) VALUES ($1,$2,$3)', [generation.rows[0].id,items[index],index]);
     }
