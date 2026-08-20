@@ -1,6 +1,7 @@
 const db = require('../../config/db');
 const HttpError = require('../../http/httpError');
 const difyClient = require('../../clients/keyVocabDifyClient');
+const crypto = require('crypto');
 
 const ALLOWED_TYPES = new Set(['Noun','Verb','Adjective','Adverb','Noun Phrase','Phrasal Verb','Adjective Phrase','Idiom','Verb Phrase','Preposition','Prepositional Phrase','Prefix','Suffix','Conjunction','Interjection','Phrase']);
 const TARGET_SCORES = new Set([450, 500, 650, 700, 800]);
@@ -80,11 +81,17 @@ async function save({ passage, vocabularies, workflowRunId, targetScore, selecti
   const settings = normalizeSettings(targetScore, selectionMode);
   const items = normalizeVocabulary({ w: vocabularies }, { passage: text });
   return db.transaction(async client => {
+    const hash = crypto.createHash('sha256').update(text).digest('hex');
+    const passageResult = await client.query(
+      `INSERT INTO content_passages (content,content_hash,created_by) VALUES ($1,$2,$3)
+       ON CONFLICT (content_hash) DO UPDATE SET updated_at=CURRENT_TIMESTAMP RETURNING id`,
+      [text, hash, userId]
+    );
     const generation = await client.query(
       `INSERT INTO key_vocab_generations
-       (passage, workflow_run_id, target_score, selection_mode, created_by) VALUES ($1,$2,$3,$4,$5)
+       (passage, passage_id, workflow_run_id, target_score, selection_mode, created_by) VALUES ($1,$2,$3,$4,$5,$6)
        RETURNING id, passage, provider, workflow_run_id, target_score, selection_mode, created_at`,
-      [text, workflowRunId || null, settings.targetScore, settings.selectionMode, userId]
+      [text, passageResult.rows[0].id, workflowRunId || null, settings.targetScore, settings.selectionMode, userId]
     );
     for (let index = 0; index < items.length; index += 1) {
       const item = items[index];

@@ -24,6 +24,7 @@ import { clearSession, readSession, saveSession } from './services/authSession';
 import ChangePasswordPage from './features/auth/pages/ChangePasswordPage';
 import BulkSyncPanel from './components/sync/BulkSyncPanel';
 import KeyVocabPage from './features/key-vocab/pages/KeyVocabPage';
+import DictionaryPage from './features/dictionary/pages/DictionaryPage';
 
 const API_BASE = '/api/submissions';
 const AUTH_BASE = '/api/auth';
@@ -37,6 +38,7 @@ const firstAllowedPath = user => {
   if (has('agents.view')) return '/ai';
   if (has('audio.view')) return '/local-tts';
   if (hasAny(['key_vocab.view','key_vocab.generate','key_vocab.manage'])) return '/key-vocab';
+  if (hasAny(['dictionary.view','dictionary.generate','dictionary.manage'])) return '/dictionary';
   if (hasAny(['reports.view','reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'])) return '/reports/kpi';
   if (hasAny(['expenses.view','expenses.import','expenses.manage'])) return '/expenses/dashboard';
   if (has('users.view')) return '/users';
@@ -64,6 +66,7 @@ function App() {
   else if (path.startsWith('/roles')) activeTab = 'roles';
   else if (path.startsWith('/local-tts')) activeTab = 'local-tts';
   else if (path.startsWith('/key-vocab')) activeTab = 'key-vocab';
+  else if (path.startsWith('/dictionary')) activeTab = 'key-vocab';
   else if (path.startsWith('/logs')) activeTab = 'logs';
   else if (path.startsWith('/reports/kpi-config')) activeTab = 'report-kpi-config';
   else if (path.startsWith('/reports/manage')) activeTab = 'report-manage';
@@ -475,6 +478,7 @@ function App() {
 
               <Route path="/local-tts" element={hasPermission('audio.view') ? <LocalTTSStudio /> : <Navigate to={defaultPath} replace />} />
               <Route path="/key-vocab" element={['key_vocab.view','key_vocab.generate','key_vocab.manage'].some(hasPermission) ? <KeyVocabPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/dictionary" element={['dictionary.view','dictionary.generate','dictionary.manage'].some(hasPermission) ? <DictionaryPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
 
               <Route path="/change-password" element={<ChangePasswordPage onChanged={handleLogout} showMsg={showMsg} />} />
 

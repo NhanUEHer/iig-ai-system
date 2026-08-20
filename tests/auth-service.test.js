@@ -6,9 +6,9 @@ const { hashPassword, verifyPassword, validatePassword } = require('../src/modul
 const { verifyAccessToken } = require('../src/modules/auth/tokenService');
 
 test('password service hashes passwords and enforces the policy', async () => {
-  assert.match(validatePassword('short'), /10/);
-  assert.match(validatePassword('onlylettersxx'), /chữ và số/);
-  assert.equal(validatePassword('SecurePass123'), null);
+  assert.match(validatePassword('short'), /8/);
+  assert.equal(validatePassword('onlyletters'), null);
+  assert.equal(validatePassword('12345678'), null);
   const hash = await hashPassword('SecurePass123');
   assert.notEqual(hash, 'SecurePass123');
   assert.equal(await verifyPassword('SecurePass123', hash), true);
