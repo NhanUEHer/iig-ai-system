@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { ArrowLeft, ArrowRight, Edit2, Eye, EyeOff, KeyRound, Plus, RefreshCw, Search, ShieldCheck, Trash2, UserCheck, Users } from 'lucide-react';
+import {useDialog} from '../../../components/feedback/dialogContext';
 import './UserManagementPage.css';
 import './UserManagementTypography.css';
 import './UserMultiRole.css';
@@ -8,6 +9,7 @@ import './UserPassword.css';
 
 const emptyUser = { name: '', email: '', password: '', roleSlugs: [], primaryRoleSlug: '', isActive: true };
 export default function UserManagementPage({ currentUser, showMsg }) {
+  const {confirm:confirmDialog}=useDialog();
   const can = permission => currentUser?.permissions?.includes(permission);
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
@@ -60,7 +62,7 @@ export default function UserManagementPage({ currentUser, showMsg }) {
     } catch (error) { showMsg?.(error.response?.data?.error || 'Không thể lưu tài khoản.', 'error'); }
   };
   const resetPassword = async event => { event.preventDefault(); try { await axios.put(`/api/auth/users/${modal.id}/password`, { password: userForm.password }); showMsg?.('Đã đặt lại mật khẩu.', 'success'); setModal(null); } catch (error) { showMsg?.(error.response?.data?.error || 'Không thể đặt lại mật khẩu.', 'error'); } };
-  const removeUser = async user => { if (!window.confirm(`Xóa tài khoản ${user.email}?`)) return; try { await axios.delete(`/api/auth/users/${user.id}`); showMsg?.('Đã xóa tài khoản.', 'success'); await load(page); } catch (error) { showMsg?.(error.response?.data?.error || 'Không thể xóa tài khoản.', 'error'); } };
+  const removeUser = async user => { if (!await confirmDialog({title:'Xóa tài khoản?',message:`Tài khoản ${user.email} sẽ bị xóa khỏi hệ thống.`,confirmText:'Xóa tài khoản'})) return; try { await axios.delete(`/api/auth/users/${user.id}`); showMsg?.('Đã xóa tài khoản.', 'success'); await load(page); } catch (error) { showMsg?.(error.response?.data?.error || 'Không thể xóa tài khoản.', 'error'); } };
 
   return <div className="user-admin-page">
     <header className="user-admin-header"><div><span className="user-admin-eyebrow">QUẢN TRỊ · ACCOUNT MANAGEMENT</span><h1>Quản lý tài khoản</h1><p>Quản lý tài khoản, trạng thái truy cập và vai trò được gán.</p></div>{can('users.manage') && <button className="btn-primary" onClick={() => openUser()}><Plus />Tạo tài khoản</button>}</header>

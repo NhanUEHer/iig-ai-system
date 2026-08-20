@@ -8,6 +8,7 @@ const reportRoutes = require('./routes/reportRoutes');
 const expenseRoutes = require('./routes/expenseRoutes');
 const keyVocabRoutes = require('./routes/keyVocabRoutes');
 const dictionaryRoutes = require('./routes/dictionaryRoutes');
+const learningMaterialRoutes = require('./routes/learningMaterialRoutes');
 const requestContext = require('./http/requestContext');
 const errorHandler = require('./http/errorHandler');
 const HttpError = require('./http/httpError');
@@ -38,6 +39,7 @@ app.use('/api/reports', authenticate, reportRoutes);
 app.use('/api/expenses', authenticate, expenseRoutes);
 app.use('/api/key-vocab', authenticate, keyVocabRoutes);
 app.use('/api/dictionary', authenticate, dictionaryRoutes);
+app.use('/api/learning-materials', authenticate, learningMaterialRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

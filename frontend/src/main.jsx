@@ -6,6 +6,7 @@ import './index.css';
 import App from './App.jsx';
 import './styles/typography.css';
 import './styles/design-system.css';
+import {DialogProvider} from './components/feedback/DialogProvider';
 import './services/authSession';
 
 // The admin workspace currently supports one visual theme only. Apply it
@@ -55,7 +56,7 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
       <BrowserRouter>
-        <App />
+    <DialogProvider><App /></DialogProvider>
       </BrowserRouter>
     </ErrorBoundary>
   </StrictMode>,

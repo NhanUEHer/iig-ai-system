@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, FileCheck2, FileSpreadsheet, Landmark, LockKeyhole, Plus, RefreshCw, ShieldCheck, Trash2, Upload } from 'lucide-react';
 import api from '../../../services/api';
+import {useDialog} from '../../../components/feedback/dialogContext';
 import './BankStatementImportsPage.css';
 import './BankStatementDelete.css';
 import './BankStatementFilters.css';
@@ -93,6 +94,7 @@ function TransactionPreview({ selected, edit }) {
 }
 
 export default function BankStatementImportsPage({ currentUser, showMsg }) {
+  const {confirm:confirmDialog}=useDialog();
   const [bootstrap, setBootstrap] = useState(null);
   const [imports, setImports] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -151,7 +153,7 @@ export default function BankStatementImportsPage({ currentUser, showMsg }) {
   const removeImport = async (event, item) => {
     event.stopPropagation();
     if (item.status === 'committed') return;
-    if (!window.confirm(`Xóa lịch sử import “${item.original_filename}”?\n\nBản xem trước và file nguồn sẽ bị xóa. Thao tác này không thể hoàn tác.`)) return;
+    if (!await confirmDialog({title:'Xóa lịch sử import?',message:`“${item.original_filename}”\n\nBản xem trước và file nguồn sẽ bị xóa. Thao tác này không thể hoàn tác.`,confirmText:'Xóa dữ liệu'})) return;
     setDeletingId(item.id);
     try { await api.delete(`/expenses/imports/${item.id}`); await load(); showMsg('Đã xóa lịch sử import và dữ liệu xem trước.'); }
     catch (error) { showMsg(error.response?.data?.error || 'Không thể xóa lịch sử import.', 'error'); }

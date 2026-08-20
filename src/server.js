@@ -6,6 +6,7 @@ const db = require('./config/db');
 const { validateEnv } = require('./config/env');
 const { getBuildInfo } = require('./config/buildInfo');
 const mappingSyncScheduler = require('./services/mappingSyncScheduler');
+const dictionaryService = require('./modules/dictionary/dictionaryService');
 
 async function startServer() {
   let server;
@@ -20,11 +21,13 @@ async function startServer() {
       console.log(`🚀 AI Scoring Admin ${build.label} v${build.version} running on http://localhost:${port}`);
     });
     mappingSyncScheduler.start();
+    await dictionaryService.startWorker();
 
     const shutdown = signal => {
       console.log(`${signal} received; shutting down gracefully.`);
       server.close(async () => {
         mappingSyncScheduler.stop();
+        dictionaryService.stopWorker();
         await db.close();
         process.exit(0);
       });

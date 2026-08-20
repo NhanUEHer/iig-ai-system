@@ -79,7 +79,7 @@ fi
 echo "[5/9] Uploading immutable release ${RELEASE_DIR}..."
 sshpass -p "$VPS_PASSWORD" ssh "${SSH_OPTIONS[@]}" root@"$VPS_IP" "install -d -m 755 '$RELEASE_DIR'"
 sshpass -p "$VPS_PASSWORD" rsync -az --delete -e "ssh ${SSH_OPTIONS[*]}" \
-  --exclude='node_modules' --exclude='frontend/node_modules' --exclude='.git' --exclude='.env' --exclude='.env*.local' --exclude='tmp' --exclude='backups' \
+  --exclude='node_modules' --exclude='frontend/node_modules' --exclude='.git' --exclude='.env' --exclude='.env*.local' --exclude='tmp' --exclude='outputs' --exclude='backups' \
   --exclude='voice_clone_env' --exclude='voice_clone_models' --exclude='tts_env' --exclude='asset' --exclude='src/models' \
   --exclude='public/cleaned-audio' --exclude='public/local_audio' --exclude='public/local_voices' --exclude='public/tmp_local' \
   --exclude='public/dialogues' --exclude='public/custom_voices' \

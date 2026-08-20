@@ -105,18 +105,18 @@ main small,main time,main code{color:var(--ds-text-subtle);font-size:11px!import
 .light-theme .workspace-user-copy strong{color:#243047!important}.light-theme .workspace-user-copy span{color:#64748b!important}
 
 /* Search fields have a bordered wrapper; the nested input must stay borderless. */
-main .submission-search,main .mapping-toolbar label,main .agent-toolbar>label,main .user-search{
+main .submission-search,main .mapping-toolbar label,main .agent-toolbar>label,main .user-search,main .learning-material-history>header>label{
   box-sizing:border-box!important;height:40px!important;border:1px solid var(--ds-border-strong)!important;border-radius:var(--ds-radius-sm)!important;background:var(--ds-surface-raised)!important;overflow:hidden;
 }
-main .submission-search input,main .mapping-toolbar label input,main .agent-toolbar>label input,main .user-search input{
+main .submission-search input,main .mapping-toolbar label input,main .agent-toolbar>label input,main .user-search input,main .learning-material-history>header>label>input{
   box-sizing:border-box!important;min-width:0!important;min-height:0!important;width:auto!important;height:100%!important;flex:1!important;
   margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;font-size:13px!important;
 }
-main :is(.submission-search,.mapping-toolbar label,.agent-toolbar>label,.user-search)>input:not([type=checkbox]):not([type=radio]):not([type=range]){
+main :is(.submission-search,.mapping-toolbar label,.agent-toolbar>label,.user-search,.learning-material-history>header>label)>input:not([type=checkbox]):not([type=radio]):not([type=range]){
   border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;
 }
-main .submission-search input:focus,main .mapping-toolbar label input:focus,main .agent-toolbar>label input:focus,main .user-search input:focus{border:0!important;box-shadow:none!important}
-main .submission-search:focus-within,main .mapping-toolbar label:focus-within,main .agent-toolbar>label:focus-within,main .user-search:focus-within{border-color:var(--ds-primary)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--ds-primary) 18%,transparent)!important}
+main .submission-search input:focus,main .mapping-toolbar label input:focus,main .agent-toolbar>label input:focus,main .user-search input:focus,main .learning-material-history>header>label>input:focus{border:0!important;box-shadow:none!important}
+main .submission-search:focus-within,main .mapping-toolbar label:focus-within,main .agent-toolbar>label:focus-within,main .user-search:focus-within,main .learning-material-history>header>label:focus-within{border-color:var(--ds-primary)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--ds-primary) 18%,transparent)!important}
 
 /* Audio Studio: flatter hierarchy, roomier editor and consistently sized controls. */
 .tts-workspace{grid-template-columns:minmax(620px,1fr) 292px!important;gap:16px!important}

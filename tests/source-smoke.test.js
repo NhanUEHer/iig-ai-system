@@ -349,3 +349,11 @@ test('dashboard detail tables can sort every displayed data column',()=>{
   assert.match(dashboard,/sortedDetails\.map/);
   assert.match(dashboard,/sortedAdsProductRows\.map/);
 });
+
+test('Training upsell revenue uses million-VND units in definitions and historical snapshots',()=>{
+  const migration=read('src/database/migrations/046_fix_training_upsell_revenue_unit.sql');
+  assert.match(migration,/d\.code = 'DAO_09'/);
+  assert.match(migration,/SET unit = 'Triệu đồng'/);
+  assert.match(migration,/SET unit_snapshot = 'Triệu đồng'/);
+  assert.doesNotMatch(migration,/target_value\s*=|actual_value\s*=|previous_value\s*=|prior_year_value\s*=/);
+});

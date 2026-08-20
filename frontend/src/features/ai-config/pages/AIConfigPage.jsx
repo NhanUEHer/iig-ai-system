@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { ArrowLeft, ArrowRight, BookOpenText, Bot, Check, CheckCircle2, Edit3, Eye, EyeOff, KeyRound, LibraryBig, Link2, Mic2, Plus, RefreshCw, Search, Sparkles, Trash2, X } from 'lucide-react';
+import {useDialog} from '../../../components/feedback/dialogContext';
 import './AIConfigPage.css';
 import './AIConfigExtensions.css';
 
@@ -25,6 +26,7 @@ const isContentAgent = type => ['Gen Key Vocab', 'Gen Dictionary'].includes(type
 const emptyForm = { name: '', description: '', api_endpoint: 'https://dify.iigvn.site/v1', api_key: '', api_type: 'Grading', stt_target: 'student_answer', target_questions: [] };
 
 export default function AIConfigPage({ showMsg }) {
+  const {confirm:confirmDialog}=useDialog();
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -74,7 +76,7 @@ export default function AIConfigPage({ showMsg }) {
     finally { setSaving(false); }
   };
   const remove = async agent => {
-    if (!window.confirm(`Xóa Agent “${agent.name}”?`)) return;
+    if (!await confirmDialog({title:'Xóa AI Agent?',message:`Agent “${agent.name}” sẽ bị xóa khỏi hệ thống.`,confirmText:'Xóa Agent'})) return;
     try { await axios.delete(`/api/agents/${agent.id}`); showMsg?.('Đã xóa Agent.', 'success'); await fetchAgents(page); }
     catch (error) { showMsg?.(error.response?.data?.error || 'Không thể xóa Agent.', 'error'); }
   };

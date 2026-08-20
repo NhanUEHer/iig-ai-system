@@ -89,9 +89,9 @@ async function save({ passage, vocabularies, workflowRunId, targetScore, selecti
     );
     const generation = await client.query(
       `INSERT INTO key_vocab_generations
-       (passage, passage_id, workflow_run_id, target_score, selection_mode, created_by) VALUES ($1,$2,$3,$4,$5,$6)
-       RETURNING id, passage, provider, workflow_run_id, target_score, selection_mode, created_at`,
-      [text, passageResult.rows[0].id, workflowRunId || null, settings.targetScore, settings.selectionMode, userId]
+       (passage_id, workflow_run_id, target_score, selection_mode, created_by) VALUES ($1,$2,$3,$4,$5)
+       RETURNING id, provider, workflow_run_id, target_score, selection_mode, created_at`,
+      [passageResult.rows[0].id, workflowRunId || null, settings.targetScore, settings.selectionMode, userId]
     );
     for (let index = 0; index < items.length; index += 1) {
       const item = items[index];
@@ -99,7 +99,7 @@ async function save({ passage, vocabularies, workflowRunId, targetScore, selecti
         (generation_id,original_term,term,part_of_speech,pronunciation,meaning_vi,display_order)
         VALUES ($1,$2,$3,$4,$5,$6,$7)`, [generation.rows[0].id, item.o, item.t, item.p, item.i, item.m, index]);
     }
-    return { ...generation.rows[0], vocabularies: items };
+    return { ...generation.rows[0], passage:text, vocabularies: items };
   });
 }
 
@@ -107,11 +107,11 @@ async function history({ page = 1, limit = 10, search = '' }) {
   const safePage = Math.max(1, Number(page) || 1); const safeLimit = Math.min(50, Math.max(1, Number(limit) || 10));
   const term = `%${String(search).trim()}%`;
   const [rows, count] = await Promise.all([
-    db.query(`SELECT g.id,g.passage,g.provider,g.target_score,g.selection_mode,g.created_at,u.name AS created_by_name,
-      COUNT(i.id)::int AS item_count FROM key_vocab_generations g JOIN users u ON u.id=g.created_by
-      LEFT JOIN key_vocab_items i ON i.generation_id=g.id WHERE g.passage ILIKE $1
-      GROUP BY g.id,u.name ORDER BY g.created_at DESC LIMIT $2 OFFSET $3`, [term, safeLimit, (safePage - 1) * safeLimit]),
-    db.query('SELECT COUNT(*)::int AS total FROM key_vocab_generations WHERE passage ILIKE $1', [term])
+    db.query(`SELECT g.id,p.content AS passage,g.provider,g.target_score,g.selection_mode,g.created_at,u.name AS created_by_name,
+      COUNT(i.id)::int AS item_count FROM key_vocab_generations g JOIN content_passages p ON p.id=g.passage_id JOIN users u ON u.id=g.created_by
+      LEFT JOIN key_vocab_items i ON i.generation_id=g.id WHERE p.content ILIKE $1
+      GROUP BY g.id,p.content,u.name ORDER BY g.created_at DESC LIMIT $2 OFFSET $3`, [term, safeLimit, (safePage - 1) * safeLimit]),
+    db.query('SELECT COUNT(*)::int AS total FROM key_vocab_generations g JOIN content_passages p ON p.id=g.passage_id WHERE p.content ILIKE $1', [term])
   ]);
   const total = count.rows[0]?.total || 0;
   return { data: rows.rows, meta: { page: safePage, limit: safeLimit, total, totalPages: Math.max(1, Math.ceil(total / safeLimit)) } };
@@ -119,8 +119,8 @@ async function history({ page = 1, limit = 10, search = '' }) {
 
 async function detail(id) {
   const [generation, items] = await Promise.all([
-    db.query(`SELECT g.id,g.passage,g.provider,g.workflow_run_id,g.target_score,g.selection_mode,g.created_at,u.name AS created_by_name
-      FROM key_vocab_generations g JOIN users u ON u.id=g.created_by WHERE g.id=$1`, [id]),
+    db.query(`SELECT g.id,p.content AS passage,g.provider,g.workflow_run_id,g.target_score,g.selection_mode,g.created_at,u.name AS created_by_name
+      FROM key_vocab_generations g JOIN content_passages p ON p.id=g.passage_id JOIN users u ON u.id=g.created_by WHERE g.id=$1`, [id]),
     db.query(`SELECT COALESCE(original_term,term) AS o,term AS t,part_of_speech AS p,pronunciation AS i,meaning_vi AS m
       FROM key_vocab_items WHERE generation_id=$1 ORDER BY display_order`, [id])
   ]);
