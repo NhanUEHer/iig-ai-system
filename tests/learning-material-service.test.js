@@ -18,6 +18,7 @@ test('dictionary generation uses a durable queue with retry attempts', () => {
   assert.match(service, /recoverStaleCandidates/);
   assert.match(service, /Promise\.allSettled/);
   assert.match(service, /status='failed'.*Bạn có thể bấm Gen lại/s);
+  assert.match(service, /status=\$2::varchar/);
 });
 
 test('Key Vocab and Dictionary history share canonical content passages', () => {

@@ -23,7 +23,7 @@ const candidateTimeoutMs = () => {
 };
 const outputOf = raw => raw?.data?.outputs?.structured_output ?? raw?.data?.outputs?.result ?? raw?.outputs?.structured_output ?? raw;
 const workflowIdOf = raw => raw?.workflow_run_id || raw?.data?.workflow_run_id || raw?.data?.id || null;
-const normalizedSentence = value => clean(value).replace(/\s+/g, ' ').toLocaleLowerCase();
+const normalizedSentence = value => clean(value).normalize('NFKC').replace(/\s+/g, ' ').replace(/\s*([—–])\s*/g, '$1').toLocaleLowerCase();
 const sameSentence = (left, right) => normalizedSentence(left) === normalizedSentence(right);
 const escapePattern = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const containsExactTerm = (text, term) => {
@@ -170,8 +170,8 @@ async function processCandidate(candidate, passage, userId) {
         duration_ms=$4,completed_at=CURRENT_TIMESTAMP WHERE id=$1 AND status='running' RETURNING id`,
       [attempt.rows[0].id,error.code||'DICTIONARY_GENERATION_FAILED',error.message,Math.max(0,Date.now()-startedAt)]);
       if (!lease.rows[0]) return;
-      await client.query(`UPDATE dictionary_candidates SET status=$2,error_message=$3,
-        next_attempt_at=CASE WHEN $2='queued' THEN CURRENT_TIMESTAMP + ($4 * INTERVAL '5 seconds') ELSE NULL END,
+      await client.query(`UPDATE dictionary_candidates SET status=$2::varchar,error_message=$3,
+        next_attempt_at=CASE WHEN $2::varchar='queued' THEN CURRENT_TIMESTAMP + ($4 * INTERVAL '5 seconds') ELSE NULL END,
         updated_at=CURRENT_TIMESTAMP WHERE id=$1 AND status='generating'`,
       [candidate.id,shouldRetry?'queued':'failed',error.message,candidate.attempt_count]);
     });

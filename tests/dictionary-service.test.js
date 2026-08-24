@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeExtracted, normalizeEntry, sentenceForCandidate, maxItems } = require('../src/modules/dictionary/dictionaryService');
+const { normalizeExtracted, normalizeEntry, sentenceForCandidate, sameSentence, maxItems } = require('../src/modules/dictionary/dictionaryService');
 
 test('normalizeExtracted accepts Dify structured output and removes duplicates', () => {
   const raw = { data: { outputs: { structured_output: [' Deadline ', 'deadline', 'eligible for payment'] } } };
@@ -73,6 +73,12 @@ test('dictionary generation sends the stored source sentence and can infer it fo
   assert.match(clientSource, /\{\s*passage,\s*sentence,\s*target_chunk: targetChunk\s*\}/);
   const serviceSource = require('node:fs').readFileSync(require.resolve('../src/modules/dictionary/dictionaryService'), 'utf8');
   assert.match(serviceSource, /RETURNING id,generation_id,original_chunk,source_sentence,display_order/);
+});
+
+test('dictionary context comparison ignores Dify line breaks around em dashes', () => {
+  const source = 'I changed the layout—desserts are now inside—and provided descriptions.';
+  const dify = 'I changed the layout\n\n—desserts are now inside— and provided descriptions.';
+  assert.equal(sameSentence(source, dify), true);
 });
 
 test('dictionary source arrays are serialized as JSON rather than PostgreSQL arrays', () => {
