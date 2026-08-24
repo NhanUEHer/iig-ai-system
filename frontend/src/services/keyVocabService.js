@@ -17,3 +17,5 @@ function download(response, fallbackName) {
 
 export const exportKeyVocabPreview = vocabularies => api.post('/key-vocab/export', { vocabularies }, { responseType: 'blob' }).then(response => download(response, 'KeyVocabulary_Import.xlsx'));
 export const exportKeyVocabHistory = id => api.get(`/key-vocab/history/${id}/export`, { responseType: 'blob' }).then(response => download(response, `KeyVocabulary_${id.slice(0, 8)}.xlsx`));
+export const exportKeyVocabDocumentPreview = (format,data) => api.post(`/key-vocab/export/${format}`,data,{responseType:'blob'}).then(response=>download(response,`KeyVocabulary_Preview.${format}`));
+export const exportKeyVocabDocumentHistory = (id,format) => api.get(`/key-vocab/history/${id}/export/${format}`,{responseType:'blob'}).then(response=>download(response,`KeyVocabulary_${id.slice(0,8)}.${format}`));

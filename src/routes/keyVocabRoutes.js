@@ -3,6 +3,7 @@ const asyncHandler = require('../http/asyncHandler');
 const { requirePermission } = require('../middleware/authenticate');
 const service = require('../modules/key-vocab/keyVocabService');
 const exporter = require('../modules/key-vocab/keyVocabExporter');
+const documentExporter = require('../modules/learning-materials/learningMaterialDocumentExporter');
 const router = express.Router();
 
 router.post('/generate', requirePermission('key_vocab.generate','key_vocab.manage'), asyncHandler(async (req, res) => {
@@ -19,6 +20,13 @@ router.post('/export', requirePermission('key_vocab.generate','key_vocab.manage'
   res.setHeader('Content-Disposition', 'attachment; filename="KeyVocabulary_Import.xlsx"');
   res.send(file);
 }));
+router.post('/export/:format', requirePermission('key_vocab.generate','key_vocab.manage'), asyncHandler(async (req,res)=>{
+  const format=String(req.params.format).toLowerCase();
+  const file=await documentExporter.create('key-vocab',format,req.body);
+  res.setHeader('Content-Type',format==='pdf'?'application/pdf':'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  res.setHeader('Content-Disposition',`attachment; filename="KeyVocabulary_Preview.${format}"`);
+  res.send(file);
+}));
 router.get('/history', requirePermission('key_vocab.view','key_vocab.manage'), asyncHandler(async (req, res) => {
   const result = await service.history(req.query); res.json({ success: true, ...result });
 }));
@@ -30,6 +38,13 @@ router.get('/history/:id/export', requirePermission('key_vocab.view','key_vocab.
   const file = await exporter.createWorkbook(detail.vocabularies);
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', `attachment; filename="KeyVocabulary_${req.params.id.slice(0, 8)}.xlsx"`);
+  res.send(file);
+}));
+router.get('/history/:id/export/:format', requirePermission('key_vocab.view','key_vocab.manage'), asyncHandler(async (req,res)=>{
+  const format=String(req.params.format).toLowerCase(),detail=await service.detail(req.params.id);
+  const file=await documentExporter.create('key-vocab',format,detail);
+  res.setHeader('Content-Type',format==='pdf'?'application/pdf':'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  res.setHeader('Content-Disposition',`attachment; filename="KeyVocabulary_${req.params.id.slice(0,8)}.${format}"`);
   res.send(file);
 }));
 module.exports = router;

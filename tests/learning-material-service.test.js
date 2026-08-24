@@ -14,6 +14,10 @@ test('dictionary generation uses a durable queue with retry attempts', () => {
   assert.match(service, /DEFAULT_MAX_ATTEMPTS = 3/);
   assert.match(service, /DEFAULT_GENERATION_CONCURRENCY = 6/);
   assert.match(service, /DICTIONARY_CONTEXT_MISMATCH/);
+  assert.match(service, /DICTIONARY_PROVIDER_TIMEOUT/);
+  assert.match(service, /recoverStaleCandidates/);
+  assert.match(service, /Promise\.allSettled/);
+  assert.match(service, /status='failed'.*Bạn có thể bấm Gen lại/s);
 });
 
 test('Key Vocab and Dictionary history share canonical content passages', () => {

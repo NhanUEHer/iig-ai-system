@@ -7,7 +7,7 @@ const developmentHttpsAgent = () => process.env.NODE_ENV !== 'production' && pro
   ? new https.Agent({ rejectUnauthorized: false })
   : undefined;
 
-async function run(apiKey, inputs, userId) {
+async function run(apiKey, inputs, userId, options = {}) {
   if (!apiKey) throw new HttpError('Chưa cấu hình workflow Dictionary.', 503, 'DICTIONARY_NOT_CONFIGURED');
   try {
     const response = await axios.post(endpoint(), {
@@ -15,7 +15,8 @@ async function run(apiKey, inputs, userId) {
     }, {
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       httpsAgent: developmentHttpsAgent(),
-      timeout: Number(process.env.DICTIONARY_DIFY_TIMEOUT_MS) || 120000
+      timeout: options.timeoutMs || Number(process.env.DICTIONARY_DIFY_TIMEOUT_MS) || 120000,
+      signal: options.signal
     });
     if (response.data?.data?.status === 'failed') throw new Error(response.data.data.error || 'Workflow failed');
     return response.data;
@@ -24,16 +25,19 @@ async function run(apiKey, inputs, userId) {
     if (typeof responseBody === 'string' && /Web Page Blocked|bị chặn theo chính sách/i.test(responseBody)) {
       throw new HttpError('Mạng hiện tại đang chặn dify.iigvn.site. Vui lòng yêu cầu IT allowlist domain hoặc đổi sang mạng được phép truy cập.', 503, 'DIFY_NETWORK_BLOCKED');
     }
+    if (error.code === 'ERR_CANCELED' || error.code === 'ECONNABORTED') {
+      throw new HttpError('Dify không trả kết quả trong thời gian cho phép.', 504, 'DICTIONARY_PROVIDER_TIMEOUT');
+    }
     const detail = error.response?.data?.message || error.response?.data?.error || error.message;
     throw new HttpError(detail || 'AI Academy không thể tạo Dictionary lúc này.', 502, 'DICTIONARY_PROVIDER_ERROR');
   }
 }
 
 const extractItems = (passage, userId) => run(process.env.DICTIONARY_EXTRACT_DIFY_API_KEY, { reading_content: passage }, userId);
-const generateEntry = (passage, sentence, targetChunk, userId) => run(process.env.DICTIONARY_ENTRY_DIFY_API_KEY, {
+const generateEntry = (passage, sentence, targetChunk, userId, options) => run(process.env.DICTIONARY_ENTRY_DIFY_API_KEY, {
   passage,
   sentence,
   target_chunk: targetChunk
-}, userId);
+}, userId, options);
 
 module.exports = { extractItems, generateEntry };

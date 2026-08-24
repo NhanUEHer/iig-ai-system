@@ -9,3 +9,7 @@ export const exportDictionary = id => api.get(`/dictionary/history/${id}/export`
   const url=URL.createObjectURL(response.data),link=document.createElement('a');
   link.href=url;link.download=`VocabularyDictionary_${id.slice(0,8)}.xlsx`;link.click();URL.revokeObjectURL(url);
 });
+export const exportDictionaryDocument = (id,format) => api.get(`/dictionary/history/${id}/export/${format}`,{responseType:'blob'}).then(response=>{
+  const match=(response.headers['content-disposition']||'').match(/filename="?([^";]+)"?/i),url=URL.createObjectURL(response.data),link=document.createElement('a');
+  link.href=url;link.download=match?.[1]||`VocabularyDictionary_${id.slice(0,8)}.${format}`;link.click();URL.revokeObjectURL(url);
+});

@@ -8,6 +8,7 @@ const DEFAULT_MAX_ITEMS = 300;
 const DEFAULT_GENERATION_CONCURRENCY = 6;
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_WORKER_POLL_MS = 1000;
+const DEFAULT_CANDIDATE_TIMEOUT_MS = 150000;
 const maxItems = () => {
   const configured = Number.parseInt(process.env.DICTIONARY_MAX_ITEMS || '', 10);
   return Number.isInteger(configured) && configured > 0 ? Math.min(configured, 1000) : DEFAULT_MAX_ITEMS;
@@ -15,6 +16,10 @@ const maxItems = () => {
 const generationConcurrency = () => {
   const configured = Number.parseInt(process.env.DICTIONARY_GENERATION_CONCURRENCY || '', 10);
   return Number.isInteger(configured) && configured > 0 ? Math.min(configured, 20) : DEFAULT_GENERATION_CONCURRENCY;
+};
+const candidateTimeoutMs = () => {
+  const configured = Number.parseInt(process.env.DICTIONARY_CANDIDATE_TIMEOUT_MS || '', 10);
+  return Number.isInteger(configured) && configured >= 30000 ? Math.min(configured, 600000) : DEFAULT_CANDIDATE_TIMEOUT_MS;
 };
 const outputOf = raw => raw?.data?.outputs?.structured_output ?? raw?.data?.outputs?.result ?? raw?.outputs?.structured_output ?? raw;
 const workflowIdOf = raw => raw?.workflow_run_id || raw?.data?.workflow_run_id || raw?.data?.id || null;
@@ -133,36 +138,68 @@ async function processCandidate(candidate, passage, userId) {
     RETURNING id,started_at`,
   [candidate.generation_id,candidate.id,JSON.stringify(requestPayload)]);
   const startedAt = new Date(attempt.rows[0].started_at).getTime();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), candidateTimeoutMs());
+  timeout.unref?.();
   try {
-    const raw = await dify.generateEntry(passage, sentence, candidate.original_chunk, userId);
+    const raw = await dify.generateEntry(passage, sentence, candidate.original_chunk, userId, {
+      signal: controller.signal,
+      timeoutMs: candidateTimeoutMs()
+    });
     const entry = normalizeEntry(raw, candidate.original_chunk);
     if (!sameSentence(sentence, entry.originalSentence)) {
       throw new HttpError('Dify trả về câu ngữ cảnh không khớp câu nguồn.',502,'DICTIONARY_CONTEXT_MISMATCH');
     }
     await db.transaction(async client => {
+      const lease = await client.query(`UPDATE dictionary_generation_attempts SET status='completed',response_payload=$2::jsonb,
+        workflow_run_id=$3,duration_ms=$4,completed_at=CURRENT_TIMESTAMP WHERE id=$1 AND status='running' RETURNING id`,
+      [attempt.rows[0].id,JSON.stringify(entry.rawResponse),entry.workflowRunId,Math.max(0,Date.now()-startedAt)]);
+      if (!lease.rows[0]) return;
       await client.query('DELETE FROM dictionary_entries WHERE candidate_id=$1', [candidate.id]);
       await client.query(`INSERT INTO dictionary_entries
         (generation_id,candidate_id,original_chunk,canonical,part_of_speech,ipa,meaning_vi,meaning_en,original_sentence,context_explanation,example_en,example_vi,collocations,synonyms,word_family,workflow_run_id,raw_response,display_order)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
       [candidate.generation_id,candidate.id,entry.originalChunk,entry.canonical,entry.partOfSpeech,entry.ipa,entry.meaningVi,entry.meaningEn,sentence,entry.contextExplanation,entry.exampleEn,entry.exampleVi,JSON.stringify(entry.collocations),JSON.stringify(entry.synonyms),entry.wordFamily,entry.workflowRunId,entry.rawResponse,candidate.display_order]);
-      await client.query("UPDATE dictionary_candidates SET status='completed',error_message=NULL,completed_at=CURRENT_TIMESTAMP,next_attempt_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=$1", [candidate.id]);
-      await client.query(`UPDATE dictionary_generation_attempts SET status='completed',response_payload=$2::jsonb,
-        workflow_run_id=$3,duration_ms=$4,completed_at=CURRENT_TIMESTAMP WHERE id=$1`,
-      [attempt.rows[0].id,JSON.stringify(entry.rawResponse),entry.workflowRunId,Math.max(0,Date.now()-startedAt)]);
+      await client.query("UPDATE dictionary_candidates SET status='completed',error_message=NULL,completed_at=CURRENT_TIMESTAMP,next_attempt_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=$1 AND status='generating'", [candidate.id]);
     });
   } catch (error) {
     const maxAttempts = Math.max(1,Number.parseInt(process.env.DICTIONARY_MAX_ATTEMPTS || '',10) || DEFAULT_MAX_ATTEMPTS);
-    const shouldRetry = candidate.attempt_count < maxAttempts;
+    const shouldRetry = error.code !== 'DICTIONARY_PROVIDER_TIMEOUT' && candidate.attempt_count < maxAttempts;
     await db.transaction(async client => {
-      await client.query(`UPDATE dictionary_generation_attempts SET status='failed',error_code=$2,error_message=$3,
-        duration_ms=$4,completed_at=CURRENT_TIMESTAMP WHERE id=$1`,
+      const lease = await client.query(`UPDATE dictionary_generation_attempts SET status='failed',error_code=$2,error_message=$3,
+        duration_ms=$4,completed_at=CURRENT_TIMESTAMP WHERE id=$1 AND status='running' RETURNING id`,
       [attempt.rows[0].id,error.code||'DICTIONARY_GENERATION_FAILED',error.message,Math.max(0,Date.now()-startedAt)]);
+      if (!lease.rows[0]) return;
       await client.query(`UPDATE dictionary_candidates SET status=$2,error_message=$3,
         next_attempt_at=CASE WHEN $2='queued' THEN CURRENT_TIMESTAMP + ($4 * INTERVAL '5 seconds') ELSE NULL END,
-        updated_at=CURRENT_TIMESTAMP WHERE id=$1`,
+        updated_at=CURRENT_TIMESTAMP WHERE id=$1 AND status='generating'`,
       [candidate.id,shouldRetry?'queued':'failed',error.message,candidate.attempt_count]);
     });
+  } finally {
+    clearTimeout(timeout);
   }
+}
+
+async function recoverStaleCandidates() {
+  const stale = await db.transaction(async client => {
+    const attempts = await client.query(`UPDATE dictionary_generation_attempts attempt
+      SET status='failed',error_code='DICTIONARY_PROVIDER_TIMEOUT',
+        error_message='Dify không trả kết quả trong thời gian cho phép.',
+        duration_ms=$2,completed_at=CURRENT_TIMESTAMP
+      FROM dictionary_candidates candidate
+      WHERE attempt.candidate_id=candidate.id AND attempt.status='running' AND candidate.status='generating'
+        AND candidate.started_at < CURRENT_TIMESTAMP - ($1 * INTERVAL '1 millisecond')
+      RETURNING attempt.candidate_id,attempt.generation_id`, [candidateTimeoutMs() + 30000,candidateTimeoutMs() + 30000]);
+    if (!attempts.rows.length) return [];
+    const ids = attempts.rows.map(row => row.candidate_id);
+    await client.query(`UPDATE dictionary_candidates
+      SET status='failed',error_message='Dify không trả kết quả trong thời gian cho phép. Bạn có thể bấm Gen lại.',
+        next_attempt_at=NULL,updated_at=CURRENT_TIMESTAMP
+      WHERE id=ANY($1::uuid[]) AND status='generating'`, [ids]);
+    return [...new Set(attempts.rows.map(row => row.generation_id))];
+  });
+  await Promise.all(stale.map(refreshGenerationStatus));
+  return stale.length;
 }
 
 async function claimCandidate() {
@@ -181,17 +218,18 @@ async function claimCandidate() {
 
 let workerTimer=null,workerRunning=false;
 async function runWorkerBatch() {
+  await recoverStaleCandidates();
   if(workerRunning)return;workerRunning=true;
   try {
     const jobs=[];
     for(let index=0;index<generationConcurrency();index+=1){const job=await claimCandidate();if(!job)break;jobs.push(job);}
-    await Promise.all(jobs.map(async job=>{await processCandidate(job.candidate,job.passage,job.user_id);await refreshGenerationStatus(job.candidate.generation_id);}));
+    const results = await Promise.allSettled(jobs.map(async job=>{await processCandidate(job.candidate,job.passage,job.user_id);await refreshGenerationStatus(job.candidate.generation_id);}));
+    results.forEach(result=>{if(result.status==='rejected')console.error('[DictionaryWorkerJob]',result.reason);});
   } finally {workerRunning=false;}
 }
 async function startWorker(){
   if(workerTimer)return;
-  await db.query(`UPDATE dictionary_candidates SET status='queued',next_attempt_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP
-    WHERE status='generating' AND updated_at<CURRENT_TIMESTAMP-INTERVAL '5 minutes'`);
+  await recoverStaleCandidates();
   const pollMs=Math.max(250,Number.parseInt(process.env.DICTIONARY_WORKER_POLL_MS||'',10)||DEFAULT_WORKER_POLL_MS);
   workerTimer=setInterval(()=>runWorkerBatch().catch(error=>console.error('[DictionaryWorker]',error)),pollMs);
   workerTimer.unref?.();
@@ -240,4 +278,4 @@ async function detail(id, queryable=db) {
   return { ...generation.rows[0], candidates: candidates.rows.map(candidate=>({...candidate,attempts:attemptsByCandidate.get(candidate.id)||[]})) };
 }
 
-module.exports = { extract, saveCandidates, startGeneration, history, detail, normalizeExtracted, normalizeEntry, sentenceForCandidate, sameSentence, maxItems, startWorker, stopWorker, runWorkerBatch };
+module.exports = { extract, saveCandidates, startGeneration, history, detail, normalizeExtracted, normalizeEntry, sentenceForCandidate, sameSentence, maxItems, candidateTimeoutMs, recoverStaleCandidates, startWorker, stopWorker, runWorkerBatch };

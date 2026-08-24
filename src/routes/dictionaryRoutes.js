@@ -3,6 +3,7 @@ const asyncHandler = require('../http/asyncHandler');
 const { requirePermission } = require('../middleware/authenticate');
 const service = require('../modules/dictionary/dictionaryService');
 const exporter = require('../modules/dictionary/dictionaryExporter');
+const documentExporter = require('../modules/learning-materials/learningMaterialDocumentExporter');
 const router = express.Router();
 
 router.post('/extract', requirePermission('dictionary.generate','dictionary.manage'), asyncHandler(async (req,res) => res.json({ success:true,data:await service.extract(req.body.passage,req.user.id) })));
@@ -15,6 +16,13 @@ router.get('/history/:id/export', requirePermission('dictionary.view','dictionar
   const file=await exporter.createWorkbook(detail.candidates);
   res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition',`attachment; filename="VocabularyDictionary_${req.params.id.slice(0,8)}.xlsx"`);
+  res.send(file);
+}));
+router.get('/history/:id/export/:format', requirePermission('dictionary.view','dictionary.manage'), asyncHandler(async (req,res)=>{
+  const format=String(req.params.format).toLowerCase(),detail=await service.detail(req.params.id);
+  const file=await documentExporter.create('dictionary',format,detail);
+  res.setHeader('Content-Type',format==='pdf'?'application/pdf':'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  res.setHeader('Content-Disposition',`attachment; filename="VocabularyDictionary_${req.params.id.slice(0,8)}.${format}"`);
   res.send(file);
 }));
 
