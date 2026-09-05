@@ -31,22 +31,23 @@ async function createWorkbook(vocabularies) {
   const sheetFile = zip.file('xl/worksheets/sheet1.xml');
   if (!sheetFile) throw new HttpError('Template export Key Vocab không hợp lệ.', 500, 'INVALID_EXPORT_TEMPLATE');
   let xml = await sheetFile.async('string');
-  const header = xml.match(/<x:row r="1"[\s\S]*?<\/x:row>/)?.[0];
+  const header = xml.match(/<row r="1"[\s\S]*?<\/row>/)?.[0] || xml.match(/<x:row r="1"[\s\S]*?<\/x:row>/)?.[0];
   if (!header) throw new HttpError('Không tìm thấy header trong template Key Vocab.', 500, 'INVALID_EXPORT_TEMPLATE');
+  const prefix = header.startsWith('<x:') ? 'x:' : '';
   const rows = items.map((item, index) => {
     const row = index + 2;
     const cells = [item.o, item.t, item.p, item.i, item.m, ''].map((value, col) => {
       const address = `${String.fromCharCode(65 + col)}${row}`;
-      return `<x:c r="${address}" s="0" t="inlineStr"><x:is><x:t xml:space="preserve">${escapeXml(value)}</x:t></x:is></x:c>`;
+      return `<${prefix}c r="${address}" s="0" t="inlineStr"><${prefix}is><${prefix}t xml:space="preserve">${escapeXml(value)}</${prefix}t></${prefix}is></${prefix}c>`;
     }).join('');
-    return `<x:row r="${row}" spans="1:6">${cells}</x:row>`;
+    return `<${prefix}row r="${row}" spans="1:6">${cells}</${prefix}row>`;
   }).join('');
-  xml = xml.replace(/<x:sheetData>[\s\S]*?<\/x:sheetData>/, `<x:sheetData>${header}${rows}</x:sheetData>`);
-  const dimension = `<x:dimension ref="A1:F${items.length + 1}" />`;
-  if (/<x:dimension ref="[^"]+"\s*\/>/.test(xml)) {
-    xml = xml.replace(/<x:dimension ref="[^"]+"\s*\/>/, dimension);
+  xml = xml.replace(new RegExp(`<${prefix}sheetData>[\\s\\S]*?<\\/${prefix}sheetData>`), `<${prefix}sheetData>${header}${rows}</${prefix}sheetData>`);
+  const dimension = `<${prefix}dimension ref="A1:F${items.length + 1}" />`;
+  if (new RegExp(`<${prefix}dimension ref="[^"]+"\\s*\\/>`).test(xml)) {
+    xml = xml.replace(new RegExp(`<${prefix}dimension ref="[^"]+"\\s*\\/>`), dimension);
   } else {
-    xml = xml.replace(/(<x:worksheet[^>]*>)/, `$1${dimension}`);
+    xml = xml.replace(new RegExp(`(<${prefix}worksheet[^>]*>)`), `$1${dimension}`);
   }
   zip.file('xl/worksheets/sheet1.xml', xml);
   return zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', compressionOptions: { level: 6 } });

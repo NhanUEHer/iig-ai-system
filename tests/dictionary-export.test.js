@@ -14,7 +14,7 @@ const candidate={
   synonyms:['relevant','suitable','usable'],wordFamily:'apply - application - applicable'
 };
 
-test('dictionary Excel maps rich content to the import template',async()=>{
+test('dictionary Excel follows the canonical template and maps in-article form before dictionary form',async()=>{
   const values=normalizeEntries([candidate])[0];
   assert.equal(values[6],'Câu gốc trong bài:\n“What is the most APPLICABLE strategy you gained from the workshop?”\n→ Trong ngữ cảnh bài đọc, applicable strategy nghĩa là chiến lược hữu ích nhất.');
   assert.equal(values[7],'The new policy is applicable to all employees.\n→ Chính sách mới có thể áp dụng cho tất cả nhân viên.');
@@ -26,11 +26,14 @@ test('dictionary Excel maps rich content to the import template',async()=>{
   const workbook=XLSX.read(buffer,{type:'buffer'}),sheet=workbook.Sheets.Template;
   const rows=XLSX.utils.sheet_to_json(sheet,{header:1,raw:false});
   assert.equal(rows[0].length,12);
+  assert.equal(rows[0][0],'Từ vựng (*)');
+  assert.equal(rows[0][1],'Từ gốc (*)');
   assert.deepEqual(rows[1].slice(0,11),values.slice(0,11));
   const zip=await JSZip.loadAsync(buffer),sheetXml=await zip.file('xl/worksheets/sheet1.xml').async('string'),stylesXml=await zip.file('xl/styles.xml').async('string');
   assert.match(sheetXml,/sqref="C2:C1000"/);
   assert.match(sheetXml,/ref="A1:L2"/);
   const height=Number(sheetXml.match(/<(?:x:)?row r="2" ht="(\d+)"/)?.[1]);
   assert.ok(height>72&&height<=300);
-  assert.match(stylesXml,/wrapText="1"/);
+  const templateZip=await JSZip.loadAsync(require('node:fs').readFileSync(require('node:path').join(__dirname,'../src/assets/templates/VocabularyDictionary_ImportTemplate.xlsx')));
+  assert.equal(stylesXml,await templateZip.file('xl/styles.xml').async('string'),'export must preserve the original template styles');
 });

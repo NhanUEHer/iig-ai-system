@@ -53,8 +53,7 @@ async function createWorkbook(candidates){
   const rows=normalizeEntries(candidates);
   const zip=await JSZip.loadAsync(await fs.readFile(TEMPLATE_PATH));
   const sheetFile=zip.file('xl/worksheets/sheet1.xml');
-  const styleFile=zip.file('xl/styles.xml');
-  if(!sheetFile||!styleFile)throw new HttpError('Template export Dictionary không hợp lệ.',500,'INVALID_DICTIONARY_EXPORT_TEMPLATE');
+  if(!sheetFile)throw new HttpError('Template export Dictionary không hợp lệ.',500,'INVALID_DICTIONARY_EXPORT_TEMPLATE');
   let sheetXml=await sheetFile.async('string');
   const header=sheetXml.match(/<row r="1"[\s\S]*?<\/row>/)?.[0]||sheetXml.match(/<x:row r="1"[\s\S]*?<\/x:row>/)?.[0];
   if(!header)throw new HttpError('Không tìm thấy header trong template Dictionary.',500,'INVALID_DICTIONARY_EXPORT_TEMPLATE');
@@ -62,7 +61,7 @@ async function createWorkbook(candidates){
   const xmlRows=rows.map((values,index)=>{
     const row=index+2;
     const height=excelRowHeight(values);
-    const cells=values.map((value,column)=>`<${prefix}c r="${String.fromCharCode(65+column)}${row}" s="2" t="inlineStr"><${prefix}is><${prefix}t xml:space="preserve">${escapeXml(value)}</${prefix}t></${prefix}is></${prefix}c>`).join('');
+    const cells=values.map((value,column)=>`<${prefix}c r="${String.fromCharCode(65+column)}${row}" s="0" t="inlineStr"><${prefix}is><${prefix}t xml:space="preserve">${escapeXml(value)}</${prefix}t></${prefix}is></${prefix}c>`).join('');
     return `<${prefix}row r="${row}" ht="${height}" customHeight="1" spans="1:12">${cells}</${prefix}row>`;
   }).join('');
   sheetXml=sheetXml.replace(new RegExp(`<${prefix}sheetData>[\\s\\S]*?<\\/${prefix}sheetData>`),`<${prefix}sheetData>${header}${xmlRows}</${prefix}sheetData>`);
@@ -71,12 +70,6 @@ async function createWorkbook(candidates){
   else sheetXml=sheetXml.replace(new RegExp(`(<${prefix}worksheet[^>]*>)`),`$1${dimension}`);
   zip.file('xl/worksheets/sheet1.xml',sheetXml);
 
-  let stylesXml=await styleFile.async('string');
-  const cellXfs=stylesXml.match(new RegExp(`<${prefix}cellXfs count="(\\d+)">([\\s\\S]*?)<\\/${prefix}cellXfs>`));
-  if(!cellXfs)throw new HttpError('Style trong template Dictionary không hợp lệ.',500,'INVALID_DICTIONARY_EXPORT_TEMPLATE');
-  const wrapStyle=`<${prefix}xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><${prefix}alignment vertical="top" wrapText="1"/></${prefix}xf>`;
-  stylesXml=stylesXml.replace(cellXfs[0],`<${prefix}cellXfs count="${Number(cellXfs[1])+1}">${cellXfs[2]}${wrapStyle}</${prefix}cellXfs>`);
-  zip.file('xl/styles.xml',stylesXml);
   return zip.generateAsync({type:'nodebuffer',compression:'DEFLATE',compressionOptions:{level:6}});
 }
 
