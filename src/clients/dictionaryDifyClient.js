@@ -34,10 +34,10 @@ async function run(apiKey, inputs, userId, options = {}) {
 }
 
 const extractItems = (passage, userId) => run(process.env.DICTIONARY_EXTRACT_DIFY_API_KEY, { reading_content: passage }, userId);
-const generateEntry = (passage, sentence, targetChunk, userId, options) => run(process.env.DICTIONARY_ENTRY_DIFY_API_KEY, {
+const generateEntries = (passage, sentence, targetChunks, userId, options) => run(process.env.DICTIONARY_ENTRY_DIFY_API_KEY, {
   passage,
   sentence,
-  target_chunk: targetChunk
+  target_chunk: JSON.stringify(Array.isArray(targetChunks) ? targetChunks : [targetChunks])
 }, userId, options);
 
-module.exports = { extractItems, generateEntry };
+module.exports = { extractItems, generateEntries };

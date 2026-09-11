@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeExtracted, normalizeEntry, sentenceForCandidate, sameSentence, maxItems } = require('../src/modules/dictionary/dictionaryService');
+const { normalizeExtracted, normalizeEntry, normalizeEntries, sentenceForCandidate, sameSentence, maxItems } = require('../src/modules/dictionary/dictionaryService');
 
 test('normalizeExtracted accepts Dify structured output and removes duplicates', () => {
   const raw = { data: { outputs: { structured_output: [' Deadline ', 'deadline', 'eligible for payment'] } } };
@@ -63,6 +63,30 @@ test('normalizeEntry maps usage details from the revised Dify contract', () => {
   assert.equal(entry.wordFamily, 'official - officially');
 });
 
+test('normalizeEntries maps a sentence batch in the requested item order', () => {
+  const sentence = 'During the implementation phase, users might experience temporary processing delays.';
+  const raw = { data: { workflow_run_id: 'batch-run-1', outputs: { structured_output: { dictionary_entries: [
+    { canonical: 'implementation phase', pos: 'Noun Phrase', meaning_vn: 'Giai đoạn triển khai', meaning_en: 'A period of implementation.', context_analysis: { original_sentence: sentence, explanation: 'Giai đoạn áp dụng.' }, usage: {} },
+    { canonical: 'experience', pos: 'Verb', meaning_vn: 'Gặp phải', meaning_en: 'To encounter.', context_analysis: { original_sentence: sentence, explanation: 'Diễn tả việc gặp tình trạng.' }, usage: {} },
+    { canonical: 'processing delay', pos: 'Noun Phrase', meaning_vn: 'Sự chậm trễ xử lý', meaning_en: 'A processing lag.', context_analysis: { original_sentence: sentence, explanation: 'Sự chậm trễ khi xử lý.' }, usage: {} }
+  ] } } } };
+  const entries = normalizeEntries(raw, ['implementation phase', 'experience', 'processing delays']);
+  assert.deepEqual(entries.map(entry => entry.originalChunk), ['implementation phase', 'experience', 'processing delays']);
+  assert.deepEqual(entries.map(entry => entry.canonical), ['implementation phase', 'experience', 'processing delay']);
+  assert.ok(entries.every(entry => entry.workflowRunId === 'batch-run-1'));
+});
+
+test('normalizeEntries rejects incomplete sentence batches instead of mapping entries to the wrong word', () => {
+  const sentence = 'Users might experience processing delays.';
+  const raw = { data: { outputs: { structured_output: { dictionary_entries: [
+    { canonical: 'experience', meaning_vn: 'Gặp phải', meaning_en: 'To encounter.', context_analysis: { original_sentence: sentence, explanation: 'Gặp phải.' } }
+  ] } } } };
+  assert.throws(
+    () => normalizeEntries(raw, ['experience', 'processing delays']),
+    error => error.code === 'DICTIONARY_BATCH_SIZE_MISMATCH'
+  );
+});
+
 test('dictionary generation sends the stored source sentence and can infer it for legacy data', () => {
   const passage = 'The board approved the plan. Employees will carry out an audit next week.';
   assert.equal(sentenceForCandidate({ original_chunk: 'carry out', source_sentence: 'Stored source sentence.' }, passage), 'Stored source sentence.');
@@ -70,9 +94,11 @@ test('dictionary generation sends the stored source sentence and can infer it fo
   const boundaryPassage = 'The update will significantly reduce delays. If you need help, contact IT.';
   assert.equal(sentenceForCandidate({ original_chunk: 'If' }, boundaryPassage), 'If you need help, contact IT.');
   const clientSource = require('node:fs').readFileSync(require.resolve('../src/clients/dictionaryDifyClient'), 'utf8');
-  assert.match(clientSource, /\{\s*passage,\s*sentence,\s*target_chunk: targetChunk\s*\}/);
+  assert.match(clientSource, /target_chunk: JSON\.stringify\(Array\.isArray\(targetChunks\) \? targetChunks : \[targetChunks\]\)/);
   const serviceSource = require('node:fs').readFileSync(require.resolve('../src/modules/dictionary/dictionaryService'), 'utf8');
   assert.match(serviceSource, /RETURNING id,generation_id,original_chunk,source_sentence,display_order/);
+  assert.match(serviceSource, /source_sentence=\$2/);
+  assert.match(serviceSource, /processCandidateBatch\(job\.candidates/);
 });
 
 test('dictionary context comparison ignores Dify line breaks around em dashes', () => {
