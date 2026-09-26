@@ -25,6 +25,10 @@ const PERMISSION_GROUPS = [
     ['dictionary.view', 'Xem lịch sử Dictionary'], ['dictionary.generate', 'Tạo Dictionary bằng AI'],
     ['dictionary.manage', 'Chỉnh sửa và lưu Dictionary']
   ] },
+  { key: 'content_sources', label: 'Nguồn học liệu', permissions: [
+    ['content_sources.view', 'Xem nguồn đã thu thập'], ['content_sources.create', 'Tải lên và nhận diện nguồn'],
+    ['content_sources.analyze', 'Phân tích nguồn bằng AI']
+  ] },
   { key: 'reports', label: 'Báo cáo', permissions: [
     ['reports.view', 'Xem dashboard báo cáo KPI'],
     ['reports.forms.view', 'Chỉ xem danh sách kỳ và phiếu chi tiết'],
@@ -40,6 +44,20 @@ const PERMISSION_GROUPS = [
     ['expenses.classify','Phân loại giao dịch'],['expenses.reconcile','Đối soát giao dịch'],
     ['expenses.review','Duyệt ngoại lệ'],['expenses.config','Cấu hình tài khoản ngân hàng'],
     ['expenses.manage','Quản trị toàn bộ chi phí']
+  ] },
+  { key: 'question_bank', label: 'Ngân hàng câu hỏi', permissions: [
+    ['question_bank.view', 'Xem danh sách và chi tiết câu hỏi'],
+    ['question_bank.manage', 'Tạo, sửa và xóa câu hỏi'],
+    ['question_bank.media_manage', 'Tải lên, thay thế và xóa media câu hỏi'],
+    ['question_bank.taxonomy_manage', 'Tạo, sửa và xóa nhóm câu hỏi']
+  ] },
+  { key: 'exams', label: 'Quản lý đề thi', permissions: [
+    ['exams.view', 'Xem danh sách và chi tiết đề thi'],
+    ['exams.manage', 'Tạo, sửa, xóa đề thi, phần thi và câu hỏi']
+  ] },
+  { key: 'exam_events', label: 'Quản lý sự kiện thi', permissions: [
+    ['exam_events.view', 'Xem danh sách và chi tiết sự kiện thi'],
+    ['exam_events.manage', 'Tạo, sửa, xóa sự kiện thi và ảnh/banner']
   ] },
   { key: 'administration', label: 'Quản trị', permissions: [
     ['users.view', 'Xem tài khoản'], ['users.manage', 'Tạo, sửa và xóa tài khoản'],

@@ -1,0 +1,7 @@
+.ui-table__sort { display:inline-flex; align-items:center; gap:4px; padding:0; border:0; background:transparent; color:inherit; font:inherit; letter-spacing:inherit; text-transform:inherit; cursor:pointer; }
+.ui-table__sort:hover:not(.is-static) { color:#155DFC; }
+.ui-table__sort.is-static { cursor:default; }
+.ui-table-bulkbar { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:52px; padding:8px 16px; border-bottom:1px solid #BFDBFE; background:#EFF6FF; color:#155DFC; }
+.ui-table-bulkbar__actions, .ui-table-bulkbar > div { display:flex; gap:8px; }
+.ui-table-bulkbar button { display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border:1px solid #A2ACB9; border-radius:4px; background:#fff; color:#000; cursor:pointer; }
+.ui-table-bulkbar button.is-danger { border-color:#EF4444; color:#EF4444; }

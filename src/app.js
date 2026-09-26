@@ -9,11 +9,16 @@ const expenseRoutes = require('./routes/expenseRoutes');
 const keyVocabRoutes = require('./routes/keyVocabRoutes');
 const dictionaryRoutes = require('./routes/dictionaryRoutes');
 const learningMaterialRoutes = require('./routes/learningMaterialRoutes');
+const contentSourceRoutes = require('./routes/contentSourceRoutes');
 const requestContext = require('./http/requestContext');
 const errorHandler = require('./http/errorHandler');
 const HttpError = require('./http/httpError');
 const { authenticate } = require('./middleware/authenticate');
 const { getBuildInfo } = require('./config/buildInfo');
+const questionBankV3Routes = require('./routes/questionBankV3Routes');
+const examV3Routes = require('./routes/examV3Routes');
+const examEventRoutes = require('./routes/examEventRoutes');
+const publicExamEventRoutes = require('./routes/publicExamEventRoutes');
 
 const path = require('path');
 const app = express();
@@ -29,8 +34,12 @@ app.use('/cleaned-audio', express.static(path.join(__dirname, '../public/cleaned
 app.use('/local_audio', express.static(path.join(__dirname, '../public/local_audio')));
 app.use('/local_voices', express.static(path.join(__dirname, '../public/local_voices')));
 app.use('/tmp_local', express.static(path.join(__dirname, '../public/tmp_local')));
+app.use('/question-bank-media', express.static(path.join(__dirname, '../public/question-bank-media')));
 
-// Routes mapping
+// Public candidate routes
+app.use('/api/public/exam-events', publicExamEventRoutes);
+
+// Protected Admin Routes mapping
 app.use('/api/auth', authRoutes);
 app.use('/api/submissions', authenticate, submissionRoutes);
 app.use('/api/agents', authenticate, agentRoutes);
@@ -40,6 +49,10 @@ app.use('/api/expenses', authenticate, expenseRoutes);
 app.use('/api/key-vocab', authenticate, keyVocabRoutes);
 app.use('/api/dictionary', authenticate, dictionaryRoutes);
 app.use('/api/learning-materials', authenticate, learningMaterialRoutes);
+app.use('/api/content-sources', authenticate, contentSourceRoutes);
+app.use('/api/question-bank', authenticate, questionBankV3Routes);
+app.use('/api/exams', authenticate, examV3Routes);
+app.use('/api/exam-events', authenticate, examEventRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

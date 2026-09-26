@@ -1,0 +1,19 @@
+import React,{useEffect,useMemo,useState} from 'react';
+import {ArrowLeft,Check} from 'lucide-react';
+import {listExams} from '../../../services/examService';
+import {createExamEvent,listExamEventSchools,uploadExamEventMedia} from '../../../services/examEventService';
+import ExamEventFormSections from '../components/ExamEventFormSections';
+import ExamPickerModal from '../components/ExamPickerModal';
+import './ExamEventCreatePage.css';
+import './ExamEventStitch.css';
+
+const initial={name:'',schoolName:'',status:'DRAFT',description:'',startAt:'',endAt:'',examId:'',internalNote:''};
+const plain=value=>String(value||'').replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').trim();
+export default function ExamEventCreatePage({navigate,showMsg}){
+  const [form,setForm]=useState(initial);const [schools,setSchools]=useState([]);const [exams,setExams]=useState([]);const [saving,setSaving]=useState(false);const [image,setImage]=useState(null);const [banner,setBanner]=useState(null);const [pickerOpen,setPickerOpen]=useState(false);
+  useEffect(()=>{Promise.all([listExamEventSchools(),listExams({limit:100})]).then(([schoolRows,examRows])=>{setSchools(schoolRows||[]);setExams(examRows.data||[]);}).catch(()=>showMsg?.('Không thể tải dữ liệu biểu mẫu.','error'));},[showMsg]);
+  const selectedExam=useMemo(()=>exams.find(exam=>exam.id===form.examId),[exams,form.examId]);const update=(key,value)=>setForm(current=>({...current,[key]:value}));
+  const pick=(setter,current,file,maxMb)=>{if(!file)return;if(!['image/jpeg','image/png','image/webp'].includes(file.type))return showMsg?.('Chỉ hỗ trợ ảnh JPG, PNG hoặc WEBP.','error');if(file.size>maxMb*1024*1024)return showMsg?.(`Ảnh không được vượt quá ${maxMb}MB.`,'error');if(current?.url)URL.revokeObjectURL(current.url);setter({file,url:URL.createObjectURL(file)});};
+  const submit=async event=>{event.preventDefault();if(!form.name.trim()||!form.schoolName.trim()||!plain(form.description)||!form.examId||!form.startAt||!form.endAt)return showMsg?.('Vui lòng nhập đủ các trường bắt buộc.','error');if(new Date(form.endAt)<=new Date(form.startAt))return showMsg?.('Thời gian kết thúc phải sau thời gian bắt đầu.','error');setSaving(true);try{let created=await createExamEvent({...form,startAt:new Date(form.startAt).toISOString(),endAt:new Date(form.endAt).toISOString()});if(image?.file)created=await uploadExamEventMedia(created.id,'image',image.file);if(banner?.file)created=await uploadExamEventMedia(created.id,'banner',banner.file);showMsg?.('Đã tạo kỳ thi. Bạn có thể sao chép link hoặc tải QR để chia sẻ.','success');navigate(`/exam-events/${created.id}/edit`);}catch(error){showMsg?.(error.response?.data?.error||'Không thể tạo kỳ thi.','error');}finally{setSaving(false);}};
+  return <><section className="event-create-page"><header><button type="button" onClick={()=>navigate('/exam-events')}><ArrowLeft/></button><span>Quản lý kỳ thi</span><i>/</i><strong>Thêm mới kỳ thi</strong></header><form onSubmit={submit}><ExamEventFormSections form={form} update={update} schools={schools} onSchoolCreated={school=>setSchools(current=>[...current.filter(item=>item.id!==school.id),school].sort((a,b)=>a.name.localeCompare(b.name,'vi')))} showMsg={showMsg} selectedExam={selectedExam} onOpenExamPicker={()=>setPickerOpen(true)} image={image} banner={banner} onPickImage={file=>pick(setImage,image,file,2)} onPickBanner={file=>pick(setBanner,banner,file,5)} onRemoveImage={()=>setImage(null)} onRemoveBanner={()=>setBanner(null)}/><footer><button type="button" onClick={()=>navigate('/exam-events')}>Hủy</button><button type="submit" disabled={saving}><Check/>{saving?'Đang tạo kỳ thi...':'Tạo kỳ thi'}</button></footer></form></section><ExamPickerModal open={pickerOpen} exams={exams} selectedId={form.examId} onClose={()=>setPickerOpen(false)} onConfirm={examId=>{update('examId',examId);setPickerOpen(false);}}/></>;
+}

@@ -14,11 +14,20 @@ async function startServer() {
     const { port } = validateEnv();
     // 1. Initialize Postgres tables
     await initDb();
-    
+
     // 2. Start Express app listening
     server = app.listen(port, () => {
       const build = getBuildInfo();
       console.log(`🚀 AI Scoring Admin ${build.label} v${build.version} running on http://localhost:${port}`);
+    });
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${port} is already in use by a stale process. Please terminate the process on port ${port} before restarting.`);
+        process.exit(1);
+      } else {
+        console.error('❌ Server failed with error:', err);
+        process.exit(1);
+      }
     });
     mappingSyncScheduler.start();
     await dictionaryService.startWorker();

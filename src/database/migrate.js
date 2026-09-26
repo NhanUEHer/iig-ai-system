@@ -5,6 +5,11 @@ const db = require('../config/db');
 const migrationsDir = path.join(__dirname, 'migrations');
 
 async function runMigrations() {
+  // Historical migrations use gen_random_uuid() and digest(). Ensure their
+  // PostgreSQL extension is available before replaying the migration chain on
+  // a fresh database or during disaster recovery.
+  await db.query('CREATE EXTENSION IF NOT EXISTS pgcrypto');
+
   await db.query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
       name VARCHAR(255) PRIMARY KEY,
@@ -41,4 +46,3 @@ async function runMigrations() {
 }
 
 module.exports = runMigrations;
-

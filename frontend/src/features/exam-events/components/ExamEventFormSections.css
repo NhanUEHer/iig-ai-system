@@ -1,0 +1,11 @@
+.exam-config-grid {
+  grid-template-columns: 1fr;
+}
+
+.exam-select {
+  grid-column: 1 / -1;
+}
+
+.exam-preview > em {
+  white-space: nowrap;
+}

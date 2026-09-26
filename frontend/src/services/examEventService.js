@@ -1,0 +1,11 @@
+import api from './api';
+const unwrap=request=>request.then(response=>response.data);
+export const listExamEvents=params=>unwrap(api.get('/exam-events',{params}));
+export const getExamEvent=id=>unwrap(api.get(`/exam-events/${id}`)).then(result=>result.data);
+export const listExamEventSchools=()=>unwrap(api.get('/exam-events/schools')).then(result=>result.data);
+export const createExamEventSchool=name=>unwrap(api.post('/exam-events/schools',{name})).then(result=>result.data);
+export const createExamEvent=data=>unwrap(api.post('/exam-events',data)).then(result=>result.data);
+export const updateExamEvent=(id,data)=>unwrap(api.put(`/exam-events/${id}`,data)).then(result=>result.data);
+export const deleteExamEvent=id=>unwrap(api.delete(`/exam-events/${id}`));
+export const uploadExamEventMedia=(id,kind,file)=>{const data=new FormData();data.append('file',file);return unwrap(api.post(`/exam-events/${id}/media/${kind}`,data,{headers:{'Content-Type':'multipart/form-data'}})).then(result=>result.data);};
+export const deleteExamEventMedia=(id,kind)=>unwrap(api.delete(`/exam-events/${id}/media/${kind}`)).then(result=>result.data);

@@ -1,0 +1,28 @@
+.exam-create-container{
+  width:100%;
+  max-width:none;
+  margin:0;
+}
+.exam-create-footer{
+  justify-content:space-between;
+}
+.exam-create-form label>span{
+  justify-content:flex-start;
+  gap:3px;
+}
+.exam-create-form .exam-create-description>span{
+  justify-content:space-between;
+  gap:16px;
+}
+.exam-create-form input:disabled{
+  border-color:#e2e8f0!important;
+  background:#f1f5f9!important;
+  color:#94a3b8!important;
+  cursor:not-allowed;
+}
+.exam-create-title-row>span.is-active{border-color:#a7f3d0;background:#ecfdf5;color:#047857}
+.exam-create-title-row>span.is-inactive{border-color:#e2e8f0;background:#f1f5f9;color:#64748b}
+.exam-create-title-row>span i{background:currentColor}
+.exam-create-form .status-select.is-draft{border-color:#f6cf68;background:#fffbeb;color:#92400e}
+.exam-create-form .status-select.is-active{border-color:#86d8af;background:#ecfdf5;color:#047857}
+.exam-create-form .status-select.is-inactive{border-color:#cbd5e1;background:#f8fafc;color:#64748b}

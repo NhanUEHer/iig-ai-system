@@ -15,6 +15,7 @@ const R2_BUCKET     = process.env.R2_BUCKET      || 'ai-scoring-audio';
 const R2_CLEAN_AUDIO_PREFIX = process.env.R2_CLEAN_AUDIO_PREFIX || 'cleaned-audio';
 const R2_GENERATED_AUDIO_PREFIX = process.env.R2_GENERATED_AUDIO_PREFIX || 'dialogues';
 const AUDIO_STORAGE_MODE = process.env.AUDIO_STORAGE_MODE || 'local';
+const LOCAL_MEDIA_ROOT = path.join(__dirname, '../../public/question-bank-media');
 
 // URL expiry: 7 days (Dify calls + frontend playback)
 const SIGNED_URL_EXPIRY_SECONDS = 60 * 60 * 24 * 7;
@@ -83,9 +84,26 @@ async function uploadFile(localFilePath, r2Key) {
   return `r2:${r2Key}`;
 }
 
-async function uploadBuffer(buffer, r2Key, contentType = 'application/octet-stream') {
-  await getClient().send(new PutObjectCommand({ Bucket: R2_BUCKET, Key: r2Key, Body: buffer, ContentType: contentType }));
-  return `r2:${r2Key}`;
+async function uploadBuffer(buffer, r2Key, contentType = 'application/octet-stream', options = {}) {
+  const saveLocal = () => {
+    const safeKey = String(r2Key).replace(/^\/+/, '').replace(/\.\.(?:\/|\\)/g, '');
+    const target = path.join(LOCAL_MEDIA_ROOT, safeKey);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, buffer);
+    return `local:${safeKey}`;
+  };
+  if (options.preferLocal || AUDIO_STORAGE_MODE !== 'r2' || !isR2Configured()) {
+    return saveLocal();
+  }
+  try {
+    await getClient().send(new PutObjectCommand({ Bucket: R2_BUCKET, Key: r2Key, Body: buffer, ContentType: contentType }));
+    return `r2:${r2Key}`;
+  } catch (error) {
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.APP_ENV === 'production';
+    if (isProduction) throw error;
+    console.warn(`[Storage] R2 upload failed in local development; using local storage: ${error.message}`);
+    return saveLocal();
+  }
 }
 
 /**
@@ -94,6 +112,10 @@ async function uploadBuffer(buffer, r2Key, contentType = 'application/octet-stre
  * @returns {Promise<string>}       - temporary HTTPS URL valid for 7 days
  */
 async function getSignedAudioUrl(r2KeyOrStoredUrl) {
+  const localKey = r2KeyOrStoredUrl.startsWith('local:') ? r2KeyOrStoredUrl.slice(6) : r2KeyOrStoredUrl;
+  if (r2KeyOrStoredUrl.startsWith('local:') || fs.existsSync(path.join(LOCAL_MEDIA_ROOT, localKey))) {
+    return `/question-bank-media/${localKey.split('/').map(encodeURIComponent).join('/')}`;
+  }
   const client = getClient();
   const key = r2KeyOrStoredUrl.startsWith('r2:')
     ? r2KeyOrStoredUrl.slice(3)
@@ -113,6 +135,11 @@ async function getSignedAudioUrl(r2KeyOrStoredUrl) {
 }
 
 async function downloadBuffer(r2KeyOrStoredUrl) {
+  const localKey = r2KeyOrStoredUrl.startsWith('local:') ? r2KeyOrStoredUrl.slice(6) : r2KeyOrStoredUrl;
+  if (r2KeyOrStoredUrl.startsWith('local:') || fs.existsSync(path.join(LOCAL_MEDIA_ROOT, localKey))) {
+    const safeKey = localKey.replace(/\.\.(?:\/|\\)/g, '');
+    return { buffer: fs.readFileSync(path.join(LOCAL_MEDIA_ROOT, safeKey)), contentType: 'application/octet-stream' };
+  }
   const key = r2KeyOrStoredUrl.startsWith('r2:') ? r2KeyOrStoredUrl.slice(3) : r2KeyOrStoredUrl;
   const response = await getClient().send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: key }));
   return {
@@ -125,6 +152,12 @@ async function downloadBuffer(r2KeyOrStoredUrl) {
  * Delete an object from R2.
  */
 async function deleteFile(r2KeyOrStoredUrl) {
+  const localKey = r2KeyOrStoredUrl.startsWith('local:') ? r2KeyOrStoredUrl.slice(6) : r2KeyOrStoredUrl;
+  if (r2KeyOrStoredUrl.startsWith('local:') || fs.existsSync(path.join(LOCAL_MEDIA_ROOT, localKey))) {
+    const safeKey = localKey.replace(/\.\.(?:\/|\\)/g, '');
+    fs.rmSync(path.join(LOCAL_MEDIA_ROOT, safeKey), { force: true });
+    return;
+  }
   const client = getClient();
   const key = r2KeyOrStoredUrl.startsWith('r2:')
     ? r2KeyOrStoredUrl.slice(3)

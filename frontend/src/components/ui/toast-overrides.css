@@ -1,0 +1,31 @@
+/* Shared application toast states used by App.showMsg and design-system Toast. */
+.ui-toast {
+  z-index: 10000;
+}
+
+.ui-toast .ui-alert {
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+}
+
+.ui-toast .ui-alert--success {
+  border-color: #86d8af;
+  background: #e9f9f1;
+  color: #087a4b;
+}
+
+.ui-toast .ui-alert--error {
+  border-color: #f2a7a7;
+  background: #fff1f1;
+  color: #c62828;
+}
+
+.ui-toast .ui-alert__content strong {
+  font-size: 14px;
+}
+
+.ui-toast .ui-alert__content div {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+}

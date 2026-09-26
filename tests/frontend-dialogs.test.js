@@ -13,7 +13,7 @@ test('active frontend source uses system dialogs instead of browser-native dialo
   const root=path.join(__dirname,'..','frontend','src');
   const violations=sourceFiles(root).flatMap(file=>{
     const source=fs.readFileSync(file,'utf8');
-    return /\b(?:window\.)?(?:alert|confirm|prompt)\s*\(/.test(source)?[path.relative(root,file)]:[];
+    return /\b(?:window|globalThis)\.(?:alert|confirm|prompt)\s*\(/.test(source)?[path.relative(root,file)]:[];
   });
   assert.deepEqual(violations,[]);
   assert.match(fs.readFileSync(path.join(root,'main.jsx'),'utf8'),/<DialogProvider><App \/><\/DialogProvider>/);
