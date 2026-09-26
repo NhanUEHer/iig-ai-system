@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => ({
     __APP_COMMIT__: JSON.stringify(process.env.VITE_APP_COMMIT || '')
   },
   server: {
+    host: '0.0.0.0',
     proxy: {
       '/api': {
         target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:5005',
@@ -30,6 +31,11 @@ export default defineConfig(({ mode }) => ({
         secure: false,
       },
       '/local_voices': {
+        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:5005',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/question-bank-media': {
         target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:5005',
         changeOrigin: true,
         secure: false,

@@ -61,6 +61,10 @@ npm run check
 
 echo "[3/9] Building Production v${APP_VERSION} (${APP_COMMIT})..."
 VITE_APP_ENV=production VITE_APP_VERSION="$APP_VERSION" VITE_APP_COMMIT="$APP_COMMIT" npm run build --prefix frontend
+npm run build --prefix mobile-web
+mkdir -p frontend/dist/events
+rsync -a --delete mobile-web/dist/ frontend/dist/events/
+test -s frontend/dist/events/index.html
 
 echo "[4/9] Resolving rollback backup..."
 if [ "${SKIP_BACKUP:-false}" = true ]; then

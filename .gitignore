@@ -34,6 +34,7 @@ public/custom_voices/
 dist/
 frontend/dist/
 dist-ssr/
+releases/
 
 # Logs & temp files
 /tmp/
