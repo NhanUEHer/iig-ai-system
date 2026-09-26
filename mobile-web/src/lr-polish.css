@@ -1,0 +1,389 @@
+/* Cohesive LR mobile polish across landing, preparation, exam, sheets and result. */
+:root {
+  --lr-green: #00875a;
+  --lr-green-dark: #006f4d;
+  --lr-mint: #eaf8f1;
+  --lr-line: #dce9e3;
+  --lr-ink: #172b26;
+  --lr-muted: #667a73;
+  --lr-shadow: 0 10px 30px -12px rgba(12, 73, 52, .2);
+}
+
+html { scroll-behavior: smooth; }
+body { -webkit-font-smoothing: antialiased; }
+button, input, select, a { -webkit-tap-highlight-color: transparent; }
+button { touch-action: manipulation; }
+.mobile-shell { max-width: 420px; overflow-x: clip; }
+
+button,
+.hero-card,
+.exam-overview,
+.form-card,
+.prep-sheet,
+.prep-welcome,
+.exam-context,
+.exam-question,
+.result-ranking,
+.result-analysis,
+.result-leaderboard {
+  transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease, transform .16s ease;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid rgba(0, 135, 90, .2);
+  outline-offset: 2px;
+}
+
+.app-header,
+.prep-header,
+.exam-header,
+.result-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom-color: rgba(0, 111, 77, .09);
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 5px 20px rgba(12, 73, 52, .055);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+/* A clearly visible, thumb-friendly route back to the event home. */
+.prep-header > button,
+.exam-header > button {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid #c9e2d7;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #f5fcf8, #e7f6ef);
+  color: var(--lr-green-dark);
+  box-shadow: 0 5px 14px rgba(0, 111, 77, .1);
+  cursor: pointer;
+}
+.prep-header > button .material-symbols-outlined,
+.exam-header > button .material-symbols-outlined {
+  font-size: 24px;
+  font-weight: 600;
+}
+.prep-header > button:hover,
+.exam-header > button:hover {
+  border-color: #8bcdb2;
+  background: #e7f8f0;
+  transform: translateX(-1px);
+}
+.prep-header > button:active,
+.exam-header > button:active { transform: scale(.94); }
+
+.hero-card,
+.exam-overview,
+.form-card { box-shadow: var(--lr-shadow); }
+.hero-copy h1,
+.section-heading h2,
+.prep-exam h2,
+.exam-prompt,
+.result-identity h1 { text-wrap: balance; }
+.field-control input,
+.field-control select { transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease; }
+.check-row input { transition: background-color .16s ease, border-color .16s ease, transform .12s ease; }
+.check-row input:active { transform: scale(.9); }
+.primary-cta:not(:disabled):active,
+.prep-back:active,
+.prep-audio > button:active,
+.exam-nav button:not(:disabled):active,
+.result-footer button:active { transform: scale(.975); }
+
+.prep-content { isolation: isolate; }
+.prep-campaign { background-position: center 42%; }
+.prep-sheet,
+.prep-welcome { box-shadow: 0 12px 30px -16px rgba(0, 95, 64, .28); }
+.prep-part { transition: border-color .18s ease, background-color .18s ease, transform .16s ease; }
+.prep-audio > button { box-shadow: 0 5px 13px rgba(0, 35, 25, .18); }
+.prep-bottom { border-top-color: rgba(0, 111, 77, .11); }
+
+.exam-progress i { box-shadow: 0 0 8px rgba(0, 135, 90, .3); }
+.exam-video,
+.exam-image {
+  border: 1px solid #d9e8e1;
+  box-shadow: 0 7px 20px -12px rgba(9, 54, 39, .3);
+}
+.exam-image img { background: #f6faf8; }
+.exam-options > button {
+  cursor: pointer;
+  transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease, transform .12s ease;
+}
+.exam-options > button:not(.selected):active { transform: scale(.988); background: #f8fbf9; }
+.exam-options > button.selected { box-shadow: 0 6px 16px rgba(0, 135, 90, .1); }
+.answer-save-error { color: #b42318 !important; }
+.answer-save-saving,
+.answer-save-pending { color: #9a6500 !important; }
+.answer-save-saving .material-symbols-outlined,
+.answer-save-pending .material-symbols-outlined { animation: lr-spin 1s linear infinite; }
+.exam-question > footer button { text-underline-offset: 3px; }
+.exam-nav { border-top-color: rgba(0, 111, 77, .11); }
+
+.question-grid-backdrop,
+.submit-backdrop { animation: lr-fade-in .18s ease both; }
+.question-grid-backdrop > section,
+.submit-dialog { animation: lr-sheet-up .25s cubic-bezier(.2,.8,.2,1) both; }
+.question-grid-backdrop section > div button { cursor: pointer; }
+.question-grid-backdrop section > div button:active { transform: scale(.94); }
+
+.result-content { position: relative; }
+.result-ranking,
+.result-analysis,
+.result-leaderboard { box-shadow: var(--lr-shadow); }
+.result-score-ring { filter: drop-shadow(0 8px 12px rgba(0, 111, 77, .08)); }
+.result-parts article > div:nth-child(2) { overflow: hidden; }
+.result-parts article > div:nth-child(2) i { transition: width .55s cubic-bezier(.2,.8,.2,1); }
+.leaderboard-list article { transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.leaderboard-list article.winner { transform: translateY(-5px); }
+.result-footer { border-top-color: rgba(0, 111, 77, .1); box-shadow: 0 -7px 24px rgba(12, 73, 52, .075); }
+.state-screen > div { box-shadow: 0 9px 24px rgba(0, 122, 83, .1); }
+
+@keyframes lr-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lr-sheet-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes lr-spin { to { transform: rotate(360deg); } }
+
+@media (hover:hover) {
+  .exam-options > button:not(.selected):hover { border-color: #b9ddcc; background: #fbfefc; }
+  .prep-part:hover { border-color: #bfe2d2 !important; transform: translateY(-1px); }
+  .leaderboard-list article:hover { transform: translateY(-2px); }
+  .leaderboard-list article.winner:hover { transform: translateY(-7px); }
+}
+
+@media (max-width:365px) {
+  .page-content { padding-right: 11px; padding-left: 11px; }
+  .hero-copy { padding-right: 14px; padding-left: 14px; }
+  .result-content { padding-right: 13px; padding-left: 13px; }
+  .result-ranking, .result-analysis, .result-leaderboard { border-radius: 16px; }
+}
+
+/* Large phones: use the available width without stretching readable text. */
+@media (min-width:421px) and (max-width:699px) {
+  .mobile-shell,
+  .prep-app,
+  .exam-app,
+  .result-app { max-width: 480px; }
+  .prep-bottom,
+  .exam-nav,
+  .result-footer { width: min(100%, 480px); }
+  .page-content,
+  .prep-content,
+  .exam-body,
+  .result-content { padding-right: 18px; padding-left: 18px; }
+}
+
+/* Tablet / iPad composition. */
+@media (min-width:700px) {
+  body { padding: 24px; }
+  .mobile-shell,
+  .prep-app,
+  .exam-app,
+  .result-app {
+    width: min(100%, 760px);
+    max-width: 760px;
+    min-height: calc(100dvh - 48px);
+    border-radius: 28px;
+    overflow: clip;
+  }
+
+  .app-header,
+  .prep-header,
+  .exam-header,
+  .result-header { padding-right: 26px; padding-left: 26px; }
+
+  /* Registration landing: concise overview left, form right. */
+  .mobile-shell:has(> .app-header) .page-content {
+    padding: 24px 26px 22px;
+    display: grid;
+    grid-template-columns: minmax(0, 42fr) minmax(0, 58fr);
+    align-items: start;
+    column-gap: 22px;
+    row-gap: 16px;
+  }
+  .mobile-shell:has(> .app-header) { min-height: auto; }
+  .mobile-shell:has(> .app-header) .app-header { height: 68px; }
+  .mobile-shell:has(> .app-header) .brand img { width: 42px; height: 42px; }
+  .mobile-shell:has(> .app-header) .brand strong { font-size: 16px; }
+  .mobile-shell:has(> .app-header) .brand span { font-size: 9.5px; }
+  .mobile-shell:has(> .app-header) .quick-badge { padding: 6px 12px; font-size: 11px; }
+  .mobile-shell:has(> .app-header) .hero-card,
+  .mobile-shell:has(> .app-header) .exam-overview,
+  .mobile-shell:has(> .app-header) .access-notice { grid-column: 1; }
+  .mobile-shell:has(> .app-header) .form-card {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    position: sticky;
+    top: 82px;
+  }
+  .mobile-shell:has(> .app-header) .trust-message {
+    grid-column: 2;
+    margin-top: -3px;
+  }
+  .mobile-shell:has(> .app-header) .disclaimer {
+    grid-column: 1;
+    align-self: start;
+    margin-top: -3px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.62);
+  }
+  .mobile-shell:has(> .app-header) .hero-media {
+    aspect-ratio: 16 / 9.7;
+    background-position: center 38%;
+  }
+  .mobile-shell:has(> .app-header) .hero-copy { padding: 17px 18px 16px; }
+  .mobile-shell:has(> .app-header) .hero-kicker { font-size: 10px; }
+  .mobile-shell:has(> .app-header) .hero-copy h1 { font-size: 22px; }
+  .mobile-shell:has(> .app-header) .hero-copy > p { margin-bottom: 12px; font-size: 12px; }
+  .mobile-shell:has(> .app-header) .event-school strong { font-size: 12.5px; }
+  .mobile-shell:has(> .app-header) .event-school span { font-size: 10px; }
+  .mobile-shell:has(> .app-header) .exam-overview .summary-card { min-height: 88px; }
+  .mobile-shell:has(> .app-header) .exam-overview .summary-card strong { font-size: 13px; }
+  .mobile-shell:has(> .app-header) .exam-overview .summary-card small { font-size: 9px; }
+  .mobile-shell:has(> .app-header) .exam-overview .skill-strip { padding-bottom: 10px; }
+  .mobile-shell:has(> .app-header) .exam-overview .skill-strip > header > div { font-size: 10px; }
+  .mobile-shell:has(> .app-header) .exam-overview .skill-copy strong { font-size: 11.5px; }
+  .mobile-shell:has(> .app-header) .exam-overview .skill-copy small { font-size: 9px; }
+  .mobile-shell:has(> .app-header) .form-card { padding: 0 18px 17px; }
+  .mobile-shell:has(> .app-header) .section-heading {
+    margin-right: -18px;
+    margin-left: -18px;
+    padding: 14px 18px;
+  }
+  .mobile-shell:has(> .app-header) .section-heading > div > span { width: 36px; height: 36px; }
+  .mobile-shell:has(> .app-header) .section-heading h2 { font-size: 17px; }
+  .mobile-shell:has(> .app-header) .section-heading p { font-size: 10.5px; }
+  .mobile-shell:has(> .app-header) .form-card form { margin-top: 14px; gap: 11px; }
+  .mobile-shell:has(> .app-header) .field > label { margin-bottom: 5px; font-size: 11.5px; }
+  .mobile-shell:has(> .app-header) .field-control input,
+  .mobile-shell:has(> .app-header) .field-control select { height: 48px; font-size: 13px; }
+  .mobile-shell:has(> .app-header) .consents { padding: 12px; gap: 9px; }
+  .mobile-shell:has(> .app-header) .check-row { font-size: 10.5px; line-height: 1.45; }
+  .mobile-shell:has(> .app-header) .consents > a { font-size: 10px; }
+  .mobile-shell:has(> .app-header) .primary-cta { height: 50px; font-size: 14px; }
+  .mobile-shell:has(> .app-header) .trust-message { padding: 10px 12px; font-size: 9.5px; }
+
+  /* Preparation keeps one calm reading column, but no longer looks phone-sized. */
+  .prep-header { height: 70px; }
+  .prep-content { max-width: 680px; margin: 0 auto; padding: 20px 24px 122px; gap: 18px; }
+  .prep-campaign { height: 228px; }
+  .prep-campaign > strong { font-size: 22px; }
+  .prep-welcome { padding: 17px 18px; }
+  .prep-exam { padding: 20px; }
+  .prep-exam h2 { font-size: 21px; }
+  .prep-exam b { height: 96px; }
+  .prep-section { padding: 18px 20px; }
+  .prep-parts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .prep-section:has(.prep-audio) { padding-right: 20px; padding-left: 20px; }
+  .prep-notes ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 22px; }
+  .prep-bottom {
+    left: 50%;
+    width: min(calc(100% - 48px), 760px);
+    max-width: 760px;
+    padding-right: 28px;
+    padding-left: 28px;
+    border-radius: 0 0 28px 28px;
+  }
+
+  /* Exam: larger media and controls, restrained line length. */
+  .exam-header { height: 70px; }
+  .exam-progress { top: 70px; margin-right: 26px; margin-left: 26px; }
+  .exam-body { max-width: 700px; margin: 0 auto; padding: 20px 24px 28px; gap: 17px; }
+  .exam-group-title { padding-right: 18px; padding-left: 18px; }
+  .exam-context, .exam-question { border-radius: 20px; }
+  .exam-context > header { padding: 20px 22px 13px; }
+  .exam-context > header strong { font-size: 18px; }
+  .exam-video, .exam-image { width: calc(100% - 44px); margin-right: 22px; margin-left: 22px; }
+  .exam-image img { max-height: 420px; }
+  .exam-audio { margin-right: 22px; margin-left: 22px; padding: 16px; }
+  .exam-rich-content { margin-right: 22px; margin-left: 22px; padding: 16px 18px; font-size: 13px; }
+  .exam-question { padding: 20px 22px; }
+  .exam-prompt { font-size: 20px; }
+  .exam-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .exam-options > button { min-height: 72px; }
+  .exam-nav {
+    right: 50%;
+    bottom: 24px;
+    width: min(calc(100% - 48px), 760px);
+    max-width: 760px;
+    padding-right: 28px;
+    padding-left: 28px;
+    border-radius: 0 0 28px 28px;
+  }
+  .question-grid-backdrop > section,
+  .submit-dialog { width: min(100%, 560px); }
+  .question-grid-backdrop section > div { grid-template-columns: repeat(5, 58px); justify-content: center; gap: 12px; }
+  .question-grid-backdrop section > div button { height: 54px; }
+
+  /* Results gain breathing room while score and ranking stay easy to scan. */
+  .result-content { max-width: 680px; margin: 0 auto; padding: 30px 28px 112px; }
+  .result-identity { min-height: 190px; padding-right: 90px; padding-left: 90px; }
+  .result-ranking { padding: 22px; }
+  .result-ranking article { min-height: 116px; }
+  .result-analysis { padding: 24px; }
+  .result-analysis .result-score-card { justify-content: center; gap: 34px; }
+  .result-leaderboard { padding: 22px 20px 17px; }
+  .leaderboard-list { gap: 14px; }
+  .result-footer {
+    right: 50%;
+    bottom: 24px;
+    width: min(calc(100% - 48px), 760px);
+    max-width: 760px;
+    padding-right: 28px;
+    padding-left: 28px;
+    border-radius: 0 0 28px 28px;
+  }
+}
+
+@media (min-width:1000px) {
+  .mobile-shell:has(> .app-header) { max-width: 980px; }
+  .prep-app,
+  .exam-app,
+  .result-app { max-width: 820px; }
+  .prep-bottom,
+  .exam-nav,
+  .result-footer { max-width: 820px; }
+
+  .mobile-shell:has(> .app-header) .page-content {
+    grid-template-columns: minmax(0, 44fr) minmax(0, 56fr);
+    column-gap: 24px;
+    padding: 26px 28px 20px;
+  }
+  .mobile-shell:has(> .app-header) .hero-copy h1 { font-size: 24px; line-height: 1.22; }
+  .mobile-shell:has(> .app-header) .hero-copy > p { font-size: 13px; line-height: 1.55; }
+  .mobile-shell:has(> .app-header) .event-school span,
+  .mobile-shell:has(> .app-header) .exam-overview .summary-card small,
+  .mobile-shell:has(> .app-header) .exam-overview .skill-copy small { font-size: 10px; }
+  .mobile-shell:has(> .app-header) .exam-overview .summary-card strong { font-size: 14px; }
+  .mobile-shell:has(> .app-header) .exam-overview .skill-copy strong { font-size: 12.5px; }
+  .mobile-shell:has(> .app-header) .section-heading h2 { font-size: 18px; }
+  .mobile-shell:has(> .app-header) .section-heading p { font-size: 11.5px; }
+  .mobile-shell:has(> .app-header) .field > label { font-size: 12.5px; }
+  .mobile-shell:has(> .app-header) .field-control input,
+  .mobile-shell:has(> .app-header) .field-control select { height: 50px; font-size: 14px; }
+  .mobile-shell:has(> .app-header) .check-row { font-size: 11.5px; }
+  .mobile-shell:has(> .app-header) .consents > a,
+  .mobile-shell:has(> .app-header) .trust-message,
+  .mobile-shell:has(> .app-header) .disclaimer { font-size: 10.5px; }
+  .mobile-shell:has(> .app-header) .primary-cta { height: 52px; font-size: 15px; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  html { scroll-behavior: auto; }
+  *, *:before, *:after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+@media (max-width:370px) {
+  .prep-header > button,
+  .exam-header > button { width: 38px; height: 38px; }
+  .prep-header > button .material-symbols-outlined,
+  .exam-header > button .material-symbols-outlined { font-size: 22px; }
+}
