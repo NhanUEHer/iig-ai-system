@@ -18,6 +18,7 @@ const { getBuildInfo } = require('./config/buildInfo');
 const questionBankV3Routes = require('./routes/questionBankV3Routes');
 const examV3Routes = require('./routes/examV3Routes');
 const examEventRoutes = require('./routes/examEventRoutes');
+const examCandidateRoutes = require('./routes/examCandidateRoutes');
 const publicExamEventRoutes = require('./routes/publicExamEventRoutes');
 
 const path = require('path');
@@ -53,6 +54,7 @@ app.use('/api/content-sources', authenticate, contentSourceRoutes);
 app.use('/api/question-bank', authenticate, questionBankV3Routes);
 app.use('/api/exams', authenticate, examV3Routes);
 app.use('/api/exam-events', authenticate, examEventRoutes);
+app.use('/api/exam-candidates', authenticate, examCandidateRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

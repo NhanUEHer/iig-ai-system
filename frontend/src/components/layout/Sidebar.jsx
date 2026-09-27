@@ -11,6 +11,7 @@ const groups = [
     { id: 'question-groups', label: 'Quản lý nhóm câu hỏi', path: '/question-bank/groups', permissions: ['question_bank.view', 'question_bank.taxonomy_manage'] },
     { id: 'exams', label: 'Quản lý đề thi', path: '/exams', permissions: ['exams.view', 'exams.manage'] },
     { id: 'exam-events', label: 'Quản lý kỳ thi', path: '/exam-events', permissions: ['exam_events.view', 'exam_events.manage'] },
+    { id: 'exam-candidates', label: 'Quản lý thí sinh', path: '/exam-candidates', permissions: ['exam_candidates.view', 'exam_candidates.export'] },
     { id: 'question-gen', label: 'Tạo câu hỏi', upcoming: true, permissions: ['audio.view', 'key_vocab.view', 'key_vocab.generate', 'key_vocab.manage'] },
     { id: 'lesson-content', label: 'Nội dung bài học', upcoming: true, permissions: ['audio.view', 'key_vocab.view', 'key_vocab.generate', 'key_vocab.manage'] },
   ] },

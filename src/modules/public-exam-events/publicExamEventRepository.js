@@ -1,4 +1,5 @@
 const db = require('../../config/db');
+const crypto = require('crypto');
 
 async function findById(id) {
   const eventResult = await db.query(
@@ -109,10 +110,11 @@ async function registerCandidate(eventId, data, now = new Date()) {
       : await client.query(
         `INSERT INTO exam_candidates(
            exam_event_id, full_name, email, phone, school_name, birth_year,
-           toeic_experience, marketing_consent, privacy_consent_at, privacy_policy_version
-         ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,CURRENT_TIMESTAMP,'2026-09')
+           toeic_experience, marketing_consent, privacy_consent_at, privacy_policy_version,
+           candidate_number
+         ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,CURRENT_TIMESTAMP,'2026-09',$9)
          RETURNING id, full_name, school_name`,
-        values,
+        [...values, `TS-${now.getFullYear()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`],
       );
     return { context, candidate: candidateResult.rows[0] };
   });

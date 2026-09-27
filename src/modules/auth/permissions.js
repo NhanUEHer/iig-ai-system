@@ -59,6 +59,10 @@ const PERMISSION_GROUPS = [
     ['exam_events.view', 'Xem danh sách và chi tiết sự kiện thi'],
     ['exam_events.manage', 'Tạo, sửa, xóa sự kiện thi và ảnh/banner']
   ] },
+  { key: 'exam_candidates', label: 'Quản lý thí sinh', permissions: [
+    ['exam_candidates.view', 'Xem danh sách thí sinh đăng ký thi'],
+    ['exam_candidates.export', 'Xuất danh sách thí sinh']
+  ] },
   { key: 'administration', label: 'Quản trị', permissions: [
     ['users.view', 'Xem tài khoản'], ['users.manage', 'Tạo, sửa và xóa tài khoản'],
     ['roles.view', 'Xem vai trò'], ['roles.manage', 'Tạo, sửa và phân quyền vai trò'],

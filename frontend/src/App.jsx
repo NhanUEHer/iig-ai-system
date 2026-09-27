@@ -41,6 +41,7 @@ import ExamEditPage from './features/exams/pages/ExamEditPage';
 import ExamEventListPage from './features/exam-events/pages/ExamEventListPage';
 import ExamEventCreatePage from './features/exam-events/pages/ExamEventCreatePage';
 import ExamEventEditPage from './features/exam-events/pages/ExamEventEditPage';
+import ExamCandidateListPage from './features/exam-candidates/pages/ExamCandidateListPage';
 
 
 const API_BASE = '/api/submissions';
@@ -100,6 +101,7 @@ function App() {
   else if (path.startsWith('/question-bank/groups')) activeTab = 'question-groups';
   else if (path.startsWith('/question-bank')) activeTab = 'question-bank';
   else if (path.startsWith('/exam-events')) activeTab = 'exam-events';
+  else if (path.startsWith('/exam-candidates')) activeTab = 'exam-candidates';
   else if (path.startsWith('/exams')) activeTab = 'exams';
 
   // Layout V2 follows the Stitch workspace: start from the compact rail.
@@ -563,6 +565,7 @@ function App() {
               <Route path="/exam-events" element={hasPermission('exam_events.view') ? <ExamEventListPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/exam-events/new" element={hasPermission('exam_events.manage') ? <ExamEventCreatePage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/exam-events/:id/edit" element={hasPermission('exam_events.manage') ? <ExamEventEditPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/exam-candidates" element={hasPermission('exam_candidates.view') ? <ExamCandidateListPage showMsg={showMsg} canExport={hasPermission('exam_candidates.export')} /> : <Navigate to={defaultPath} replace />} />
 
               <Route path="/" element={<Navigate to={defaultPath} replace />} />
               <Route path="*" element={<Navigate to={defaultPath} replace />} />

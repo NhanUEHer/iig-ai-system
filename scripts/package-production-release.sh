@@ -65,7 +65,7 @@ version=$APP_VERSION
 commit=$APP_COMMIT
 built_at_utc=$BUILD_TIME
 node_required=>=22.13.0
-latest_migration=098_attempt_answers_by_sub_question.sql
+latest_migration=099_exam_candidate_management.sql
 working_tree_dirty=$DIRTY
 frontend_prebuilt=true
 candidate_mobile_prebuilt=true
