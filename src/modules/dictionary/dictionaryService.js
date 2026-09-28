@@ -25,6 +25,7 @@ const outputOf = raw => raw?.data?.outputs?.structured_output ?? raw?.data?.outp
 const workflowIdOf = raw => raw?.workflow_run_id || raw?.data?.workflow_run_id || raw?.data?.id || null;
 const normalizedSentence = value => clean(value).normalize('NFKC').replace(/\s+/g, ' ').replace(/\s*([—–])\s*/g, '$1').toLocaleLowerCase();
 const sameSentence = (left, right) => normalizedSentence(left) === normalizedSentence(right);
+const sentenceBelongsToPassage = (passage, sentence) => normalizedSentence(passage).includes(normalizedSentence(sentence));
 const escapePattern = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const containsExactTerm = (text, term) => {
   const value=clean(term);if(!value)return false;
@@ -121,7 +122,7 @@ async function saveCandidates(payload, userId) {
     .filter(item => { const key=`${item.sentenceText}\u0000${item.text}`.toLowerCase(); if(!item.text||seen.has(key))return false; seen.add(key); return true; });
   if (!items.length || items.length > maxItems()) throw new HttpError(`Danh sách từ phải có từ 1 đến ${maxItems()} mục.`, 400, 'INVALID_DICTIONARY_LIST');
   items.forEach((item,index)=>{
-    if(item.sentenceText&&!clean(passage).toLocaleLowerCase().includes(item.sentenceText.toLocaleLowerCase())) throw new HttpError(`Câu nguồn của mục ${index+1} không thuộc đoạn văn.`,400,'DICTIONARY_SENTENCE_NOT_IN_PASSAGE');
+    if(item.sentenceText&&!sentenceBelongsToPassage(passage,item.sentenceText)) throw new HttpError(`Câu nguồn của mục ${index+1} không thuộc đoạn văn.`,400,'DICTIONARY_SENTENCE_NOT_IN_PASSAGE');
     if(item.sentenceText&&!containsExactTerm(item.sentenceText,item.text)) throw new HttpError(`Từ/cụm từ thứ ${index+1} không xuất hiện chính xác trong câu nguồn.`,400,'DICTIONARY_ITEM_NOT_IN_SENTENCE');
   });
   return db.transaction(async client => {
@@ -320,4 +321,4 @@ async function detail(id, queryable=db) {
   return { ...generation.rows[0], candidates: candidates.rows.map(candidate=>({...candidate,attempts:attemptsByCandidate.get(candidate.id)||[]})) };
 }
 
-module.exports = { extract, saveCandidates, startGeneration, history, detail, normalizeExtracted, normalizeEntry, normalizeEntries, sentenceForCandidate, sameSentence, maxItems, candidateTimeoutMs, recoverStaleCandidates, startWorker, stopWorker, runWorkerBatch };
+module.exports = { extract, saveCandidates, startGeneration, history, detail, normalizeExtracted, normalizeEntry, normalizeEntries, sentenceForCandidate, sameSentence, sentenceBelongsToPassage, maxItems, candidateTimeoutMs, recoverStaleCandidates, startWorker, stopWorker, runWorkerBatch };

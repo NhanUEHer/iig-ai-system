@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeExtracted, normalizeEntry, normalizeEntries, sentenceForCandidate, sameSentence, maxItems } = require('../src/modules/dictionary/dictionaryService');
+const { normalizeExtracted, normalizeEntry, normalizeEntries, sentenceForCandidate, sameSentence, sentenceBelongsToPassage, maxItems } = require('../src/modules/dictionary/dictionaryService');
 
 test('normalizeExtracted accepts Dify structured output and removes duplicates', () => {
   const raw = { data: { outputs: { structured_output: [' Deadline ', 'deadline', 'eligible for payment'] } } };
@@ -105,6 +105,13 @@ test('dictionary context comparison ignores Dify line breaks around em dashes', 
   const source = 'I changed the layout—desserts are now inside—and provided descriptions.';
   const dify = 'I changed the layout\n\n—desserts are now inside— and provided descriptions.';
   assert.equal(sameSentence(source, dify), true);
+});
+
+test('dictionary source validation normalizes Unicode spaces from pasted passages', () => {
+  const passage = 'After the meeting, we will act ---[1]---\u202fthe unnecessary use of resources.';
+  const sentence = 'After the meeting, we will act ---[1]--- the unnecessary use of resources.';
+  assert.equal(sentenceBelongsToPassage(passage, sentence), true);
+  assert.equal(sentenceBelongsToPassage(passage, 'This sentence is not in the passage.'), false);
 });
 
 test('dictionary source arrays are serialized as JSON rather than PostgreSQL arrays', () => {
