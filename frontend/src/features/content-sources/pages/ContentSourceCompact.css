@@ -1,0 +1,19 @@
+.content-source-page .section-heading>div{flex:1;text-align:left}
+.content-source-ingest,.content-source-result{min-height:460px}
+.content-dropzone{height:165px}
+.content-result-empty{height:340px}
+.content-source-page .section-heading h2{font-size:16px}
+.content-source-page .section-heading p{font-size:12px;line-height:1.45}
+.content-source-page .content-dropzone strong{font-size:14px}
+.content-source-page .content-dropzone small{font-size:12px}
+.content-source-page .content-dropzone em{font-size:11px}
+.content-source-page .content-source-divider,.content-source-page .content-source-ingest footer span{font-size:11px}
+.content-source-page .content-source-ingest textarea{font-size:13px}
+.content-source-page .content-source-ingest footer button{font-size:12px}
+.content-source-page .content-result-empty strong{font-size:14px}
+.content-source-page .content-result-empty span{font-size:12px}
+
+@media(max-width:900px){
+  .content-source-ingest,.content-source-result{min-height:auto}
+  .content-result-empty{height:250px}
+}

@@ -9,6 +9,7 @@ const router = express.Router();
 router.post('/login', asyncHandler(authController.login));
 
 router.get('/me', authenticate, asyncHandler(authController.me));
+router.get('/profile', authenticate, asyncHandler(authController.profile));
 router.post('/logout', authenticate, asyncHandler(authController.logout));
 router.post('/change-password', authenticate, asyncHandler(authController.changePassword));
 

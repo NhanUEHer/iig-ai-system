@@ -22,9 +22,27 @@ import ExpenseDashboardPage from './features/expenses/pages/ExpenseDashboardPage
 import LogsConsolePage from './features/logs/pages/LogsConsolePage';
 import { clearSession, readSession, saveSession } from './services/authSession';
 import ChangePasswordPage from './features/auth/pages/ChangePasswordPage';
+import AccountProfileModal from './features/auth/components/AccountProfileModal';
 import BulkSyncPanel from './components/sync/BulkSyncPanel';
 import KeyVocabPage from './features/key-vocab/pages/KeyVocabPage';
 import DictionaryPage from './features/dictionary/pages/DictionaryPage';
+import ContentSourcePage from './features/content-sources/pages/ContentSourcePage';
+import ContentSourceDetailPage from './features/content-sources/pages/ContentSourceDetailPage';
+import ContentDevelopmentPage from './features/content-sources/pages/ContentDevelopmentPage';
+import ComponentShowcasePage from './components/ui/ComponentShowcasePage';
+import { Toast } from './components/ui';
+import QuestionBankListPage from './features/question-management/QuestionListPage';
+import QuestionBankCreatePage from './features/question-management/QuestionCreatePage';
+import QuestionBankEditPage from './features/question-management/QuestionEditPage';
+import QuestionGroupManagementPage from './features/question-bank/pages/QuestionGroupManagementPage';
+import ExamListPage from './features/exams/pages/ExamListPage';
+import ExamCreatePage from './features/exams/pages/ExamCreatePage';
+import ExamEditPage from './features/exams/pages/ExamEditPage';
+import ExamEventListPage from './features/exam-events/pages/ExamEventListPage';
+import ExamEventCreatePage from './features/exam-events/pages/ExamEventCreatePage';
+import ExamEventEditPage from './features/exam-events/pages/ExamEventEditPage';
+import ExamCandidateListPage from './features/exam-candidates/pages/ExamCandidateListPage';
+
 
 const API_BASE = '/api/submissions';
 const AUTH_BASE = '/api/auth';
@@ -37,6 +55,7 @@ const firstAllowedPath = user => {
   if (has('mappings.view')) return '/mappings';
   if (has('agents.view')) return '/ai';
   if (has('audio.view')) return '/local-tts';
+  if (hasAny(['content_sources.view','content_sources.create'])) return '/content-sources';
   if (hasAny(['key_vocab.view','key_vocab.generate','key_vocab.manage'])) return '/key-vocab';
   if (hasAny(['dictionary.view','dictionary.generate','dictionary.manage'])) return '/dictionary';
   if (hasAny(['reports.view','reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'])) return '/reports/kpi';
@@ -44,6 +63,8 @@ const firstAllowedPath = user => {
   if (has('users.view')) return '/users';
   if (has('roles.view')) return '/roles';
   if (has('logs.view')) return '/logs';
+  if (has('exams.view')) return '/exams';
+  if (has('exam_events.view')) return '/exam-events';
   return '/change-password';
 };
 
@@ -65,6 +86,8 @@ function App() {
   else if (path.startsWith('/users')) activeTab = 'users';
   else if (path.startsWith('/roles')) activeTab = 'roles';
   else if (path.startsWith('/local-tts')) activeTab = 'local-tts';
+  else if (path.startsWith('/content-development')) activeTab = 'content-development';
+  else if (path.startsWith('/content-sources')) activeTab = 'content-sources';
   else if (path.startsWith('/key-vocab')) activeTab = 'key-vocab';
   else if (path.startsWith('/dictionary')) activeTab = 'key-vocab';
   else if (path.startsWith('/logs')) activeTab = 'logs';
@@ -75,23 +98,29 @@ function App() {
   else if (path.startsWith('/expenses/transactions')) activeTab = 'expense-transactions';
   else if (path.startsWith('/expenses')) activeTab = 'expenses';
   else if (path.startsWith('/change-password')) activeTab = 'change-password';
+  else if (path.startsWith('/question-bank/groups')) activeTab = 'question-groups';
+  else if (path.startsWith('/question-bank')) activeTab = 'question-bank';
+  else if (path.startsWith('/exam-events')) activeTab = 'exam-events';
+  else if (path.startsWith('/exam-candidates')) activeTab = 'exam-candidates';
+  else if (path.startsWith('/exams')) activeTab = 'exams';
 
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    return localStorage.getItem('sidebar_collapsed') === 'true';
-  });
+  // Layout V2 follows the Stitch workspace: start from the compact rail.
+  // Use a new storage key so the previous expanded-menu preference does not
+  // silently preserve the legacy layout after this visual migration.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed_v2') !== 'false');
 
   const toggleSidebar = () => {
     setSidebarCollapsed(prev => {
       const next = !prev;
-      localStorage.setItem('sidebar_collapsed', String(next));
+      localStorage.setItem('sidebar_collapsed_v2', String(next));
       return next;
     });
   };
 
   const [message, setMessage] = useState(null);
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
   const showMsg = (text, type = 'success') => {
-    setMessage({ text, type });
-    setTimeout(() => setMessage(null), 4000);
+    setMessage({ text, type, id: Date.now() });
   };
 
   const [liveLogs, setLiveLogs] = useState([]);
@@ -381,11 +410,13 @@ function App() {
 
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden', background: 'var(--background)' }}>
-      {message && (
-        <div className={`toast ${message.type}`}>
-          {message.text}
-        </div>
-      )}
+      {message && <Toast
+        key={message.id}
+        severity={message.type === 'error' ? 'error' : message.type === 'success' ? 'success' : 'info'}
+        title={message.type === 'error' ? 'Không thể thực hiện' : message.type === 'success' ? 'Thành công' : 'Thông báo'}
+        autoClose={4500}
+        onClose={() => setMessage(null)}
+      >{message.text}</Toast>}
 
       {authChecking ? (
         <div className="auth-loading"><div className="auth-loading-mark">IIG</div><span>Đang xác thực phiên làm việc…</span></div>
@@ -415,6 +446,7 @@ function App() {
             navigate={navigate}
             currentUser={currentUser}
             handleLogout={handleLogout}
+            onOpenAccount={() => setAccountModalOpen(true)}
           />
 
           <main style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
@@ -477,6 +509,14 @@ function App() {
               } />
 
               <Route path="/local-tts" element={hasPermission('audio.view') ? <LocalTTSStudio /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/content-sources" element={['content_sources.view','content_sources.create'].some(hasPermission) ? <ContentSourcePage showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/content-sources/:sourceId" element={hasPermission('content_sources.view') ? <ContentSourceDetailPage showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/content-development" element={['content_sources.view','content_sources.analyze'].some(hasPermission) ? <ContentDevelopmentPage showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+
+
+
+
+
               <Route path="/key-vocab" element={['key_vocab.view','key_vocab.generate','key_vocab.manage'].some(hasPermission) ? <KeyVocabPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/dictionary" element={['dictionary.view','dictionary.generate','dictionary.manage'].some(hasPermission) ? <DictionaryPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
 
@@ -514,10 +554,30 @@ function App() {
                 ['expenses.view','expenses.manage'].some(hasPermission) ? <ExpenseDashboardPage showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
               } />
 
+              <Route path="/dev/components" element={<ComponentShowcasePage />} />
+              <Route path="/question-bank" element={hasPermission('question_bank.view') ? <QuestionBankListPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/question-bank/groups" element={hasPermission('question_bank.view') ? <QuestionGroupManagementPage showMsg={showMsg} canManage={hasPermission('question_bank.taxonomy_manage')} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/question-bank/new" element={hasPermission('question_bank.manage') ? <QuestionBankCreatePage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/question-bank/:id/edit" element={hasPermission('question_bank.manage') ? <QuestionBankEditPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/exams" element={hasPermission('exams.view') ? <ExamListPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/exams/new" element={hasPermission('exams.manage') ? <ExamCreatePage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/exams/:id/edit" element={hasPermission('exams.manage') ? <ExamEditPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/exam-events" element={hasPermission('exam_events.view') ? <ExamEventListPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/exam-events/new" element={hasPermission('exam_events.manage') ? <ExamEventCreatePage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/exam-events/:id/edit" element={hasPermission('exam_events.manage') ? <ExamEventEditPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/exam-candidates" element={hasPermission('exam_candidates.view') ? <ExamCandidateListPage showMsg={showMsg} canExport={hasPermission('exam_candidates.export')} /> : <Navigate to={defaultPath} replace />} />
+
               <Route path="/" element={<Navigate to={defaultPath} replace />} />
               <Route path="*" element={<Navigate to={defaultPath} replace />} />
             </Routes>
           </main>
+          <AccountProfileModal
+            open={accountModalOpen}
+            onClose={() => setAccountModalOpen(false)}
+            currentUser={currentUser}
+            onLogout={handleLogout}
+            showMsg={showMsg}
+          />
           {hasPermission('submissions.view') && <BulkSyncPanel
             job={syncJob}
             open={syncPanelOpen}

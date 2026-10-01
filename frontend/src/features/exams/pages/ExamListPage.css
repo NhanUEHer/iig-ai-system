@@ -1,0 +1,50 @@
+.exam-list-page{min-height:100%;background:#f8fafc;color:#334155}
+.exam-list-header{box-sizing:border-box;display:flex;height:64px;align-items:center;padding:0 32px;border-bottom:1px solid rgba(226,232,240,.8);background:#fff}
+.exam-list-header .ui-breadcrumb{display:flex;align-items:center;gap:8px;font:500 14px/1 Inter,system-ui,sans-serif}
+.exam-list-header .ui-breadcrumb>span:not([aria-hidden]){color:#64748b}
+.exam-list-header .ui-breadcrumb>span[aria-hidden]{display:flex;color:#cbd5e1}
+.exam-list-header .ui-breadcrumb>span[aria-hidden] svg{width:16px;height:16px;stroke-width:2}
+.exam-list-header .ui-breadcrumb>strong[aria-current=page]{color:#0f172a;font-weight:600}
+.exam-list-main{padding:24px 32px 40px}
+.exam-list-filter-card,.exam-list-table-card{border:1px solid rgba(226,232,240,.9);border-radius:12px;background:#fff;box-shadow:0 2px 7px rgba(15,23,42,.035)}
+.exam-list-filter-card{position:relative;z-index:4;display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;padding:12px 16px}
+.exam-list-filters{display:flex;min-width:0;flex:1;align-items:center;gap:10px}
+.exam-list-filters .ui-search{width:300px;min-width:240px;flex:0 1 300px;height:36px;border-color:#e2e8f0;border-radius:8px;background:#f8fafc;font-size:12px}
+.exam-list-filters .ui-search input{font-size:12px}
+.exam-list-filters .ui-filter-multiselect{width:190px;flex:0 0 190px}
+.exam-list-filter-card .ui-filter-multiselect__trigger{min-height:36px;height:36px;border-color:#e2e8f0;border-radius:8px;font-size:12px}
+.exam-list-add{min-height:36px;margin-left:auto;padding:0 14px;border-radius:8px;font-size:12px;box-shadow:0 2px 5px rgba(37,99,235,.2)}
+.exam-list-add svg{width:16px;height:16px}
+.exam-list-active-filters{display:flex;flex:1 0 100%;align-items:center;flex-wrap:wrap;gap:6px;padding-top:8px;border-top:1px solid #f1f5f9;font-size:10px}
+.exam-list-active-filters>span:first-child{color:#94a3b8;font-weight:600}
+.exam-list-filter-chip{display:inline-flex;align-items:center;gap:5px;min-height:22px;padding:2px 7px;border:1px solid #bfdbfe;border-radius:6px;background:#eff6ff;color:#1d4ed8;font-weight:600}
+.exam-list-filter-chip button{display:grid;place-items:center;padding:0;border:0;background:transparent;color:#60a5fa;cursor:pointer}
+.exam-list-filter-chip svg{width:12px;height:12px}
+.exam-list-clear-filters{padding:0;border:0;background:transparent;color:#64748b;font:600 10px/1 Inter,system-ui,sans-serif;text-decoration:underline;cursor:pointer}
+.exam-list-clear-filters:hover{color:#2563eb}
+.exam-list-table-card{overflow:hidden}
+.exam-list-page .ui-table-wrap{overflow-x:auto;border:0;border-radius:0}
+.exam-list-page .ui-table{min-width:1260px;font:400 12px/1.35 Inter,system-ui,sans-serif}
+.exam-list-page .ui-table th{height:54px;padding:0 14px;background:#f8fafc;border-color:#e2e8f0;color:#64748b;font-size:11px;font-weight:600;letter-spacing:.055em}
+.exam-list-page .ui-table td{height:58px;padding:9px 14px;border-color:#f1f5f9;color:#475569}
+.exam-list-page .ui-table tbody tr:hover{background:rgba(248,250,252,.8)}
+.exam-list-page .ui-table .is-center{text-align:center}
+.exam-list-code{display:inline-block;padding:4px 7px;border:1px solid #e2e8f0;border-radius:4px;background:#f1f5f9;color:#64748b;font:600 11px/1 ui-monospace,SFMono-Regular,monospace}
+.exam-list-title-button{max-width:360px;padding:0;border:0;background:transparent;color:#0f172a;font:600 12px/1.4 Inter,system-ui,sans-serif;text-align:left;cursor:pointer}
+.exam-list-title-button:hover{color:#2563eb}
+.exam-list-type{display:inline-flex;padding:4px 8px;border-radius:6px;background:#eff6ff;color:#2563eb;font-size:11px;font-weight:600;white-space:nowrap}
+.exam-list-type.is-unclassified{background:#f1f5f9;color:#64748b}
+.exam-list-status{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:1px solid #e2e8f0;border-radius:999px;background:#f8fafc;color:#475569;font-size:11px;font-weight:500;white-space:nowrap}
+.exam-list-status i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.exam-list-status.is-active{border-color:#a7f3d0;background:#ecfdf5;color:#047857}
+.exam-list-status.is-draft{border-color:#fde68a;background:#fffbeb;color:#b45309}
+.exam-list-status.is-inactive{background:#f1f5f9;color:#64748b}
+.exam-list-date{color:#64748b;font:500 11px/1.35 ui-monospace,SFMono-Regular,monospace;white-space:nowrap}
+.exam-list-page .question-bank-actions{width:72px}
+.exam-list-page .ui-table-actions{justify-content:center}
+.exam-list-page .ui-pagination{position:sticky;bottom:0;z-index:3;min-height:64px;padding:10px 20px;border-top:1px solid #f1f5f9;background:#fff;box-shadow:0 -8px 18px rgba(15,23,42,.04);color:#94a3b8;font-size:12px}
+.exam-list-page .ui-pagination__size select,.exam-list-page .ui-pagination__controls button{height:34px;border-color:#e2e8f0;border-radius:8px;color:#64748b}
+.exam-list-page .ui-table__empty-row td{height:330px}
+.exam-list-page .ui-empty-state{min-height:300px}
+@media(max-width:1100px){.exam-list-filters{flex-wrap:wrap}.exam-list-filters .ui-search{flex:1 1 300px}.exam-list-filters .ui-filter-multiselect{flex:1 1 180px}}
+@media(max-width:720px){.exam-list-header{padding:0 16px}.exam-list-main{padding:16px}.exam-list-filter-card{align-items:stretch}.exam-list-filters{width:100%;flex-direction:column;align-items:stretch}.exam-list-filters .ui-search,.exam-list-filters .ui-filter-multiselect{width:100%;min-width:0;flex:none}.exam-list-add{width:100%;margin-left:0;justify-content:center}.exam-list-page .ui-pagination{gap:10px;padding:10px 12px}.exam-list-page .ui-pagination__summary{display:none}}

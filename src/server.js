@@ -7,11 +7,14 @@ const { validateEnv } = require('./config/env');
 const { getBuildInfo } = require('./config/buildInfo');
 const mappingSyncScheduler = require('./services/mappingSyncScheduler');
 const dictionaryService = require('./modules/dictionary/dictionaryService');
+const storageService = require('./services/storageService');
+const redis = require('./config/redis');
 
 async function startServer() {
   let server;
   try {
     const { port } = validateEnv();
+    storageService.requireProductionR2();
     // 1. Initialize Postgres tables
     await initDb();
     
@@ -19,6 +22,15 @@ async function startServer() {
     server = app.listen(port, () => {
       const build = getBuildInfo();
       console.log(`🚀 AI Scoring Admin ${build.label} v${build.version} running on http://localhost:${port}`);
+    });
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${port} is already in use by a stale process. Please terminate the process on port ${port} before restarting.`);
+        process.exit(1);
+      } else {
+        console.error('❌ Server failed with error:', err);
+        process.exit(1);
+      }
     });
     mappingSyncScheduler.start();
     await dictionaryService.startWorker();
@@ -28,6 +40,7 @@ async function startServer() {
       server.close(async () => {
         mappingSyncScheduler.stop();
         dictionaryService.stopWorker();
+        await redis.close();
         await db.close();
         process.exit(0);
       });

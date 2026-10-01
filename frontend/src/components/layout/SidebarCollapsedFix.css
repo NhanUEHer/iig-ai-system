@@ -1,0 +1,2 @@
+/* Keep the hover flyout physically connected to its rail button. */
+.stitch-sidebar__flyout{left:calc(100% - 2px)}

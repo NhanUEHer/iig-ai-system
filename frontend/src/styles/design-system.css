@@ -44,6 +44,19 @@ main input::placeholder,main textarea::placeholder{color:var(--ds-text-subtle)!i
 main input:focus,main select:focus,main textarea:focus{border-color:var(--ds-primary)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--ds-primary) 18%,transparent)!important}
 main input:disabled,main select:disabled,main textarea:disabled{opacity:.58;cursor:not-allowed}
 
+/* Composite controls own their outer border; their inner input must stay borderless. */
+main .ui-search input:not([type=checkbox]):not([type=radio]):not([type=range]),
+main .ui-combobox__search input:not([type=checkbox]):not([type=radio]):not([type=range]),
+main .ui-filter-multiselect__search input:not([type=checkbox]):not([type=radio]):not([type=range]){
+  min-height:0!important;height:100%!important;padding:0!important;border:0!important;border-radius:0!important;
+  background:transparent!important;box-shadow:none!important;outline:0!important;
+}
+main .ui-search input:not([type=checkbox]):not([type=radio]):not([type=range]):focus,
+main .ui-combobox__search input:not([type=checkbox]):not([type=radio]):not([type=range]):focus,
+main .ui-filter-multiselect__search input:not([type=checkbox]):not([type=radio]):not([type=range]):focus{
+  border:0!important;box-shadow:none!important;outline:0!important;
+}
+
 .btn-primary,.submission-button.primary,.mapping-button.primary,.mapping-button.sync,.agent-button.primary,.question-actions button.primary,.teacher-note button,.tts-generate {
   min-height:var(--ds-control-height)!important;border:1px solid var(--ds-primary-strong)!important;border-radius:var(--ds-radius-sm)!important;
   background:var(--ds-primary-strong)!important;color:#fff!important;font:650 13px var(--font-body)!important;letter-spacing:0!important;

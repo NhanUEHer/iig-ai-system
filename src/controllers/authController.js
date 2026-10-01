@@ -3,6 +3,18 @@ const authService = require('../modules/auth/authService');
 const HttpError = require('../http/httpError');
 const roleRepository = require('../modules/auth/roleRepository');
 const { hashPassword, validatePassword } = require('../modules/auth/passwordService');
+const { PERMISSION_GROUPS } = require('../modules/auth/permissions');
+
+function buildProfilePermissionGroups(permissions = []) {
+  const granted = new Set(permissions);
+  return PERMISSION_GROUPS.map(group => ({
+    code: group.key,
+    name: group.label,
+    permissions: group.permissions
+      .filter(([code]) => granted.has(code))
+      .map(([code, name]) => ({ code, name }))
+  })).filter(group => group.permissions.length);
+}
 
 async function validateRoles(input = {}) {
   const roleSlugs = [...new Set((Array.isArray(input.roleSlugs) ? input.roleSlugs : [input.role]).filter(Boolean))];
@@ -32,6 +44,26 @@ module.exports = {
 
   async me(req, res) {
     return res.json({ success: true, user: req.user });
+  },
+
+  async profile(req, res) {
+    const user = await authRepository.findUserById(req.auth.userId);
+    if (!user) throw new HttpError('Không tìm thấy tài khoản.', 404, 'USER_NOT_FOUND');
+    const permissionGroups = buildProfilePermissionGroups(req.user.permissions);
+    return res.json({
+      success: true,
+      user: {
+        ...user,
+        roleName: req.user.roleName,
+        roles: req.user.roles,
+        permissions: req.user.permissions,
+        permissionGroups,
+        totalPermissions: permissionGroups.reduce((total, group) => total + group.permissions.length, 0),
+        // These profile attributes do not exist in the current data model yet.
+        department: null,
+        twoFactorEnabled: false
+      }
+    });
   },
 
   async changePassword(req, res) {

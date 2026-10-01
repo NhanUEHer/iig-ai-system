@@ -26,7 +26,7 @@ class AuthRepository {
   async findUserById(id) {
     const result = await this.db.query(
       `SELECT id, name, email, username, role, is_active, force_password_change,
-              created_at, last_login_at
+              created_at, last_login_at, password_changed_at
        FROM users WHERE id = $1`,
       [id]
     );

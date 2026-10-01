@@ -6,6 +6,7 @@ import './index.css';
 import App from './App.jsx';
 import './styles/typography.css';
 import './styles/design-system.css';
+import './styles/admin-list-system.css';
 import {DialogProvider} from './components/feedback/DialogProvider';
 import './services/authSession';
 

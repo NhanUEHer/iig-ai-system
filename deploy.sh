@@ -10,6 +10,7 @@ RELEASES_DIR="${RELEASES_DIR:-${VPS_DIR}-releases}"
 CURRENT_LINK="${CURRENT_LINK:-${VPS_DIR}-current}"
 APP_VERSION="${APP_VERSION:-$(node -p "require('./package.json').version")}"
 APP_COMMIT="${APP_COMMIT:-$(git rev-parse --short HEAD)}"
+ADMIN_ONLY="${ADMIN_ONLY:-true}"
 DEPLOY_ID="$(date -u +%Y%m%dT%H%M%SZ)-v${APP_VERSION}-${APP_COMMIT}"
 RELEASE_DIR="$RELEASES_DIR/$DEPLOY_ID"
 BACKUP_ID="${DEPLOY_ID%%-v*}"
@@ -61,6 +62,14 @@ npm run check
 
 echo "[3/9] Building Production v${APP_VERSION} (${APP_COMMIT})..."
 VITE_APP_ENV=production VITE_APP_VERSION="$APP_VERSION" VITE_APP_COMMIT="$APP_COMMIT" npm run build --prefix frontend
+if [ "$ADMIN_ONLY" != true ]; then
+  npm run build --prefix mobile-web
+  mkdir -p frontend/dist/events
+  rsync -a --delete mobile-web/dist/ frontend/dist/events/
+  test -s frontend/dist/events/index.html
+else
+  echo "Admin-only release: candidate web build is skipped and production /events will be preserved."
+fi
 
 echo "[4/9] Resolving rollback backup..."
 if [ "${SKIP_BACKUP:-false}" = true ]; then
@@ -99,6 +108,16 @@ sshpass -p "$VPS_PASSWORD" ssh "${SSH_OPTIONS[@]}" root@"$VPS_IP" "
     ln -s '$VPS_DIR/public/'\"\$path\" '$RELEASE_DIR/public/'\"\$path\"
   done
   cd '$RELEASE_DIR'
+  if [ '$ADMIN_ONLY' = true ]; then
+    current_release=$(readlink -f '$CURRENT_LINK' 2>/dev/null || printf '%s' '$VPS_DIR')
+    if [ -s "$current_release/frontend/dist/events/index.html" ]; then
+      mkdir -p '$RELEASE_DIR/frontend/dist/events'
+      cp -a "$current_release/frontend/dist/events/." '$RELEASE_DIR/frontend/dist/events/'
+    else
+      echo 'Admin-only deployment aborted: existing candidate web was not found.' >&2
+      exit 1
+    fi
+  fi
   chmod 755 '$RELEASE_DIR'
   find '$RELEASE_DIR/frontend/dist' -type d -exec chmod 755 {} +
   find '$RELEASE_DIR/frontend/dist' -type f -exec chmod 644 {} +
