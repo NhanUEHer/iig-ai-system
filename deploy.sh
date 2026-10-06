@@ -109,10 +109,10 @@ sshpass -p "$VPS_PASSWORD" ssh "${SSH_OPTIONS[@]}" root@"$VPS_IP" "
   done
   cd '$RELEASE_DIR'
   if [ '$ADMIN_ONLY' = true ]; then
-    current_release=$(readlink -f '$CURRENT_LINK' 2>/dev/null || printf '%s' '$VPS_DIR')
-    if [ -s "$current_release/frontend/dist/events/index.html" ]; then
+    current_release=\$(readlink -f '$CURRENT_LINK' 2>/dev/null || printf '%s' '$VPS_DIR')
+    if [ -s "\$current_release/frontend/dist/events/index.html" ]; then
       mkdir -p '$RELEASE_DIR/frontend/dist/events'
-      cp -a "$current_release/frontend/dist/events/." '$RELEASE_DIR/frontend/dist/events/'
+      cp -a "\$current_release/frontend/dist/events/." '$RELEASE_DIR/frontend/dist/events/'
     else
       echo 'Admin-only deployment aborted: existing candidate web was not found.' >&2
       exit 1
