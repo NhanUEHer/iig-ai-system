@@ -3,6 +3,7 @@
 set -euo pipefail
 
 BASE_URL="${PROD_BASE_URL:-https://admin.iigvn.site}"
+EXAM_BASE_URL="${PROD_EXAM_BASE_URL:-https://exam.iigvn.site}"
 EXPECTED_VERSION="${EXPECTED_VERSION:-}"
 ACCESS_TOKEN="${PROD_ACCESS_TOKEN:-}"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ai-scoring-prod-test.XXXXXX")"
@@ -83,5 +84,27 @@ fi
 for path in /api/.env /api/v1/.env; do
   assert_status 404 "$path"
 done
+
+echo "Candidate production smoke test: $EXAM_BASE_URL"
+admin_base_url="$BASE_URL"
+BASE_URL="$EXAM_BASE_URL"
+for path in / /exams /exams/00000000-0000-0000-0000-000000000000/result; do
+  assert_status 200 "$path"
+  grep -qi '<!doctype html' "$TMP_DIR/response" || {
+    echo "FAIL $path: response is not the candidate frontend document" >&2
+    exit 1
+  }
+done
+assert_status 200 /api/public/exams
+node - "$TMP_DIR/response" <<'NODE'
+const fs = require('fs');
+const payload = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+if (payload.success !== true || !Array.isArray(payload.data)) {
+  throw new Error('Unexpected public exam catalog response');
+}
+console.log(`PASS public exam catalog -> ${payload.data.length} exam(s)`);
+NODE
+pass=$((pass + 1))
+BASE_URL="$admin_base_url"
 
 echo "Production smoke test passed: $pass checks."

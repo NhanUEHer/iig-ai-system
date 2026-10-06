@@ -116,6 +116,8 @@ test('production deploy is locked, immutable, identity-verified and rollback-cap
   assert.match(deployScript,/install -d -m 755/);
   assert.match(deployScript,/candidate_release=.*find.*RELEASES_DIR/s);
   assert.match(deployScript,/candidate_release\/frontend\/dist\/events\/index\.html/);
+  assert.match(deployScript,/npm run build --prefix exam-web/);
+  assert.match(deployScript,/Host: exam\.iigvn\.site/);
   assert.match(deployScript,/--exclude='\.env\*\.local'/);
   assert.match(deployScript,/--exclude='tmp'/);
   assert.match(backupScript,/\.partial-/);
@@ -144,6 +146,14 @@ test('production nginx serves PDF.js module workers with a JavaScript MIME type'
   const nginx = read('deploy/nginx-ai-scoring.conf');
   assert.match(nginx, /location ~\* \\\.mjs\$/);
   assert.match(nginx, /application\/javascript mjs/);
+});
+
+test('production nginx isolates the candidate SPA on the exam domain', () => {
+  const nginx = read('deploy/nginx-ai-scoring.conf');
+  assert.match(nginx, /server_name exam\.iigvn\.site/);
+  assert.match(nginx, /root \/opt\/ai-scoring-current\/exam-web\/dist/);
+  assert.match(nginx, /location \/api\/\s*\{[\s\S]*proxy_pass http:\/\/127\.0\.0\.1:5005/);
+  assert.match(nginx, /location \/assets\/\s*\{[\s\S]*Cache-Control "public, immutable"/);
 });
 
 test('Trade date picker keeps date inputs mounted and blank added dates local',()=>{

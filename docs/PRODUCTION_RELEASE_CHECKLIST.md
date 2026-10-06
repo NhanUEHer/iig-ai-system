@@ -52,7 +52,7 @@ Do not continue without a usable database backup and an application rollback tar
 Migrations are forward-only, tracked in `schema_migrations` and executed in individual transactions.
 
 1. Run `NODE_ENV=production APP_ENV=production npm run db:migrate`.
-2. Confirm the latest applied migration is `099_exam_candidate_management.sql` or newer.
+2. Confirm the latest applied migration is `120_remove_exam_events.sql` or newer.
 3. Confirm no migration is left partially applied.
 4. Do not manually edit `schema_migrations`.
 

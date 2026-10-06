@@ -11,6 +11,7 @@ CURRENT_LINK="${CURRENT_LINK:-${VPS_DIR}-current}"
 APP_VERSION="${APP_VERSION:-$(node -p "require('./package.json').version")}"
 APP_COMMIT="${APP_COMMIT:-$(git rev-parse --short HEAD)}"
 ADMIN_ONLY="${ADMIN_ONLY:-true}"
+DEPLOY_EXAM_WEB="${DEPLOY_EXAM_WEB:-true}"
 DEPLOY_ID="$(date -u +%Y%m%dT%H%M%SZ)-v${APP_VERSION}-${APP_COMMIT}"
 RELEASE_DIR="$RELEASES_DIR/$DEPLOY_ID"
 BACKUP_ID="${DEPLOY_ID%%-v*}"
@@ -62,6 +63,12 @@ npm run check
 
 echo "[3/9] Building Production v${APP_VERSION} (${APP_COMMIT})..."
 VITE_APP_ENV=production VITE_APP_VERSION="$APP_VERSION" VITE_APP_COMMIT="$APP_COMMIT" npm run build --prefix frontend
+if [ "$DEPLOY_EXAM_WEB" = true ]; then
+  npm run build --prefix exam-web
+  test -s exam-web/dist/index.html
+else
+  echo "Candidate exam web build was explicitly skipped."
+fi
 if [ "$ADMIN_ONLY" != true ]; then
   npm run build --prefix mobile-web
   mkdir -p frontend/dist/events
@@ -126,6 +133,11 @@ sshpass -p "$VPS_PASSWORD" ssh "${SSH_OPTIONS[@]}" root@"$VPS_IP" "
   chmod 755 '$RELEASE_DIR'
   find '$RELEASE_DIR/frontend/dist' -type d -exec chmod 755 {} +
   find '$RELEASE_DIR/frontend/dist' -type f -exec chmod 644 {} +
+  if [ '$DEPLOY_EXAM_WEB' = true ]; then
+    test -s '$RELEASE_DIR/exam-web/dist/index.html'
+    find '$RELEASE_DIR/exam-web/dist' -type d -exec chmod 755 {} +
+    find '$RELEASE_DIR/exam-web/dist' -type f -exec chmod 644 {} +
+  fi
   npm ci --omit=dev
   npm run check:syntax
   test \"\$(node -p \"require('./package.json').version\")\" = '$APP_VERSION'
@@ -172,6 +184,20 @@ if ! sshpass -p "$VPS_PASSWORD" ssh "${SSH_OPTIONS[@]}" root@"$VPS_IP" "
   "
   exit 1
 fi
+
+sshpass -p "$VPS_PASSWORD" ssh "${SSH_OPTIONS[@]}" root@"$VPS_IP" "
+  set -e
+  admin_status=\$(curl -sS -o /tmp/admin-release-index.html -w '%{http_code}' -H 'Host: admin.iigvn.site' http://127.0.0.1:3100/)
+  test \"\$admin_status\" = 200
+  grep -qi '<!doctype html' /tmp/admin-release-index.html
+  if [ '$DEPLOY_EXAM_WEB' = true ]; then
+    exam_status=\$(curl -sS -o /tmp/exam-release-index.html -w '%{http_code}' -H 'Host: exam.iigvn.site' http://127.0.0.1:3100/exams/00000000-0000-0000-0000-000000000000/result)
+    test \"\$exam_status\" = 200
+    grep -qi '<!doctype html' /tmp/exam-release-index.html
+    catalog_status=\$(curl -sS -o /tmp/exam-release-catalog.json -w '%{http_code}' -H 'Host: exam.iigvn.site' http://127.0.0.1:3100/api/public/exams)
+    test \"\$catalog_status\" = 200
+  fi
+"
 
 echo "[9/9] Cleaning old releases..."
 sshpass -p "$VPS_PASSWORD" ssh "${SSH_OPTIONS[@]}" root@"$VPS_IP" "
