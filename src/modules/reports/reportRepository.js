@@ -197,24 +197,14 @@ module.exports = {
     const comByCode=new Map(rows.map(row=>[row.code,row]));
     return enrichKpiHistory(result.rows.map(row=>row.team_code==='COM'?comByCode.get(row.code):row),await getKpiHistory(year,month));
   },
-  async getTrendRows({ year, teamCode, periodId }) {
-    const params=[]; let periodFilter; let versionJoin;
-    if(periodId){
-      params.push(periodId,year);
-      periodFilter=`p.year=$2 AND p.month<=COALESCE((SELECT month FROM report_periods WHERE id=$1),12)`;
-      versionJoin=`JOIN report_data_versions v ON v.id=CASE WHEN p.id=$1 THEN
-        (SELECT id FROM report_data_versions WHERE period_id=p.id AND status='draft' ORDER BY version_no DESC LIMIT 1)
-        ELSE p.current_version_id END`;
-    } else {
-      params.push(year); periodFilter='p.year=$1'; versionJoin='JOIN report_data_versions v ON v.id=p.current_version_id';
-    }
-    let teamFilter='';
+  async getTrendRows({ year, teamCode }) {
+    const params=[year]; let teamFilter='';
     if (teamCode) { params.push(teamCode); teamFilter=`AND t.code=$${params.length}`; }
     const result = await db.query(`SELECT p.month,t.code AS team_code,t.name AS team_name,COALESCE(k.kpi_code,d.code) code,
       COALESCE(k.evaluation_direction_snapshot,d.evaluation_direction) evaluation_direction,k.target_value,k.actual_value
-      FROM report_periods p ${versionJoin}
+      FROM report_periods p JOIN report_data_versions v ON v.id=p.current_version_id
       JOIN report_kpi_values k ON k.version_id=v.id JOIN report_kpi_definitions d ON d.id=k.kpi_definition_id
-      JOIN report_teams t ON t.id=d.team_id WHERE ${periodFilter} ${teamFilter} ORDER BY p.month,t.display_order,d.display_order`,params);
+      JOIN report_teams t ON t.id=d.team_id WHERE p.year=$1 ${teamFilter} ORDER BY p.month,t.display_order,d.display_order`,params);
     return result.rows;
   },
   async listImports(limit = 20) {

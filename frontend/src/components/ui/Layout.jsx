@@ -41,7 +41,7 @@ function HeaderMenu({ label, badge, avatar, items, emptyText }) { const [open, s
 export function Breadcrumb({ items = [], separator = '/' }) {
   return <nav className="ui-breadcrumb" aria-label="Breadcrumb">{items.map((item, index) => <React.Fragment key={`${item.label}-${index}`}>
     {index > 0 && <span aria-hidden="true">{separator}</span>}
-    {item.href && !item.current ? <a href={item.href}>{item.label}</a> : <strong aria-current={item.current ? 'page' : undefined}>{item.label}</strong>}
+    {item.current ? <strong aria-current="page">{item.label}</strong> : item.href ? <a href={item.href}>{item.label}</a> : <span>{item.label}</span>}
   </React.Fragment>)}</nav>;
 }
 

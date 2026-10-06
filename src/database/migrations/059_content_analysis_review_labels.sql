@@ -12,3 +12,4 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS content_source_analysis_review_idx
   ON content_source_analyses(review_label, created_at DESC);
+

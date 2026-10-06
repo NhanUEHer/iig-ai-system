@@ -22,3 +22,4 @@ CREATE TABLE IF NOT EXISTS material_recommendation_settings (
   CONSTRAINT material_setting_window CHECK (trend_window_days BETWEEN 7 AND 365),
   CONSTRAINT material_setting_similarity CHECK (maximum_source_similarity BETWEEN 0.30 AND 0.90)
 );
+

@@ -1,6 +1,6 @@
 {
   "name": "ai-scoring-admin",
-  "version": "1.1.75",
+  "version": "1.1.77",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -31,12 +31,13 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "jszip": "^3.10.1",
-    "multer": "^2.3.0",
+    "multer": "^2.2.0",
     "officecrypto-tool": "^0.0.19",
-    "pdfjs-dist": "^6.3.289",
+    "pdfjs-dist": "^5.7.284",
     "pdfkit": "^0.17.2",
     "pg": "^8.22.0",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+    "redis": "^5.12.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

@@ -11,14 +11,14 @@ const map = row => row && ({
   updatedAt: row.updated_at,
 });
 
-function filters({ search = '', status = '', statuses = '' } = {}) {
+function filters({ search = '', statuses = '' } = {}) {
   const where = [];
   const params = [];
   if (String(search).trim()) {
     params.push(`%${String(search).trim()}%`);
     where.push(`(g.title ILIKE $${params.length} OR g.code ILIKE $${params.length})`);
   }
-  const selectedStatuses = [...new Set([...String(status || '').split(','), ...String(statuses || '').split(',')].map(item => item.trim()).filter(Boolean))];
+  const selectedStatuses = [...new Set(String(statuses || '').split(',').map(item => item.trim()).filter(Boolean))];
   if (selectedStatuses.length) {
     params.push(selectedStatuses);
     where.push(`g.status = ANY($${params.length}::text[])`);
@@ -59,11 +59,6 @@ async function nextCode() {
   return result.rows[0].code;
 }
 
-async function peekNextCode() {
-  const result = await db.query("SELECT 'GRP-' || LPAD((last_value + CASE WHEN is_called THEN 1 ELSE 0 END)::text, 2, '0') AS code FROM question_group_code_seq");
-  return result.rows[0].code;
-}
-
 async function create(data, userId) {
   const code = await nextCode();
   const result = await db.query(`INSERT INTO question_groups(code,title,description,status,created_by,updated_by) VALUES($1,$2,$3,$4,$5,$5) RETURNING id`, [code, data.name.trim(), data.description?.trim() || null, data.status || 'DRAFT', userId || null]);
@@ -90,4 +85,4 @@ async function remove(id) {
   return result.rows[0] || null;
 }
 
-module.exports = { list, find, countActiveQuestions, peekNextCode, create, update, remove };
+module.exports = { list, find, countActiveQuestions, create, update, remove };

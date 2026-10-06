@@ -20,3 +20,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS content_source_analysis_version_idx
 
 UPDATE roles SET permissions = permissions || '["content_sources.analyze"]'::jsonb
 WHERE slug = 'admin';
+

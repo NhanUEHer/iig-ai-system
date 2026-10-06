@@ -9,6 +9,7 @@ async function findById(id) {
        ee.status,
        e.id AS exam_id, e.title AS exam_title, e.status AS exam_status,
        e.duration_minutes, e.duration_seconds, e.score_scale,
+       (SELECT COALESCE(SUM(es.configured_duration_seconds),0) FROM exam_sections es WHERE es.exam_id=e.id)::int AS configured_duration_seconds,
        COUNT(DISTINCT sq.id)::int AS total_questions
      FROM exam_events ee
      JOIN exams e ON e.id = ee.exam_id
@@ -51,7 +52,7 @@ async function findById(id) {
       id: row.exam_id,
       title: row.exam_title,
       status: row.exam_status,
-      durationSeconds: Number(row.duration_minutes || 0) * 60 + Number(row.duration_seconds || 0),
+      durationSeconds: Number(row.configured_duration_seconds || 0) || (Number(row.duration_minutes || 0) * 60 + Number(row.duration_seconds || 0)),
       totalQuestions: Number(row.total_questions || 0),
       scoreScale: Number(row.score_scale || 100),
       parts: partResult.rows.map(part => ({
@@ -135,6 +136,7 @@ async function startAttempt(eventId, candidateId, { audioConfirmed, now = new Da
       `SELECT ee.id, ee.start_at, ee.end_at, ee.status,
               e.id AS exam_id, e.status AS exam_status, e.active_version_id,
               e.duration_minutes, e.duration_seconds,
+              (SELECT COALESCE(SUM(es.configured_duration_seconds),0) FROM exam_sections es WHERE es.exam_id=e.id)::int AS configured_duration_seconds,
               c.id AS candidate_id
        FROM exam_events ee
        JOIN exams e ON e.id=ee.exam_id
@@ -172,7 +174,8 @@ async function startAttempt(eventId, candidateId, { audioConfirmed, now = new Da
     );
     const version = versionResult.rows[0];
     if (!version) return { context: { ...context, active_version_id: null }, attempt: null };
-    const durationSeconds = Number(context.duration_minutes || 0) * 60 + Number(context.duration_seconds || 0);
+    const durationSeconds = Number(context.configured_duration_seconds || 0)
+      || (Number(context.duration_minutes || 0) * 60 + Number(context.duration_seconds || 0));
     const naturalExpiry = new Date(now.getTime() + durationSeconds * 1000);
     const expiresAt = naturalExpiry < new Date(context.end_at) ? naturalExpiry : new Date(context.end_at);
     const attemptResult = await client.query(
@@ -201,20 +204,22 @@ async function findAttemptQuestionDelivery(eventId, attemptId, candidateId) {
   const snapshot = attempt.question_snapshot || {};
   const contentIds = [];
   const subQuestionIds = [];
+  const partIds = [];
   for (const part of snapshot.parts || []) {
+    if (part.id) partIds.push(part.id);
     for (const question of part.questions || []) {
       for (const content of question.contents || []) if (content.id) contentIds.push(content.id);
       for (const subQuestion of question.subQuestions || []) if (subQuestion.id) subQuestionIds.push(subQuestion.id);
     }
   }
 
-  const mediaResult = contentIds.length || subQuestionIds.length
+  const mediaResult = contentIds.length || subQuestionIds.length || partIds.length
     ? await db.query(
-      `SELECT id, content_id, sub_question_id, media_type, storage_key, mime_type, original_name
+      `SELECT id, content_id, sub_question_id, part_id, media_type, storage_key, mime_type, original_name, duration_seconds
        FROM question_bank_media
-       WHERE content_id=ANY($1::uuid[]) OR sub_question_id=ANY($2::uuid[])
+       WHERE content_id=ANY($1::uuid[]) OR sub_question_id=ANY($2::uuid[]) OR part_id=ANY($3::uuid[])
        ORDER BY created_at, id`,
-      [contentIds, subQuestionIds],
+      [contentIds, subQuestionIds, partIds],
     )
     : { rows: [] };
 
@@ -226,6 +231,59 @@ async function findAttemptQuestionDelivery(eventId, attemptId, candidateId) {
   );
 
   return { attempt, media: mediaResult.rows, answers: answersResult.rows };
+}
+
+async function findAttemptQuestionState(eventId, attemptId, candidateId) {
+  const attemptResult = await db.query(
+    `SELECT ea.id,ea.status,ea.started_at,ea.expires_at,ea.exam_id,ea.exam_version_id
+     FROM exam_attempts ea
+     WHERE ea.id=$1 AND ea.exam_event_id=$2 AND ea.candidate_id=$3`,
+    [attemptId, eventId, candidateId],
+  );
+  const attempt = attemptResult.rows[0];
+  if (!attempt) return null;
+  const answers = (await db.query(
+    `SELECT question_id,sub_question_id,selected_option,is_flagged,answered_at,updated_at
+     FROM exam_attempt_answers WHERE attempt_id=$1 AND sub_question_id IS NOT NULL`,
+    [attemptId],
+  )).rows;
+  return { attempt, answers };
+}
+
+async function findAttemptState(eventId, attemptId, candidateId) {
+  const result = await db.query(
+    `SELECT id,status,started_at,expires_at,exam_event_id,exam_id,exam_version_id,candidate_id
+     FROM exam_attempts WHERE id=$1 AND exam_event_id=$2 AND candidate_id=$3`,
+    [attemptId, eventId, candidateId],
+  );
+  return result.rows[0] || null;
+}
+
+async function findVersionQuestionDelivery(versionId) {
+  const version = (await db.query(
+    'SELECT id,exam_id,snapshot FROM exam_versions WHERE id=$1',
+    [versionId],
+  )).rows[0];
+  if (!version) return null;
+  const snapshot = version.snapshot || {};
+  const contentIds = [];
+  const subQuestionIds = [];
+  const partIds = [];
+  for (const part of snapshot.parts || []) {
+    if (part.id) partIds.push(part.id);
+    for (const question of part.questions || []) {
+    for (const content of question.contents || []) if (content.id) contentIds.push(content.id);
+    for (const subQuestion of question.subQuestions || []) if (subQuestion.id) subQuestionIds.push(subQuestion.id);
+    }
+  }
+  const mediaRows = contentIds.length || subQuestionIds.length || partIds.length ? (await db.query(
+    `SELECT id,content_id,sub_question_id,part_id,media_type,storage_key,mime_type,original_name,duration_seconds
+     FROM question_bank_media
+     WHERE content_id=ANY($1::uuid[]) OR sub_question_id=ANY($2::uuid[]) OR part_id=ANY($3::uuid[])
+     ORDER BY created_at,id`,
+    [contentIds, subQuestionIds, partIds],
+  )).rows : [];
+  return { version, snapshot, media: mediaRows };
 }
 
 async function saveAttemptAnswer({ eventId, attemptId, candidateId, parentQuestionId, subQuestionId, selectedOption, flagged, now }) {
@@ -255,61 +313,72 @@ async function saveAttemptAnswer({ eventId, attemptId, candidateId, parentQuesti
   });
 }
 
-async function finalizeAttempt({ eventId, attemptId, candidateId, now, evaluate }) {
+async function finalizeAttempt({ eventId, attemptId, candidateId, now, answers: submittedAnswers, evaluation }) {
   return db.transaction(async client => {
     const attempt = (await client.query(
-      `SELECT id,status,started_at,expires_at,submitted_at,total_score,question_snapshot
+      `SELECT id,status,started_at,expires_at,submitted_at,total_score,duration_seconds
        FROM exam_attempts WHERE id=$1 AND exam_event_id=$2 AND candidate_id=$3 FOR UPDATE`,
       [attemptId, eventId, candidateId],
     )).rows[0];
     if (!attempt) return { attempt: null };
-    const answers = (await client.query(
-      `SELECT id,question_id,sub_question_id,selected_option,is_flagged
-       FROM exam_attempt_answers WHERE attempt_id=$1 AND sub_question_id IS NOT NULL`,
-      [attemptId],
-    )).rows;
-    const resultMeta = async currentAttempt => {
-      const candidate = (await client.query(
-        `SELECT full_name,email,school_name FROM exam_candidates WHERE id=$1 AND exam_event_id=$2`,
-        [candidateId, eventId],
-      )).rows[0] || null;
-      const ranking = (await client.query(
-        `WITH ranked AS (
-           SELECT id,
-                  RANK() OVER (ORDER BY total_score DESC, (submitted_at-started_at) ASC, submitted_at ASC) AS rank,
-                  COUNT(*) OVER () AS total
-           FROM exam_attempts
-           WHERE exam_event_id=$1 AND status='SUBMITTED'
-         ) SELECT rank::int,total::int FROM ranked WHERE id=$2`,
-        [eventId, currentAttempt.id],
-      )).rows[0] || null;
-      const leaderboard = (await client.query(
-        `SELECT ea.id AS attempt_id,ec.full_name,ea.total_score,
-                EXTRACT(EPOCH FROM (ea.submitted_at-ea.started_at))::int AS duration_seconds
-         FROM exam_attempts ea
-         JOIN exam_candidates ec ON ec.id=ea.candidate_id
-         WHERE ea.exam_event_id=$1 AND ea.status='SUBMITTED'
-         ORDER BY ea.total_score DESC,(ea.submitted_at-ea.started_at) ASC,ea.submitted_at ASC
-         LIMIT 3`,
-        [eventId],
-      )).rows;
-      return { candidate, ranking, leaderboard };
-    };
-    if (attempt.status === 'SUBMITTED') return { attempt, answers, ...(await resultMeta(attempt)), alreadySubmitted: true };
+    if (attempt.status === 'SUBMITTED') return { attempt, alreadySubmitted: true };
     // Submission is still allowed after the deadline so saved answers can be
     // finalized by the automatic timer. Answer writes remain blocked at expiry.
-    if (attempt.status !== 'IN_PROGRESS') return { attempt, answers, expired: true };
-    const evaluation = evaluate(attempt.question_snapshot || {}, answers);
-    for (const item of evaluation.items) {
-      await client.query('UPDATE exam_attempt_answers SET score=$3,updated_at=$4 WHERE attempt_id=$1 AND sub_question_id=$2', [attemptId, item.subQuestionId, item.score, now]);
-    }
+    if (attempt.status !== 'IN_PROGRESS') return { attempt, expired: true };
+    const answers = submittedAnswers || [];
+    const scoredAnswers = evaluation.items.map(item => ({
+      question_id: item.parentQuestionId,
+      sub_question_id: item.subQuestionId,
+      selected_option: item.selectedOption || null,
+      is_flagged: item.flagged === true,
+      score: item.score,
+      answered_at: item.savedAt || now,
+    }));
+    if (scoredAnswers.length) await client.query(
+      `INSERT INTO exam_attempt_answers(
+         attempt_id,question_id,sub_question_id,selected_option,is_flagged,score,answered_at,created_at,updated_at
+       ) SELECT $1,x.question_id,x.sub_question_id,x.selected_option,x.is_flagged,x.score,x.answered_at,$2,$2
+       FROM jsonb_to_recordset($3::jsonb) AS x(
+         question_id uuid,sub_question_id uuid,selected_option text,is_flagged boolean,score numeric,answered_at timestamptz
+       ) ON CONFLICT(attempt_id,sub_question_id) WHERE sub_question_id IS NOT NULL
+       DO UPDATE SET selected_option=EXCLUDED.selected_option,is_flagged=EXCLUDED.is_flagged,
+                     score=EXCLUDED.score,answered_at=EXCLUDED.answered_at,updated_at=EXCLUDED.updated_at`,
+      [attemptId, now, JSON.stringify(scoredAnswers)],
+    );
     const submitted = (await client.query(
-      `UPDATE exam_attempts SET status='SUBMITTED',submitted_at=$2,total_score=$3,last_activity_at=$2,updated_at=$2
-       WHERE id=$1 RETURNING id,status,started_at,submitted_at,total_score`,
+      `UPDATE exam_attempts SET status='SUBMITTED',submitted_at=$2,total_score=$3,
+          duration_seconds=GREATEST(0,EXTRACT(EPOCH FROM ($2-started_at))::int),last_activity_at=$2,updated_at=$2
+       WHERE id=$1 RETURNING id,status,started_at,submitted_at,total_score,duration_seconds`,
       [attemptId, now, evaluation.totalScore],
     )).rows[0];
-    return { attempt: submitted, answers, evaluation, ...(await resultMeta(submitted)), alreadySubmitted: false };
+    return { attempt: submitted, answers, evaluation, alreadySubmitted: false };
   });
 }
 
-module.exports = { findById, registerCandidate, findCandidateForEvent, startAttempt, findAttemptQuestionDelivery, saveAttemptAnswer, finalizeAttempt };
+async function getAttemptResultMeta(eventId, attemptId, candidateId) {
+  const [candidateResult, rankingResult, leaderboardResult] = await Promise.all([
+    db.query('SELECT full_name,email,school_name FROM exam_candidates WHERE id=$1 AND exam_event_id=$2', [candidateId, eventId]),
+    db.query(
+      `SELECT 1 + COUNT(*)::int AS rank,
+              (SELECT COUNT(*)::int FROM exam_attempts WHERE exam_event_id=$1 AND status='SUBMITTED') AS total
+       FROM exam_attempts current_attempt
+       JOIN exam_attempts other ON other.exam_event_id=current_attempt.exam_event_id AND other.status='SUBMITTED'
+       WHERE current_attempt.id=$2 AND (
+         other.total_score>current_attempt.total_score OR
+         (other.total_score=current_attempt.total_score AND other.duration_seconds<current_attempt.duration_seconds) OR
+         (other.total_score=current_attempt.total_score AND other.duration_seconds=current_attempt.duration_seconds AND other.submitted_at<current_attempt.submitted_at)
+       )`,
+      [eventId, attemptId],
+    ),
+    db.query(
+      `SELECT ea.id AS attempt_id,ec.full_name,ea.total_score,ea.duration_seconds
+       FROM exam_attempts ea JOIN exam_candidates ec ON ec.id=ea.candidate_id
+       WHERE ea.exam_event_id=$1 AND ea.status='SUBMITTED'
+       ORDER BY ea.total_score DESC,ea.duration_seconds ASC,ea.submitted_at ASC LIMIT 3`,
+      [eventId],
+    ),
+  ]);
+  return { candidate: candidateResult.rows[0] || null, ranking: rankingResult.rows[0] || null, leaderboard: leaderboardResult.rows };
+}
+
+module.exports = { findById, registerCandidate, findCandidateForEvent, startAttempt, findAttemptQuestionDelivery, findAttemptQuestionState, findAttemptState, findVersionQuestionDelivery, saveAttemptAnswer, finalizeAttempt, getAttemptResultMeta };

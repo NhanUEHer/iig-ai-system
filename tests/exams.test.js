@@ -9,44 +9,50 @@ const service = require('../src/modules/exams/examService');
 const validExam = {
   title: 'TOEIC Full Test 01',
   status: 'DRAFT',
-  durationSeconds: 7200,
-  scoreScale: 100,
+  examType: 'LISTENING_READING',
   introduction: '<p>Đọc kỹ hướng dẫn trước khi làm bài.</p>',
 };
 
-test('exam V3 validator enforces the current exam contract', () => {
+test('exam validator enforces the redesigned exam contract', () => {
   assert.throws(() => validator.validateExam({ ...validExam, title: '' }), error => error instanceof HttpError && error.code === 'EXAM_TITLE_REQUIRED');
   assert.throws(() => validator.validateExam({ ...validExam, status: 'PENDING' }), error => error instanceof HttpError && error.code === 'EXAM_STATUS_INVALID');
-  assert.throws(() => validator.validateExam({ ...validExam, durationSeconds: 0 }), error => error instanceof HttpError && error.code === 'EXAM_DURATION_INVALID');
-  assert.throws(() => validator.validateExam({ ...validExam, introduction: '<p>&nbsp;</p>' }), error => error instanceof HttpError && error.code === 'EXAM_INTRODUCTION_REQUIRED');
+  assert.throws(() => validator.validateExam({ ...validExam, examType: 'UNKNOWN' }), error => error instanceof HttpError && error.code === 'EXAM_TYPE_INVALID');
+  assert.doesNotThrow(() => validator.validateExam({ ...validExam, introduction: '<p>&nbsp;</p>' }));
+  assert.doesNotThrow(() => validator.validateExam({ ...validExam, introduction: undefined }));
   assert.doesNotThrow(() => validator.validateExam(validExam));
 });
 
-test('exam V3 part validator requires title and instruction', () => {
-  assert.throws(() => validator.validatePart({ title: '', instruction: 'Hướng dẫn' }), error => error instanceof HttpError && error.code === 'PART_TITLE_REQUIRED');
-  assert.throws(() => validator.validatePart({ title: 'Listening', instruction: '<p>&nbsp;</p>' }), error => error instanceof HttpError && error.code === 'PART_INSTRUCTION_REQUIRED');
-  assert.throws(() => validator.validatePart({ title: 'Listening', instruction: 'Hướng dẫn', durationMinutes: -1 }), error => error instanceof HttpError && error.code === 'PART_DURATION_INVALID');
-  assert.doesNotThrow(() => validator.validatePart({ title: 'Listening', instruction: '<p>Nghe và chọn đáp án.</p>', durationMinutes: 45 }));
-});
-
-test('exam V3 repository maps database rows to the active API shape', () => {
+test('exam repository maps exam type and structural counts to the API shape', () => {
   const exam = repository.mapExam({
     id: '11111111-1111-4111-8111-111111111111', exam_code: 'EX-0001', title: 'Exam', status: 'DRAFT',
-    duration_minutes: 60, duration_seconds: 30, points_per_question: 10, score_scale: 100,
-    part_count: '2', parent_question_count: '3', sub_question_count: '4', total_points: '40', lock_version: '1',
+    exam_type: 'LISTENING', published_snapshot: null,
+    section_count: '2', part_count: '3', parent_question_count: '4', sub_question_count: '20', configured_duration_seconds: '3600', lock_version: '1',
   });
   assert.equal(exam.examCode, 'EX-0001');
-  assert.equal(exam.durationSeconds, 3630);
-  assert.equal(exam.partCount, 2);
-  assert.equal(exam.subQuestionCount, 4);
-  assert.equal(exam.totalPoints, 40);
+  assert.equal(exam.examType, 'LISTENING');
+  assert.equal(exam.sectionCount, 2);
+  assert.equal(exam.partCount, 3);
+  assert.equal(exam.subQuestionCount, 20);
+  assert.equal(exam.configuredDurationSeconds, 3600);
+  assert.equal(exam.hasPublishedSnapshot, false);
 });
 
-test('exam V3 service rejects direct ACTIVE creation', async () => {
-  await assert.rejects(() => service.create({ ...validExam, status: 'ACTIVE' }), error => error instanceof HttpError && error.code === 'USE_ACTIVATE_ENDPOINT');
+test('exam list filters reject unsupported statuses and exam types', () => {
+  assert.throws(() => validator.validateListFilters({ statuses: 'DRAFT,DELETED' }), error => error.code === 'EXAM_STATUSES_INVALID');
+  assert.throws(() => validator.validateListFilters({ examTypes: 'LISTENING,TOEFL' }), error => error.code === 'EXAM_TYPES_INVALID');
+  assert.doesNotThrow(() => validator.validateListFilters({ statuses: 'DRAFT,ACTIVE', examTypes: 'LISTENING,READING' }));
 });
 
-test('exam V3 protects exams referenced by an exam event', () => {
+test('exam list statistics avoid cross-join multiplication and include configured duration', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const source = fs.readFileSync(path.join(__dirname, '../src/modules/exams/examRepository.js'), 'utf8');
+  assert.match(source, /SELECT COUNT\(\*\) FROM exam_sections es WHERE es\.exam_id=e\.id/);
+  assert.match(source, /SUM\(es\.configured_duration_seconds\)/);
+  assert.doesNotMatch(source, /LEFT JOIN exam_sections es ON es\.exam_id=e\.id/);
+});
+
+test('exam service protects exams referenced by an exam event', () => {
   const fs = require('node:fs');
   const path = require('node:path');
   const source = fs.readFileSync(path.join(__dirname, '../src/modules/exams/examService.js'), 'utf8');
@@ -54,7 +60,7 @@ test('exam V3 protects exams referenced by an exam event', () => {
   assert.match(source, /EXAM_IN_USE/);
 });
 
-test('exam V3 blocks deactivation while a published event is in progress', () => {
+test('exam service blocks deactivation while a published event is in progress', () => {
   const fs = require('node:fs');
   const path = require('node:path');
   const serviceSource = fs.readFileSync(path.join(__dirname, '../src/modules/exams/examService.js'), 'utf8');
@@ -66,21 +72,19 @@ test('exam V3 blocks deactivation while a published event is in progress', () =>
   assert.match(repositorySource, /end_at>CURRENT_TIMESTAMP/);
 });
 
-test('exam edit page exposes activate and deactivate lifecycle actions', () => {
-  const fs = require('node:fs');
-  const path = require('node:path');
-  const source = fs.readFileSync(path.join(__dirname, '../frontend/src/features/exams/pages/ExamEditPage.jsx'), 'utf8');
-  assert.match(source, /deactivateExam/);
-  assert.match(source, /Ngừng hoạt động để chỉnh sửa/);
-  assert.match(source, /activateExam/);
-  assert.match(source, /Kích hoạt đề thi/);
-  assert.match(source, /Đề thi chưa đủ điều kiện kích hoạt/);
+test('exam service uses Publish (not a form status change) to activate', async () => {
+  const repo = require('../src/modules/exams/examRepository');
+  const original = repo.findById;
+  repo.findById = async () => ({ id: 'e1', status: 'DRAFT', examType: 'LISTENING', introduction: '<p>x</p>', title: 'E', sections: [], legacyParts: [] });
+  try {
+    await assert.rejects(() => service.update('e1', { status: 'ACTIVE' }, 'u1'), error => error instanceof HttpError && error.code === 'USE_PUBLISH_ENDPOINT');
+  } finally { repo.findById = original; }
 });
 
-test('exam V3 routes register specific operations before dynamic detail route', () => {
+test('exam V3 routes register specific operations before the dynamic detail route', () => {
   const routes = require('../src/routes/examV3Routes').stack.map(layer => layer.route?.path).filter(Boolean);
   const detail = routes.indexOf('/:examId');
-  for (const path of ['/:examId/available-questions', '/:examId/validation', '/:examId/activate', '/:examId/parts/reorder', '/:examId/parts/:partId/questions/reorder']) {
+  for (const path of ['/:examId/sections', '/:examId/validation', '/:examId/publish', '/:examId/sections/reorder', '/:examId/sections/:sectionId/parts/:partId/questions/reorder']) {
     assert.ok(routes.includes(path), `${path} must exist`);
     assert.ok(routes.indexOf(path) < detail, `${path} must precede /:examId`);
   }

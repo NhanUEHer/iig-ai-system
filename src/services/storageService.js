@@ -3,7 +3,7 @@
  * S3-compatible storage client for Cloudflare R2.
  * Used to upload cleaned audio files and generate pre-signed URLs.
  */
-const { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const fs = require('fs');
 const path = require('path');
@@ -14,7 +14,9 @@ const R2_SECRET_KEY = process.env.R2_SECRET_KEY  || '';
 const R2_BUCKET     = process.env.R2_BUCKET      || 'ai-scoring-audio';
 const R2_CLEAN_AUDIO_PREFIX = process.env.R2_CLEAN_AUDIO_PREFIX || 'cleaned-audio';
 const R2_GENERATED_AUDIO_PREFIX = process.env.R2_GENERATED_AUDIO_PREFIX || 'dialogues';
-const AUDIO_STORAGE_MODE = process.env.AUDIO_STORAGE_MODE || 'local';
+// MEDIA_STORAGE_MODE is the canonical switch because this service stores image,
+// video, documents and audio. Keep AUDIO_STORAGE_MODE as a compatibility alias.
+const MEDIA_STORAGE_MODE = process.env.MEDIA_STORAGE_MODE || process.env.AUDIO_STORAGE_MODE || 'local';
 const LOCAL_MEDIA_ROOT = path.join(__dirname, '../../public/question-bank-media');
 
 // URL expiry: 7 days (Dify calls + frontend playback)
@@ -47,9 +49,17 @@ function isR2Configured() {
 }
 
 function requireR2() {
-  if (AUDIO_STORAGE_MODE === 'r2' && !isR2Configured()) {
-    throw new Error('AUDIO_STORAGE_MODE=r2 requires complete R2 credentials.');
+  if (MEDIA_STORAGE_MODE === 'r2' && !isR2Configured()) {
+    throw new Error('MEDIA_STORAGE_MODE=r2 requires complete R2 credentials.');
   }
+}
+
+function requireProductionR2() {
+  const production = process.env.NODE_ENV === 'production' || process.env.APP_ENV === 'production';
+  if (production && MEDIA_STORAGE_MODE !== 'r2') {
+    throw new Error('Production requires MEDIA_STORAGE_MODE=r2. Local persistent media is disabled.');
+  }
+  requireR2();
 }
 
 function objectKey(kind, fileName) {
@@ -92,7 +102,11 @@ async function uploadBuffer(buffer, r2Key, contentType = 'application/octet-stre
     fs.writeFileSync(target, buffer);
     return `local:${safeKey}`;
   };
-  if (options.preferLocal || AUDIO_STORAGE_MODE !== 'r2' || !isR2Configured()) {
+  const production = process.env.NODE_ENV === 'production' || process.env.APP_ENV === 'production';
+  if (production && (options.preferLocal || MEDIA_STORAGE_MODE !== 'r2' || !isR2Configured())) {
+    throw new Error('Production media upload requires configured R2 storage.');
+  }
+  if (options.preferLocal || MEDIA_STORAGE_MODE !== 'r2' || !isR2Configured()) {
     return saveLocal();
   }
   try {
@@ -121,10 +135,6 @@ async function getSignedAudioUrl(r2KeyOrStoredUrl) {
     ? r2KeyOrStoredUrl.slice(3)
     : r2KeyOrStoredUrl;
 
-  const command = new HeadObjectCommand({ Bucket: R2_BUCKET, Key: key });
-  // Verify object exists (throws if not)
-  await client.send(command);
-
   const getCommand = { Bucket: R2_BUCKET, Key: key };
   const url = await getSignedUrl(
     client,
@@ -132,6 +142,20 @@ async function getSignedAudioUrl(r2KeyOrStoredUrl) {
     { expiresIn: SIGNED_URL_EXPIRY_SECONDS }
   );
   return url;
+}
+
+async function createSignedUploadUrl(r2Key, contentType, expiresIn = 900) {
+  requireR2();
+  const key = String(r2Key || '').replace(/^r2:/, '').replace(/^\/+/, '');
+  if (!key) throw new Error('R2 object key is required.');
+  const command = new PutObjectCommand({ Bucket: R2_BUCKET, Key: key, ContentType: contentType });
+  return getSignedUrl(getClient(), command, { expiresIn: Math.max(60, Math.min(3600, Number(expiresIn) || 900)) });
+}
+
+async function headObject(r2KeyOrStoredUrl) {
+  const key = String(r2KeyOrStoredUrl || '').replace(/^r2:/, '').replace(/^\/+/, '');
+  const result = await getClient().send(new HeadObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+  return { size: Number(result.ContentLength || 0), contentType: result.ContentType || null, etag: String(result.ETag || '').replaceAll('"', '') || null };
 }
 
 async function downloadBuffer(r2KeyOrStoredUrl) {
@@ -173,4 +197,11 @@ function isR2Key(storedUrl) {
   return typeof storedUrl === 'string' && storedUrl.startsWith('r2:');
 }
 
-module.exports = { uploadFile, uploadBuffer, downloadBuffer, getSignedAudioUrl, getSignedUrl: getSignedAudioUrl, deleteFile, isR2Key, isR2Configured, requireR2, objectKey, audioStorageMode: AUDIO_STORAGE_MODE };
+module.exports = {
+  uploadFile, uploadBuffer, downloadBuffer, getSignedAudioUrl,
+  getSignedUrl: getSignedAudioUrl, deleteFile, isR2Key, isR2Configured,
+  createSignedUploadUrl, headObject,
+  requireR2, requireProductionR2, objectKey,
+  mediaStorageMode: MEDIA_STORAGE_MODE,
+  audioStorageMode: MEDIA_STORAGE_MODE,
+};

@@ -42,3 +42,4 @@ CREATE INDEX IF NOT EXISTS material_blueprints_owner_idx
   ON material_blueprints(created_by, created_at DESC);
 CREATE INDEX IF NOT EXISTS material_blueprint_items_parent_idx
   ON material_blueprint_items(blueprint_id, position);
+

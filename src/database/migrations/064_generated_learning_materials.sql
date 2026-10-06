@@ -23,3 +23,4 @@ CREATE INDEX IF NOT EXISTS generated_material_blueprint_idx
   ON generated_learning_materials(blueprint_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS generated_material_item_idx
   ON generated_learning_materials(blueprint_item_id, version DESC);
+

@@ -17,12 +17,43 @@ export async function listQuestionGroups() {
   const response = await api.get('/question-bank/groups');
   return response.data;
 }
-export async function listManagedQuestionGroups(params = {}) {
-  const response = await api.get('/question-bank/question-groups', { params });
+export async function saveQuestionContents(questionId, items) {
+  const response = await api.put(`/question-bank/questions/${questionId}/contents`, { items });
   return response.data;
 }
-export async function previewManagedQuestionGroupCode() {
-  const response = await api.get('/question-bank/question-groups/next-code');
+export async function saveSubQuestions(questionId, items) {
+  const response = await api.put(`/question-bank/questions/${questionId}/sub-questions`, { items });
+  return response.data;
+}
+export async function uploadContentMedia(contentId, mediaType, file) {
+  const body = new FormData(); body.append('file', file);
+  const response = await api.post(`/question-bank/contents/${contentId}/media/${mediaType}`, body);
+  return response.data;
+}
+export async function uploadQuestionMedia(questionId, mediaType, file) {
+  const body = new FormData(); body.append('file', file);
+  const response = await api.post(`/question-bank/questions/${questionId}/media/${mediaType}`, body);
+  return response.data;
+}
+export async function removeContentMedia(contentId, mediaType) {
+  const response = await api.delete(`/question-bank/contents/${contentId}/media/${mediaType}`);
+  return response.data;
+}
+export async function uploadSubQuestionAudio(subQuestionId, file) {
+  const body = new FormData(); body.append('file', file);
+  const response = await api.post(`/question-bank/sub-questions/${subQuestionId}/audio`, body);
+  return response.data;
+}
+export async function removeSubQuestionAudio(subQuestionId) {
+  const response = await api.delete(`/question-bank/sub-questions/${subQuestionId}/audio`);
+  return response.data;
+}
+export async function getQuestionMediaUrl(mediaId) {
+  const response = await api.get(`/question-bank/media/${mediaId}/url`);
+  return response.data;
+}
+export async function listManagedQuestionGroups(params = {}) {
+  const response = await api.get('/question-bank/question-groups', { params });
   return response.data;
 }
 export async function createManagedQuestionGroup(payload) {

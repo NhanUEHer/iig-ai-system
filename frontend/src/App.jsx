@@ -31,9 +31,9 @@ import ContentSourceDetailPage from './features/content-sources/pages/ContentSou
 import ContentDevelopmentPage from './features/content-sources/pages/ContentDevelopmentPage';
 import ComponentShowcasePage from './components/ui/ComponentShowcasePage';
 import { Toast } from './components/ui';
-import QuestionBankListPage from './features/question-bank/pages/QuestionBankListPage';
-import QuestionBankCreatePage from './features/question-bank/pages/QuestionBankCreatePage';
-import QuestionBankEditPage from './features/question-bank/pages/QuestionBankEditPage';
+import QuestionBankListPage from './features/question-management/QuestionListPage';
+import QuestionBankCreatePage from './features/question-management/QuestionCreatePage';
+import QuestionBankEditPage from './features/question-management/QuestionEditPage';
 import QuestionGroupManagementPage from './features/question-bank/pages/QuestionGroupManagementPage';
 import ExamListPage from './features/exams/pages/ExamListPage';
 import ExamCreatePage from './features/exams/pages/ExamCreatePage';

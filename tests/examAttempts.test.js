@@ -31,3 +31,4 @@ test('candidate table repair remains idempotent for existing environments', () =
   assert.match(source, /exam_candidates/i);
   assert.match(source, /exam_attempts/i);
 });
+

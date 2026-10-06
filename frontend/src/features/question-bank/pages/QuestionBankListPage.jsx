@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronRight, MoreVertical, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { ChevronRight, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { deleteQuestion, getQuestionFilterOptions, listQuestionTags, listQuestions } from '../../../services/questionBankService';
 import Button from '../../../components/ui/Button';
 import { DataTable, Pagination } from '../../../components/ui/DataTable';
+import { Breadcrumb } from '../../../components/ui/Layout';
 import SearchInput from '../../../components/ui/SearchInput';
 import MultiSelectFilter from '../../../components/ui/MultiSelectFilter';
+import QuestionBankRowActions from '../components/QuestionBankRowActions';
 import { useDialog } from '../../../components/feedback/dialogContext';
 import './QuestionBankListPage.css';
 import './QuestionBankRowMenu.css';
@@ -17,11 +19,6 @@ const statusLabel = { DRAFT: 'Bản nháp', ACTIVE: 'Hoạt động', INACTIVE: 
 const fallbackTypes = [{ value: 'MCQ_SINGLE', label: 'Dạng 3: MCQ', count: 0 }, { value: 'RECORD', label: 'Dạng Record', count: 0 }, { value: 'WRITING', label: 'Dạng Writing', count: 0 }];
 const formatDate = value => value ? new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric', year: '2-digit', hour12: false }).format(new Date(value)).replace(',', '') : '—';
 const statusOptions = [{ value: 'ACTIVE', label: 'Hoạt động' }, { value: 'INACTIVE', label: 'Dừng hoạt động' }, { value: 'DRAFT', label: 'Bản nháp' }];
-function QuestionActions({ row, navigate, onDelete }) {
-  const [open, setOpen] = useState(false);
-  return <div className="question-bank-row-menu"><button type="button" aria-label="Thao tác" title="Thao tác" onClick={() => setOpen(current => !current)}><MoreVertical /></button>{open && <div><button type="button" onClick={() => navigate(`/question-bank/${row.id}/edit`)}><Pencil />Chỉnh sửa</button>{row.status !== 'ACTIVE' && <button type="button" className="is-danger" onClick={() => { setOpen(false); onDelete(row.id); }}><Trash2 />Xóa câu hỏi</button>}</div>}</div>;
-}
-
 export default function QuestionBankListPage({ navigate, showMsg }) {
   const { confirm: confirmDialog } = useDialog();
   const [filters, setFilters] = useState({ search: '', groupIds: [], questionTypes: [], tagIds: [], statuses: [], page: 1, limit: 10 });
@@ -45,10 +42,10 @@ export default function QuestionBankListPage({ navigate, showMsg }) {
     { key: 'subQuestionCount', label: 'Số câu hỏi', className: 'is-center', render: row => row.subQuestionCount || 0 },
     { key: 'updatedAt', label: 'Ngày cập nhật', render: row => formatDate(row.updatedAt) },
     { key: 'status', label: 'Trạng thái', className: 'is-center', render: row => <span className={`question-bank-status is-${String(row.status).toLowerCase()}`}><i />{statusLabel[row.status] || row.status}</span> },
-    { key: 'actions', label: 'Thao tác', className: 'question-bank-actions is-center', render: row => <QuestionActions row={row} navigate={navigate} onDelete={remove} /> },
+    { key: 'actions', label: 'Thao tác', className: 'question-bank-actions is-center', render: row => <QuestionBankRowActions actions={[{ label: 'Chỉnh sửa', icon: <Pencil />, onClick: () => navigate(`/question-bank/${row.id}/edit`) }, ...(row.status !== 'ACTIVE' ? [{ label: 'Xóa câu hỏi', icon: <Trash2 />, danger: true, onClick: () => remove(row.id) }] : [])]} /> },
   ];
   return <section className="question-bank-page">
-    <header className="question-bank-topbar"><nav aria-label="Breadcrumb"><span>Ngân hàng câu hỏi</span><ChevronRight /><strong>Danh sách ngân hàng câu hỏi</strong></nav></header>
+    <header className="question-bank-topbar"><Breadcrumb separator={<ChevronRight />} items={[{ label: 'Ngân hàng câu hỏi' }, { label: 'Danh sách ngân hàng câu hỏi', current: true }]} /></header>
     <div className="question-bank-workspace"><section className="question-bank-filter-card">
       <div className="question-bank-filter-row"><div className="question-bank-filters"><SearchInput value={filters.search} onChange={event => updateFilter('search', event.target.value)} onClear={() => updateFilter('search', '')} placeholder="Tìm tiêu đề, nội dung..." /><MultiSelectFilter options={typeOptions} value={filters.questionTypes} onApply={value => updateFilter('questionTypes', value)} placeholder="Tất cả dạng câu hỏi" selectedLabel="Dạng câu hỏi" allLabel="Tất cả dạng câu hỏi" searchPlaceholder="Tìm dạng câu hỏi..." /><MultiSelectFilter options={tags.map(tag => ({ value: tag.id, label: tag.name }))} value={filters.tagIds} onApply={value => updateFilter('tagIds', value)} placeholder="Phân loại (Tag)" selectedLabel="Tag" allLabel="Tất cả Tag" searchPlaceholder="Tìm Tag..." /><MultiSelectFilter options={statusOptions} value={filters.statuses} onApply={value => updateFilter('statuses', value)} placeholder="Tất cả trạng thái" selectedLabel="Trạng thái" allLabel="Tất cả trạng thái" searchPlaceholder="Tìm trạng thái..." /></div><Button className="question-bank-create-button" size="sm" icon={<Plus />} onClick={() => navigate('/question-bank/new')}>Thêm mới</Button></div>
       {(filters.search || summaries.some(item => item.selected.length)) && <div className="question-bank-active-filters"><span>Đang lọc:</span>{summaries.filter(item => item.selected.length).map(item => <span className="question-bank-filter-chip" key={item.key}>{item.label}: {item.values.filter(value => item.selected.includes(value.value || value.id)).map(value => value.label || value.name).join(', ')}<button type="button" onClick={() => updateFilter(item.key, [])}><X /></button></span>)}<button className="question-bank-clear-filters" type="button" onClick={clearFilters}><Trash2 />Xóa tất cả bộ lọc</button></div>}

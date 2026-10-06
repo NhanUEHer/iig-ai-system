@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, MoreVertical, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { listExamEvents, listExamEventSchools, deleteExamEvent } from '../../../services/examEventService';
 import MultiSelectFilter from '../../../components/ui/MultiSelectFilter';
+import Button, { IconButton } from '../../../components/ui/Button';
 import { useDialog } from '../../../components/feedback/dialogContext';
 import { EVENT_LIFECYCLE_OPTIONS, eventLifecycleMeta } from '../examEventStatus';
 import './ExamEventListPage.css';
@@ -19,7 +20,7 @@ function EventActions({ onEdit, onDelete }) {
   useEffect(() => { if (!open) return undefined; const close = event => !root.current?.contains(event.target) && setOpen(false); document.addEventListener('mousedown', close); return () => document.removeEventListener('mousedown', close); }, [open]);
   const act = callback => { setOpen(false); callback(); };
   return <div className="event-action-menu" ref={root}>
-    <button type="button" className="event-action-trigger" title="Thao tác" onClick={() => setOpen(value => !value)}><MoreVertical /></button>
+    <IconButton size="sm" className="event-action-trigger" title="Thao tác" aria-label="Thao tác" onClick={() => setOpen(value => !value)}><MoreVertical /></IconButton>
     {open && <div className="event-action-dropdown">
       <button type="button" onClick={() => act(onEdit)}><Pencil className="is-amber" />Chỉnh sửa</button>
       <button type="button" className="is-danger" onClick={() => act(onDelete)}><Trash2 />Xóa kỳ thi</button>
@@ -108,9 +109,7 @@ export default function ExamEventListPage({ navigate, showMsg }) {
             searchPlaceholder="Tìm trường..."
           />
         </div>
-        <button type="button" className="event-add-btn" onClick={() => navigate('/exam-events/new')}>
-          <Plus />Thêm kỳ thi
-        </button>
+        <Button size="sm" className="event-add-btn" icon={<Plus />} onClick={() => navigate('/exam-events/new')}>Thêm kỳ thi</Button>
       </section>
 
       <section className="event-table-card">
@@ -182,9 +181,9 @@ export default function ExamEventListPage({ navigate, showMsg }) {
               <option value="50">50</option>
             </select>
             <span>/ trang</span>
-            <button disabled={(meta.page || 1) <= 1} onClick={() => update('page', (meta.page || 1) - 1)}><ChevronLeft /></button>
+            <IconButton size="sm" aria-label="Trang trước" disabled={(meta.page || 1) <= 1} onClick={() => update('page', (meta.page || 1) - 1)}><ChevronLeft /></IconButton>
             <b><i>{meta.page || 1}</i> / {meta.totalPages || 1}</b>
-            <button disabled={(meta.page || 1) >= (meta.totalPages || 1)} onClick={() => update('page', (meta.page || 1) + 1)}><ChevronRight /></button>
+            <IconButton size="sm" aria-label="Trang sau" disabled={(meta.page || 1) >= (meta.totalPages || 1)} onClick={() => update('page', (meta.page || 1) + 1)}><ChevronRight /></IconButton>
           </div>
         </footer>
       </section>

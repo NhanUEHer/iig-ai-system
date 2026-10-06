@@ -1,40 +1,419 @@
-const db=require('../../config/db');
-const HttpError=require('../../http/httpError');
-const repo=require('./examRepository');
-const {validateExam,validatePart}=require('./examValidator');
+const db = require('../../config/db');
+const HttpError = require('../../http/httpError');
+const repo = require('./examRepository');
+const calc = require('./durationCalculator');
+const { validateExam, validateListFilters, validateSection, validatePartCreate, validatePartContent } = require('./examValidator');
+const { isModeCompatible, modesForExamType, MODE_QUESTION_TYPE, TIMED_MODES, EXAM_ERROR_CODES } = require('./examConstants');
+const publicExamRepository = require('../public-exam-events/publicExamEventRepository');
+const deliveryCache = require('../public-exam-events/examDeliveryCache');
+const storage = require('../../services/storageService');
 
-async function get(id,client){const exam=await repo.findById(id,client);if(!exam)throw new HttpError('Không tìm thấy đề thi.',404,'EXAM_NOT_FOUND');return exam;}
-async function create(data,userId){validateExam(data);if(data.status==='ACTIVE')throw new HttpError('Hãy tạo bản nháp rồi dùng thao tác kích hoạt.',400,'USE_ACTIVATE_ENDPOINT');return repo.create(data,userId);}
-async function ensureEditable(id,client){const exam=await get(id,client);if(exam.status==='ACTIVE')throw new HttpError('Hãy ngừng hoạt động đề thi trước khi chỉnh sửa.',409,'ACTIVE_EXAM_LOCKED');return exam;}
-async function update(id,data,userId){await ensureEditable(id);validateExam(data,true);if(data.status==='ACTIVE')throw new HttpError('Hãy dùng thao tác kích hoạt để xuất bản đề.',400,'USE_ACTIVATE_ENDPOINT');return repo.update(id,data,userId);}
-async function remove(id){const exam=await get(id);if(exam.status==='ACTIVE')throw new HttpError('Không thể xóa đề thi đang hoạt động.',409,'ACTIVE_EXAM_DELETE_FORBIDDEN');const used=await db.query('SELECT 1 FROM exam_events WHERE exam_id=$1 LIMIT 1',[id]);if(used.rows[0])throw new HttpError('Không thể xóa đề thi đang được sử dụng trong kỳ thi. Hãy đổi đề áp dụng hoặc xóa kỳ thi liên quan trước.',409,'EXAM_IN_USE');await repo.remove(id);}
-async function duplicate(id,userId){await get(id);return repo.duplicate(id,userId);}
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
+async function get(id, client) {
+  const exam = await repo.findById(id, client);
+  if (!exam) throw new HttpError('Không tìm thấy đề thi.', 404, 'EXAM_NOT_FOUND');
+  return exam;
+}
 
-async function addPart(examId,data){validatePart(data);await ensureEditable(examId);return db.transaction(async client=>{const order=await client.query('SELECT COALESCE(MAX(display_order),-1)+1 value,COALESCE(MAX(part_number),0)+1 number FROM exam_parts WHERE exam_id=$1',[examId]);await client.query('INSERT INTO exam_parts(exam_id,part_number,title,duration_minutes,part_label,instruction,display_order) VALUES($1,$2,$3,$4,$5,$6,$7)',[examId,order.rows[0].number,data.title.trim(),Number(data.durationMinutes||0),String(data.partLabel||'').trim()||null,String(data.instruction||'').trim()||null,order.rows[0].value]);return get(examId,client);});}
-async function updatePart(examId,partId,data){validatePart(data);await ensureEditable(examId);await ensurePart(examId,partId);await db.query('UPDATE exam_parts SET title=$3,duration_minutes=$4,part_label=$5,instruction=$6,updated_at=CURRENT_TIMESTAMP WHERE id=$1 AND exam_id=$2',[partId,examId,data.title.trim(),Number(data.durationMinutes||0),String(data.partLabel||'').trim()||null,String(data.instruction||'').trim()||null]);return get(examId);}
-async function removePart(examId,partId){await ensureEditable(examId);await ensurePart(examId,partId);await db.query('DELETE FROM exam_parts WHERE id=$1 AND exam_id=$2',[partId,examId]);return get(examId);}
-async function ensurePart(examId,partId,client=db){const r=await client.query('SELECT id FROM exam_parts WHERE id=$1 AND exam_id=$2',[partId,examId]);if(!r.rows[0])throw new HttpError('Phần thi không thuộc đề thi này.',404,'PART_NOT_FOUND');return r.rows[0];}
-async function reorderParts(examId,ids){await ensureEditable(examId);return db.transaction(async client=>{const current=await client.query('SELECT id FROM exam_parts WHERE exam_id=$1',[examId]);assertSameIds(current.rows.map(r=>r.id),ids,'Danh sách phần sắp xếp không hợp lệ.');await client.query('UPDATE exam_parts SET display_order=display_order+$2,part_number=part_number+$2 WHERE exam_id=$1',[examId,ids.length+1]);for(let i=0;i<ids.length;i++)await client.query('UPDATE exam_parts SET display_order=$3,part_number=$3+1,updated_at=CURRENT_TIMESTAMP WHERE id=$1 AND exam_id=$2',[ids[i],examId,i]);return get(examId,client);});}
+async function ensureEditable(id, client) {
+  const exam = client ? await repo.lockExam(id, client) : await get(id);
+  if (!exam) throw new HttpError('Không tìm thấy đề thi.', 404, 'EXAM_NOT_FOUND');
+  if (exam.status === 'ACTIVE') throw new HttpError('Hãy ngừng hoạt động đề thi trước khi chỉnh sửa.', 409, 'ACTIVE_EXAM_LOCKED');
+  return exam;
+}
 
-async function addQuestions(examId,partId,questionIds){if(!Array.isArray(questionIds)||!questionIds.length)throw new HttpError('Vui lòng chọn ít nhất một câu hỏi.',400,'QUESTIONS_REQUIRED');return db.transaction(async client=>{await ensureEditable(examId,client);await ensurePart(examId,partId,client);const unique=[...new Set(questionIds)];if(unique.length!==questionIds.length)throw new HttpError('Danh sách câu hỏi bị trùng.',400,'DUPLICATE_QUESTIONS');const valid=await client.query(`SELECT q.id,COUNT(s.id)::int child_count FROM question_bank_questions q LEFT JOIN question_bank_sub_questions s ON s.question_id=q.id WHERE q.id=ANY($1::uuid[]) AND q.status='ACTIVE' GROUP BY q.id`,[unique]);if(valid.rows.length!==unique.length||valid.rows.some(q=>q.child_count<1))throw new HttpError('Câu hỏi phải đang hoạt động và có ít nhất một câu hỏi con.',400,'QUESTION_NOT_READY');const used=await client.query('SELECT question_id FROM exam_part_questions WHERE exam_id=$1 AND question_id=ANY($2::uuid[])',[examId,unique]);if(used.rows.length)throw new HttpError('Một hoặc nhiều câu hỏi đã có trong đề thi.',409,'QUESTION_ALREADY_ADDED');const max=await client.query('SELECT COALESCE(MAX(display_order),-1) value FROM exam_part_questions WHERE part_id=$1',[partId]);let order=Number(max.rows[0].value)+1;for(const questionId of unique)await client.query('INSERT INTO exam_part_questions(exam_id,part_id,question_id,display_order,points) VALUES($1,$2,$3,$4,10)',[examId,partId,questionId,order++]);return get(examId,client);});}
-async function listAvailableQuestions(examId,filters){await get(examId);return repo.listAvailableQuestions(examId,filters);}
-async function removeQuestion(examId,partId,questionId){await ensureEditable(examId);await ensurePart(examId,partId);const r=await db.query('DELETE FROM exam_part_questions WHERE exam_id=$1 AND part_id=$2 AND question_id=$3 RETURNING id',[examId,partId,questionId]);if(!r.rows[0])throw new HttpError('Câu hỏi không có trong phần thi.',404,'EXAM_QUESTION_NOT_FOUND');return get(examId);}
-async function reorderQuestions(examId,partId,ids){await ensureEditable(examId);await ensurePart(examId,partId);return db.transaction(async client=>{const current=await client.query('SELECT question_id id FROM exam_part_questions WHERE part_id=$1',[partId]);assertSameIds(current.rows.map(r=>r.id),ids,'Danh sách câu hỏi sắp xếp không hợp lệ.');for(let i=0;i<ids.length;i++)await client.query('UPDATE exam_part_questions SET display_order=$4 WHERE exam_id=$1 AND part_id=$2 AND question_id=$3',[examId,partId,ids[i],i]);return get(examId,client);});}
-function assertSameIds(current,next,message){if(!Array.isArray(next)||current.length!==next.length||new Set(next).size!==next.length||current.some(id=>!next.includes(id)))throw new HttpError(message,400,'INVALID_REORDER');}
+function assertSameIds(current, next, message) {
+  if (!Array.isArray(next) || current.length !== next.length || new Set(next.map(String)).size !== next.length || current.some(id => !next.map(String).includes(String(id)))) {
+    throw new HttpError(message, 400, EXAM_ERROR_CODES.INVALID_REORDER);
+  }
+}
 
-async function validation(examId){const exam=await get(examId);const errors=[];if(!exam.title)errors.push('Đề thi chưa có tên.');if(!stripHtml(exam.introduction))errors.push('Đề thi chưa có giới thiệu và hướng dẫn làm bài.');if(exam.durationSeconds<=0)errors.push('Thời gian làm bài phải lớn hơn 0.');if(!exam.parts.length)errors.push('Đề thi phải có ít nhất một phần.');for(const part of exam.parts){if(!part.title)errors.push('Có phần thi chưa có tên.');if(!stripHtml(part.instruction))errors.push(`Phần “${part.title}” chưa có hướng dẫn làm bài.`);if(!part.questions.length)errors.push(`Phần “${part.title}” chưa có câu hỏi.`);}
-  const rows=await db.query(`SELECT q.id,q.question_name,q.question_type,q.status,s.id sub_id,s.recording_duration_seconds,s.max_character_count,s.min_word_count,s.max_word_count,
-    COUNT(o.id)::int option_count,COUNT(o.id) FILTER(WHERE o.is_correct)::int correct_count
-    FROM exam_part_questions epq JOIN question_bank_questions q ON q.id=epq.question_id
-    LEFT JOIN question_bank_sub_questions s ON s.question_id=q.id LEFT JOIN question_bank_sub_question_options o ON o.sub_question_id=s.id
-    WHERE epq.exam_id=$1 GROUP BY q.id,s.id`,[examId]);
-  const parentIds=new Set(rows.rows.map(r=>r.id));for(const part of exam.parts)for(const q of part.questions){if(q.status!=='ACTIVE')errors.push(`Câu hỏi “${q.questionName}” chưa hoạt động.`);if(!parentIds.has(q.id))errors.push(`Câu hỏi “${q.questionName}” chưa có câu hỏi con.`);}
-  for(const row of rows.rows){if(row.question_type==='MCQ_SINGLE'&&(row.option_count<2||row.correct_count!==1))errors.push(`Câu hỏi con của “${row.question_name}” phải có ít nhất 2 đáp án và đúng 1 đáp án đúng.`);if(row.question_type==='RECORD'&&!row.recording_duration_seconds)errors.push(`Câu hỏi Record “${row.question_name}” thiếu thời gian ghi âm.`);if(row.question_type==='WRITING'&&(!row.max_character_count||!row.min_word_count))errors.push(`Câu hỏi Writing “${row.question_name}” thiếu giới hạn ký tự hoặc số từ tối thiểu.`);}
-  return {valid:errors.length===0,errors,summary:{partCount:exam.partCount,parentQuestionCount:exam.parentQuestionCount,subQuestionCount:exam.subQuestionCount,totalPoints:exam.totalPoints}};}
-function stripHtml(value){return String(value||'').replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').trim();}
+// Attach dynamically computed durations and counts to the exam tree. Nothing is persisted.
+async function withComputedDurations(exam) {
+  const allQuestionIds = exam.sections.flatMap(s => s.parts.flatMap(p => p.questions.map(q => q.id)));
+  const allPartIds = exam.sections.flatMap(s => s.parts.map(p => p.id));
+  const durationSources = await repo.loadDurationSources([...new Set(allQuestionIds)]);
+  const instructionAudio = await repo.loadInstructionAudioDurations(allPartIds);
+  const instructionAudioDetails = await repo.loadInstructionAudioDetails(allPartIds);
 
-async function buildSnapshot(examId,client){const exam=await get(examId,client);const result={exam:{id:exam.id,title:exam.title,durationSeconds:exam.durationSeconds,pointsPerSubQuestion:exam.pointsPerSubQuestion},parts:[]};for(const part of exam.parts){const out={id:part.id,title:part.title,displayOrder:part.displayOrder,questions:[]};for(const q of part.questions){const detail=await client.query(`SELECT q.id,q.question_name,q.question_type,q.note,q.status,g.title group_name FROM question_bank_questions q JOIN question_groups g ON g.id=q.group_id WHERE q.id=$1`,[q.id]);const contents=await client.query(`SELECT id,title,content_html,script_html,translation_html,display_order FROM question_bank_contents WHERE question_id=$1 ORDER BY display_order`,[q.id]);const subs=await client.query(`SELECT id,content_id,prompt_html,hint,explanation,note,instruction_html,sentence_starters_html,preparation_duration_seconds,recording_duration_seconds,max_character_count,min_word_count,max_word_count,display_order FROM question_bank_sub_questions WHERE question_id=$1 ORDER BY display_order`,[q.id]);for(const sub of subs.rows){const opts=await client.query('SELECT id,option_key,option_text,is_correct,display_order FROM question_bank_sub_question_options WHERE sub_question_id=$1 ORDER BY display_order',[sub.id]);sub.options=opts.rows;}out.questions.push({...detail.rows[0],contents:contents.rows,subQuestions:subs.rows});}result.parts.push(out);}return result;}
-async function activate(examId,userId){const checked=await validation(examId);if(!checked.valid)throw new HttpError('Đề thi chưa đủ điều kiện kích hoạt.',400,'EXAM_NOT_READY',checked.errors);return db.transaction(async client=>{const snapshot=await buildSnapshot(examId,client);const n=await client.query('SELECT COALESCE(MAX(version_number),0)+1 value FROM exam_versions WHERE exam_id=$1',[examId]);const v=await client.query(`INSERT INTO exam_versions(exam_id,version_number,snapshot,total_parent_questions,total_sub_questions,total_points,created_by) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id,version_number`,[examId,n.rows[0].value,JSON.stringify(snapshot),checked.summary.parentQuestionCount,checked.summary.subQuestionCount,checked.summary.totalPoints,userId||null]);await client.query("UPDATE exams SET status='ACTIVE',active_version_id=$2,updated_by=$3,updated_at=CURRENT_TIMESTAMP,lock_version=lock_version+1 WHERE id=$1",[examId,v.rows[0].id,userId||null]);return {...await get(examId,client),activeVersion:Number(v.rows[0].version_number)};});}
-async function deactivate(examId,userId){const exam=await get(examId);if(exam.status!=='ACTIVE')return exam;const activeEvent=await repo.findInProgressEvent(examId);if(activeEvent)throw new HttpError(`Không thể ngừng hoạt động vì đề thi đang được sử dụng trong kỳ thi “${activeEvent.name}”.`,409,'EXAM_EVENT_IN_PROGRESS');return repo.update(examId,{status:'INACTIVE'},userId);}
+  const sectionActuals = [];
+  for (const section of exam.sections) {
+    let actualSubCount = 0;
+    const partDurations = [];
+    for (const part of section.parts) {
+      const audio = instructionAudioDetails.get(part.id);
+      if (audio) {
+        part.instructionAudio = {
+          id: audio.id,
+          mediaType: audio.media_type,
+          originalName: audio.original_name,
+          mimeType: audio.mime_type,
+          fileSize: Number(audio.file_size || 0),
+          durationSeconds: Number(audio.duration_seconds || 0),
+          url: await storage.getSignedUrl(audio.storage_key).catch(() => null),
+        };
+      } else {
+        part.instructionAudio = null;
+      }
+      const questionDurations = part.questions.map(q => {
+        const duration = calc.questionActualDuration(section.examMode, durationSources.get(q.id) || {});
+        q.actualDurationSeconds = duration;
+        return duration;
+      });
+      actualSubCount += part.questions.reduce((sum, q) => sum + Number(q.subQuestionCount || 0), 0);
+      const partActual = calc.partActualDuration(section.examMode, {
+        instructionAudioSeconds: instructionAudio.get(part.id) || 0,
+        questionDurations: questionDurations.map(v => v || 0),
+        breakDurationSeconds: part.breakDurationSeconds,
+        configuredDurationSeconds: part.configuredDurationSeconds,
+      });
+      part.actualDurationSeconds = partActual;
+      partDurations.push(partActual);
+    }
+    const sectionActual = calc.sectionActualDuration(section.examMode, partDurations.map(v => v || 0));
+    section.actualSubQuestionCount = actualSubCount;
+    Object.assign(section, calc.durationComparison(section.configuredDurationSeconds, sectionActual));
+    sectionActuals.push(sectionActual);
+  }
+  exam.examConfiguredDurationSeconds = calc.examConfiguredDuration(exam.sections);
+  exam.examActualDurationSeconds = calc.examActualDuration(sectionActuals);
+  return exam;
+}
 
-module.exports={list:repo.list,get,create,update,remove,duplicate,addPart,updatePart,removePart,reorderParts,addQuestions,removeQuestion,reorderQuestions,listAvailableQuestions,validation,activate,deactivate};
+async function getWithDurations(id) {
+  return withComputedDurations(await get(id));
+}
+
+async function list(filters = {}) {
+  validateListFilters(filters);
+  return repo.list(filters);
+}
+
+// ---------------------------------------------------------------------------
+// Exam CRUD
+// ---------------------------------------------------------------------------
+async function create(data, userId) {
+  validateExam(data);
+  return repo.create(data, userId);
+}
+
+async function update(id, data, userId) {
+  validateExam(data, true);
+  if (data.status === 'ACTIVE') throw new HttpError('Hãy dùng thao tác Publish để xuất bản đề.', 400, 'USE_PUBLISH_ENDPOINT');
+  await db.transaction(async client => {
+    const current = await ensureEditable(id, client);
+    // Changing exam type is blocked while any section exists, so no section can
+    // be left with an incompatible mode.
+    if (data.examType !== undefined && data.examType !== current.examType) {
+      if (await repo.countSections(id, client) > 0) {
+        throw new HttpError('Không thể đổi kiểu đề khi đề đã có Phần thi. Hãy xóa các Phần thi không tương thích trước.', 409, EXAM_ERROR_CODES.EXAM_TYPE_IMMUTABLE_WITH_SECTIONS);
+      }
+    }
+    await repo.update(id, data, userId, client);
+  });
+  return getWithDurations(id);
+}
+
+async function remove(id) {
+  await db.transaction(async client => {
+    const exam = await repo.lockExam(id, client);
+    if (!exam) throw new HttpError('Không tìm thấy đề thi.', 404, 'EXAM_NOT_FOUND');
+    if (exam.status === 'ACTIVE') throw new HttpError('Không thể xóa đề thi đang hoạt động.', 409, 'ACTIVE_EXAM_DELETE_FORBIDDEN');
+    const used = await client.query('SELECT 1 FROM exam_events WHERE exam_id=$1 LIMIT 1', [id]);
+    if (used.rows[0]) throw new HttpError('Không thể xóa đề thi đang được sử dụng trong kỳ thi.', 409, 'EXAM_IN_USE');
+    await repo.remove(id, client);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Sections
+// ---------------------------------------------------------------------------
+function assertModeCompatible(examType, examMode) {
+  if (!examType) throw new HttpError('Đề thi chưa có kiểu đề hợp lệ.', 400, EXAM_ERROR_CODES.EXAM_TYPE_REQUIRED);
+  if (!isModeCompatible(examType, examMode)) {
+    throw new HttpError(`Kiểu thi không tương thích với kiểu đề. Cho phép: ${modesForExamType(examType).join(', ') || 'không có'}.`, 400, EXAM_ERROR_CODES.SECTION_MODE_INCOMPATIBLE);
+  }
+}
+
+async function createSection(examId, data) {
+  validateSection(data);
+  await db.transaction(async client => {
+    const exam = await ensureEditable(examId, client);
+    assertModeCompatible(exam.examType, data.examMode);
+    await repo.createSection(examId, data, client);
+  });
+  return getWithDurations(examId);
+}
+
+async function ensureSection(examId, sectionId, client = db) {
+  const section = await repo.findSection(examId, sectionId, client);
+  if (!section) throw new HttpError('Phần thi không thuộc đề thi này.', 404, EXAM_ERROR_CODES.SECTION_NOT_FOUND);
+  return section;
+}
+
+async function updateSection(examId, sectionId, data) {
+  validateSection(data, true);
+  await db.transaction(async client => {
+    const exam = await ensureEditable(examId, client);
+    await ensureSection(examId, sectionId, client);
+    if (data.examMode !== undefined) assertModeCompatible(exam.examType, data.examMode);
+    await repo.updateSection(examId, sectionId, data, client);
+  });
+  return getWithDurations(examId);
+}
+
+async function deleteSection(examId, sectionId) {
+  await db.transaction(async client => {
+    await ensureEditable(examId, client);
+    await ensureSection(examId, sectionId, client);
+    const removed = await repo.deleteSection(examId, sectionId, client);
+    if (!removed) throw new HttpError('Không thể xóa Phần thi.', 404, EXAM_ERROR_CODES.SECTION_NOT_FOUND);
+  });
+  return getWithDurations(examId);
+}
+
+async function reorderSections(examId, ids) {
+  await db.transaction(async client => {
+    await ensureEditable(examId, client);
+    const current = await repo.listSectionIds(examId, client);
+    assertSameIds(current, ids, 'Danh sách Phần thi sắp xếp không hợp lệ.');
+    await repo.reorderSections(examId, ids, client);
+  });
+  return getWithDurations(examId);
+}
+
+// ---------------------------------------------------------------------------
+// Parts
+// ---------------------------------------------------------------------------
+async function createPart(examId, sectionId, data) {
+  validatePartCreate(data);
+  const part = await db.transaction(async client => {
+    await ensureEditable(examId, client);
+    await ensureSection(examId, sectionId, client);
+    return repo.createPart(examId, sectionId, data, client);
+  });
+  const exam = await getWithDurations(examId);
+  return { exam, part };
+}
+
+async function ensurePart(examId, sectionId, partId, client = db) {
+  const part = await repo.findPart(examId, sectionId, partId, client);
+  if (!part) throw new HttpError('Part không thuộc Phần thi này.', 404, EXAM_ERROR_CODES.PART_NOT_FOUND);
+  return part;
+}
+
+// Validate an instruction-audio media reference: it must exist, be an AUDIO
+// file, an MP3, and within the 5MB limit.
+async function assertInstructionAudio(mediaId, partId, client = db) {
+  const r = await client.query('SELECT media_type,mime_type,file_size,duration_seconds,part_id FROM question_bank_media WHERE id=$1', [mediaId]);
+  const media = r.rows[0];
+  if (!media) throw new HttpError('Không tìm thấy audio hướng dẫn.', 404, EXAM_ERROR_CODES.PART_AUDIO_INVALID);
+  if (media.media_type !== 'AUDIO') throw new HttpError('Audio hướng dẫn phải là tệp âm thanh.', 400, EXAM_ERROR_CODES.PART_AUDIO_INVALID);
+  if (media.mime_type && !/mpeg|mp3/i.test(media.mime_type)) throw new HttpError('Audio hướng dẫn phải là định dạng MP3.', 400, EXAM_ERROR_CODES.PART_AUDIO_INVALID);
+  if (Number(media.file_size || 0) > 5 * 1024 * 1024) throw new HttpError('Audio hướng dẫn không được vượt quá 5MB.', 400, EXAM_ERROR_CODES.PART_AUDIO_INVALID);
+  if (media.part_id !== partId || !(Number(media.duration_seconds) > 0)) throw new HttpError('Audio hướng dẫn không thuộc Part hoặc chưa có metadata thời lượng hợp lệ.', 400, EXAM_ERROR_CODES.PART_AUDIO_INVALID);
+}
+
+async function updatePart(examId, sectionId, partId, data) {
+  await db.transaction(async client => {
+    await ensureEditable(examId, client);
+    const section = await ensureSection(examId, sectionId, client);
+    await ensurePart(examId, sectionId, partId, client);
+    const nextData = section.examMode === 'WRITING_NON_STOP'
+      ? { ...data, breakDurationSeconds: 0 }
+      : { ...data, configuredDurationSeconds: 0, breakDurationSeconds: TIMED_MODES.has(section.examMode) ? data.breakDurationSeconds : 0 };
+    validatePartContent(nextData);
+    if (nextData.instructionAudioMediaId) await assertInstructionAudio(nextData.instructionAudioMediaId, partId, client);
+    await repo.updatePartContent(examId, sectionId, partId, nextData, client);
+  });
+  return getWithDurations(examId);
+}
+
+async function deletePart(examId, sectionId, partId) {
+  await db.transaction(async client => {
+    await ensureEditable(examId, client);
+    await ensureSection(examId, sectionId, client);
+    await ensurePart(examId, sectionId, partId, client);
+    await repo.deletePart(examId, sectionId, partId, client);
+  });
+  return getWithDurations(examId);
+}
+
+async function reorderParts(examId, sectionId, ids) {
+  await db.transaction(async client => {
+    await ensureEditable(examId, client);
+    await ensureSection(examId, sectionId, client);
+    const current = await repo.listPartIdsInSection(examId, sectionId, client);
+    assertSameIds(current, ids, 'Danh sách Part sắp xếp không hợp lệ.');
+    await repo.reorderParts(examId, sectionId, ids, client);
+  });
+  return getWithDurations(examId);
+}
+
+// ---------------------------------------------------------------------------
+// Eligible questions + relations
+// ---------------------------------------------------------------------------
+// Eligibility resolves the exam mode from the Part's Section on the server; the
+// client never supplies a mode (spec §16).
+async function listEligibleQuestions(examId, partId, filters) {
+  await get(examId);
+  const located = await repo.findPartWithSection(examId, partId);
+  if (!located) throw new HttpError('Part không thuộc đề thi này.', 404, EXAM_ERROR_CODES.PART_NOT_FOUND);
+  return repo.listEligibleQuestions(examId, located.examMode, filters);
+}
+
+async function addQuestions(examId, sectionId, partId, questionIds) {
+  if (!Array.isArray(questionIds) || !questionIds.length) throw new HttpError('Vui lòng chọn ít nhất một câu hỏi.', 400, 'QUESTIONS_REQUIRED');
+  const unique = [...new Set(questionIds)];
+  if (unique.length !== questionIds.length) throw new HttpError('Danh sách câu hỏi bị trùng.', 400, EXAM_ERROR_CODES.DUPLICATE_QUESTIONS);
+  return db.transaction(async client => {
+    await ensureEditable(examId, client);
+    const section = await ensureSection(examId, sectionId, client);
+    await ensurePart(examId, sectionId, partId, client);
+    // Check "already in the exam" first so the clearer conflict wins over the
+    // eligibility rule (which also excludes questions already used).
+    const used = await repo.findUsedQuestions(examId, unique, client);
+    if (used.length) throw new HttpError('Một hoặc nhiều câu hỏi đã có trong đề thi.', 409, EXAM_ERROR_CODES.QUESTION_ALREADY_ADDED);
+    const eligible = await repo.filterEligibleIds(examId, section.examMode, unique, client);
+    const notEligible = unique.filter(id => !eligible.has(id));
+    if (notEligible.length) throw new HttpError('Một hoặc nhiều câu hỏi không đủ điều kiện cho kiểu thi này.', 400, EXAM_ERROR_CODES.QUESTION_NOT_ELIGIBLE);
+    await repo.addQuestions(examId, partId, unique, client);
+    return withComputedDurations(await get(examId, client));
+  });
+}
+
+async function removeQuestion(examId, sectionId, partId, questionId) {
+  await db.transaction(async client => {
+    await ensureEditable(examId, client);
+    await ensureSection(examId, sectionId, client);
+    await ensurePart(examId, sectionId, partId, client);
+    const removed = await repo.removeQuestion(examId, partId, questionId, client);
+    if (!removed.rows[0]) throw new HttpError('Câu hỏi không có trong Part.', 404, 'EXAM_QUESTION_NOT_FOUND');
+  });
+  return getWithDurations(examId);
+}
+
+async function reorderQuestions(examId, sectionId, partId, ids) {
+  await db.transaction(async client => {
+    await ensureEditable(examId, client);
+    await ensureSection(examId, sectionId, client);
+    await ensurePart(examId, sectionId, partId, client);
+    const current = await repo.listPartQuestionIds(partId, client);
+    assertSameIds(current, ids, 'Danh sách câu hỏi sắp xếp không hợp lệ.');
+    await repo.reorderQuestions(examId, partId, ids, client);
+  });
+  return getWithDurations(examId);
+}
+
+// ---------------------------------------------------------------------------
+// Validation + Publish
+// ---------------------------------------------------------------------------
+// Full Publish validation (spec §22). Returns errors bound to section/part/
+// question identity, plus informational duration warnings.
+async function validation(examId) {
+  const exam = await withComputedDurations(await get(examId));
+  const errors = [];
+  const warnings = [];
+
+  if (!exam.title) errors.push({ scope: 'exam', message: 'Đề thi chưa có tên.' });
+  if (!exam.examType) errors.push({ scope: 'exam', code: EXAM_ERROR_CODES.EXAM_TYPE_REQUIRED, message: 'Đề thi chưa có kiểu đề.' });
+  if (!exam.sections.length) errors.push({ scope: 'exam', message: 'Đề thi phải có ít nhất một Phần thi.' });
+
+  const rows = await repo.loadValidationRows(examId);
+  const rowsByQuestion = new Map();
+  for (const row of rows) {
+    if (!rowsByQuestion.has(row.id)) rowsByQuestion.set(row.id, []);
+    if (row.sub_id) rowsByQuestion.get(row.id).push(row);
+  }
+
+  for (const section of exam.sections) {
+    if (exam.examType && !isModeCompatible(exam.examType, section.examMode)) {
+      errors.push({ scope: 'section', sectionId: section.id, code: EXAM_ERROR_CODES.SECTION_MODE_INCOMPATIBLE, message: `Phần thi “${section.title}” có kiểu thi không tương thích với kiểu đề.` });
+    }
+    if (!(section.questionCount > 0)) errors.push({ scope: 'section', sectionId: section.id, message: `Phần thi “${section.title}” phải có số câu cấu hình lớn hơn 0.` });
+    if (!(section.configuredDurationSeconds > 0)) errors.push({ scope: 'section', sectionId: section.id, message: `Phần thi “${section.title}” phải có thời gian cấu hình lớn hơn 0.` });
+    if (!section.parts.length) errors.push({ scope: 'section', sectionId: section.id, message: `Phần thi “${section.title}” phải có ít nhất một Part.` });
+    // Actual child-question count must equal the configured count at Publish.
+    if (section.actualSubQuestionCount !== section.questionCount) {
+      errors.push({ scope: 'section', sectionId: section.id, message: `Phần thi “${section.title}” có ${section.actualSubQuestionCount} câu hỏi con thực tế, khác số cấu hình ${section.questionCount}.` });
+    }
+    // Duration difference is informational only.
+    if ((TIMED_MODES.has(section.examMode) || section.examMode === 'WRITING_NON_STOP') && section.durationDifferenceSeconds) {
+      warnings.push({ scope: 'section', sectionId: section.id, message: `Phần thi “${section.title}” chênh lệch thời gian ${section.durationDifferenceSeconds}s so với cấu hình.` });
+    }
+
+    const expectedType = MODE_QUESTION_TYPE[section.examMode];
+    for (const part of section.parts) {
+      if (!part.title) errors.push({ scope: 'part', sectionId: section.id, partId: part.id, message: 'Có Part chưa có tên.' });
+      if (!part.questions.length) errors.push({ scope: 'part', sectionId: section.id, partId: part.id, message: `Part “${part.title}” chưa có câu hỏi.` });
+      if (Number(part.breakDurationSeconds) < 0) errors.push({ scope: 'part', sectionId: section.id, partId: part.id, message: `Part “${part.title}” có thời gian nghỉ không hợp lệ.` });
+      if (section.examMode === 'WRITING_NON_STOP' && !(Number(part.configuredDurationSeconds) > 0)) {
+        errors.push({ scope: 'part', sectionId: section.id, partId: part.id, code: 'PART_DURATION_REQUIRED', message: `Part “${part.title}” phải có thời gian làm bài lớn hơn 0.` });
+      }
+
+      const ineligibleIds = await repo.findIneligibleQuestionIds(examId, section.examMode, part.questions.map(q => q.id));
+      for (const questionId of ineligibleIds) {
+        errors.push({ scope: 'question', sectionId: section.id, partId: part.id, questionId, code: EXAM_ERROR_CODES.QUESTION_NOT_ELIGIBLE, message: 'Câu hỏi không còn đủ điều kiện cho kiểu thi của Phần thi.' });
+      }
+
+      for (const q of part.questions) {
+        const id = q.id;
+        if (q.status !== 'ACTIVE') errors.push({ scope: 'question', sectionId: section.id, partId: part.id, questionId: id, message: `Câu hỏi “${q.questionName}” chưa hoạt động.` });
+        if (q.questionType !== expectedType) errors.push({ scope: 'question', sectionId: section.id, partId: part.id, questionId: id, message: `Câu hỏi “${q.questionName}” không đúng dạng cho kiểu thi.` });
+        const subs = rowsByQuestion.get(id) || [];
+        if (!subs.length) { errors.push({ scope: 'question', sectionId: section.id, partId: part.id, questionId: id, message: `Câu hỏi “${q.questionName}” chưa có câu hỏi con.` }); continue; }
+        for (const sub of subs) {
+          if (q.questionType === 'MCQ_SINGLE' && (sub.option_count < 2 || sub.correct_count !== 1)) errors.push({ scope: 'question', sectionId: section.id, partId: part.id, questionId: id, message: `Câu hỏi con của “${q.questionName}” phải có ít nhất 2 đáp án và đúng 1 đáp án đúng.` });
+          if (q.questionType === 'RECORD' && !(Number(sub.recording_duration_seconds) > 0)) errors.push({ scope: 'question', sectionId: section.id, partId: part.id, questionId: id, message: `Câu hỏi Record “${q.questionName}” thiếu thời gian ghi âm hợp lệ.` });
+          if (q.questionType === 'WRITING' && (!(Number(sub.max_character_count) > 0) || sub.min_word_count === null || sub.min_word_count === undefined)) errors.push({ scope: 'question', sectionId: section.id, partId: part.id, questionId: id, message: `Câu hỏi Writing “${q.questionName}” thiếu giới hạn ký tự hoặc số từ tối thiểu.` });
+        }
+      }
+    }
+  }
+
+  const summary = {
+    sectionCount: exam.sections.length,
+    parentQuestionCount: exam.parentQuestionCount,
+    subQuestionCount: exam.subQuestionCount,
+    totalPoints: exam.subQuestionCount * 10,
+  };
+  return { valid: errors.length === 0, errors, warnings, summary };
+}
+
+async function publish(examId, userId) {
+  const checked = await validation(examId);
+  if (!checked.valid) throw new HttpError('Đề thi chưa đủ điều kiện Publish.', 400, EXAM_ERROR_CODES.EXAM_NOT_READY, checked.errors);
+  const published = await db.transaction(async client => {
+    const snapshot = await repo.buildSnapshot(examId, client);
+    const versionId = await repo.replacePublishedSnapshot(examId, snapshot, checked.summary, userId, client);
+    return { versionId, exam: await get(examId, client) };
+  });
+  // Warm the public delivery cache after commit; a cache outage must never roll
+  // back a successful Publish.
+  try {
+    const source = await publicExamRepository.findVersionQuestionDelivery(published.versionId);
+    if (source) {
+      await deliveryCache.publishGeneration(examId, source.snapshot, source.media);
+    }
+  } catch (error) { console.error('[ExamDeliveryCache] Warm after publish failed:', error.message); }
+  return withComputedDurations(published.exam);
+}
+
+async function deactivate(examId, userId) {
+  const exam = await get(examId);
+  if (exam.status !== 'ACTIVE') return exam;
+  const activeEvent = await repo.findInProgressEvent(examId);
+  if (activeEvent) throw new HttpError(`Không thể ngừng hoạt động vì đề thi đang được sử dụng trong kỳ thi “${activeEvent.name}”.`, 409, 'EXAM_EVENT_IN_PROGRESS');
+  await repo.update(examId, { status: 'INACTIVE' }, userId);
+  return getWithDurations(examId);
+}
+
+module.exports = {
+  list, get: getWithDurations, create, update, remove,
+  createSection, updateSection, deleteSection, reorderSections,
+  createPart, updatePart, deletePart, reorderParts,
+  listEligibleQuestions, addQuestions, removeQuestion, reorderQuestions,
+  validation, publish, deactivate,
+};

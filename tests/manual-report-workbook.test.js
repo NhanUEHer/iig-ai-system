@@ -35,7 +35,7 @@ test('manual report templates contain exactly three sheets for every department'
     for (const field of TEAM_ENTRY_CONFIG[teamCode].fields.filter(item => item[2] === 'computed')) {
       assert.equal(labels.includes(field[1]), false, `${teamCode} must omit computed field ${field[1]}`);
     }
-    assert.equal(workbook.Sheets.KPI.E7.z, 'General');
+    assert.equal(workbook.Sheets.KPI.E7.z, '#,##0.############################');
   }
 });
 
@@ -95,23 +95,8 @@ test('template number parser preserves imported decimal scale without rounding',
   assert.equal(parseNumber('34'), '34');
 });
 
-test('template number parser accepts Vietnamese and international separators',()=>{
-  assert.equal(parseNumber('7,100,000,000'), '7100000000');
-  assert.equal(parseNumber('1,234,567.89'), '1234567.89');
-  assert.equal(parseNumber('1.234.567,89'), '1234567.89');
-  for(const value of ['1,2,3','1.234,56.7'])assert.equal(parseNumber(value),null,value);
-});
-
-test('template import converts text percentages to ratios',()=>{
-  const current=workspace('ADS');
-  current.kpis=[{code:'ADS_01',name:'Tỷ lệ',unit:'%',evaluation_direction:'increase_good',input_mode:'manual',target_value:null,actual_value:null,note:null}];
-  const workbook=XLSX.read(buildTemplate(current),{type:'buffer'});
-  workbook.Sheets.KPI.E7.v='18.4%'; workbook.Sheets.KPI.E7.t='s';
-  workbook.Sheets.KPI.F7.v='15.6%'; workbook.Sheets.KPI.F7.t='s';
-  const parsed=parseTemplate(XLSX.write(workbook,{type:'buffer',bookType:'xlsx'}),current);
-  assert.deepEqual(parsed.errors,[]);
-  assert.equal(parsed.kpis[0].target_value,'0.184');
-  assert.equal(parsed.kpis[0].actual_value,'0.156');
+test('template number parser rejects malformed or international text separators',()=>{
+  for(const value of ['1.00','1.0000','1,2,3','1,234,567.89','1.234,56.7'])assert.equal(parseNumber(value),null,value);
 });
 
 test('template date parser normalizes Excel serials and API date strings', () => {

@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS question_bank_contents (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_question_bank_contents_question_order
+CREATE INDEX IF NOT EXISTS idx_question_bank_contents_question_order 
   ON question_bank_contents(question_id, display_order);
 
 -- 4. Question Bank Sub-questions
@@ -72,10 +72,10 @@ CREATE TABLE IF NOT EXISTS question_bank_sub_questions (
   )
 );
 
-CREATE INDEX IF NOT EXISTS idx_question_bank_sub_questions_question_order
+CREATE INDEX IF NOT EXISTS idx_question_bank_sub_questions_question_order 
   ON question_bank_sub_questions(question_id, display_order);
 
-CREATE INDEX IF NOT EXISTS idx_question_bank_sub_questions_content_id
+CREATE INDEX IF NOT EXISTS idx_question_bank_sub_questions_content_id 
   ON question_bank_sub_questions(content_id);
 
 -- 5. Question Bank Sub-question Options
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS question_bank_sub_question_options (
   CONSTRAINT uq_question_bank_sub_options_key UNIQUE (sub_question_id, option_key)
 );
 
-CREATE INDEX IF NOT EXISTS idx_question_bank_sub_options_sub_q_order
+CREATE INDEX IF NOT EXISTS idx_question_bank_sub_options_sub_q_order 
   ON question_bank_sub_question_options(sub_question_id, display_order);
 
 -- 6. Question Bank Tags (Master tags catalog)
@@ -129,7 +129,7 @@ ALTER TABLE question_bank_media
   DROP CONSTRAINT IF EXISTS chk_question_bank_media_scope;
 
 ALTER TABLE question_bank_media
-  ADD CONSTRAINT chk_question_bank_media_scope
+  ADD CONSTRAINT chk_question_bank_media_scope 
     CHECK (scope IN ('QUESTION_LEGACY', 'CONTENT', 'SUB_QUESTION'));
 
 -- Validate scope consistency:
@@ -146,11 +146,11 @@ ALTER TABLE question_bank_media
     (scope = 'SUB_QUESTION' AND sub_question_id IS NOT NULL)
   );
 
-CREATE INDEX IF NOT EXISTS idx_question_bank_media_content_id
+CREATE INDEX IF NOT EXISTS idx_question_bank_media_content_id 
   ON question_bank_media(content_id);
 
-CREATE INDEX IF NOT EXISTS idx_question_bank_media_sub_question_id
+CREATE INDEX IF NOT EXISTS idx_question_bank_media_sub_question_id 
   ON question_bank_media(sub_question_id);
 
-CREATE INDEX IF NOT EXISTS idx_question_bank_media_scope
+CREATE INDEX IF NOT EXISTS idx_question_bank_media_scope 
   ON question_bank_media(scope);

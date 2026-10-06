@@ -9,10 +9,25 @@ test('question group API has a separate CRUD contract while preserving legacy gr
   const routes = read('src/routes/questionBankV3Routes.js');
   assert.match(routes, /router\.get\('\/groups'/);
   assert.match(routes, /router\.get\('\/question-groups'/);
-  assert.match(routes, /router\.get\('\/question-groups\/next-code'/);
+  assert.doesNotMatch(routes, /next-code/);
   assert.match(routes, /router\.post\('\/question-groups'/);
   assert.match(routes, /router\.put\('\/question-groups\/:id'/);
   assert.match(routes, /router\.delete\('\/question-groups\/:id'/);
+});
+
+test('question group backend no longer exposes preview-code helpers', () => {
+  const controller = read('src/controllers/questionGroupController.js');
+  const service = read('src/modules/question-bank-v3/questionGroupService.js');
+  const repository = read('src/modules/question-bank-v3/questionGroupRepository.js');
+  assert.doesNotMatch(controller, /previewNextCode/);
+  assert.doesNotMatch(service, /previewNextCode/);
+  assert.doesNotMatch(repository, /peekNextCode/);
+});
+
+test('question group list repository filters by statuses only, not status', () => {
+  const repository = read('src/modules/question-bank-v3/questionGroupRepository.js');
+  assert.match(repository, /function filters\(\{ search = '', statuses = '' \}/);
+  assert.doesNotMatch(repository, /status = '' *, *statuses/);
 });
 
 test('question group service validates input and prevents deletion while questions are linked', () => {
@@ -31,5 +46,12 @@ test('question group management page provides listing, status filtering, and cre
   assert.match(source, /Thêm nhóm câu hỏi/);
   assert.match(source, /Cập nhật nhóm câu hỏi/);
   assert.match(source, /deleteManagedQuestionGroup/);
-  assert.match(source, /previewManagedQuestionGroupCode/);
+});
+
+test('question group create form no longer previews or shows a code field', () => {
+  const source = read('frontend/src/features/question-bank/pages/QuestionGroupManagementPage.jsx');
+  const serviceClient = read('frontend/src/services/questionBankService.js');
+  assert.doesNotMatch(source, /previewManagedQuestionGroupCode/);
+  assert.doesNotMatch(source, /question-group-code-field/);
+  assert.doesNotMatch(serviceClient, /previewManagedQuestionGroupCode/);
 });

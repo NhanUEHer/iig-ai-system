@@ -7,14 +7,17 @@ const { validateEnv } = require('./config/env');
 const { getBuildInfo } = require('./config/buildInfo');
 const mappingSyncScheduler = require('./services/mappingSyncScheduler');
 const dictionaryService = require('./modules/dictionary/dictionaryService');
+const storageService = require('./services/storageService');
+const redis = require('./config/redis');
 
 async function startServer() {
   let server;
   try {
     const { port } = validateEnv();
+    storageService.requireProductionR2();
     // 1. Initialize Postgres tables
     await initDb();
-
+    
     // 2. Start Express app listening
     server = app.listen(port, () => {
       const build = getBuildInfo();
@@ -37,6 +40,7 @@ async function startServer() {
       server.close(async () => {
         mappingSyncScheduler.stop();
         dictionaryService.stopWorker();
+        await redis.close();
         await db.close();
         process.exit(0);
       });

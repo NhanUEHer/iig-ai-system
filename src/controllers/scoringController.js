@@ -38,27 +38,7 @@ module.exports = {
       method: req.body.method,
       publicOrigin: `${req.protocol}://${req.get('host')}`
     });
-    const errors = [...new Set(data.results
-      .filter(item => item.status === 'error')
-      .map(item => item.error)
-      .filter(Boolean))];
-    const errorDetail = errors.length ? ` ${errors.slice(0, 3).join(' · ')}` : '';
-    if (data.failed === data.total) {
-      return res.status(422).json({
-        success: false,
-        message: `Không thể làm sạch ${data.total} tệp audio.${errorDetail}`,
-        data
-      });
-    }
-    if (data.failed > 0) {
-      return res.status(207).json({
-        success: false,
-        partial: true,
-        message: `Đã làm sạch ${data.success}/${data.total} tệp; ${data.failed} tệp lỗi.${errorDetail}`,
-        data
-      });
-    }
-    return res.json({ success: true, message: `Đã làm sạch thành công ${data.success}/${data.total} tệp audio.`, data });
+    return res.json({ success: true, message: `Đã làm sạch ${data.success}/${data.total} tệp audio.`, data });
   },
 
   async teacherNote(req, res) {

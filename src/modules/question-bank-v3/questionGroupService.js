@@ -35,4 +35,4 @@ async function remove(id) {
   return { id };
 }
 
-module.exports = { list: repo.list, get, previewNextCode: repo.peekNextCode, create, update, remove };
+module.exports = { list: repo.list, get, create, update, remove };

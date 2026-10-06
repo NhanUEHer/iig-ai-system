@@ -34,6 +34,26 @@ async function questions(req, res) {
   ) });
 }
 
+async function attemptManifest(req, res) {
+  res.set('Cache-Control', 'private, no-store');
+  res.json({ success: true, data: await service.getAttemptManifest(req.params.eventId, req.params.attemptId, bearerToken(req)) });
+}
+
+async function attemptStructure(req, res) {
+  res.set('Cache-Control', 'private, no-store');
+  res.json({ success: true, data: await service.getAttemptStructure(req.params.eventId, req.params.attemptId, bearerToken(req)) });
+}
+
+async function partQuestions(req, res) {
+  res.set('Cache-Control', 'private, no-store');
+  res.json({ success: true, data: await service.getAttemptPartQuestions(req.params.eventId, req.params.attemptId, req.params.partId, bearerToken(req)) });
+}
+
+async function questionDetail(req, res) {
+  res.set('Cache-Control', 'private, no-store');
+  res.json({ success: true, data: await service.getAttemptQuestion(req.params.eventId, req.params.attemptId, req.params.subQuestionId, bearerToken(req)) });
+}
+
 async function saveAnswer(req, res) {
   res.set('Cache-Control', 'private, no-store');
   res.json({ success: true, data: await service.saveAttemptAnswer(
@@ -45,6 +65,26 @@ async function saveAnswer(req, res) {
   ) });
 }
 
+async function createRecording(req, res) {
+  res.set('Cache-Control', 'private, no-store');
+  res.status(201).json({ success: true, data: await service.createRecordingUpload(req.params.eventId, req.params.attemptId, req.params.subQuestionId, bearerToken(req), req.body) });
+}
+
+async function finalizeRecording(req, res) {
+  res.set('Cache-Control', 'private, no-store');
+  res.json({ success: true, data: await service.finalizeRecording(req.params.eventId, req.params.attemptId, req.params.subQuestionId, req.params.recordingId, bearerToken(req), req.body) });
+}
+
+async function getRecording(req, res) {
+  res.set('Cache-Control', 'private, no-store');
+  res.json({ success: true, data: await service.getRecording(req.params.eventId, req.params.attemptId, req.params.subQuestionId, bearerToken(req)) });
+}
+
+async function deleteRecording(req, res) {
+  res.set('Cache-Control', 'private, no-store');
+  res.json({ success: true, data: await service.deleteRecording(req.params.eventId, req.params.attemptId, req.params.subQuestionId, req.params.recordingId, bearerToken(req)) });
+}
+
 async function submissionSummary(req, res) {
   res.set('Cache-Control', 'private, no-store');
   res.json({ success: true, data: await service.getSubmissionSummary(req.params.eventId, req.params.attemptId, bearerToken(req)) });
@@ -52,7 +92,17 @@ async function submissionSummary(req, res) {
 
 async function submitAttempt(req, res) {
   res.set('Cache-Control', 'private, no-store');
-  res.json({ success: true, data: await service.submitAttempt(req.params.eventId, req.params.attemptId, bearerToken(req)) });
+  res.json({ success: true, data: await service.submitAttempt(
+    req.params.eventId,
+    req.params.attemptId,
+    bearerToken(req),
+    { answers: req.body?.answers },
+  ) });
 }
 
-module.exports = { detail, register, introduction, startAttempt, questions, saveAnswer, submissionSummary, submitAttempt };
+module.exports = {
+  detail, register, introduction, startAttempt, questions,
+  attemptManifest, attemptStructure, partQuestions, questionDetail,
+  saveAnswer, createRecording, finalizeRecording, getRecording, deleteRecording,
+  submissionSummary, submitAttempt,
+};

@@ -9,3 +9,4 @@ ALTER TABLE exam_events ALTER COLUMN event_code SET NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_exam_events_event_code ON exam_events(UPPER(event_code));
 CREATE INDEX IF NOT EXISTS idx_exam_events_school_name ON exam_events(school_name);
 CREATE INDEX IF NOT EXISTS idx_exam_events_updated_at ON exam_events(updated_at DESC);
+

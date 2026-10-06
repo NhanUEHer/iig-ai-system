@@ -28,7 +28,6 @@ const INTEGER_FIELDS = new Set([
   'qualified_student_count','teacher_count','started_class_count','completed_class_count',
   'evaluated_student_count','workshop_count','social_post_count','target_quantity','actual_quantity'
 ]);
-const PERCENT_FIELDS = new Set(['engagement_rate','output_rate','progress_percent']);
 
 const normalize = value => String(value ?? '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9]+/g,' ' ).trim();
 const inputFields = fields => fields.filter(field => field[2] !== 'computed');
@@ -58,37 +57,11 @@ const parseNumber = value => {
   if(typeof value === 'number') return Number.isFinite(value) ? String(value) : null;
   const text = String(value).trim().replace(/\s/g,'');
   if(!text) return null;
-  if(!/^-?[\d.,]+$/.test(text))return null;
-  const unsigned=text.replace('-','');
-  const commas=(unsigned.match(/,/g)||[]).length;
-  const dots=(unsigned.match(/\./g)||[]).length;
-  let normalizedValue;
-  if(commas&&dots) {
-    const decimal=unsigned.lastIndexOf(',')>unsigned.lastIndexOf('.')?',':'.';
-    const grouped=decimal===','?'.':',';
-    const fraction=unsigned.slice(unsigned.lastIndexOf(decimal)+1);
-    if(!/^\d+$/.test(fraction)||fraction.length===0)return null;
-    normalizedValue=text.replaceAll(grouped,'').replace(decimal,'.');
-  } else if(commas>1 || dots>1) {
-    const separator=commas? ',':'.';
-    const parts=unsigned.split(separator);
-    if(parts.slice(1).some(part=>!/^\d{3}$/.test(part)))return null;
-    normalizedValue=text.replaceAll(separator,'');
-  } else if(commas===1 || dots===1) {
-    const separator=commas?',':'.';
-    const [integer,fraction]=unsigned.split(separator);
-    if(!integer||!fraction)return null;
-    // A single three-digit separator is treated as grouping; this makes
-    // Excel/US-formatted imports safe while preserving decimal input otherwise.
-    normalizedValue=(fraction.length===3 && !/^0\d*$/.test(integer)?text.replace(separator,''):text.replace(separator,'.'));
-  } else normalizedValue=text;
+  if(!/^-?(?:\d{1,3}(?:\.\d{3})*|\d+)(?:,\d+)?$/.test(text))return null;
+  const normalizedValue=text.replaceAll('.','').replace(',','.');
   return Number.isFinite(Number(normalizedValue)) ? normalizedValue : null;
 };
 const parseFieldNumber = (value,fieldKey) => {
-  if(typeof value==='string'&&/%$/.test(value.trim())) {
-    const number=parseNumber(value.trim().slice(0,-1));
-    return number===null?null:String(Number(number)/100);
-  }
   const number=parseNumber(value);
   // Excel configured with a comma-decimal locale can store "6,786" as 6.786.
   // Count fields are integers, so restore the intended thousands value on import.
@@ -124,7 +97,7 @@ function formatNumericColumns(sheet, headerRow, fields, lastRow) {
     for(let row=headerRow+1;row<=lastRow;row++){
       const address=XLSX.utils.encode_cell({r:row,c:column});
       const cell=sheet[address];
-      if(cell)cell.z='General';
+      if(cell)cell.z='#,##0.############################';
     }
   });
 }
@@ -160,8 +133,8 @@ function buildTemplate(workspace) {
   const kpiSheet=XLSX.utils.aoa_to_sheet(kpiRows);
   styleSheet(kpiSheet,[14,38,18,20,18,18,34],[4,5,6]);
   for(let row=6;row<kpiRows.length;row++) {
-    kpiSheet[`E${row+1}`].z='General';
-    if(kpiSheet[`F${row+1}`])kpiSheet[`F${row+1}`].z='General';
+    kpiSheet[`E${row+1}`].z='#,##0.############################';
+    if(kpiSheet[`F${row+1}`])kpiSheet[`F${row+1}`].z='#,##0.############################';
     if(workspace.kpis[row-6]?.input_mode==='derived') {
       const cell=kpiSheet[`F${row+1}`]||(kpiSheet[`F${row+1}`]={t:'s',v:''});
       cell.c=[{a:'IIG Admin',t:'Chỉ số này được hệ thống tự tính từ sheet Chi tiết. Không nhập giá trị tại đây.'}];
@@ -254,9 +227,7 @@ function parseTemplate(buffer, workspace) {
   else for(const row of kpiRows.slice(kpiHeader+1)) {
     const code=String(row[0]||'').trim().toUpperCase();if(!code)continue;
     if(incomingKpis.has(code)){errors.push(`Mã KPI ${code} bị trùng.`);continue;}
-    const isPercent=String(row[2]??'').trim()==='%';
-    const target=isPercent?parseFieldNumber(row[4],'percent'):parseNumber(row[4]);
-    const actual=isPercent?parseFieldNumber(row[5],'percent'):parseNumber(row[5]);
+    const target=parseNumber(row[4]),actual=parseNumber(row[5]);
     if(row[4]!==null&&row[4]!==undefined&&String(row[4]).trim()!==''&&target===null)errors.push(`KPI ${code}: Kế hoạch “${row[4]}” sai định dạng số Việt Nam.`);
     if(row[5]!==null&&row[5]!==undefined&&String(row[5]).trim()!==''&&actual===null)errors.push(`KPI ${code}: Thực hiện “${row[5]}” sai định dạng số Việt Nam.`);
     incomingKpis.set(code,{name:String(row[1]||'').trim(),unit:String(row[2]||'').trim(),direction:String(row[3]||'').trim(),target_value:target,actual_value:actual,note:row[6]===null?null:String(row[6]||'').trim()});

@@ -6,7 +6,7 @@ Applies to AI Scoring Admin backend, admin frontend and PostgreSQL migrations.
 
 - Use Node.js 22.13 or newer.
 - Confirm root and frontend versions are identical.
-- Release from a reviewed commit/tag whenever possible.
+- Release from an reviewed commit/tag whenever possible.
 - Do not package `.env`, database dumps, runtime media, model weights or local credentials.
 - Generate the artifact with `npm run release:package`.
 - Verify the archive against its adjacent `.sha256` file.
@@ -69,7 +69,7 @@ The server also runs pending migrations during startup, but running the explicit
 Run the repeatable read-only smoke suite after traffic has switched:
 
 ```bash
-EXPECTED_VERSION=1.1.74 \
+EXPECTED_VERSION=1.1.72 \
 PROD_BASE_URL=https://admin.iigvn.site \
 npm run test:prod
 ```

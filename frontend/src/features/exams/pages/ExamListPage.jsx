@@ -1,68 +1,110 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, MoreHorizontal, Pencil, Plus, Search, Trash2 } from 'lucide-react';
-import { deleteExam, listExams } from '../../../services/examService';
-import { ContextHeader } from '../../../components/ui/Layout';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ChevronRight, Pencil, Plus, X } from 'lucide-react';
+import { listExams } from '../../../services/examService';
+import Button from '../../../components/ui/Button';
+import { DataTable, Pagination } from '../../../components/ui/DataTable';
+import { Breadcrumb } from '../../../components/ui/Layout';
+import SearchInput from '../../../components/ui/SearchInput';
 import MultiSelectFilter from '../../../components/ui/MultiSelectFilter';
-import { useDialog } from '../../../components/feedback/dialogContext';
+import QuestionBankRowActions from '../../question-bank/components/QuestionBankRowActions';
 import { EXAM_STATUS_OPTIONS, examStatusMeta } from '../examStatus';
 import './ExamPages.css';
 import './ExamListPage.css';
 import './ExamListPageOverrides.css';
+import '../../question-bank/pages/QuestionBankRowMenu.css';
 
-const formatDuration = value => `${Math.floor(Number(value || 0) / 60)} phút`;
-const formatDate = value => value ? new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric', year: '2-digit', hour12: false }).format(new Date(value)) : '—';
+const EXAM_TYPE_OPTIONS = [
+  { value: 'LISTENING_READING', label: 'Listening & Reading' },
+  { value: 'READING', label: 'Reading' },
+  { value: 'LISTENING', label: 'Listening' },
+  { value: 'SPEAKING_WRITING', label: 'Speaking & Writing' },
+  { value: 'SPEAKING', label: 'Speaking' },
+  { value: 'WRITING', label: 'Writing' },
+];
 
-function ActionMenu({ onEdit, onDelete }) {
-  const [open, setOpen] = useState(false);
-  const root = useRef(null);
-  useEffect(() => { if (!open) return undefined; const close = event => !root.current?.contains(event.target) && setOpen(false); document.addEventListener('mousedown', close); return () => document.removeEventListener('mousedown', close); }, [open]);
-  const act = callback => { setOpen(false); callback(); };
-  return <div className="exam-list-actions" ref={root}>
-    <button type="button" className="exam-list-actions__trigger" title="Thao tác" onClick={() => setOpen(value => !value)}><MoreHorizontal /></button>
-    {open && <div className="exam-list-actions__menu">
-      <button type="button" onClick={() => act(onEdit)}><Pencil className="is-amber" />Chỉnh sửa</button>
-      <button type="button" className="is-danger" onClick={() => act(onDelete)}><Trash2 />Xóa đề thi</button>
-    </div>}
-  </div>;
+const formatDate = value => value
+  ? new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric', year: '2-digit', hour12: false }).format(new Date(value)).replace(',', '')
+  : '—';
+
+function formatDuration(value) {
+  const seconds = Math.max(0, Number(value || 0));
+  if (!seconds) return '0 phút';
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.ceil((seconds % 3600) / 60);
+  if (!hours) return `${minutes} phút`;
+  return minutes ? `${hours} giờ ${minutes} phút` : `${hours} giờ`;
 }
 
-export default function ExamListPage({ navigate, showMsg }) {
-  const { confirm: requestConfirm } = useDialog();
+export default function ExamListPage({ navigate }) {
   const [searchInput, setSearchInput] = useState('');
-  const [filters, setFilters] = useState({ search: '', statuses: [], page: 1, limit: 10 });
-  const [result, setResult] = useState({ data: [], meta: {} });
+  const [filters, setFilters] = useState({ search: '', statuses: [], examTypes: [], page: 1, limit: 10 });
+  const [result, setResult] = useState({ data: [], meta: { page: 1, limit: 10, total: 0, totalPages: 1 } });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [selected, setSelected] = useState([]);
-  const load = useCallback(async () => { setLoading(true); setError(''); try { setResult(await listExams({ ...filters, statuses: filters.statuses.join(',') })); } catch (e) { setError(e.response?.data?.error || 'Không thể tải danh sách đề thi.'); } finally { setLoading(false); } }, [filters]);
+
+  const updateFilter = (key, value) => setFilters(current => ({ ...current, [key]: value, ...(key !== 'page' ? { page: 1 } : {}) }));
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      setResult(await listExams({ ...filters, statuses: filters.statuses.join(','), examTypes: filters.examTypes.join(',') }));
+    } catch (requestError) {
+      setError(requestError.response?.data?.error || 'Không thể tải danh sách đề thi.');
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
+
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { const timer = window.setTimeout(() => setFilters(current => ({ ...current, search: searchInput.trim(), page: 1 })), 300); return () => window.clearTimeout(timer); }, [searchInput]);
-  const filter = (key, value) => setFilters(current => ({ ...current, [key]: value, ...(key !== 'page' ? { page: 1 } : {}) }));
-  const remove = async row => { if (!await requestConfirm({ title: 'Xóa đề thi?', message: `Đề “${row.title}” và toàn bộ phần thi sẽ bị xóa.`, confirmText: 'Xóa đề' })) return; try { await deleteExam(row.id); showMsg?.('Đã xóa đề thi.', 'success'); setSelected(current => current.filter(id => id !== row.id)); load(); } catch (e) { showMsg?.(e.response?.data?.error || 'Không thể xóa đề thi.', 'error'); } };
-  const rows = result.data || []; const meta = result.meta || {}; const allChecked = rows.length > 0 && rows.every(row => selected.includes(row.id));
-  const toggleAll = event => setSelected(event.target.checked ? rows.map(row => row.id) : []);
-  const toggleRow = id => setSelected(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setFilters(current => current.search === searchInput.trim()
+        ? current
+        : { ...current, search: searchInput.trim(), page: 1 });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  const clearFilters = () => {
+    setSearchInput('');
+    setFilters(current => ({ ...current, search: '', statuses: [], examTypes: [], page: 1 }));
+  };
+  const typeLabel = value => EXAM_TYPE_OPTIONS.find(option => option.value === value)?.label || 'Chưa phân loại';
+  const columns = [
+    { key: 'number', label: 'STT', className: 'is-center', width: 64, render: (_row, index) => (Number(result.meta?.page || 1) - 1) * Number(result.meta?.limit || filters.limit) + index + 1 },
+    { key: 'examCode', label: 'Mã đề thi', width: 118, render: row => <code className="exam-list-code">{row.examCode || '—'}</code> },
+    { key: 'title', label: 'Tên đề thi', render: row => <button type="button" className="exam-list-title-button" onClick={() => navigate(`/exams/${row.id}/edit`)}>{row.title}</button> },
+    { key: 'examType', label: 'Kiểu đề thi', render: row => <span className={`exam-list-type${row.examType ? '' : ' is-unclassified'}`}>{typeLabel(row.examType)}</span> },
+    { key: 'status', label: 'Trạng thái', className: 'is-center', render: row => { const meta = examStatusMeta(row.status); return <span className={`exam-list-status is-${meta.tone}`}><i />{meta.label}</span>; } },
+    { key: 'sectionCount', label: 'Số phần thi', className: 'is-center', render: row => Number(row.sectionCount || 0) },
+    { key: 'subQuestionCount', label: 'Số câu hỏi', className: 'is-center', render: row => Number(row.subQuestionCount || 0) },
+    { key: 'configuredDurationSeconds', label: 'Thời gian', className: 'is-center', render: row => formatDuration(row.configuredDurationSeconds) },
+    { key: 'updatedAt', label: 'Ngày cập nhật', render: row => <span className="exam-list-date">{formatDate(row.updatedAt)}</span> },
+    { key: 'actions', label: 'Thao tác', className: 'question-bank-actions is-center', width: 82, render: row => <QuestionBankRowActions actions={[{ label: 'Chỉnh sửa', icon: <Pencil />, onClick: () => navigate(`/exams/${row.id}/edit`) }]} /> },
+  ];
+  const hasFilters = Boolean(searchInput || filters.statuses.length || filters.examTypes.length);
 
   return <section className="exam-list-page">
-    <ContextHeader className="exam-list-header" breadcrumb={[{ label: 'Quản lý đề thi' }, { label: 'Danh sách đề thi', current: true }]} />
+    <header className="exam-list-header"><Breadcrumb separator={<ChevronRight />} items={[{ label: 'Quản lý đề thi' }, { label: 'Danh sách đề thi', current: true }]} /></header>
     <main className="exam-list-main">
-      <div className="exam-list-filter-card">
-        <label className="exam-list-search"><Search /><input value={searchInput} onChange={event => setSearchInput(event.target.value)} placeholder="Tìm tên đề thi, mã đề..." /></label>
-        <MultiSelectFilter options={EXAM_STATUS_OPTIONS} value={filters.statuses} onApply={value => filter('statuses', value)} placeholder="Tất cả trạng thái" selectedLabel="Trạng thái" allLabel="Tất cả trạng thái" searchPlaceholder="Tìm trạng thái..." />
-        <button type="button" className="exam-list-add" onClick={() => navigate('/exams/new')}><Plus />Thêm đề thi</button>
-      </div>
-      <div className="exam-list-table-card">
-        <div className="exam-list-table-scroll"><table className="exam-list-table">
-          <thead><tr><th className="is-check"><input type="checkbox" checked={allChecked} onChange={toggleAll} aria-label="Chọn tất cả" /></th><th>TÊN ĐỀ THI</th><th>TRẠNG THÁI</th><th>THỜI GIAN</th><th className="is-center">SỐ PHẦN</th><th className="is-center">SỐ CÂU HỎI</th><th className="is-center">TỔNG ĐIỂM</th><th>NGÀY CẬP NHẬT</th><th className="is-center">THAO TÁC</th></tr></thead>
-          <tbody>{loading ? <tr><td colSpan="9" className="exam-list-message">Đang tải dữ liệu...</td></tr> : error ? <tr><td colSpan="9" className="exam-list-message is-error">{error}</td></tr> : rows.length === 0 ? <tr><td colSpan="9" className="exam-list-message">Chưa có dữ liệu đề thi</td></tr> : rows.map((row, index) => <tr key={row.id} className={index % 2 ? 'is-alt' : ''}>
-            <td className="is-check"><input type="checkbox" checked={selected.includes(row.id)} onChange={() => toggleRow(row.id)} aria-label={`Chọn ${row.title}`} /></td>
-            <td className="exam-list-title" title={`${row.examCode} · ${row.title}`}>{row.title}</td><td><span className={`exam-list-status is-${examStatusMeta(row.status).tone}`}><i />{examStatusMeta(row.status).label}</span></td>
-            <td>{formatDuration(row.durationSeconds)}</td><td className="is-center is-number">{row.partCount}</td><td className="is-center is-number">{row.subQuestionCount}</td><td className="is-center is-number">{row.totalPoints}</td><td className="exam-list-date">{formatDate(row.updatedAt)}</td>
-            <td className="is-center"><ActionMenu onEdit={() => navigate(`/exams/${row.id}/edit`)} onDelete={() => remove(row)} /></td>
-          </tr>)}</tbody>
-        </table></div>
-        <footer className="exam-list-pagination"><span>Tổng <strong>{meta.total || 0}</strong> bản ghi</span><div><label>Hiển thị <select value={meta.limit || filters.limit} onChange={event => filter('limit', Number(event.target.value))}><option value="10">10</option><option value="20">20</option><option value="50">50</option></select> / trang</label><button type="button" disabled={(meta.page || 1) <= 1} onClick={() => filter('page', meta.page - 1)}><ChevronLeft /></button><b>{meta.page || 1} / {meta.totalPages || 1}</b><button type="button" disabled={(meta.page || 1) >= (meta.totalPages || 1)} onClick={() => filter('page', meta.page + 1)}><ChevronRight /></button></div></footer>
-      </div>
+      <section className="exam-list-filter-card">
+        <div className="exam-list-filters">
+          <SearchInput value={searchInput} onChange={event => setSearchInput(event.target.value)} onClear={() => setSearchInput('')} placeholder="Tìm tên đề thi, mã đề..." />
+          <MultiSelectFilter options={EXAM_TYPE_OPTIONS} value={filters.examTypes} onApply={value => updateFilter('examTypes', value)} placeholder="Tất cả kiểu đề" selectedLabel="Kiểu đề" allLabel="Tất cả kiểu đề" searchPlaceholder="Tìm kiểu đề..." />
+          <MultiSelectFilter options={EXAM_STATUS_OPTIONS} value={filters.statuses} onApply={value => updateFilter('statuses', value)} placeholder="Tất cả trạng thái" selectedLabel="Trạng thái" allLabel="Tất cả trạng thái" searchPlaceholder="Tìm trạng thái..." />
+        </div>
+        <Button size="sm" className="exam-list-add" icon={<Plus />} onClick={() => navigate('/exams/new')}>Thêm đề thi</Button>
+        {hasFilters && <div className="exam-list-active-filters">
+          <span>Đang lọc:</span>
+          {filters.examTypes.length > 0 && <span className="exam-list-filter-chip">Kiểu đề: {EXAM_TYPE_OPTIONS.filter(option => filters.examTypes.includes(option.value)).map(option => option.label).join(', ')}<button type="button" onClick={() => updateFilter('examTypes', [])}><X /></button></span>}
+          {filters.statuses.length > 0 && <span className="exam-list-filter-chip">Trạng thái: {EXAM_STATUS_OPTIONS.filter(option => filters.statuses.includes(option.value)).map(option => option.label).join(', ')}<button type="button" onClick={() => updateFilter('statuses', [])}><X /></button></span>}
+          <button className="exam-list-clear-filters" type="button" onClick={clearFilters}>Xóa tất cả bộ lọc</button>
+        </div>}
+      </section>
+      <section className="exam-list-table-card">
+        <DataTable columns={columns} data={result.data || []} rowKey="id" loading={loading} error={error} />
+        <Pagination summaryLabel="Tổng" page={result.meta?.page || 1} pageSize={result.meta?.limit || filters.limit} total={result.meta?.total || 0} onPageChange={page => updateFilter('page', page)} onPageSizeChange={limit => setFilters(current => ({ ...current, limit, page: 1 }))} />
+      </section>
     </main>
   </section>;
 }

@@ -20,12 +20,12 @@ export function DataTable({ columns = [], data = [], rowKey = 'id', loading = fa
         {columns.map(column => <th key={column.key} className={column.className} style={column.width ? { width: column.width } : undefined}><button type="button" className={sortable && column.sortable !== false ? 'ui-table__sort' : 'ui-table__sort is-static'} onClick={() => sortable && column.sortable !== false && toggleSort(column.key)}>{column.label}{sortable && column.sortable !== false && <span aria-hidden="true">{sort.key === column.key ? (sort.direction === 'asc' ? ' ↑' : ' ↓') : ' ↕'}</span>}</button></th>)}
       </tr></thead>
       <tbody>
-        {loading ? <TableSkeleton rows={5} columns={columns.length + (selectable ? 1 : 0)} /> : error ? <tr><td colSpan={columns.length + (selectable ? 1 : 0)}><ErrorState message={error} /></td></tr> : sortedData.length === 0 ? (emptyState === false ? <tr className="ui-table__empty-row"><td colSpan={columns.length + (selectable ? 1 : 0)} aria-label="Không có dữ liệu" /></tr> : <tr><td colSpan={columns.length + (selectable ? 1 : 0)}>{emptyState || <EmptyState />}</td></tr>) : sortedData.map(row => {
+        {loading ? <TableSkeleton rows={5} columns={columns.length + (selectable ? 1 : 0)} /> : error ? <tr><td colSpan={columns.length + (selectable ? 1 : 0)}><ErrorState message={error} /></td></tr> : sortedData.length === 0 ? (emptyState === false ? <tr className="ui-table__empty-row"><td colSpan={columns.length + (selectable ? 1 : 0)} aria-label="Không có dữ liệu" /></tr> : <tr><td colSpan={columns.length + (selectable ? 1 : 0)}>{emptyState || <EmptyState />}</td></tr>) : sortedData.map((row, rowIndex) => {
           const key = row[rowKey];
           const selected = selectedRowKeys.includes(key);
           return <tr key={key} className={selected ? 'is-selected' : ''}>
             {selectable && <td className="ui-table__select"><input type="checkbox" checked={selected} onChange={() => onSelectionChange?.(selected ? selectedRowKeys.filter(value => value !== key) : [...selectedRowKeys, key])} aria-label={`Chọn dòng ${key}`} /></td>}
-            {columns.map(column => <td key={column.key} className={column.className}>{column.render ? column.render(row) : row[column.key]}</td>)}
+            {columns.map(column => <td key={column.key} className={column.className}>{column.render ? column.render(row, rowIndex) : row[column.key]}</td>)}
           </tr>;
         })}
       </tbody>

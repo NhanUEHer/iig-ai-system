@@ -9,6 +9,7 @@ APP_VERSION="$(node -p "require('./package.json').version")"
 FRONTEND_VERSION="$(node -p "require('./frontend/package.json').version")"
 APP_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || printf 'no-git')"
 BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+ADMIN_ONLY="${ADMIN_ONLY:-true}"
 DIRTY=false
 DIRTY_SUFFIX=""
 if test -n "$(git status --porcelain 2>/dev/null || true)"; then
@@ -34,10 +35,12 @@ npm run check
 
 echo "[2/5] Building frontend with production identity..."
 VITE_APP_ENV=production VITE_APP_VERSION="$APP_VERSION" VITE_APP_COMMIT="$APP_COMMIT" npm run build --prefix frontend
-npm run build --prefix mobile-web
-mkdir -p "$PROJECT_DIR/frontend/dist/events"
-rsync -a --delete "$PROJECT_DIR/mobile-web/dist/" "$PROJECT_DIR/frontend/dist/events/"
-test -s "$PROJECT_DIR/frontend/dist/events/index.html"
+if [ "$ADMIN_ONLY" != true ]; then
+  npm run build --prefix mobile-web
+  mkdir -p "$PROJECT_DIR/frontend/dist/events"
+  rsync -a --delete "$PROJECT_DIR/mobile-web/dist/" "$PROJECT_DIR/frontend/dist/events/"
+  test -s "$PROJECT_DIR/frontend/dist/events/index.html"
+fi
 
 echo "[3/5] Staging runtime files..."
 mkdir -p "$STAGE_DIR/frontend" "$STAGE_DIR/public" "$STAGE_DIR/scripts" "$STAGE_DIR/docs" "$OUTPUT_DIR"
@@ -65,10 +68,10 @@ version=$APP_VERSION
 commit=$APP_COMMIT
 built_at_utc=$BUILD_TIME
 node_required=>=22.13.0
-latest_migration=099_exam_candidate_management.sql
+latest_migration=112_backfill_legacy_lr_exam_sections.sql
 working_tree_dirty=$DIRTY
 frontend_prebuilt=true
-candidate_mobile_prebuilt=true
+candidate_mobile_prebuilt=$([ "$ADMIN_ONLY" = true ] && printf false || printf true)
 runtime_media_included=false
 environment_secrets_included=false
 model_weights_included=false
@@ -80,7 +83,10 @@ echo "[4/5] Creating checksums and archive..."
   find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 shasum -a 256 > SHA256SUMS
 )
 COPYFILE_DISABLE=1 tar -C "$(dirname "$STAGE_DIR")" -czf "$OUTPUT_DIR/$RELEASE_ID.tar.gz" "$RELEASE_ID"
-shasum -a 256 "$OUTPUT_DIR/$RELEASE_ID.tar.gz" > "$OUTPUT_DIR/$RELEASE_ID.tar.gz.sha256"
+(
+  cd "$OUTPUT_DIR"
+  shasum -a 256 "$RELEASE_ID.tar.gz" > "$RELEASE_ID.tar.gz.sha256"
+)
 
 echo "[5/5] Release package ready."
 echo "$OUTPUT_DIR/$RELEASE_ID.tar.gz"

@@ -58,7 +58,8 @@ export default function RichTextEditor({
   error = false,
   minHeight = '104px',
   variant = 'stitch',
-  questionTools = false
+  questionTools = false,
+  disabled = false
 }) {
   const editorRef = useRef(null);
 
@@ -76,6 +77,7 @@ export default function RichTextEditor({
   }, [value]);
 
   const handleInput = () => {
+    if (disabled) return;
     if (editorRef.current) {
       const html = editorRef.current.innerHTML;
       // If editor contains only <br>, normalize to empty string
@@ -89,6 +91,7 @@ export default function RichTextEditor({
   };
 
   const execCommand = (command, val = null) => {
+    if (disabled) return;
     document.execCommand(command, false, val);
     if (editorRef.current) {
       editorRef.current.focus();
@@ -114,12 +117,13 @@ export default function RichTextEditor({
   };
 
   return (
-    <div className={`rich-editor-wrapper rich-editor-wrapper--${variant} ${error ? 'error' : ''}`}>
+    <div className={`rich-editor-wrapper rich-editor-wrapper--${variant} ${error ? 'error' : ''} ${disabled ? 'is-disabled' : ''}`} aria-disabled={disabled}>
       <div className="rich-editor-toolbar" role="toolbar" aria-label="Định dạng nội dung HTML" onMouseDown={keepSelection}>
         <button
           type="button"
           className="rich-btn"
           title="In đậm (Bold)"
+          disabled={disabled}
           onClick={() => execCommand('bold')}
         >
           {variant === 'stitch' ? 'B' : <Bold />}
@@ -128,6 +132,7 @@ export default function RichTextEditor({
           type="button"
           className="rich-btn"
           title="In nghiêng (Italic)"
+          disabled={disabled}
           onClick={() => execCommand('italic')}
         >
           {variant === 'stitch' ? 'I' : <Italic />}
@@ -136,6 +141,7 @@ export default function RichTextEditor({
           type="button"
           className="rich-btn"
           title="Gạch chân (Underline)"
+          disabled={disabled}
           onClick={() => execCommand('underline')}
         >
           {variant === 'stitch' ? 'U' : <Underline />}
@@ -144,6 +150,7 @@ export default function RichTextEditor({
           type="button"
           className="rich-btn"
           title="Gạch ngang (Strikethrough)"
+          disabled={disabled}
           onClick={() => execCommand('strikeThrough')}
         >
           {variant === 'stitch' ? 'S' : <Strikethrough />}
@@ -155,6 +162,7 @@ export default function RichTextEditor({
           type="button"
           className="rich-btn"
           title="Tiêu đề lớn (Heading 1)"
+          disabled={disabled}
           onClick={() => execCommand('formatBlock', '<h1>')}
         >
           {variant === 'stitch' ? 'H1' : <Heading1 />}
@@ -163,6 +171,7 @@ export default function RichTextEditor({
           type="button"
           className="rich-btn"
           title="Tiêu đề vừa (Heading 2)"
+          disabled={disabled}
           onClick={() => execCommand('formatBlock', '<h2>')}
         >
           {variant === 'stitch' ? 'H2' : <Heading2 />}
@@ -174,6 +183,7 @@ export default function RichTextEditor({
           type="button"
           className="rich-btn"
           title="Danh sách dấu chấm (Bullet List)"
+          disabled={disabled}
           onClick={() => execCommand('insertUnorderedList')}
         >
           <List />
@@ -182,6 +192,7 @@ export default function RichTextEditor({
           type="button"
           className="rich-btn"
           title="Danh sách số (Numbered List)"
+          disabled={disabled}
           onClick={() => execCommand('insertOrderedList')}
         >
           <ListOrdered />
@@ -193,18 +204,20 @@ export default function RichTextEditor({
           type="button"
           className="rich-btn"
           title="Thêm liên kết (Link)"
+          disabled={disabled}
           onClick={handleAddLink}
         >
           <LinkIcon />
         </button>
         {questionTools && <>
-          <button type="button" className="rich-btn rich-btn--text" title="Chèn công thức" onClick={() => execCommand('insertText', 'fx')}>fx</button>
-          <button type="button" className="rich-btn rich-btn--blank" title="Chèn ô trống" onClick={() => execCommand('insertText', '[blank]')}>[blank]</button>
+          <button type="button" className="rich-btn rich-btn--text" title="Chèn công thức" disabled={disabled} onClick={() => execCommand('insertText', 'fx')}>fx</button>
+          <button type="button" className="rich-btn rich-btn--blank" title="Chèn ô trống" disabled={disabled} onClick={() => execCommand('insertText', '[blank]')}>[blank]</button>
         </>}
         <button
           type="button"
           className="rich-btn"
           title="Mã nguồn (Code block)"
+          disabled={disabled}
           onClick={() => execCommand('formatBlock', '<pre>')}
         >
           <Code />
@@ -213,6 +226,7 @@ export default function RichTextEditor({
           type="button"
           className="rich-btn"
           title="Xóa định dạng"
+          disabled={disabled}
           onClick={() => execCommand('removeFormat')}
         >
           <RemoveFormatting />
@@ -222,12 +236,12 @@ export default function RichTextEditor({
       <div
         ref={editorRef}
         className="rich-editor-content"
-        contentEditable
+        contentEditable={!disabled}
         role="textbox"
         aria-multiline="true"
         aria-label={placeholder}
-        onInput={handleInput}
-        onBlur={handleInput}
+        onInput={disabled ? undefined : handleInput}
+        onBlur={disabled ? undefined : handleInput}
         style={{ minHeight }}
         data-placeholder={placeholder}
         suppressContentEditableWarning

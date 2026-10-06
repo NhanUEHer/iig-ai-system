@@ -14,3 +14,4 @@ WHERE trend.id = owner.trend_id
 
 CREATE UNIQUE INDEX IF NOT EXISTS content_trends_owner_key
   ON content_trends(created_by, cluster_key);
+

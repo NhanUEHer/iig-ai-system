@@ -1,7 +1,7 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "1.1.75",
+  "version": "1.1.77",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,11 +16,11 @@
     "@uppy/xhr-upload": "^6.0.0",
     "axios": "^1.18.1",
     "lucide-react": "^1.22.0",
-    "pdfjs-dist": "^6.3.289",
+    "pdfjs-dist": "^5.7.284",
     "qrcode": "^1.5.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router-dom": "^7.18.2"
+    "react-router-dom": "^7.18.1"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

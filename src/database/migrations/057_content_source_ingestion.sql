@@ -26,3 +26,4 @@ CREATE INDEX IF NOT EXISTS content_sources_checksum_idx
 
 UPDATE roles SET permissions = permissions || '["content_sources.view","content_sources.create"]'::jsonb
 WHERE slug = 'admin';
+

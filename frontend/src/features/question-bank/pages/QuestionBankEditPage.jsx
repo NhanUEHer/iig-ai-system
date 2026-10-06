@@ -24,17 +24,19 @@ export default function QuestionBankEditPage({ navigate, showMsg }) {
   const [groups, setGroups] = useState([]);
   const [tags, setTags] = useState([]);
   const [question, setQuestion] = useState(null);
+  const [persistedStatus, setPersistedStatus] = useState(null);
   const [contents, setContents] = useState([]);
   const [contentMedia, setContentMedia] = useState({});
   const [subQuestions, setSubQuestions] = useState([]);
   const [saving, setSaving] = useState(false);
   const [addingSub, setAddingSub] = useState(false);
   const [savingSubKeys, setSavingSubKeys] = useState([]);
+  const [savingAllSubs, setSavingAllSubs] = useState(false);
   const savingSubRef = useRef(new Set());
-  const load = async () => { try { const [q, g, t, c, s] = await Promise.all([getQuestion(id), listQuestionGroups(), listQuestionTags(), listQuestionContents(id), listSubQuestions(id)]); const contentItems = c.data || []; const mediaEntries = await Promise.all(contentItems.map(async item => [item.id, (await listContentMedia(item.id)).data || []])); setQuestion(q.data); setGroups(g.data || []); setTags(t.data || []); setContents(contentItems); setContentMedia(Object.fromEntries(mediaEntries)); setSubQuestions(s.data || []); } catch (e) { showMsg?.(e.response?.data?.error || 'Không thể tải câu hỏi.', 'error'); } };
+  const load = async () => { try { const [q, g, t, c, s] = await Promise.all([getQuestion(id), listQuestionGroups(), listQuestionTags(), listQuestionContents(id), listSubQuestions(id)]); const contentItems = c.data || []; const mediaEntries = await Promise.all(contentItems.map(async item => [item.id, (await listContentMedia(item.id)).data || []])); setQuestion(q.data); setPersistedStatus(q.data?.status || null); setGroups(g.data || []); setTags(t.data || []); setContents(contentItems); setContentMedia(Object.fromEntries(mediaEntries)); setSubQuestions(s.data || []); } catch (e) { showMsg?.(e.response?.data?.error || 'Không thể tải câu hỏi.', 'error'); } };
   useEffect(() => { load(); }, [id]);
   const setQuestionField = (key, value) => setQuestion(current => ({ ...current, [key]: value }));
-  const saveQuestion = async () => { setSaving(true); try { const res = await updateQuestion(id, question); setQuestion(res.data); showMsg?.(question.status === 'ACTIVE' ? 'Câu hỏi đã được kiểm tra và chuyển sang Hoạt động.' : 'Thông tin câu hỏi đã được lưu thành công.', 'success'); } catch (e) { showMsg?.(e.response?.data?.error || 'Không thể lưu câu hỏi. Vui lòng kiểm tra lại thông tin.', 'error'); } finally { setSaving(false); } };
+  const saveQuestion = async () => { setSaving(true); try { const res = await updateQuestion(id, question); setQuestion(res.data); setPersistedStatus(res.data?.status || null); showMsg?.(question.status === 'ACTIVE' ? 'Câu hỏi đã được kiểm tra và chuyển sang Hoạt động.' : 'Thông tin câu hỏi đã được lưu thành công.', 'success'); } catch (e) { showMsg?.(e.response?.data?.error || 'Không thể lưu câu hỏi. Vui lòng kiểm tra lại thông tin.', 'error'); } finally { setSaving(false); } };
   const addContent = async () => { try { const res = await createQuestionContent(id, { title: `Nội dung ${contents.length + 1}` }); setContents(items => [...items, res.data]); setTab('content'); } catch (e) { showMsg?.(e.response?.data?.error || 'Không thể thêm nội dung.', 'error'); } };
   const patchContent = (contentId, key, value) => setContents(items => items.map(item => item.id === contentId ? { ...item, [key]: value } : item));
   const saveContent = async item => { try { const res = await updateQuestionContent(id, item.id, item); setContents(items => items.map(value => value.id === item.id ? res.data : value)); showMsg?.('Đã lưu nội dung.', 'success'); } catch (e) { showMsg?.(e.response?.data?.error || 'Không thể lưu nội dung.', 'error'); } };
@@ -77,25 +79,41 @@ export default function QuestionBankEditPage({ navigate, showMsg }) {
       .map((option, index) => ({ ...option, optionKey: String.fromCharCode(65 + index), isCorrect: removedCorrect ? index === 0 : option.isCorrect }));
     return { ...item, options };
   }));
-  const saveSub = async item => {
+  const persistSub = async item => {
     const key = item.id || item.clientId;
-    if (!key || savingSubRef.current.has(key)) return;
+    if (!key || savingSubRef.current.has(key)) return null;
     savingSubRef.current.add(key);
     setSavingSubKeys(keys => [...keys, key]);
     try {
-      if (item.id) await updateSubQuestion(id, item.id, item);
-      else await createSubQuestion(id, item);
-      await load();
-      showMsg?.('Đã lưu câu hỏi con.', 'success');
-    } catch (e) {
-      showMsg?.(e.response?.data?.error || 'Không thể lưu câu hỏi con.', 'error');
+      const response = item.id
+        ? await updateSubQuestion(id, item.id, item)
+        : await createSubQuestion(id, item);
+      const saved = response.data || item;
+      setSubQuestions(items => items.map(value => (value.id || value.clientId) === key
+        ? { ...value, ...saved, clientId: value.clientId }
+        : value));
+      return saved;
     } finally {
       savingSubRef.current.delete(key);
       setSavingSubKeys(keys => keys.filter(value => value !== key));
     }
   };
+  const saveAllSubs = async () => {
+    if (!subQuestions.length || savingAllSubs) return;
+    setSavingAllSubs(true);
+    try {
+      for (const item of subQuestions) await persistSub(item);
+      await load();
+      showMsg?.(`Đã lưu ${subQuestions.length} câu hỏi trong tab.`, 'success');
+    } catch (e) {
+      showMsg?.(e.response?.data?.error || 'Không thể lưu toàn bộ câu hỏi. Các câu đã lưu thành công vẫn được giữ lại.', 'error');
+    } finally {
+      setSavingAllSubs(false);
+    }
+  };
   const removeSub = async item => { if (item.id) await deleteSubQuestion(id, item.id); setSubQuestions(items => items.filter(value => (value.id || value.clientId) !== (item.id || item.clientId))); };
   if (!question) return <div className="question-bank-edit-loading">Đang tải...</div>;
+  const contentLocked = persistedStatus === 'ACTIVE';
   return <section className="question-bank-edit-page">
     <header className="question-bank-edit-header">
       <nav aria-label="Breadcrumb">
@@ -145,8 +163,8 @@ export default function QuestionBankEditPage({ navigate, showMsg }) {
         <button type="button" className={tab === 'content' ? 'is-active' : ''} onClick={() => setTab('content')}><FileText />Nội dung</button>
         <button type="button" className={tab === 'questions' ? 'is-active' : ''} onClick={() => setTab('questions')}><CircleHelp />Câu hỏi &amp; câu trả lời</button>
       </nav>
-      {tab === 'content' ? <div className="question-bank-edit-tab"><div className="question-bank-edit-section-title"><h2>Nội dung</h2><Button className="question-content-add" size="sm" icon={<Plus />} onClick={addContent}>Thêm nội dung</Button></div>{contents.length === 0 && <div className="question-content-empty"><FileText /><strong>Chưa có nội dung</strong><span>Thêm nội dung đầu tiên để bắt đầu biên soạn câu hỏi.</span></div>}{contents.map((item, index) => <article className="question-content-editor" key={item.id}><header><strong>Phần {index + 1}</strong><div><Button className="question-content-delete" size="sm" variant="danger" icon={<Trash2 />} onClick={() => removeContent(item.id)}>Xóa nội dung</Button></div></header><div className="question-content-editor__body"><FormField label="Tiêu đề" required><Input placeholder="Nhập tiêu đề phần nội dung..." value={item.title || ''} onChange={e => patchContent(item.id, 'title', e.target.value)} /></FormField><div className="question-content-editor__uploads"><ContentMediaField label="Audio (MP3, WAV, Max 10MB)" endpoint={`/api/question-bank/contents/${item.id}/media`} accept={['audio/*']} maxFileSize={10 * 1024 * 1024} note="Kéo thả hoặc chọn tệp audio" items={(contentMedia[item.id] || []).filter(media => media.mediaType === 'AUDIO')} onUploaded={() => refreshContentMedia(item.id)} onDelete={media => removeMedia(item.id, media)} /><ContentMediaField label="Video (MP4, MOV, Max 20MB)" endpoint={`/api/question-bank/contents/${item.id}/media`} accept={['video/*']} maxFileSize={20 * 1024 * 1024} note="Kéo thả hoặc chọn tệp video" items={(contentMedia[item.id] || []).filter(media => media.mediaType === 'VIDEO')} onUploaded={() => refreshContentMedia(item.id)} onDelete={media => removeMedia(item.id, media)} /><ContentMediaField label="Hình ảnh (JPG, PNG, Max 2MB)" endpoint={`/api/question-bank/contents/${item.id}/media`} accept={['image/*']} maxFileSize={2 * 1024 * 1024} note="Kéo thả hoặc chọn hình ảnh" items={(contentMedia[item.id] || []).filter(media => media.mediaType === 'IMAGE')} onUploaded={() => refreshContentMedia(item.id)} onDelete={media => removeMedia(item.id, media)} /></div><FormField label="Script"><RichTextEditor value={item.scriptHtml || ''} onChange={value => patchContent(item.id, 'scriptHtml', value)} placeholder="Nhập script hoặc đoạn hội thoại..." minHeight="96px" /></FormField><FormField label="Nội dung chính"><RichTextEditor value={item.contentHtml || ''} onChange={value => patchContent(item.id, 'contentHtml', value)} placeholder="Nhập nội dung chính..." minHeight="96px" /></FormField><FormField label="Bản dịch tiếng Việt"><RichTextEditor value={item.translationHtml || ''} onChange={value => patchContent(item.id, 'translationHtml', value)} placeholder="Nhập bản dịch tiếng Việt..." minHeight="96px" /></FormField><div className="question-content-editor__actions"><Button className="question-content-cancel" size="sm" variant="ghost" onClick={load}>Hủy</Button><Button className="question-content-save" size="sm" icon={<Save />} onClick={() => saveContent(item)}>Lưu nội dung</Button></div></div></article>)}</div>
-      : <div className="question-bank-edit-tab"><div className="question-bank-edit-section-title"><h2>Câu hỏi & câu trả lời</h2><Button icon={<Plus />} onClick={addSub}>Thêm câu hỏi</Button></div>{['RECORD', 'WRITING'].includes(question.questionType) ? subQuestions.map((item, index) => { const key = item.id || item.clientId; return <RecordQuestionEditor key={key} item={item} index={index} tags={tags} writing={question.questionType === 'WRITING'} saving={savingSubKeys.includes(key)} onPatch={(field, value) => patchSub(key, field, value)} onCreateTag={createAndSelectTag} onSave={() => saveSub(item)} onCancel={load} onRemove={() => removeSub(item)} />; }) : subQuestions.map((item, index) => { const key = item.id || item.clientId; return <McqQuestionEditor key={key} item={item} index={index} tags={tags} saving={savingSubKeys.includes(key)} onPatch={(field, value) => patchSub(key, field, value)} onCreateTag={createAndSelectTag} onAddOption={() => addOption(key)} onRemoveOption={optionIndex => removeOption(key, optionIndex)} onSave={() => saveSub(item)} onCancel={load} onRemove={() => removeSub(item)} />; })}</div>}
+      {tab === 'content' ? <div className={`question-bank-edit-tab ${contentLocked ? 'is-locked' : ''}`}><div className="question-bank-edit-section-title"><h2>Nội dung</h2><Button className="question-content-add" size="sm" icon={<Plus />} disabled={contentLocked} onClick={addContent}>Thêm nội dung</Button></div>{contentLocked && <div className="question-bank-edit-lock-note">Câu hỏi đang hoạt động. Hãy chuyển trạng thái sang Dừng hoạt động và lưu thông tin để chỉnh sửa nội dung.</div>}{contents.length === 0 && <div className="question-content-empty"><FileText /><strong>Chưa có nội dung</strong><span>Thêm nội dung đầu tiên để bắt đầu biên soạn câu hỏi.</span></div>}{contents.map((item, index) => <article className="question-content-editor" key={item.id}><header><strong>Phần {index + 1}</strong><div><Button className="question-content-delete" size="sm" variant="danger" icon={<Trash2 />} disabled={contentLocked} onClick={() => removeContent(item.id)}>Xóa nội dung</Button></div></header><div className="question-content-editor__body"><FormField label="Tiêu đề" required><Input placeholder="Nhập tiêu đề phần nội dung..." value={item.title || ''} disabled={contentLocked} onChange={e => patchContent(item.id, 'title', e.target.value)} /></FormField><div className="question-content-editor__uploads"><ContentMediaField disabled={contentLocked} label="Audio (MP3, WAV, Max 10MB)" endpoint={`/api/question-bank/contents/${item.id}/media`} accept={['audio/*']} maxFileSize={10 * 1024 * 1024} note="Kéo thả hoặc chọn tệp audio" items={(contentMedia[item.id] || []).filter(media => media.mediaType === 'AUDIO')} onUploaded={() => refreshContentMedia(item.id)} onDelete={media => removeMedia(item.id, media)} /><ContentMediaField disabled={contentLocked} label="Video (MP4, MOV, Max 20MB)" endpoint={`/api/question-bank/contents/${item.id}/media`} accept={['video/*']} maxFileSize={20 * 1024 * 1024} note="Kéo thả hoặc chọn tệp video" items={(contentMedia[item.id] || []).filter(media => media.mediaType === 'VIDEO')} onUploaded={() => refreshContentMedia(item.id)} onDelete={media => removeMedia(item.id, media)} /><ContentMediaField disabled={contentLocked} label="Hình ảnh (JPG, PNG, Max 2MB)" endpoint={`/api/question-bank/contents/${item.id}/media`} accept={['image/*']} maxFileSize={2 * 1024 * 1024} note="Kéo thả hoặc chọn hình ảnh" items={(contentMedia[item.id] || []).filter(media => media.mediaType === 'IMAGE')} onUploaded={() => refreshContentMedia(item.id)} onDelete={media => removeMedia(item.id, media)} /></div><FormField label="Script"><RichTextEditor disabled={contentLocked} value={item.scriptHtml || ''} onChange={value => patchContent(item.id, 'scriptHtml', value)} placeholder="Nhập script hoặc đoạn hội thoại..." minHeight="96px" /></FormField><FormField label="Nội dung chính"><RichTextEditor disabled={contentLocked} value={item.contentHtml || ''} onChange={value => patchContent(item.id, 'contentHtml', value)} placeholder="Nhập nội dung chính..." minHeight="96px" /></FormField><FormField label="Bản dịch tiếng Việt"><RichTextEditor disabled={contentLocked} value={item.translationHtml || ''} onChange={value => patchContent(item.id, 'translationHtml', value)} placeholder="Nhập bản dịch tiếng Việt..." minHeight="96px" /></FormField><div className="question-content-editor__actions"><Button className="question-content-cancel" size="sm" variant="ghost" disabled={contentLocked} onClick={load}>Hủy</Button><Button className="question-content-save" size="sm" icon={<Save />} disabled={contentLocked} onClick={() => saveContent(item)}>Lưu nội dung</Button></div></div></article>)}</div>
+      : <div className={`question-bank-edit-tab ${contentLocked ? 'is-locked' : ''}`}><div className="question-bank-edit-section-title"><h2>Câu hỏi & câu trả lời</h2><Button size="sm" icon={<Plus />} onClick={addSub} disabled={contentLocked || savingAllSubs}>Thêm câu hỏi</Button></div>{contentLocked && <div className="question-bank-edit-lock-note">Câu hỏi đang hoạt động. Hãy chuyển trạng thái sang Dừng hoạt động và lưu thông tin để chỉnh sửa câu hỏi hoặc đáp án.</div>}{['RECORD', 'WRITING'].includes(question.questionType) ? subQuestions.map((item, index) => { const key = item.id || item.clientId; return <RecordQuestionEditor key={key} item={item} index={index} tags={tags} writing={question.questionType === 'WRITING'} saving={savingSubKeys.includes(key)} bulkMode locked={contentLocked} onPatch={(field, value) => patchSub(key, field, value)} onCreateTag={createAndSelectTag} onCancel={load} onRemove={() => removeSub(item)} />; }) : subQuestions.map((item, index) => { const key = item.id || item.clientId; return <McqQuestionEditor key={key} item={item} index={index} tags={tags} saving={savingSubKeys.includes(key)} bulkMode locked={contentLocked} onPatch={(field, value) => patchSub(key, field, value)} onCreateTag={createAndSelectTag} onAddOption={() => addOption(key)} onRemoveOption={optionIndex => removeOption(key, optionIndex)} onCancel={load} onRemove={() => removeSub(item)} />; })}<footer className="question-bank-edit-info__actions question-bank-questions-actions"><Button type="button" variant="ghost" onClick={load} disabled={contentLocked || savingAllSubs}>Hủy</Button><Button type="button" className="question-info-save" icon={<Check />} loading={savingAllSubs} disabled={contentLocked || savingAllSubs || !subQuestions.length} onClick={saveAllSubs}>Lưu tất cả câu hỏi</Button></footer></div>}
     </section>
   </section>;
 }

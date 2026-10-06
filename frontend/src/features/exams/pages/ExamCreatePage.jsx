@@ -1,45 +1,106 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ChevronRight, Info, Save } from 'lucide-react';
+import { Check, ChevronRight } from 'lucide-react';
 import RichTextEditor from '../../../components/common/RichTextEditor';
+import Button from '../../../components/ui/Button';
+import { FormField, Input, Textarea } from '../../../components/ui/FormField';
+import { Breadcrumb } from '../../../components/ui/Layout';
+import MultiSelectFilter from '../../../components/ui/MultiSelectFilter';
 import { createExam } from '../../../services/examService';
-import { EXAM_STATUS_OPTIONS, examStatusMeta } from '../examStatus';
 import './ExamCreatePage.css';
 import './ExamCreatePageOverrides.css';
 
-const initialForm = { title: '', status: 'DRAFT', durationMinutes: '60', scoreScale: '100', examCode: '', description: '', introduction: '' };
+const EXAM_TYPE_OPTIONS = [
+  { value: 'LISTENING_READING', label: 'Đề Listening & Reading' },
+  { value: 'READING', label: 'Đề Reading' },
+  { value: 'LISTENING', label: 'Đề Listening' },
+  { value: 'SPEAKING_WRITING', label: 'Đề Speaking & Writing' },
+  { value: 'SPEAKING', label: 'Đề Speaking' },
+  { value: 'WRITING', label: 'Đề Writing' },
+];
+
+const initialForm = { title: '', status: 'DRAFT', examType: '', description: '', introduction: '' };
+function validate(form) {
+  const errors = {};
+  if (!form.title.trim()) errors.title = 'Vui lòng nhập tên đề thi.';
+  if (!form.examType) errors.examType = 'Vui lòng chọn kiểu đề thi.';
+  if (form.introduction.length > 5000) errors.introduction = 'Giới thiệu đề thi không được vượt quá 5000 ký tự.';
+  return errors;
+}
 
 export default function ExamCreatePage({ navigate, showMsg }) {
   const [form, setForm] = useState(initialForm);
+  const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
-  const update = (key, value) => setForm(current => ({ ...current, [key]: value }));
-  const statusMeta = examStatusMeta(form.status);
+  const update = (key, value) => {
+    setForm(current => ({ ...current, [key]: value }));
+    setErrors(current => ({ ...current, [key]: '' }));
+  };
   const save = async event => {
-    event?.preventDefault();
+    event.preventDefault();
     if (saving) return;
-    const introText = form.introduction.replace(/<[^>]*>/g, '').trim();
-    if (!form.title.trim() || !introText) { showMsg?.('Vui lòng nhập đầy đủ các trường bắt buộc.', 'error'); return; }
+    const nextErrors = validate(form);
+    if (Object.keys(nextErrors).length) {
+      setErrors(nextErrors);
+      showMsg?.('Vui lòng kiểm tra lại các trường bắt buộc.', 'error');
+      return;
+    }
     setSaving(true);
     try {
-      const exam = await createExam({ title: form.title, status: form.status, durationSeconds: Number(form.durationMinutes) * 60, scoreScale: Number(form.scoreScale), examCode: form.examCode, description: form.description, introduction: form.introduction });
-      showMsg?.('Đã lưu thông tin đề thi.', 'success');
-      navigate(`/exams/${exam.id}/edit`);
-    } catch (error) { showMsg?.(error.response?.data?.error || 'Không thể tạo đề thi.', 'error'); }
-    finally { setSaving(false); }
+      const exam = await createExam({
+        title: form.title.trim(),
+        status: 'DRAFT',
+        examType: form.examType,
+        description: form.description.trim(),
+        introduction: form.introduction,
+      });
+      showMsg?.('Đã tạo đề thi. Bạn có thể tiếp tục thiết lập cấu trúc đề.', 'success');
+      navigate(`/exams/${exam.id}/edit?tab=details`);
+    } catch (error) {
+      showMsg?.(error.response?.data?.error || 'Không thể tạo đề thi.', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return <section className="exam-create-page">
     <header className="exam-create-header">
-      <div className="exam-create-breadcrumb"><button type="button" title="Quay lại danh sách đề thi" onClick={() => navigate('/exams')}><ArrowLeft /></button><span>Quản lý đề thi</span><ChevronRight /><strong>Thêm mới đề thi</strong></div>
+      <Breadcrumb separator={<ChevronRight />} items={[{ label: 'Quản lý đề thi' }, { label: 'Thêm mới đề thi', current: true }]} />
     </header>
-    <main className="exam-create-main"><div className="exam-create-container"><section className="exam-create-card">
-      <div className="exam-create-card-header"><div><div className="exam-create-title-row"><h1>Thông tin chung đề thi</h1><span className={`is-${statusMeta.tone}`}><i />{statusMeta.label}</span></div><p>Điền các thông tin cơ bản, mô tả và hướng dẫn thi cho đề thi mới trước khi thiết lập các phần thi.</p></div><div className="exam-create-required"><b>*</b> Trường bắt buộc</div></div>
-      <form className="exam-create-form" onSubmit={save}>
-        <div className="exam-create-grid title-row"><label><span>Tên đề thi <b>*</b></span><input value={form.title} maxLength="240" onChange={event => update('title', event.target.value)} placeholder="Nhập tên đề thi" required /><small>Ví dụ: Đề thi thử TOEIC Định kỳ Quý 1 - Format 2026</small></label><label><span>Trạng thái <b>*</b></span><select className={`status-select is-${statusMeta.tone}`} value={form.status} onChange={event => update('status', event.target.value)}>{EXAM_STATUS_OPTIONS.map(option=><option key={option.value} value={option.value} disabled={option.value==='ACTIVE'}>{option.value==='ACTIVE'?'Hoạt động — sau khi đủ cấu trúc':option.label}</option>)}</select><small>Đề thi được kích hoạt sau khi cấu trúc và câu hỏi hợp lệ</small></label></div>
-        <div className="exam-create-grid metrics-row"><label><span>Thời gian làm bài (phút) <b>*</b></span><input type="number" min="1" max="600" step="1" value={form.durationMinutes} onChange={event => update('durationMinutes', event.target.value)} required /><small>Thời lượng thực tế khi tính giờ làm bài</small></label><label><span>Tổng điểm / Thang điểm</span><input type="number" min="1" step="0.01" value={form.scoreScale} onChange={event => update('scoreScale', event.target.value)} placeholder="Ví dụ: 100 hoặc 990" /><small>Thang điểm tổng kết quả bài kiểm tra</small></label><label><span>Mã đề thi (Code)</span><input className="code" value="" disabled readOnly /><small>Mã định danh duy nhất được hệ thống tự động tạo</small></label></div>
-        <label className="exam-create-description"><span>Mô tả đề thi <em>{form.description.length} / 500 ký tự</em></span><textarea rows="3" maxLength="500" value={form.description} onChange={event => update('description', event.target.value)} placeholder="Nhập mô tả tóm tắt mục đích đánh giá, phạm vi kiến thức và đối tượng học viên..." /></label>
-        <label className="exam-create-introduction"><span>Giới thiệu &amp; Hướng dẫn làm bài cho thí sinh <b>*</b></span><RichTextEditor value={form.introduction} onChange={value => update('introduction', value)} placeholder="Nhập nội dung quy định, lưu ý trước khi làm bài..." minHeight="104px" variant="stitch" /></label>
-        <footer className="exam-create-footer"><div><Info /><span>Sau khi lưu đề thi, bạn sẽ chuyển sang bước tạo cấu trúc các Phần thi và gán Câu hỏi.</span></div><aside><button type="button" className="secondary" onClick={() => navigate('/exams')}>Hủy</button><button type="submit" className="primary" disabled={saving}><Save />Lưu</button></aside></footer>
+    <main className="exam-create-main">
+      <form className="exam-create-card" onSubmit={save} noValidate>
+        <div className="exam-create-card-header">
+          <div className="exam-create-title-row"><h1>Thông tin đề thi</h1><span><i />Bản nháp</span></div>
+          <small>Các trường có dấu <b>*</b> là bắt buộc</small>
+        </div>
+        <div className="exam-create-form">
+          <div className="exam-create-grid exam-create-grid--primary">
+            <FormField id="exam-title" label="Tên đề thi" required error={errors.title}>
+              <Input id="exam-title" value={form.title} maxLength={240} onChange={event => update('title', event.target.value)} placeholder="Nhập tên đề thi" autoFocus />
+            </FormField>
+            <FormField id="exam-status" label="Trạng thái">
+              <MultiSelectFilter single disabled className="exam-create-single-select exam-create-status-select" value={form.status} options={[{ value: 'DRAFT', label: 'Bản nháp' }]} placeholder="Bản nháp" />
+            </FormField>
+          </div>
+          <FormField id="exam-type" label="Kiểu đề thi" required error={errors.examType}>
+            <MultiSelectFilter single className="exam-create-single-select exam-create-type-select" value={form.examType} onApply={value => update('examType', value)} options={EXAM_TYPE_OPTIONS} placeholder="Chọn kiểu đề thi" searchPlaceholder="Tìm kiểu đề thi..." />
+          </FormField>
+          <FormField id="exam-description" label="Mô tả đề thi">
+            <div className="exam-create-counted-control">
+              <Textarea id="exam-description" rows={4} maxLength={500} value={form.description} onChange={event => update('description', event.target.value)} placeholder="Nhập mô tả đề thi..." />
+              <span>{form.description.length}/500</span>
+            </div>
+          </FormField>
+          <FormField id="exam-introduction" label="Giới thiệu đề thi" error={errors.introduction}>
+            <RichTextEditor value={form.introduction} onChange={value => update('introduction', value)} placeholder="Nhập giới thiệu, quy định và lưu ý trước khi làm bài..." minHeight="104px" variant="stitch" />
+          </FormField>
+        </div>
+        <footer className="exam-create-footer">
+          <aside>
+            <Button type="button" size="sm" variant="secondary" onClick={() => navigate('/exams')}>Hủy</Button>
+            <Button type="submit" size="sm" icon={<Check />} loading={saving}>Tạo đề thi</Button>
+          </aside>
+        </footer>
       </form>
-    </section></div></main>
+    </main>
   </section>;
 }

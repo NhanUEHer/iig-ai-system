@@ -65,7 +65,6 @@ export default function SubmissionDetailPage({ showMsg, addLiveLog }) {
   const [section, setSection] = useState('all');
   const [note, setNote] = useState('');
   const [bulkJob, setBulkJob] = useState(null);
-  const announcedJob = useRef(null);
 
   const notify = (text, type = 'success') => showMsg?.(text, type);
   const loadPage = async (keepActive = true) => {
@@ -99,19 +98,7 @@ export default function SubmissionDetailPage({ showMsg, addLiveLog }) {
         const response = await axios.get(`${API_BASE}/grading-jobs/${bulkJob.id}`);
         const job = response.data.data;
         setBulkJob(job);
-        if (terminalJobs.includes(job.status)) {
-          await loadPage();
-          if (announcedJob.current !== job.id) {
-            announcedJob.current = job.id;
-            const errors = [...new Set((job.items || []).map(item => item.error).filter(Boolean))];
-            if (Number(job.failed_items) > 0) {
-              const detail = errors.length ? ` ${errors.slice(0, 2).join(' · ')}` : ' Dịch vụ chấm không trả về chi tiết lỗi.';
-              notify(`Chấm thành công ${job.completed_items}/${job.total_items}; ${job.failed_items} câu lỗi.${detail}`, 'error');
-            } else {
-              notify(`Đã chấm thành công ${job.completed_items}/${job.total_items} câu.`);
-            }
-          }
-        }
+        if (terminalJobs.includes(job.status)) await loadPage();
       } catch (error) { setBulkJob(current => ({ ...current, status: 'failed', pollError: error.message })); }
     }, 2000);
     return () => clearInterval(timer);
@@ -156,7 +143,7 @@ export default function SubmissionDetailPage({ showMsg, addLiveLog }) {
     const targets = selectedIds.filter(answerId => answers.find(item => item.id === answerId)?.status !== 'scored');
     if (!targets.length) return notify('Các câu đã chọn đều đã được chấm.', 'error');
     setBusyAction('bulk-grade');
-    try { const response = await axios.post(`${API_BASE}/bulk-grade`, { answerIds: targets }); announcedJob.current = null; setBulkJob(response.data.data); notify('Đã đưa các câu vào hàng đợi chấm AI.', 'info'); }
+    try { const response = await axios.post(`${API_BASE}/bulk-grade`, { answerIds: targets }); setBulkJob(response.data.data); notify('Đã đưa các câu vào hàng đợi chấm AI.', 'info'); }
     catch (error) { notify(error.response?.data?.error || 'Không thể tạo hàng đợi chấm.', 'error'); }
     finally { setBusyAction(''); }
   };
@@ -165,15 +152,8 @@ export default function SubmissionDetailPage({ showMsg, addLiveLog }) {
     const targets = selectedIds.filter(answerId => answers.find(item => item.id === answerId)?.student_audio_file_id);
     if (!targets.length) return notify('Các câu đã chọn không có audio cần làm sạch.', 'error');
     setBusyAction('bulk-clean');
-    try {
-      const response = await axios.post(`${API_BASE}/bulk-clean-audio`, { answerIds: targets, method: 'ai' });
-      notify(response.data.message, response.data.partial ? 'warning' : 'success');
-      await loadPage();
-    }
-    catch (error) {
-      notify(error.response?.data?.message || error.response?.data?.error || 'Không thể làm sạch audio hàng loạt.', 'error');
-      await loadPage();
-    }
+    try { const response = await axios.post(`${API_BASE}/bulk-clean-audio`, { answerIds: targets, method: 'ai' }); notify(response.data.message, response.data.data.failed ? 'warning' : 'success'); await loadPage(); }
+    catch (error) { notify(error.response?.data?.error || 'Không thể làm sạch audio hàng loạt.', 'error'); }
     finally { setBusyAction(''); }
   };
 

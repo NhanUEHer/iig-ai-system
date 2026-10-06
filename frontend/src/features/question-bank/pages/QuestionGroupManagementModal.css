@@ -137,9 +137,27 @@
 .question-group-editor-modal .question-group-linked svg { width: 16px; flex: none; }
 .question-group-editor-modal .question-group-form-error { margin: 0; }
 
+/* Align the group editor with the shared FormField structure. */
+.question-group-modal .question-group-form-grid .full {
+  grid-column: 1 / -1;
+}
+
+.question-group-modal .question-group-form-grid .ui-field__label {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+}
+
+.question-group-modal .question-group-form-grid .ui-field__required {
+  display: inline;
+}
+
 @media (max-width: 560px) {
   .question-group-editor-backdrop { padding: 12px; }
   .question-group-editor-modal > header,
   .question-group-editor-body,
   .question-group-editor-modal form > footer { padding-right: 16px; padding-left: 16px; }
+
+  .question-group-modal .question-group-form-grid .full { grid-column: auto; }
 }

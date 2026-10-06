@@ -1,2 +1,3 @@
 ALTER TABLE grading_jobs
   ALTER COLUMN status TYPE VARCHAR(32);
+

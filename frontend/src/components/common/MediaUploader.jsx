@@ -13,7 +13,7 @@ function matchesAcceptedType(file, acceptedTypes) {
   return acceptedTypes.some(type => type.endsWith('/*') ? file.type.startsWith(type.slice(0, -1)) : file.type === type);
 }
 
-export default function MediaUploader({ endpoint, onUploaded, items = [], onDelete, maxFileSize = DEFAULT_MAX_SIZE, accept = ['image/*', 'audio/*', 'video/*'], multiple = true, note = 'Ảnh, audio hoặc video · tối đa 20MB', height = 58, variant = 'default' }) {
+export default function MediaUploader({ endpoint, onUploaded, items = [], onDelete, maxFileSize = DEFAULT_MAX_SIZE, accept = ['image/*', 'audio/*', 'video/*'], multiple = true, note = 'Ảnh, audio hoặc video · tối đa 20MB', height = 58, variant = 'default', disabled = false }) {
   const inputRef = useRef(null);
   const [uploads, setUploads] = useState([]);
   const [error, setError] = useState('');
@@ -48,6 +48,7 @@ export default function MediaUploader({ endpoint, onUploaded, items = [], onDele
     const formData = new FormData(); formData.append('file', file); xhr.send(formData);
   });
   const submitFiles = async selected => {
+    if (disabled) return;
     setError('');
     setUploads(current => current.filter(item => item.status === 'uploading'));
     const valid = selected.filter(file => {
@@ -61,9 +62,9 @@ export default function MediaUploader({ endpoint, onUploaded, items = [], onDele
   const handleDrop = event => { event.preventDefault(); submitFiles(Array.from(event.dataTransfer?.files || [])); };
   const activeUpload = uploads[0];
   const hasMedia = items.length > 0;
-  return <div className={`media-uploader media-uploader--${variant}`}>
-    <input ref={inputRef} className="media-uploader__input" type="file" accept={accept.join(',')} multiple={multiple} onChange={handleFiles} />
-    {activeUpload ? <UploadProgress upload={activeUpload} onRetry={() => { setUploads([]); setError(''); inputRef.current?.click(); }} /> : hasMedia && variant === 'content' ? <ContentMediaPreview media={items[0]} onDelete={onDelete} onReplace={() => inputRef.current?.click()} /> : <button type="button" className="media-uploader__drop-area" style={{ minHeight: height }} onClick={() => inputRef.current?.click()} onDragOver={event => event.preventDefault()} onDrop={handleDrop}><div className="media-uploader__prompt"><UploadCloud /><p><strong>Drag &amp; drop</strong> or browse files</p><small>{note}</small></div></button>}
+  return <div className={`media-uploader media-uploader--${variant} ${disabled ? 'is-disabled' : ''}`} aria-disabled={disabled}>
+    <input ref={inputRef} className="media-uploader__input" type="file" accept={accept.join(',')} multiple={multiple} disabled={disabled} onChange={handleFiles} />
+    {activeUpload ? <UploadProgress upload={activeUpload} onRetry={() => { if (disabled) return; setUploads([]); setError(''); inputRef.current?.click(); }} /> : hasMedia && variant === 'content' ? <ContentMediaPreview media={items[0]} onDelete={onDelete} onReplace={() => inputRef.current?.click()} disabled={disabled} /> : <button type="button" className="media-uploader__drop-area" style={{ minHeight: height }} disabled={disabled} onClick={() => inputRef.current?.click()} onDragOver={event => { if (!disabled) event.preventDefault(); }} onDrop={handleDrop}><div className="media-uploader__prompt"><UploadCloud /><p><strong>Drag &amp; drop</strong> or browse files</p><small>{note}</small></div></button>}
     {error && !activeUpload && <small className="media-uploader__error">{error}</small>}
     {hasMedia && variant !== 'content' && <MediaGallery items={items} onDelete={onDelete} />}
   </div>;
@@ -74,16 +75,16 @@ function UploadProgress({ upload, onRetry }) {
   return <div className={`media-uploader__progress is-${upload.status}`} aria-live="polite"><div>{failed ? <RefreshCw /> : <LoaderCircle />}<strong title={upload.name}>{failed ? 'Tải lên thất bại' : upload.name}</strong><span>{upload.progress}%</span></div><i><b style={{ width: `${upload.progress}%` }} /></i>{failed && <footer><small>{upload.message}</small><button type="button" onClick={onRetry}><RefreshCw />Chọn lại file</button></footer>}</div>;
 }
 
-function ContentMediaPreview({ media, onDelete, onReplace }) {
+function ContentMediaPreview({ media, onDelete, onReplace, disabled = false }) {
   const type = typeOf(media);
   const Icon = type === 'AUDIO' ? FileAudio : type === 'VIDEO' ? FileVideo : FileImage;
   const fileInfo = [formatSize(media.fileSize), extensionOf(media)].filter(Boolean).join(' • ');
   return <article className={`content-media-preview content-media-preview--${type.toLowerCase()}`}>
     {type === 'VIDEO' && <div className="content-media-preview__visual"><video src={media.url} preload="metadata" /><PlayCircle /><span>HD</span></div>}
     {type === 'IMAGE' && <div className="content-media-preview__visual"><img src={media.url} alt={media.originalName || 'Hình ảnh nội dung'} /><Maximize2 /></div>}
-    <div className="content-media-preview__meta"><div className="content-media-preview__file"><span><Icon /></span><div><strong title={media.originalName}>{media.originalName || 'Tệp media'}</strong><small>{fileInfo}</small></div></div><button type="button" onClick={() => onDelete?.(media)} aria-label={`Xóa ${media.originalName || 'media'}`}><Trash2 /></button></div>
-    {type === 'AUDIO' && <audio className="content-media-preview__audio" src={media.url} controls preload="metadata" />}
-    <footer><a href={media.url} target="_blank" rel="noreferrer">{type === 'AUDIO' ? <PlayCircle /> : type === 'IMAGE' ? <Maximize2 /> : <ExternalLink />}{type === 'AUDIO' ? 'Nghe thử' : type === 'IMAGE' ? 'Phóng to ảnh' : 'Xem trước'}</a><div>{type === 'AUDIO' && <a href={media.url} download><Download />Tải về</a>}<button type="button" onClick={onReplace}><RefreshCw />Đổi file</button></div></footer>
+    <div className="content-media-preview__meta"><div className="content-media-preview__file"><span><Icon /></span><div><strong title={media.originalName}>{media.originalName || 'Tệp media'}</strong><small>{fileInfo}</small></div></div><button type="button" disabled={disabled} onClick={() => onDelete?.(media)} aria-label={`Xóa ${media.originalName || 'media'}`}><Trash2 /></button></div>
+    {type === 'AUDIO' && media.url && <audio key={media.url} className="content-media-preview__audio" controls preload="metadata"><source src={media.url} type={media.mimeType || 'audio/mpeg'} /></audio>}
+    <footer>{type !== 'AUDIO'&&<a href={media.url} target="_blank" rel="noreferrer">{type === 'IMAGE' ? <Maximize2 /> : <ExternalLink />}{type === 'IMAGE' ? 'Phóng to' : 'Xem trước'}</a>}<div>{type === 'AUDIO' && <a href={media.url} download><Download />Tải về</a>}<button type="button" disabled={disabled} onClick={onReplace}><RefreshCw />Đổi file</button></div></footer>
   </article>;
 }
 

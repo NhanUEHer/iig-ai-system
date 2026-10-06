@@ -24,7 +24,7 @@ export default function MaterialSettingsPanel({showMsg}){
       <div className="settings-overview-facts"><span><small>Xu hướng đã chọn</small><strong>{preview?.meta?.selected??0}</strong></span><span><small>Qua rule hiện tại</small><strong>{preview?.meta?.eligible??0}</strong></span><span><small>Loại học liệu</small><strong>{settings.enabledMaterialTypes.length}</strong></span><span><small>Số lượng dự kiến</small><strong>{total}</strong></span></div>
       <button onClick={()=>setOpen(true)}><Settings2/>Mở cấu hình</button>
     </section>
-    {preview&&<RulePreview result={preview}/>}
+    {preview&&<RulePreview result={preview}/>} 
     {open&&<div className="settings-modal-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setOpen(false);}}><section className="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
       <header><div><small>CẤU HÌNH BLUEPRINT</small><h2 id="settings-modal-title">Tiêu chí tạo học liệu</h2><p>Thiết lập một lần, sau đó áp dụng cho các blueprint mới.</p></div><button aria-label="Đóng" onClick={()=>setOpen(false)}><X/></button></header>
       <div className="material-settings-body">

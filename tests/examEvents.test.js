@@ -19,6 +19,7 @@ test('examEventConstants exports correct default values and constraints', () => 
 
 test('examEventValidator validates name, status, examId, and start/end dates correctly', () => {
   const validExamId = '11111111-1111-4111-8111-111111111111';
+  const validSchoolIds = ['22222222-2222-4222-8222-222222222222'];
   const validStart = '2026-10-01T08:00:00Z';
   const validEnd = '2026-10-01T10:00:00Z';
 
@@ -48,12 +49,12 @@ test('examEventValidator validates name, status, examId, and start/end dates cor
 
   // End date before or equal to start date
   assert.throws(
-    () => examEventValidator.validateExamEventInput({ name: 'Event 1', schoolName: 'IIG Việt Nam', description: '<p>Giới thiệu</p>', examId: validExamId, startAt: validEnd, endAt: validStart }, false),
+    () => examEventValidator.validateExamEventInput({ name: 'Event 1', schoolIds: validSchoolIds, description: '<p>Giới thiệu</p>', examId: validExamId, startAt: validEnd, endAt: validStart }, false),
     (err) => err instanceof HttpError && err.code === 'INVALID_DATE_RANGE'
   );
 
   assert.throws(
-    () => examEventValidator.validateExamEventInput({ name: 'Event 1', schoolName: 'IIG Việt Nam', description: '<p>Giới thiệu</p>', examId: validExamId, startAt: validStart, endAt: validStart }, false),
+    () => examEventValidator.validateExamEventInput({ name: 'Event 1', schoolIds: validSchoolIds, description: '<p>Giới thiệu</p>', examId: validExamId, startAt: validStart, endAt: validStart }, false),
     (err) => err instanceof HttpError && err.code === 'INVALID_DATE_RANGE'
   );
 
@@ -61,7 +62,7 @@ test('examEventValidator validates name, status, examId, and start/end dates cor
   assert.doesNotThrow(() => {
     examEventValidator.validateExamEventInput({
       name: 'Kỳ thi thử TOEIC tháng 10',
-      schoolName: 'IIG Việt Nam',
+      schoolIds: validSchoolIds,
       description: '<p>Giới thiệu kỳ thi</p>',
       status: 'PUBLISHED',
       examId: validExamId,
@@ -157,16 +158,16 @@ test('examEventService returns an existing school instead of creating a duplicat
 
 test('examEventService createExamEvent rejects nonexistent exam reference', async () => {
   const originalFindExamById = examEventRepository.findExamById;
-  const originalFindSchoolByName = examEventRepository.findSchoolByName;
+  const originalFindSchoolsByIds = examEventRepository.findSchoolsByIds;
   examEventRepository.findExamById = async () => null;
-  examEventRepository.findSchoolByName = async () => ({ id: 'school-id', name: 'IIG Việt Nam' });
+  examEventRepository.findSchoolsByIds = async ids => ids.map(id => ({ id, name: 'IIG Việt Nam' }));
 
   try {
     const validUuid = '11111111-1111-4111-8111-111111111111';
     await assert.rejects(
       async () => examEventService.createExamEvent({
       name: 'Event test',
-        schoolName: 'IIG Việt Nam',
+        schoolIds: ['22222222-2222-4222-8222-222222222222'],
         description: '<p>Giới thiệu kỳ thi</p>',
         examId: validUuid,
         startAt: '2026-10-01T08:00:00Z',
@@ -176,7 +177,7 @@ test('examEventService createExamEvent rejects nonexistent exam reference', asyn
     );
   } finally {
     examEventRepository.findExamById = originalFindExamById;
-    examEventRepository.findSchoolByName = originalFindSchoolByName;
+    examEventRepository.findSchoolsByIds = originalFindSchoolsByIds;
   }
 });
 
@@ -217,13 +218,13 @@ test('examEventService blocks structural changes after an event starts', async (
 test('examEventService maps duplicate event codes to a business conflict', async () => {
   const originalFindExamById = examEventRepository.findExamById;
   const originalCreate = examEventRepository.create;
-  const originalFindSchoolByName = examEventRepository.findSchoolByName;
+  const originalFindSchoolsByIds = examEventRepository.findSchoolsByIds;
   examEventRepository.findExamById = async () => ({ id: '22222222-2222-4222-8222-222222222222', status: 'ACTIVE' });
-  examEventRepository.findSchoolByName = async () => ({ id: 'school-id', name: 'IIG Việt Nam' });
+  examEventRepository.findSchoolsByIds = async ids => ids.map(id => ({ id, name: 'IIG Việt Nam' }));
   examEventRepository.create = async () => { const error = new Error('duplicate'); error.code = '23505'; throw error; };
   try {
-    await assert.rejects(() => examEventService.createExamEvent({ name: 'Kỳ thi', schoolName: 'IIG Việt Nam', description: '<p>Mô tả</p>', examId: '22222222-2222-4222-8222-222222222222', startAt: '2026-10-01T08:00:00Z', endAt: '2026-10-01T10:00:00Z' }), error => error.statusCode === 409 && error.code === 'EVENT_CODE_EXISTS');
-  } finally { examEventRepository.findExamById = originalFindExamById; examEventRepository.findSchoolByName = originalFindSchoolByName; examEventRepository.create = originalCreate; }
+    await assert.rejects(() => examEventService.createExamEvent({ name: 'Kỳ thi', schoolIds: ['33333333-3333-4333-8333-333333333333'], description: '<p>Mô tả</p>', examId: '22222222-2222-4222-8222-222222222222', startAt: '2026-10-01T08:00:00Z', endAt: '2026-10-01T10:00:00Z' }), error => error.statusCode === 409 && error.code === 'EVENT_CODE_EXISTS');
+  } finally { examEventRepository.findExamById = originalFindExamById; examEventRepository.findSchoolsByIds = originalFindSchoolsByIds; examEventRepository.create = originalCreate; }
 });
 
 test('examEventService removes a newly uploaded file when database persistence fails', async () => {

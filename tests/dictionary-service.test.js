@@ -108,8 +108,8 @@ test('dictionary context comparison ignores Dify line breaks around em dashes', 
 });
 
 test('dictionary source validation normalizes Unicode spaces from pasted passages', () => {
-  const passage = 'After the meeting, we will act ---[1]---\u202fthe unnecessary use of resources.';
-  const sentence = 'After the meeting, we will act ---[1]--- the unnecessary use of resources.';
+  const passage = 'Your work\u202fhours will be from 9 AM to 5 PM.';
+  const sentence = 'Your work hours will be from 9 AM to 5 PM.';
   assert.equal(sentenceBelongsToPassage(passage, sentence), true);
   assert.equal(sentenceBelongsToPassage(passage, 'This sentence is not in the passage.'), false);
 });

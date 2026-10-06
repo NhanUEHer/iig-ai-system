@@ -477,6 +477,33 @@
 /* MCQ question-and-answer builder — matches the Stitch editing card. */
 .question-bank-edit-tab { counter-reset: mcq-question; }
 
+.question-bank-questions-actions {
+  margin-top: 20px;
+  padding: 20px 0 0;
+  border-top: 1px solid #e2e8f0;
+}
+
+.question-bank-edit-lock-note {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.question-bank-edit-tab.is-locked .ui-control:disabled {
+  background: #f8fafc;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .question-bank-questions-actions { padding-top: 16px; }
+}
+
 .question-sub-editor {
   margin-bottom: 24px;
   border-radius: 12px;
@@ -1016,6 +1043,3 @@
     padding: 14px;
   }
 }
-.question-bank-edit-tab:has(.stitch-mcq-card) .question-bank-edit-section-title .ui-button{gap:6px;height:32px;min-height:32px;padding:0 16px;border-radius:8px;background:#2563eb;border-color:#2563eb;color:#fff;font-size:12px;font-weight:500;box-shadow:0 1px 2px rgba(37,99,235,.18)}
-.question-bank-edit-tab:has(.stitch-mcq-card) .question-bank-edit-section-title .ui-button:hover:not(:disabled){background:#1d4ed8;border-color:#1d4ed8}
-.question-bank-edit-tab:has(.stitch-mcq-card) .question-bank-edit-section-title .ui-button svg{width:16px;height:16px;stroke-width:2}

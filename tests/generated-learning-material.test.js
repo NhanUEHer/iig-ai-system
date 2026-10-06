@@ -17,3 +17,4 @@ test('Gemini material schema requires answer-bearing structured sections',()=>{
   assert.ok(question.required.includes('correctAnswer'));
   assert.ok(question.required.includes('explanation'));
 });
+
