@@ -13,8 +13,8 @@ const { signAttemptToken, verifyAttemptToken } = require('../src/modules/public-
 const eventId = '11111111-1111-4111-8111-111111111111';
 const attemptId = '22222222-2222-4222-8222-222222222222';
 const candidateId = '33333333-3333-4333-8333-333333333333';
-const now = new Date('2026-09-25T02:00:00Z');
-const expiry = new Date('2026-09-25T02:30:00Z');
+const now = new Date();
+const expiry = new Date(now.getTime() + 30 * 60 * 1000);
 const tokenExpiry = new Date('2099-09-25T02:30:00Z');
 
 const snapshot = {
