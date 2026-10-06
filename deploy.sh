@@ -109,12 +109,17 @@ sshpass -p "$VPS_PASSWORD" ssh "${SSH_OPTIONS[@]}" root@"$VPS_IP" "
   done
   cd '$RELEASE_DIR'
   if [ '$ADMIN_ONLY' = true ]; then
-    current_release=\$(readlink -f '$CURRENT_LINK' 2>/dev/null || printf '%s' '$VPS_DIR')
-    if [ -s "\$current_release/frontend/dist/events/index.html" ]; then
+    candidate_release=\$(readlink -f '$CURRENT_LINK' 2>/dev/null || printf '%s' '$VPS_DIR')
+    if [ ! -s "\$candidate_release/frontend/dist/events/index.html" ]; then
+      candidate_release=\$(find '$RELEASES_DIR' -mindepth 1 -maxdepth 1 -type d -print | sort -r | while read -r candidate; do
+        if [ -s "\$candidate/frontend/dist/events/index.html" ]; then printf '%s\\n' "\$candidate"; break; fi
+      done)
+    fi
+    if [ -n "\$candidate_release" ] && [ -s "\$candidate_release/frontend/dist/events/index.html" ]; then
       mkdir -p '$RELEASE_DIR/frontend/dist/events'
-      cp -a "\$current_release/frontend/dist/events/." '$RELEASE_DIR/frontend/dist/events/'
+      cp -a "\$candidate_release/frontend/dist/events/." '$RELEASE_DIR/frontend/dist/events/'
     else
-      echo 'Admin-only deployment aborted: existing candidate web was not found.' >&2
+      echo 'Admin-only deployment aborted: no preserved candidate web was found.' >&2
       exit 1
     fi
   fi
