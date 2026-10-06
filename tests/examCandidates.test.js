@@ -6,11 +6,12 @@ const path=require('node:path');
 const root=path.join(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
-test('candidate management migration adds stable SBD and list indexes',()=>{
-  const sql=read('src/database/migrations/099_exam_candidate_management.sql');
-  assert.match(sql,/ADD COLUMN IF NOT EXISTS candidate_number/i);
-  assert.match(sql,/UNIQUE INDEX[\s\S]*exam_event_id, candidate_number/i);
-  assert.match(sql,/exam_candidates_event_toeic/i);
+test('event retirement migration preserves direct candidates and creates direct indexes',()=>{
+  const sql=read('src/database/migrations/120_remove_exam_events.sql');
+  assert.match(sql,/DELETE FROM exam_attempts WHERE exam_event_id IS NOT NULL/i);
+  assert.match(sql,/DROP COLUMN IF EXISTS exam_event_id/i);
+  assert.match(sql,/uq_exam_candidates_candidate_number/i);
+  assert.match(sql,/uq_exam_attempts_active_candidate_exam/i);
 });
 
 test('candidate admin API exposes list filters and export with granular permissions',()=>{
@@ -20,12 +21,13 @@ test('candidate admin API exposes list filters and export with granular permissi
   assert.match(routes,/export[\s\S]*exam_candidates\.export/);
 });
 
-test('candidate list keeps one registration per event and displays raw score',()=>{
+test('candidate list displays direct exam activity and scoring result',()=>{
   const repository=read('src/modules/exam-candidates/examCandidateRepository.js');
   const page=read('frontend/src/features/exam-candidates/pages/ExamCandidateListPage.jsx');
-  assert.match(repository,/JOIN exam_events ee ON ee\.id=ec\.exam_event_id/);
-  assert.match(repository,/ORDER BY ea\.created_at DESC LIMIT 1/);
-  assert.match(page,/ĐIỂM GỐC/);
-  assert.match(page,/row\.attempt\.totalScore/);
-  assert.doesNotMatch(page,/toeicEstimate|\/990/);
+  assert.match(repository,/LEFT JOIN exam_attempts a ON a\.candidate_id=c\.id/);
+  assert.match(repository,/LEFT JOIN exams e ON e\.id=a\.exam_id/);
+  assert.doesNotMatch(repository,/exam_events|exam_event_id/);
+  assert.match(page,/HOẠT ĐỘNG THÍ SINH|Hoạt động thí sinh/i);
+  assert.match(page,/row\.activity\.totalScore/);
+  assert.match(page,/row\.activity\.correctCount/);
 });

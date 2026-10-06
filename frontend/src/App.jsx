@@ -38,10 +38,10 @@ import QuestionGroupManagementPage from './features/question-bank/pages/Question
 import ExamListPage from './features/exams/pages/ExamListPage';
 import ExamCreatePage from './features/exams/pages/ExamCreatePage';
 import ExamEditPage from './features/exams/pages/ExamEditPage';
-import ExamEventListPage from './features/exam-events/pages/ExamEventListPage';
-import ExamEventCreatePage from './features/exam-events/pages/ExamEventCreatePage';
-import ExamEventEditPage from './features/exam-events/pages/ExamEventEditPage';
 import ExamCandidateListPage from './features/exam-candidates/pages/ExamCandidateListPage';
+import ScoreScaleListPage from './features/score-scales/pages/ScoreScaleListPage';
+import ScoreScaleCreatePage from './features/score-scales/pages/ScoreScaleCreatePage';
+import ScoreScaleEditPage from './features/score-scales/pages/ScoreScaleEditPage';
 
 
 const API_BASE = '/api/submissions';
@@ -64,7 +64,7 @@ const firstAllowedPath = user => {
   if (has('roles.view')) return '/roles';
   if (has('logs.view')) return '/logs';
   if (has('exams.view')) return '/exams';
-  if (has('exam_events.view')) return '/exam-events';
+  if (has('exam_candidates.view')) return '/exam-candidates';
   return '/change-password';
 };
 
@@ -100,7 +100,6 @@ function App() {
   else if (path.startsWith('/change-password')) activeTab = 'change-password';
   else if (path.startsWith('/question-bank/groups')) activeTab = 'question-groups';
   else if (path.startsWith('/question-bank')) activeTab = 'question-bank';
-  else if (path.startsWith('/exam-events')) activeTab = 'exam-events';
   else if (path.startsWith('/exam-candidates')) activeTab = 'exam-candidates';
   else if (path.startsWith('/exams')) activeTab = 'exams';
 
@@ -562,10 +561,10 @@ function App() {
               <Route path="/exams" element={hasPermission('exams.view') ? <ExamListPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/exams/new" element={hasPermission('exams.manage') ? <ExamCreatePage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/exams/:id/edit" element={hasPermission('exams.manage') ? <ExamEditPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
-              <Route path="/exam-events" element={hasPermission('exam_events.view') ? <ExamEventListPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
-              <Route path="/exam-events/new" element={hasPermission('exam_events.manage') ? <ExamEventCreatePage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
-              <Route path="/exam-events/:id/edit" element={hasPermission('exam_events.manage') ? <ExamEventEditPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/exam-candidates" element={hasPermission('exam_candidates.view') ? <ExamCandidateListPage showMsg={showMsg} canExport={hasPermission('exam_candidates.export')} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/score-scales" element={hasPermission('exams.view') ? <ScoreScaleListPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/score-scales/new" element={hasPermission('exams.manage') ? <ScoreScaleCreatePage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/score-scales/:id/edit" element={hasPermission('exams.manage') ? <ScoreScaleEditPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
 
               <Route path="/" element={<Navigate to={defaultPath} replace />} />
               <Route path="*" element={<Navigate to={defaultPath} replace />} />

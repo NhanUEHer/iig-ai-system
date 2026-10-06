@@ -55,13 +55,9 @@ const PERMISSION_GROUPS = [
     ['exams.view', 'Xem danh sách và chi tiết đề thi'],
     ['exams.manage', 'Tạo, sửa, xóa đề thi, phần thi và câu hỏi']
   ] },
-  { key: 'exam_events', label: 'Quản lý sự kiện thi', permissions: [
-    ['exam_events.view', 'Xem danh sách và chi tiết sự kiện thi'],
-    ['exam_events.manage', 'Tạo, sửa, xóa sự kiện thi và ảnh/banner']
-  ] },
   { key: 'exam_candidates', label: 'Quản lý thí sinh', permissions: [
-    ['exam_candidates.view', 'Xem danh sách thí sinh đăng ký thi'],
-    ['exam_candidates.export', 'Xuất danh sách thí sinh']
+    ['exam_candidates.view', 'Xem hồ sơ và hoạt động làm bài của thí sinh'],
+    ['exam_candidates.export', 'Xuất dữ liệu hoạt động thí sinh']
   ] },
   { key: 'administration', label: 'Quản trị', permissions: [
     ['users.view', 'Xem tài khoản'], ['users.manage', 'Tạo, sửa và xóa tài khoản'],

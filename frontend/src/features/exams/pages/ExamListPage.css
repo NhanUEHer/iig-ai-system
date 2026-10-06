@@ -24,7 +24,7 @@
 .exam-list-clear-filters:hover{color:#2563eb}
 .exam-list-table-card{overflow:hidden}
 .exam-list-page .ui-table-wrap{overflow-x:auto;border:0;border-radius:0}
-.exam-list-page .ui-table{min-width:1260px;font:400 12px/1.35 Inter,system-ui,sans-serif}
+.exam-list-page .ui-table{min-width:1450px;font:400 12px/1.35 Inter,system-ui,sans-serif}
 .exam-list-page .ui-table th{height:54px;padding:0 14px;background:#f8fafc;border-color:#e2e8f0;color:#64748b;font-size:11px;font-weight:600;letter-spacing:.055em}
 .exam-list-page .ui-table td{height:58px;padding:9px 14px;border-color:#f1f5f9;color:#475569}
 .exam-list-page .ui-table tbody tr:hover{background:rgba(248,250,252,.8)}
@@ -32,6 +32,7 @@
 .exam-list-code{display:inline-block;padding:4px 7px;border:1px solid #e2e8f0;border-radius:4px;background:#f1f5f9;color:#64748b;font:600 11px/1 ui-monospace,SFMono-Regular,monospace}
 .exam-list-title-button{max-width:360px;padding:0;border:0;background:transparent;color:#0f172a;font:600 12px/1.4 Inter,system-ui,sans-serif;text-align:left;cursor:pointer}
 .exam-list-title-button:hover{color:#2563eb}
+.exam-list-identity{display:flex;align-items:center;gap:10px;min-width:240px}.exam-list-identity>img,.exam-list-image-placeholder{width:52px;height:34px;flex:0 0 52px;border-radius:6px;object-fit:cover;background:linear-gradient(135deg,#e8f1ff,#f5f8fc);border:1px solid #e2e8f0}.exam-list-identity>div{min-width:0}.exam-list-identity small{display:block;margin-top:3px;color:#64748b;font-size:10px}.exam-list-catalog{min-width:130px}.exam-list-catalog strong{display:block;color:#334155;font-size:11px}.exam-list-catalog small{display:block;max-width:180px;margin-top:3px;color:#64748b;font-size:10px;white-space:normal}
 .exam-list-type{display:inline-flex;padding:4px 8px;border-radius:6px;background:#eff6ff;color:#2563eb;font-size:11px;font-weight:600;white-space:nowrap}
 .exam-list-type.is-unclassified{background:#f1f5f9;color:#64748b}
 .exam-list-status{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:1px solid #e2e8f0;border-radius:999px;background:#f8fafc;color:#475569;font-size:11px;font-weight:500;white-space:nowrap}

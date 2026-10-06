@@ -13,6 +13,14 @@ const mapExam = row => row && ({
   examType: row.exam_type || null,
   description: row.description || '',
   introduction: row.introduction || '',
+  displayLabel: row.display_label || '',
+  difficulty: row.difficulty || null,
+  groups: Array.isArray(row.exam_groups) ? row.exam_groups : [],
+  cardImage: row.card_image_storage_key ? {
+    storageKey: row.card_image_storage_key,
+    mimeType: row.card_image_mime_type || null,
+    fileSize: Number(row.card_image_file_size || 0),
+  } : null,
   activeVersionId: row.active_version_id || null,
   hasPublishedSnapshot: row.published_snapshot != null,
   lockVersion: Number(row.lock_version || 1),
@@ -21,7 +29,7 @@ const mapExam = row => row && ({
   parentQuestionCount: Number(row.parent_question_count || 0),
   subQuestionCount: Number(row.sub_question_count || 0),
   configuredDurationSeconds: Number(row.configured_duration_seconds || 0),
-  eventName: row.event_name || null,
+  popularityCount: Number(row.popularity_count || 0),
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -34,6 +42,19 @@ const mapSection = row => row && ({
   questionCount: Number(row.question_count || 0),
   configuredDurationSeconds: Number(row.configured_duration_seconds || 0),
   scoreScaleId: row.score_scale_id || null,
+  scoreScale: row.score_scale_id ? {
+    id: row.score_scale_id,
+    code: row.score_scale_code || null,
+    name: row.score_scale_name || null,
+    scaleType: row.score_scale_type || null,
+    questionCount: Number(row.score_scale_question_count || 0),
+    minScore: row.score_scale_min_score == null ? null : Number(row.score_scale_min_score),
+    maxScore: row.score_scale_max_score == null ? null : Number(row.score_scale_max_score),
+    scoreStep: row.score_scale_step == null ? null : Number(row.score_scale_step),
+    status: row.score_scale_status || null,
+    version: Number(row.score_scale_version || 1),
+    rangeCount: Number(row.score_scale_range_count || 0),
+  } : null,
   sortOrder: Number(row.sort_order || 0),
   createdAt: row.created_at,
   updatedAt: row.updated_at,
@@ -61,7 +82,10 @@ const statsSelect = `(SELECT COUNT(*) FROM exam_sections es WHERE es.exam_id=e.i
   (SELECT COUNT(*) FROM exam_parts ep WHERE ep.exam_id=e.id)::int part_count,
   (SELECT COUNT(*) FROM exam_part_questions epq WHERE epq.exam_id=e.id)::int parent_question_count,
   (SELECT COUNT(*) FROM exam_part_questions epq JOIN question_bank_sub_questions sq ON sq.question_id=epq.question_id WHERE epq.exam_id=e.id)::int sub_question_count,
-  (SELECT COALESCE(SUM(es.configured_duration_seconds),0) FROM exam_sections es WHERE es.exam_id=e.id)::int configured_duration_seconds`;
+  (SELECT COALESCE(SUM(es.configured_duration_seconds),0) FROM exam_sections es WHERE es.exam_id=e.id)::int configured_duration_seconds,
+  (SELECT COUNT(*) FROM exam_attempts ea WHERE ea.exam_id=e.id)::int popularity_count,
+  COALESCE((SELECT jsonb_agg(jsonb_build_object('id',eg.id,'name',eg.name) ORDER BY eg.name)
+    FROM exam_group_assignments ega JOIN exam_groups eg ON eg.id=ega.group_id WHERE ega.exam_id=e.id),'[]'::jsonb) exam_groups`;
 
 async function list({ page = 1, limit = 10, search = '', status = '', statuses = '', examType = '', examTypes = '' } = {}) {
   const params = [];
@@ -78,7 +102,7 @@ async function list({ page = 1, limit = 10, search = '', status = '', statuses =
   const safePage = Math.max(Number(page) || 1, 1);
   params.push(safeLimit, (safePage - 1) * safeLimit);
   const result = await db.query(`SELECT e.*,${statsSelect} FROM exams e ${filter}
-    ORDER BY e.updated_at DESC,e.id DESC LIMIT $${params.length - 1} OFFSET $${params.length}`, params);
+    ORDER BY popularity_count DESC,e.updated_at DESC,e.id DESC LIMIT $${params.length - 1} OFFSET $${params.length}`, params);
   const total = count.rows[0].total;
   return { data: result.rows.map(mapExam), meta: { page: safePage, limit: safeLimit, total, totalPages: Math.max(1, Math.ceil(total / safeLimit)) } };
 }
@@ -89,10 +113,14 @@ async function findById(id, client = db) {
   const examResult = await client.query(`SELECT e.*,${statsSelect} FROM exams e WHERE e.id=$1`, [id]);
   const exam = mapExam(examResult.rows[0]);
   if (!exam) return null;
-  const eventResult = await client.query('SELECT name FROM exam_events WHERE exam_id=$1 ORDER BY updated_at DESC LIMIT 1', [id]);
-  exam.eventName = eventResult.rows[0]?.name || null;
-
-  const sections = await client.query('SELECT * FROM exam_sections WHERE exam_id=$1 ORDER BY sort_order,created_at', [id]);
+  const sections = await client.query(`SELECT es.*,
+      ss.code score_scale_code,ss.name score_scale_name,ss.scale_type score_scale_type,
+      ss.question_count score_scale_question_count,ss.min_score score_scale_min_score,
+      ss.max_score score_scale_max_score,ss.score_step score_scale_step,
+      ss.status score_scale_status,ss.version score_scale_version,
+      (SELECT COUNT(*) FROM score_scale_raw_ranges sr WHERE sr.score_scale_id=ss.id)::int score_scale_range_count
+    FROM exam_sections es LEFT JOIN score_scales ss ON ss.id=es.score_scale_id
+    WHERE es.exam_id=$1 ORDER BY es.sort_order,es.created_at`, [id]);
   const parts = await client.query(`SELECT ep.*,
       (SELECT COUNT(*) FROM exam_part_questions x WHERE x.part_id=ep.id)::int parent_question_count
     FROM exam_parts ep WHERE ep.exam_id=$1 ORDER BY ep.sort_order,ep.display_order,ep.part_number`, [id]);
@@ -135,15 +163,15 @@ async function lockExam(id, client) {
   return row ? { id: row.id, status: row.status, examType: row.exam_type || null } : null;
 }
 
-async function create(data, userId) {
+async function create(data, userId, client = db) {
   const id = crypto.randomUUID();
   const examCode = `EX-${id.replaceAll('-', '').slice(0, 8).toUpperCase()}`;
-  const r = await db.query(
-    `INSERT INTO exams(id,exam_code,title,status,exam_type,description,introduction,duration_minutes,duration_seconds,points_per_question,score_scale,created_by,updated_by)
-     VALUES($1,$2,$3,'DRAFT',$4,$5,$6,0,0,10,100,$7,$7) RETURNING id`,
-    [id, examCode, data.title.trim(), data.examType, String(data.description || '').trim(), String(data.introduction || ''), userId || null],
+  const r = await client.query(
+    `INSERT INTO exams(id,exam_code,title,status,exam_type,description,introduction,display_label,difficulty,duration_minutes,duration_seconds,points_per_question,score_scale,created_by,updated_by)
+     VALUES($1,$2,$3,'DRAFT',$4,$5,$6,$7,$8,0,0,10,100,$9,$9) RETURNING id`,
+    [id, examCode, data.title.trim(), data.examType, String(data.description || '').trim(), String(data.introduction || ''), String(data.displayLabel || '').trim() || null, data.difficulty || null, userId || null],
   );
-  return findById(r.rows[0].id);
+  return findById(r.rows[0].id, client);
 }
 
 async function update(id, data, userId, client = db) {
@@ -155,6 +183,8 @@ async function update(id, data, userId, client = db) {
   if (data.examType !== undefined) push('exam_type', data.examType);
   if (data.description !== undefined) push('description', String(data.description || '').trim());
   if (data.introduction !== undefined) push('introduction', String(data.introduction || ''));
+  if (data.displayLabel !== undefined) push('display_label', String(data.displayLabel || '').trim() || null);
+  if (data.difficulty !== undefined) push('difficulty', data.difficulty);
   if (!fields.length) return findById(id, client);
   values.push(userId || null);
   fields.push(`updated_by=$${values.length}`, 'updated_at=CURRENT_TIMESTAMP', 'lock_version=lock_version+1');
@@ -164,13 +194,50 @@ async function update(id, data, userId, client = db) {
 
 async function remove(id, client = db) { return client.query('DELETE FROM exams WHERE id=$1 RETURNING id', [id]); }
 
-// A published event overlapping the current time locks deactivation.
-async function findInProgressEvent(examId, client = db) {
+async function listGroups(client = db) {
+  const result = await client.query('SELECT id,name FROM exam_groups ORDER BY LOWER(name),id');
+  return result.rows;
+}
+
+async function createGroup(name, userId, client = db) {
+  const cleanName = String(name || '').trim().replace(/\s+/g, ' ');
+  const normalized = cleanName.toLocaleLowerCase('vi-VN');
   const result = await client.query(
-    `SELECT id,name FROM exam_events
-     WHERE exam_id=$1 AND status='PUBLISHED' AND start_at<=CURRENT_TIMESTAMP AND end_at>CURRENT_TIMESTAMP
-     ORDER BY start_at LIMIT 1`,
-    [examId],
+    `INSERT INTO exam_groups(name,normalized_name,created_by) VALUES($1,$2,$3)
+     ON CONFLICT(normalized_name) DO UPDATE SET name=exam_groups.name RETURNING id,name`,
+    [cleanName, normalized, userId || null],
+  );
+  return result.rows[0];
+}
+
+async function replaceGroups(examId, groupIds, client = db) {
+  const found = await client.query('SELECT id FROM exam_groups WHERE id=ANY($1::uuid[])', [groupIds]);
+  if (found.rows.length !== groupIds.length) return false;
+  await client.query('DELETE FROM exam_group_assignments WHERE exam_id=$1', [examId]);
+  await client.query(
+    `INSERT INTO exam_group_assignments(exam_id,group_id)
+     SELECT $1,group_id FROM unnest($2::uuid[]) group_id`,
+    [examId, groupIds],
+  );
+  return true;
+}
+
+async function setCardImage(examId, image, userId, client = db) {
+  const result = await client.query(
+    `UPDATE exams SET card_image_storage_key=$2,card_image_mime_type=$3,card_image_file_size=$4,
+       updated_by=$5,updated_at=CURRENT_TIMESTAMP,lock_version=lock_version+1 WHERE id=$1
+     RETURNING card_image_storage_key`,
+    [examId, image.storageKey, image.mimeType, image.fileSize, userId || null],
+  );
+  return result.rows[0] || null;
+}
+
+async function clearCardImage(examId, userId, client = db) {
+  const result = await client.query(
+    `UPDATE exams SET card_image_storage_key=NULL,card_image_mime_type=NULL,card_image_file_size=NULL,
+       updated_by=$2,updated_at=CURRENT_TIMESTAMP,lock_version=lock_version+1 WHERE id=$1
+     RETURNING card_image_storage_key`,
+    [examId, userId || null],
   );
   return result.rows[0] || null;
 }
@@ -219,8 +286,34 @@ async function countSections(examId, client = db) {
 // Sections
 // ---------------------------------------------------------------------------
 async function findSection(examId, sectionId, client = db) {
-  const r = await client.query('SELECT * FROM exam_sections WHERE id=$1 AND exam_id=$2', [sectionId, examId]);
+  const r = await client.query(`SELECT es.*,
+      ss.code score_scale_code,ss.name score_scale_name,ss.scale_type score_scale_type,
+      ss.question_count score_scale_question_count,ss.min_score score_scale_min_score,
+      ss.max_score score_scale_max_score,ss.score_step score_scale_step,
+      ss.status score_scale_status,ss.version score_scale_version,
+      (SELECT COUNT(*) FROM score_scale_raw_ranges sr WHERE sr.score_scale_id=ss.id)::int score_scale_range_count
+    FROM exam_sections es LEFT JOIN score_scales ss ON ss.id=es.score_scale_id
+    WHERE es.id=$1 AND es.exam_id=$2`, [sectionId, examId]);
   return mapSection(r.rows[0]);
+}
+
+async function loadScoreScaleSnapshots(ids, client = db) {
+  if (!ids.length) return new Map();
+  const scales = await client.query(`SELECT id,code,name,scale_type,question_count,min_score,max_score,score_step,status,version
+    FROM score_scales WHERE id=ANY($1::uuid[])`, [ids]);
+  const ranges = await client.query(`SELECT score_scale_id,correct_count,converted_score
+    FROM score_scale_raw_ranges WHERE score_scale_id=ANY($1::uuid[]) ORDER BY correct_count`, [ids]);
+  const rangesByScale = new Map();
+  for (const row of ranges.rows) {
+    if (!rangesByScale.has(row.score_scale_id)) rangesByScale.set(row.score_scale_id, []);
+    rangesByScale.get(row.score_scale_id).push({ correctCount: Number(row.correct_count), convertedScore: Number(row.converted_score) });
+  }
+  return new Map(scales.rows.map(row => [row.id, {
+    id: row.id, code: row.code, name: row.name, scaleType: row.scale_type,
+    questionCount: Number(row.question_count), minScore: Number(row.min_score), maxScore: Number(row.max_score),
+    scoreStep: Number(row.score_step), status: row.status, version: Number(row.version || 1),
+    rawRanges: rangesByScale.get(row.id) || [],
+  }]));
 }
 
 async function createSection(examId, data, client = db) {
@@ -540,12 +633,18 @@ async function findInstructionAudioMedia(partIds, client = db) {
 // Build the immutable delivery snapshot for the current exam structure.
 async function buildSnapshot(examId, client) {
   const exam = await findById(examId, client);
+  const scaleIds = [...new Set(exam.sections.map(section => section.scoreScaleId).filter(Boolean))];
+  const scoreScales = await loadScoreScaleSnapshots(scaleIds, client);
   const result = {
     exam: {
       id: exam.id,
       code: exam.examCode,
       title: exam.title,
       examType: exam.examType,
+      displayLabel: exam.displayLabel,
+      difficulty: exam.difficulty,
+      groups: exam.groups,
+      cardImageStorageKey: exam.cardImage?.storageKey || null,
       description: exam.description,
       introductionHtml: exam.introduction,
       pointsPerSubQuestion: 10,
@@ -556,6 +655,8 @@ async function buildSnapshot(examId, client) {
       examMode: section.examMode,
       questionCount: section.questionCount,
       configuredDurationSeconds: section.configuredDurationSeconds,
+      scoreScaleId: section.scoreScaleId,
+      scoreScale: section.scoreScaleId ? scoreScales.get(section.scoreScaleId) || null : null,
       sortOrder: section.sortOrder,
     })),
     parts: [],
@@ -594,10 +695,10 @@ async function buildSnapshot(examId, client) {
 
 module.exports = {
   mapExam, mapSection, mapPart, lockExam,
-  list, findById, create, update, remove, countSections,
-  findSection, createSection, updateSection, deleteSection, reorderSections, listSectionIds,
+  list, findById, create, update, remove, countSections, listGroups, createGroup, replaceGroups, setCardImage, clearCardImage,
+  findSection, createSection, updateSection, deleteSection, reorderSections, listSectionIds, loadScoreScaleSnapshots,
   findPart, findPartWithSection, createPart, updatePartContent, deletePart, reorderParts, listPartIdsInSection,
   listEligibleQuestions, filterEligibleIds, findUsedQuestions, addQuestions, removeQuestion, listPartQuestionIds, reorderQuestions,
   loadDurationSources, loadInstructionAudioDurations, loadInstructionAudioDetails, loadValidationRows, findIneligibleQuestionIds, findInstructionAudioMedia, buildSnapshot,
-  findInProgressEvent, replacePublishedSnapshot,
+  replacePublishedSnapshot,
 };

@@ -1,8 +1,8 @@
 const crypto = require('crypto');
 const redis = require('../../config/redis');
-const media = require('../exam-events/examEventMediaService');
+const storage = require('../../services/storageService');
 
-const CACHE_SCHEMA = 'v1';
+const CACHE_SCHEMA = 'v2';
 const TTL_SECONDS = Math.max(300, Number(process.env.EXAM_DELIVERY_CACHE_TTL_SECONDS || 86400));
 const valueOf = (object, camel, snake) => object?.[camel] ?? object?.[snake] ?? null;
 const cacheKey = versionId => `exam:delivery:${CACHE_SCHEMA}:${versionId}`;
@@ -29,7 +29,7 @@ async function signedMedia(mediaRows) {
     mimeType: item.mime_type || null,
     name: item.original_name || null,
     durationSeconds: Number(item.duration_seconds || 0),
-    url: await media.getSignedMediaUrl(item.storage_key),
+    url: item.storage_key ? await storage.getSignedUrl(item.storage_key) : null,
   })));
 }
 
@@ -121,12 +121,60 @@ async function build(snapshot = {}, mediaRows = []) {
 function buildBundle(delivery, snapshot = {}) {
   const details = {};
   const partQuestions = {};
+  const questionGroups = {};
   for (const part of delivery.parts || []) {
+    const grouped = [];
+    const groupedByParent = new Map();
+    for (const question of part.questions || []) {
+      let group = groupedByParent.get(question.parentQuestionId);
+      if (!group) {
+        group = {
+          id: question.parentQuestionId,
+          examId: delivery.exam.id,
+          sectionId: part.sectionId,
+          partId: part.id,
+          partTitle: part.title,
+          examMode: part.examMode,
+          sortOrder: grouped.length,
+          range: question.group,
+          content: question.content,
+          breakDurationSeconds: Number(part.breakDurationSeconds || 0),
+          questions: [],
+        };
+        groupedByParent.set(question.parentQuestionId, group);
+        grouped.push(group);
+      }
+      group.questions.push({
+        id: question.id,
+        parentQuestionId: question.parentQuestionId,
+        number: question.number,
+        sortOrder: group.questions.length,
+        questionType: question.questionType,
+        promptHtml: question.promptHtml,
+        questionAudioUrl: question.questionAudioUrl,
+        questionMedia: question.questionMedia,
+        preparationDurationSeconds: question.preparationDurationSeconds,
+        recordingDurationSeconds: question.recordingDurationSeconds,
+        minWordCount: question.minWordCount,
+        maxWordCount: question.maxWordCount,
+        maxCharacterCount: question.maxCharacterCount,
+        options: question.options,
+      });
+    }
+    for (const group of grouped) questionGroups[group.id] = group;
     partQuestions[part.id] = {
       examId: delivery.exam.id,
       sectionId: part.sectionId,
       partId: part.id,
       examMode: part.examMode,
+      breakDurationSeconds: Number(part.breakDurationSeconds || 0),
+      questionGroups: grouped.map(group => ({
+        id: group.id,
+        range: group.range,
+        sortOrder: group.sortOrder,
+        questionCount: group.questions.length,
+        contentAudioDurationSeconds: Number(group.content?.media?.find(item => item.type === 'AUDIO')?.durationSeconds || 0),
+      })),
       questions: part.questions.map((question, index) => ({
         id: question.id,
         parentQuestionId: question.parentQuestionId,
@@ -161,6 +209,10 @@ function buildBundle(delivery, snapshot = {}) {
         examType: delivery.exam.examType || null,
         description: delivery.exam.description || '',
         introductionHtml: delivery.exam.introductionHtml || '',
+        displayLabel: delivery.exam.displayLabel || '',
+        difficulty: delivery.exam.difficulty || null,
+        groups: Array.isArray(delivery.exam.groups) ? delivery.exam.groups : [],
+        cardImageStorageKey: delivery.exam.cardImageStorageKey || null,
         totalSections: delivery.sections.length,
         totalParts: delivery.parts.length,
         totalQuestions: delivery.exam.totalQuestions,
@@ -183,6 +235,7 @@ function buildBundle(delivery, snapshot = {}) {
       })),
     },
     partQuestions,
+    questionGroups,
     questions: details,
     grading: buildGrading(snapshot),
     legacy: delivery,
@@ -202,6 +255,7 @@ function generationKeys(examId, generationId, bundle) {
     [`${prefix}:grading`, bundle.grading],
   ];
   for (const [partId, payload] of Object.entries(bundle.partQuestions)) entries.push([`${prefix}:part:${partId}:questions`, payload]);
+  for (const [groupId, payload] of Object.entries(bundle.questionGroups)) entries.push([`${prefix}:group:${groupId}`, payload]);
   for (const [questionId, payload] of Object.entries(bundle.questions)) entries.push([`${prefix}:question:${questionId}`, payload]);
   return entries;
 }
@@ -216,10 +270,12 @@ async function publishGeneration(examId, snapshot, mediaRows = []) {
   const entries = generationKeys(examId, generationId, bundle);
   const indexKey = `${publishedPrefix(examId, generationId)}:keys`;
   const multi = active.multi();
-  for (const [key, payload] of entries) multi.set(key, JSON.stringify(payload), { EX: TTL_SECONDS });
+  // A published generation is the canonical public source until the next
+  // publish/deactivate action. It must not disappear because a delivery TTL
+  // elapsed while the exam is still active.
+  for (const [key, payload] of entries) multi.set(key, JSON.stringify(payload));
   if (entries.length) multi.sAdd(indexKey, entries.map(([key]) => key));
-  multi.expire(indexKey, TTL_SECONDS);
-  multi.set(currentKey(examId), generationId, { EX: TTL_SECONDS });
+  multi.set(currentKey(examId), generationId);
   await multi.exec();
   if (oldGeneration && oldGeneration !== generationId) {
     const oldIndex = `${publishedPrefix(examId, oldGeneration)}:keys`;
@@ -230,12 +286,29 @@ async function publishGeneration(examId, snapshot, mediaRows = []) {
   return { generationId, bundle, cache: 'WARMED' };
 }
 
+async function clearPublished(examId) {
+  if (!redis.configured()) return false;
+  const active = await redis.connection();
+  if (!active) return false;
+  const generationId = await active.get(currentKey(examId));
+  if (!generationId) return true;
+  const indexKey = `${publishedPrefix(examId, generationId)}:keys`;
+  const keys = await active.sMembers(indexKey).catch(() => []);
+  const multi = active.multi();
+  if (keys.length) multi.del(keys);
+  multi.del(indexKey);
+  multi.del(currentKey(examId));
+  await multi.exec();
+  return true;
+}
+
 async function readPublished(examId, type, id = null) {
   if (!redis.configured()) return null;
   const generationId = await redis.get(currentKey(examId));
   if (!generationId) return null;
   const prefix = publishedPrefix(examId, generationId);
   const key = type === 'partQuestions' ? `${prefix}:part:${id}:questions`
+    : type === 'questionGroup' ? `${prefix}:group:${id}`
     : type === 'question' ? `${prefix}:question:${id}` : `${prefix}:${type}`;
   const raw = await redis.get(key);
   if (!raw) return null;
@@ -253,6 +326,7 @@ async function writeAttemptBundle(attemptId, bundle) {
     [`${prefix}:grading`, bundle.grading],
   ];
   for (const [partId, payload] of Object.entries(bundle.partQuestions)) entries.push([`${prefix}:part:${partId}:questions`, payload]);
+  for (const [groupId, payload] of Object.entries(bundle.questionGroups)) entries.push([`${prefix}:group:${groupId}`, payload]);
   for (const [questionId, payload] of Object.entries(bundle.questions)) entries.push([`${prefix}:question:${questionId}`, payload]);
   const multi = active.multi();
   for (const [key, payload] of entries) multi.set(key, JSON.stringify(payload), { EX: TTL_SECONDS });
@@ -264,6 +338,7 @@ async function readAttemptPiece(attemptId, type, id = null) {
   if (!redis.configured()) return null;
   const prefix = attemptPrefix(attemptId);
   const key = type === 'partQuestions' ? `${prefix}:part:${id}:questions`
+    : type === 'questionGroup' ? `${prefix}:group:${id}`
     : type === 'question' ? `${prefix}:question:${id}` : `${prefix}:${type}`;
   const raw = await redis.get(key);
   if (!raw) return null;
@@ -276,6 +351,7 @@ async function getAttemptPieceOrBuild(attemptId, type, id, builder) {
   const bundle = await builder();
   await writeAttemptBundle(attemptId, bundle);
   const payload = type === 'partQuestions' ? bundle.partQuestions[id]
+    : type === 'questionGroup' ? bundle.questionGroups[id]
     : type === 'question' ? bundle.questions[id] : bundle[type];
   return { payload: payload || null, cache: redis.configured() ? 'MISS' : 'DISABLED' };
 }
@@ -296,8 +372,17 @@ async function write(versionId, payload) {
 
 function buildGrading(snapshot = {}) {
   const questions = {};
+  const sections = Object.fromEntries((snapshot.sections || []).map(section => [section.id, {
+    id: section.id,
+    title: section.title,
+    examMode: section.examMode,
+    questionCount: Number(section.questionCount || 0),
+    scoreScaleId: section.scoreScaleId || null,
+    scoreScale: section.scoreScale || null,
+  }]));
   for (const part of snapshot.parts || []) for (const parent of part.questions || []) for (const sub of parent.subQuestions || []) {
-    const correct = (sub.options || []).find(option => option.is_correct === true);
+    const correctOptions = (sub.options || []).filter(option => option.is_correct === true);
+    const correct = correctOptions[0];
     questions[sub.id] = {
       subQuestionId: sub.id,
       parentQuestionId: parent.id,
@@ -306,12 +391,16 @@ function buildGrading(snapshot = {}) {
       recordingDurationSeconds: Number(valueOf(sub, 'recordingDurationSeconds', 'recording_duration_seconds') || 0),
       partId: part.id,
       partTitle: part.title || 'Phần thi',
+      sectionId: part.sectionId || null,
+      sectionTitle: part.sectionTitle || sections[part.sectionId]?.title || 'Phần thi',
+      examMode: part.examMode || sections[part.sectionId]?.examMode || null,
       correctOptionKey: valueOf(correct, 'optionKey', 'option_key'),
+      correctOptionCount: correctOptions.length,
       optionKeys: (sub.options || []).map(option => valueOf(option, 'optionKey', 'option_key')),
       points: Number(snapshot.exam?.pointsPerSubQuestion || 0),
     };
   }
-  return { exam: snapshot.exam || {}, questions };
+  return { exam: snapshot.exam || {}, sections, questions };
 }
 
 async function readGrading(versionId) {
@@ -375,7 +464,7 @@ async function getOrBuild(versionId, builder) {
 
 module.exports = {
   build, buildBundle, buildDeliveryBundle, buildGrading,
-  publishGeneration, readPublished, currentKey, publishedPrefix,
+  publishGeneration, clearPublished, readPublished, currentKey, publishedPrefix,
   writeAttemptBundle, readAttemptPiece, getAttemptPieceOrBuild, attemptPrefix,
   read, write, readGrading, writeGrading, getOrBuild, getGradingOrBuild,
   cacheKey, gradingKey, TTL_SECONDS,

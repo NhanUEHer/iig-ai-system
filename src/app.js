@@ -17,9 +17,9 @@ const { authenticate } = require('./middleware/authenticate');
 const { getBuildInfo } = require('./config/buildInfo');
 const questionBankV3Routes = require('./routes/questionBankV3Routes');
 const examV3Routes = require('./routes/examV3Routes');
-const examEventRoutes = require('./routes/examEventRoutes');
+const scoreScaleRoutes = require('./routes/scoreScaleRoutes');
 const examCandidateRoutes = require('./routes/examCandidateRoutes');
-const publicExamEventRoutes = require('./routes/publicExamEventRoutes');
+const publicExamCatalogRoutes = require('./routes/publicExamCatalogRoutes');
 
 const path = require('path');
 const app = express();
@@ -38,7 +38,7 @@ app.use('/tmp_local', express.static(path.join(__dirname, '../public/tmp_local')
 app.use('/question-bank-media', express.static(path.join(__dirname, '../public/question-bank-media')));
 
 // Public candidate routes
-app.use('/api/public/exam-events', publicExamEventRoutes);
+app.use('/api/public/exams', publicExamCatalogRoutes);
 
 // Protected Admin Routes mapping
 app.use('/api/auth', authRoutes);
@@ -53,7 +53,7 @@ app.use('/api/learning-materials', authenticate, learningMaterialRoutes);
 app.use('/api/content-sources', authenticate, contentSourceRoutes);
 app.use('/api/question-bank', authenticate, questionBankV3Routes);
 app.use('/api/exams', authenticate, examV3Routes);
-app.use('/api/exam-events', authenticate, examEventRoutes);
+app.use('/api/score-scales', authenticate, scoreScaleRoutes);
 app.use('/api/exam-candidates', authenticate, examCandidateRoutes);
 
 // Health check endpoint

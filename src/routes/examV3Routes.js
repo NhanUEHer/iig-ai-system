@@ -5,10 +5,16 @@ const c = require('../controllers/examV3Controller');
 const multer = require('multer');
 const r = express.Router();
 const uploadPartAudio = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }).single('file');
+const uploadCardImage = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }).single('file');
 
 // Exam list + create
+r.get('/groups', requirePermission('exams.view'), asyncHandler(c.listGroups));
+r.post('/groups', requirePermission('exams.manage'), asyncHandler(c.createGroup));
 r.get('/', requirePermission('exams.view'), asyncHandler(c.list));
 r.post('/', requirePermission('exams.manage'), asyncHandler(c.create));
+
+r.post('/:examId/card-image', requirePermission('exams.manage'), uploadCardImage, asyncHandler(c.uploadCardImage));
+r.delete('/:examId/card-image', requirePermission('exams.manage'), asyncHandler(c.removeCardImage));
 
 // Section-nested routes (registered before the dynamic /:examId detail route).
 r.post('/:examId/sections', requirePermission('exams.manage'), asyncHandler(c.createSection));

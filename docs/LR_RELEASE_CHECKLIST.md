@@ -14,9 +14,10 @@
 
 ## Release packaging gate
 
-- [x] Candidate app uses `/events/` as its production asset base.
-- [x] Candidate bundle is packaged at `frontend/dist/events/`.
-- [x] Nginx routes `/events/*` deep links to the candidate app.
+- [x] Candidate app uses the direct exam catalog flow under `/exams/`.
+- [x] Candidate APIs are mounted under `/api/public/exams`.
+- [x] Admin and candidate apps are built as separate production bundles because both own `/exams` routes.
+- [x] Legacy `/events/*` links return HTTP 410 and are no longer supported.
 - [ ] Release commit is reviewed, clean and on `main`.
 - [ ] Root and admin frontend versions match the release tag.
 - [ ] Release tag exists on the exact commit and is pushed to origin.
@@ -25,7 +26,7 @@
 ## Post-deploy smoke gate
 
 - [ ] `/health` reports the expected production version and commit.
-- [ ] `/events/<event-id>` loads over HTTPS without asset errors.
+- [ ] Candidate host `/exams/<exam-id>` loads over HTTPS without asset errors.
 - [ ] Registration and audio check work on a physical phone.
 - [ ] An answer persists after refresh and after network reconnect.
 - [ ] Deep links for introduction, attempt and result load directly.

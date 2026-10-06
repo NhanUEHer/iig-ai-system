@@ -68,9 +68,21 @@ async function hSetExpiring(key, field, value, seconds) {
   } catch (error) { console.error('[Redis] HSET+EXPIRE failed:', error.message); return null; }
 }
 
+async function hSetManyExpiring(key, values, seconds) {
+  try {
+    const active = await connection();
+    if (!active) return null;
+    const transaction = active.multi();
+    if (Object.keys(values || {}).length) transaction.hSet(key, values);
+    transaction.expire(key, seconds);
+    const result = await transaction.exec();
+    return result?.at(-1) ?? null;
+  } catch (error) { console.error('[Redis] HSET-MANY+EXPIRE failed:', error.message); return null; }
+}
+
 async function close() {
   if (client?.isOpen) await client.quit().catch(() => client.destroy());
   client = null;
 }
 
-module.exports = { configured, connection, get, set, remove, hSet, hGetAll, expire, hSetExpiring, close };
+module.exports = { configured, connection, get, set, remove, hSet, hGetAll, expire, hSetExpiring, hSetManyExpiring, close };

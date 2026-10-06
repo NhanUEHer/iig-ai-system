@@ -238,7 +238,7 @@
 .exam-structure-table,.exam-parts-table{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0 4px;font-size:14px;line-height:1.4}
 .exam-structure-table th,.exam-parts-table th{height:36px;box-sizing:border-box;padding:6px 10px;background:#f8fafc;color:#64748b;text-align:left;font-size:12px;font-weight:700;letter-spacing:.025em}
 .exam-structure-table td,.exam-parts-table td{height:40px;padding:5px 10px;border-top:1px solid transparent;border-bottom:1px solid transparent;color:#475569;background:#fff}
-.exam-structure-table .col-drag,.exam-parts-table .col-drag{width:36px}.exam-structure-table .col-index,.exam-parts-table .col-index{width:58px}.exam-sections-table .col-mode{width:150px}.exam-sections-table .col-count{width:235px}.exam-sections-table .col-duration{width:245px}.exam-sections-table .col-actions{width:90px}.exam-parts-table .col-count{width:110px}.exam-parts-table .col-duration{width:110px}.exam-parts-table .col-actions{width:84px}
+.exam-structure-table .col-drag,.exam-parts-table .col-drag{width:36px}.exam-structure-table .col-index,.exam-parts-table .col-index{width:58px}.exam-sections-table .col-mode{width:135px}.exam-sections-table .col-count{width:210px}.exam-sections-table .col-duration{width:220px}.exam-sections-table .col-scale{width:210px}.exam-sections-table .col-actions{width:90px}.exam-parts-table .col-count{width:110px}.exam-parts-table .col-duration{width:110px}.exam-parts-table .col-actions{width:84px}
 .exam-structure-table th:nth-child(2),.exam-structure-table td:nth-child(2),.exam-parts-table th:nth-child(2),.exam-parts-table td:nth-child(2){text-align:center}.exam-structure-table th:last-child,.exam-parts-table th:last-child{text-align:center}.exam-structure-table td:nth-child(3)>strong,.exam-parts-table td:nth-child(3)>strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.exam-structure-table td:last-child,.exam-parts-table td:last-child{padding-right:8px;padding-left:8px}
 .exam-structure-table tbody tr,.exam-parts-table tbody tr{cursor:pointer}
 .exam-structure-table tbody tr:hover td,.exam-parts-table tbody tr:hover td{background:#f8fafc}
@@ -256,6 +256,7 @@
 .exam-structure-table td:last-child .ui-button.exam-table-action--danger:hover:not(:disabled){background:#fee2e2;color:#dc2626}
 .exam-structure-table td:last-child .ui-button.exam-table-action svg{width:16px;height:16px;stroke-width:2}
 .exam-mode-badge{padding:4px 8px;border:1px solid #dbeafe;border-radius:6px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:650}
+.exam-scale-badge{display:inline-block;max-width:190px;padding:4px 8px;overflow:hidden;border:1px solid #bbf7d0;border-radius:6px;background:#f0fdf4;color:#15803d;font-size:12px;font-weight:650;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}.exam-scale-empty{color:#94a3b8;font-size:12px;font-style:italic}
 .exam-metric-divider{padding:0 5px;color:#cbd5e1}.exam-structure-table td>b{color:#0f172a}
 .exam-part-workspace{display:grid;grid-template-columns:minmax(0,11fr) minmax(380px,9fr);gap:16px;align-items:start}
 .exam-part-workspace.is-empty{display:block}

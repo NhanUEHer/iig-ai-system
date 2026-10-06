@@ -12,6 +12,7 @@ import './ExamPages.css';
 import './ExamListPage.css';
 import './ExamListPageOverrides.css';
 import '../../question-bank/pages/QuestionBankRowMenu.css';
+import { DIFFICULTY_OPTIONS } from '../examCatalog';
 
 const EXAM_TYPE_OPTIONS = [
   { value: 'LISTENING_READING', label: 'Listening & Reading' },
@@ -70,15 +71,18 @@ export default function ExamListPage({ navigate }) {
     setFilters(current => ({ ...current, search: '', statuses: [], examTypes: [], page: 1 }));
   };
   const typeLabel = value => EXAM_TYPE_OPTIONS.find(option => option.value === value)?.label || 'Chưa phân loại';
+  const difficultyLabel = value => DIFFICULTY_OPTIONS.find(option => option.value === value)?.label || 'Chưa thiết lập';
   const columns = [
     { key: 'number', label: 'STT', className: 'is-center', width: 64, render: (_row, index) => (Number(result.meta?.page || 1) - 1) * Number(result.meta?.limit || filters.limit) + index + 1 },
     { key: 'examCode', label: 'Mã đề thi', width: 118, render: row => <code className="exam-list-code">{row.examCode || '—'}</code> },
-    { key: 'title', label: 'Tên đề thi', render: row => <button type="button" className="exam-list-title-button" onClick={() => navigate(`/exams/${row.id}/edit`)}>{row.title}</button> },
+    { key: 'title', label: 'Đề thi', render: row => <div className="exam-list-identity">{row.cardImage?.url?<img src={row.cardImage.url} alt=""/>:<span className="exam-list-image-placeholder"/>}<div><button type="button" className="exam-list-title-button" onClick={() => navigate(`/exams/${row.id}/edit`)}>{row.title}</button>{row.displayLabel&&<small>{row.displayLabel}</small>}</div></div> },
     { key: 'examType', label: 'Kiểu đề thi', render: row => <span className={`exam-list-type${row.examType ? '' : ' is-unclassified'}`}>{typeLabel(row.examType)}</span> },
+    { key: 'catalog', label: 'Phân loại', render: row => <div className="exam-list-catalog"><strong>{difficultyLabel(row.difficulty)}</strong><small>{row.groups?.length?row.groups.map(group=>group.name).join(', '):'Chưa có nhóm'}</small></div> },
     { key: 'status', label: 'Trạng thái', className: 'is-center', render: row => { const meta = examStatusMeta(row.status); return <span className={`exam-list-status is-${meta.tone}`}><i />{meta.label}</span>; } },
     { key: 'sectionCount', label: 'Số phần thi', className: 'is-center', render: row => Number(row.sectionCount || 0) },
     { key: 'subQuestionCount', label: 'Số câu hỏi', className: 'is-center', render: row => Number(row.subQuestionCount || 0) },
     { key: 'configuredDurationSeconds', label: 'Thời gian', className: 'is-center', render: row => formatDuration(row.configuredDurationSeconds) },
+    { key: 'popularityCount', label: 'Lượt thi', className: 'is-center', render: row => Number(row.popularityCount || 0).toLocaleString('vi-VN') },
     { key: 'updatedAt', label: 'Ngày cập nhật', render: row => <span className="exam-list-date">{formatDate(row.updatedAt)}</span> },
     { key: 'actions', label: 'Thao tác', className: 'question-bank-actions is-center', width: 82, render: row => <QuestionBankRowActions actions={[{ label: 'Chỉnh sửa', icon: <Pencil />, onClick: () => navigate(`/exams/${row.id}/edit`) }]} /> },
   ];

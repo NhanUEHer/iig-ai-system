@@ -2,9 +2,11 @@ const HttpError = require('../../http/httpError');
 const { isValidExamType, isValidExamMode, EXAM_ERROR_CODES } = require('./examConstants');
 
 const statuses = new Set(['DRAFT', 'ACTIVE', 'INACTIVE']);
+const difficulties = new Set(['BASIC', 'INTERMEDIATE', 'ADVANCED', 'EXPERT']);
 const positiveInt = value => Number.isInteger(Number(value)) && Number(value) > 0;
 const nonNegativeInt = value => Number.isInteger(Number(value)) && Number(value) >= 0;
 const listValues = value => String(value || '').split(',').map(item => item.trim()).filter(Boolean);
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function validateListFilters(query = {}) {
   const selectedStatuses = listValues(query.statuses || query.status);
@@ -33,6 +35,14 @@ function validateExam(data, partial = false) {
   }
   if (data.description !== undefined && String(data.description || '').length > 500) throw new HttpError('Mô tả đề thi không được vượt quá 500 ký tự.', 400, 'EXAM_DESCRIPTION_TOO_LONG');
   if (data.introduction !== undefined && String(data.introduction || '').length > 5000) throw new HttpError('Giới thiệu và hướng dẫn không được vượt quá 5000 ký tự.', 400, 'EXAM_INTRODUCTION_TOO_LONG');
+  if (data.difficulty !== undefined) {
+    if (!difficulties.has(data.difficulty)) throw new HttpError('Độ khó đề thi không hợp lệ.', 400, 'EXAM_DIFFICULTY_INVALID');
+  }
+  if (data.displayLabel !== undefined && String(data.displayLabel || '').trim().length > 80) throw new HttpError('Nhãn đề thi không được vượt quá 80 ký tự.', 400, 'EXAM_LABEL_TOO_LONG');
+  if (data.groupIds !== undefined) {
+    if (!Array.isArray(data.groupIds) || data.groupIds.length < 1) throw new HttpError('Vui lòng chọn ít nhất một nhóm đề thi.', 400, 'EXAM_GROUP_REQUIRED');
+    if (data.groupIds.length > 20 || new Set(data.groupIds).size !== data.groupIds.length || data.groupIds.some(id => !uuidPattern.test(String(id)))) throw new HttpError('Danh sách nhóm đề thi không hợp lệ.', 400, 'EXAM_GROUPS_INVALID');
+  }
 }
 
 // Section contract (spec §8/§9). Mode compatibility with the exam type is
@@ -50,6 +60,9 @@ function validateSection(data, partial = false) {
   }
   if (!partial || data.configuredDurationSeconds !== undefined) {
     if (!positiveInt(data.configuredDurationSeconds)) throw new HttpError('Thời gian cấu hình phải lớn hơn 0.', 400, 'SECTION_DURATION_INVALID');
+  }
+  if (data.scoreScaleId !== undefined && data.scoreScaleId !== null && data.scoreScaleId !== '' && !uuidPattern.test(String(data.scoreScaleId))) {
+    throw new HttpError('Thang điểm được chọn không hợp lệ.', 400, 'SECTION_SCORE_SCALE_ID_INVALID');
   }
 }
 

@@ -56,6 +56,15 @@ test('migration 112 preserves legacy LR Parts by assigning them to Sections', ()
   assert.match(sql, /GREATEST\(child_count,1\)/);
 });
 
+test('migration 113 adds public catalog metadata and many-to-many exam groups', () => {
+  const sql = read('src/database/migrations/113_exam_catalog_metadata.sql');
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS card_image_storage_key/i);
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS difficulty/i);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS exam_groups/i);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS exam_group_assignments/i);
+  assert.match(sql, /PRIMARY KEY \(exam_id, group_id\)/i);
+});
+
 // ---------------------------------------------------------------------------
 // Constants + compatibility matrix
 // ---------------------------------------------------------------------------
@@ -94,6 +103,8 @@ test('exam validator enforces the redesigned five-field contract', () => {
   assert.doesNotThrow(() => validator.validateExam({ ...validExam, introduction: '<p>&nbsp;</p>' }));
   assert.doesNotThrow(() => validator.validateExam({ ...validExam, introduction: undefined }));
   assert.doesNotThrow(() => validator.validateExam(validExam));
+  assert.throws(() => validator.validateExam({ ...validExam, difficulty: 'IMPOSSIBLE' }), e => e.code === 'EXAM_DIFFICULTY_INVALID');
+  assert.throws(() => validator.validateExam({ ...validExam, groupIds: [] }), e => e.code === 'EXAM_GROUP_REQUIRED');
   // No exam-level duration is part of the contract.
   assert.doesNotThrow(() => validator.validateExam({ ...validExam, durationSeconds: 0 }));
 });
@@ -103,6 +114,8 @@ test('section validator enforces mode, positive count and positive duration', ()
   assert.throws(() => validator.validateSection({ ...base, examMode: 'X' }), e => e.code === 'SECTION_MODE_INVALID');
   assert.throws(() => validator.validateSection({ ...base, questionCount: 0 }), e => e.code === 'SECTION_QUESTION_COUNT_INVALID');
   assert.throws(() => validator.validateSection({ ...base, configuredDurationSeconds: 0 }), e => e.code === 'SECTION_DURATION_INVALID');
+  assert.throws(() => validator.validateSection({ ...base, scoreScaleId: 'invalid' }), e => e.code === 'SECTION_SCORE_SCALE_ID_INVALID');
+  assert.doesNotThrow(() => validator.validateSection({ ...base, scoreScaleId: '123e4567-e89b-42d3-a456-426614174000' }));
   assert.doesNotThrow(() => validator.validateSection(base));
 });
 
@@ -195,7 +208,23 @@ test('publish replaces a single version row and mirrors published_snapshot witho
 test('published snapshot keeps scoring and content linkage required by candidate delivery', () => {
   const source = read('src/modules/exams/examRepository.js');
   assert.match(source, /pointsPerSubQuestion:\s*10/);
+  assert.match(source, /scoreScale:\s*section\.scoreScaleId \? scoreScales\.get\(section\.scoreScaleId\)/);
+  assert.match(source, /rawRanges:\s*rangesByScale\.get\(row\.id\)/);
   assert.match(source, /SELECT id,content_id,prompt_text AS prompt_html/);
+});
+
+test('LR section assignment validates active complete score scales before publish', () => {
+  const source = read('src/modules/exams/examService.js');
+  assert.match(source, /scale\.status !== 'ACTIVE'/);
+  assert.match(source, /scale\.questionCount !== Number\(questionCount\)/);
+  assert.match(source, /scale\.rawRanges\.length !== scale\.questionCount \+ 1/);
+  assert.match(source, /SECTION_SCORE_SCALE_REQUIRED/);
+});
+
+test('publish validation requires Part instruction audio for Listening and Speaking', () => {
+  const source = read('src/modules/exams/examService.js');
+  assert.match(source, /TIMED_MODES\.has\(section\.examMode\) && !part\.instructionAudio\?\.id/);
+  assert.match(source, /PART_INSTRUCTION_AUDIO_REQUIRED/);
 });
 
 test('audio metadata reader obtains backend duration from a WAV buffer', async () => {
@@ -286,7 +315,9 @@ test('exam V3 routes expose section, part, question, validation and publish oper
   assert.ok(!paths.includes('/:examId/activate'), 'legacy activate route is replaced by publish');
 });
 
-test('public attempt routes expose staged exam delivery endpoints', () => {
-  const source = fs.readFileSync(path.join(__dirname, '../src/routes/publicExamEventRoutes.js'), 'utf8');
-  for (const route of ['/manifest', '/structure', '/parts/:partId/questions', '/questions/:subQuestionId']) assert.match(source, new RegExp(route.replaceAll('/', '\\/')));
+test('direct exam routes expose staged delivery and result endpoints', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../src/routes/publicExamCatalogRoutes.js'), 'utf8');
+  for (const route of ['/structure', '/parts/:partId/questions', '/question-groups/:parentQuestionId', '/submit', '/result']) {
+    assert.match(source, new RegExp(route.replaceAll('/', '\\/')));
+  }
 });

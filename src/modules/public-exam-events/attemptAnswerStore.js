@@ -16,7 +16,6 @@ async function writeMeta(attempt) {
   if (!redis.configured() || !attempt?.id) return false;
   const meta = {
     id: attempt.id,
-    eventId: attempt.exam_event_id || attempt.eventId,
     candidateId: attempt.candidate_id || attempt.candidateId,
     examId: attempt.exam_id || attempt.examId,
     versionId: attempt.exam_version_id || attempt.versionId,
@@ -66,6 +65,21 @@ async function readAll(attemptId) {
   });
 }
 
+async function hydrate(attemptId, answers, expiresAt) {
+  if (!redis.configured()) return false;
+  const values = Object.fromEntries((answers || []).filter(answer => answer?.subQuestionId).map(answer => [
+    answer.subQuestionId,
+    JSON.stringify({
+      subQuestionId: answer.subQuestionId,
+      selectedOptionKey: answer.selectedOptionKey || null,
+      flagged: answer.flagged === true,
+      savedAt: answer.savedAt || new Date().toISOString(),
+    }),
+  ]));
+  const result = await redis.hSetManyExpiring(answersKey(attemptId), values, ttlFor(expiresAt));
+  return result != null;
+}
+
 async function markSubmitted(attemptId) {
   const meta = await readMeta(attemptId);
   if (meta) {
@@ -76,4 +90,4 @@ async function markSubmitted(attemptId) {
   await redis.expire(answersKey(attemptId), 86400);
 }
 
-module.exports = { writeMeta, readMeta, save, readAll, markSubmitted, metaKey, answersKey };
+module.exports = { writeMeta, readMeta, save, readAll, hydrate, markSubmitted, metaKey, answersKey };

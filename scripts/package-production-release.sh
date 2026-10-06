@@ -9,7 +9,6 @@ APP_VERSION="$(node -p "require('./package.json').version")"
 FRONTEND_VERSION="$(node -p "require('./frontend/package.json').version")"
 APP_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || printf 'no-git')"
 BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-ADMIN_ONLY="${ADMIN_ONLY:-true}"
 DIRTY=false
 DIRTY_SUFFIX=""
 if test -n "$(git status --porcelain 2>/dev/null || true)"; then
@@ -33,17 +32,12 @@ test "$APP_VERSION" = "$FRONTEND_VERSION" || {
 echo "[1/5] Running production checks..."
 npm run check
 
-echo "[2/5] Building frontend with production identity..."
+echo "[2/5] Building admin and candidate frontends with production identity..."
 VITE_APP_ENV=production VITE_APP_VERSION="$APP_VERSION" VITE_APP_COMMIT="$APP_COMMIT" npm run build --prefix frontend
-if [ "$ADMIN_ONLY" != true ]; then
-  npm run build --prefix mobile-web
-  mkdir -p "$PROJECT_DIR/frontend/dist/events"
-  rsync -a --delete "$PROJECT_DIR/mobile-web/dist/" "$PROJECT_DIR/frontend/dist/events/"
-  test -s "$PROJECT_DIR/frontend/dist/events/index.html"
-fi
+npm run build --prefix exam-web
 
 echo "[3/5] Staging runtime files..."
-mkdir -p "$STAGE_DIR/frontend" "$STAGE_DIR/public" "$STAGE_DIR/scripts" "$STAGE_DIR/docs" "$OUTPUT_DIR"
+mkdir -p "$STAGE_DIR/frontend" "$STAGE_DIR/exam-web" "$STAGE_DIR/public" "$STAGE_DIR/scripts" "$STAGE_DIR/docs" "$OUTPUT_DIR"
 rsync -a \
   --exclude='._*' \
   --exclude='models/**/*.onnx' \
@@ -55,8 +49,10 @@ rsync -a \
   "$PROJECT_DIR/src/" "$STAGE_DIR/src/"
 rsync -a --exclude='._*' "$PROJECT_DIR/tests/" "$STAGE_DIR/tests/"
 rsync -a "$PROJECT_DIR/frontend/dist/" "$STAGE_DIR/frontend/dist/"
+rsync -a "$PROJECT_DIR/exam-web/dist/" "$STAGE_DIR/exam-web/dist/"
 cp "$PROJECT_DIR/package.json" "$PROJECT_DIR/package-lock.json" "$PROJECT_DIR/.env.production.example" "$PROJECT_DIR/README.md" "$STAGE_DIR/"
 cp "$PROJECT_DIR/frontend/package.json" "$PROJECT_DIR/frontend/package-lock.json" "$STAGE_DIR/frontend/"
+cp "$PROJECT_DIR/exam-web/package.json" "$PROJECT_DIR/exam-web/package-lock.json" "$STAGE_DIR/exam-web/"
 cp "$PROJECT_DIR/deploy/nginx-ai-scoring.conf" "$STAGE_DIR/deploy-nginx-ai-scoring.conf"
 cp "$PROJECT_DIR/scripts/run-migrations.js" "$PROJECT_DIR/scripts/backup-production.sh" "$PROJECT_DIR/scripts/restore-production-backup.sh" "$STAGE_DIR/scripts/"
 cp "$PROJECT_DIR/docs/PRODUCTION_RELEASE_CHECKLIST.md" "$STAGE_DIR/docs/"
@@ -68,10 +64,10 @@ version=$APP_VERSION
 commit=$APP_COMMIT
 built_at_utc=$BUILD_TIME
 node_required=>=22.13.0
-latest_migration=112_backfill_legacy_lr_exam_sections.sql
+latest_migration=120_remove_exam_events.sql
 working_tree_dirty=$DIRTY
 frontend_prebuilt=true
-candidate_mobile_prebuilt=$([ "$ADMIN_ONLY" = true ] && printf false || printf true)
+candidate_web_prebuilt=true
 runtime_media_included=false
 environment_secrets_included=false
 model_weights_included=false

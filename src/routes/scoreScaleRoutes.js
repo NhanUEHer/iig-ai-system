@@ -1,0 +1,12 @@
+const express = require('express');
+const asyncHandler = require('../http/asyncHandler');
+const { requirePermission } = require('../middleware/authenticate');
+const controller = require('../controllers/scoreScaleController');
+const router = express.Router();
+router.get('/', requirePermission('exams.view'), asyncHandler(controller.list));
+router.get('/:id', requirePermission('exams.view'), asyncHandler(controller.detail));
+router.post('/', requirePermission('exams.manage'), asyncHandler(controller.create));
+router.put('/:id', requirePermission('exams.manage'), asyncHandler(controller.update));
+router.patch('/:id/status', requirePermission('exams.manage'), asyncHandler(controller.setStatus));
+router.delete('/:id', requirePermission('exams.manage'), asyncHandler(controller.remove));
+module.exports = router;

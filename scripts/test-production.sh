@@ -48,7 +48,7 @@ console.log(`PASS build identity -> ${payload.build.version} (${payload.build.co
 NODE
 pass=$((pass + 1))
 
-for path in / /question-bank /question-groups /exams /exams/new /exam-events /exam-events/new /exam-candidates; do
+for path in / /question-bank /question-groups /exams /exams/new /exam-candidates; do
   assert_status 200 "$path"
   grep -qi '<!doctype html' "$TMP_DIR/response" || {
     echo "FAIL $path: response is not the frontend document" >&2
@@ -65,7 +65,6 @@ api_paths=(
   /api/question-bank/questions
   /api/question-bank/question-groups
   /api/exams
-  /api/exam-events
   /api/exam-candidates
 )
 

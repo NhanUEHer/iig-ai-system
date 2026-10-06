@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Check, ChevronRight } from 'lucide-react';
 import RichTextEditor from '../../../components/common/RichTextEditor';
 import Button from '../../../components/ui/Button';
 import { FormField, Input, Textarea } from '../../../components/ui/FormField';
 import { Breadcrumb } from '../../../components/ui/Layout';
 import MultiSelectFilter from '../../../components/ui/MultiSelectFilter';
-import { createExam } from '../../../services/examService';
+import { createExam, createExamGroup, listExamGroups, uploadExamCardImage } from '../../../services/examService';
+import ExamCatalogFields from '../components/ExamCatalogFields';
 import './ExamCreatePage.css';
 import './ExamCreatePageOverrides.css';
 
@@ -18,11 +19,13 @@ const EXAM_TYPE_OPTIONS = [
   { value: 'WRITING', label: 'Đề Writing' },
 ];
 
-const initialForm = { title: '', status: 'DRAFT', examType: '', description: '', introduction: '' };
+const initialForm = { title: '', status: 'DRAFT', examType: '', description: '', introduction: '', displayLabel: '', difficulty: 'INTERMEDIATE', groupIds: [] };
 function validate(form) {
   const errors = {};
   if (!form.title.trim()) errors.title = 'Vui lòng nhập tên đề thi.';
   if (!form.examType) errors.examType = 'Vui lòng chọn kiểu đề thi.';
+  if (!form.difficulty) errors.difficulty = 'Vui lòng chọn độ khó.';
+  if (!form.groupIds.length) errors.groupIds = 'Vui lòng chọn ít nhất một nhóm đề thi.';
   if (form.introduction.length > 5000) errors.introduction = 'Giới thiệu đề thi không được vượt quá 5000 ký tự.';
   return errors;
 }
@@ -31,6 +34,11 @@ export default function ExamCreatePage({ navigate, showMsg }) {
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [groups, setGroups] = useState([]);
+  const [imageFile, setImageFile] = useState(null);
+  const imagePreview = useMemo(() => imageFile ? URL.createObjectURL(imageFile) : '', [imageFile]);
+  useEffect(() => { listExamGroups().then(setGroups).catch(() => showMsg?.('Không thể tải danh sách nhóm đề thi.', 'error')); }, [showMsg]);
+  useEffect(() => () => { if (imagePreview) URL.revokeObjectURL(imagePreview); }, [imagePreview]);
   const update = (key, value) => {
     setForm(current => ({ ...current, [key]: value }));
     setErrors(current => ({ ...current, [key]: '' }));
@@ -52,7 +60,11 @@ export default function ExamCreatePage({ navigate, showMsg }) {
         examType: form.examType,
         description: form.description.trim(),
         introduction: form.introduction,
+        displayLabel: form.displayLabel.trim(),
+        difficulty: form.difficulty,
+        groupIds: form.groupIds,
       });
+      if (imageFile) await uploadExamCardImage(exam.id, imageFile);
       showMsg?.('Đã tạo đề thi. Bạn có thể tiếp tục thiết lập cấu trúc đề.', 'success');
       navigate(`/exams/${exam.id}/edit?tab=details`);
     } catch (error) {
@@ -84,6 +96,7 @@ export default function ExamCreatePage({ navigate, showMsg }) {
           <FormField id="exam-type" label="Kiểu đề thi" required error={errors.examType}>
             <MultiSelectFilter single className="exam-create-single-select exam-create-type-select" value={form.examType} onApply={value => update('examType', value)} options={EXAM_TYPE_OPTIONS} placeholder="Chọn kiểu đề thi" searchPlaceholder="Tìm kiểu đề thi..." />
           </FormField>
+          <ExamCatalogFields value={form} onChange={setForm} groupOptions={groups.map(group => ({ value: group.id, label: group.name }))} errors={errors} imageItem={imageFile?{id:'local-card-image',mediaType:'IMAGE',url:imagePreview,originalName:imageFile.name,fileSize:imageFile.size}:null} onPickImage={setImageFile} onRemoveImage={() => setImageFile(null)} onCreateGroup={async name => { try { const group=await createExamGroup(name); setGroups(current => current.some(item=>item.id===group.id)?current:[...current,group]); update('groupIds',[...new Set([...form.groupIds,group.id])]); showMsg?.('Đã thêm nhóm đề thi mới.','success'); } catch(error) { showMsg?.(error.response?.data?.error||'Không thể thêm nhóm đề thi.','error'); throw error; } }} />
           <FormField id="exam-description" label="Mô tả đề thi">
             <div className="exam-create-counted-control">
               <Textarea id="exam-description" rows={4} maxLength={500} value={form.description} onChange={event => update('description', event.target.value)} placeholder="Nhập mô tả đề thi..." />

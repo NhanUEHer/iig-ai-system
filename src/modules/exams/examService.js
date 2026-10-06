@@ -4,9 +4,12 @@ const repo = require('./examRepository');
 const calc = require('./durationCalculator');
 const { validateExam, validateListFilters, validateSection, validatePartCreate, validatePartContent } = require('./examValidator');
 const { isModeCompatible, modesForExamType, MODE_QUESTION_TYPE, TIMED_MODES, EXAM_ERROR_CODES } = require('./examConstants');
-const publicExamRepository = require('../public-exam-events/publicExamEventRepository');
+const examDeliveryRepository = require('../public-exams/examDeliveryRepository');
 const deliveryCache = require('../public-exam-events/examDeliveryCache');
+const scoreScaleRepository = require('../score-scales/scoreScaleRepository');
 const storage = require('../../services/storageService');
+
+const LR_MODES = new Set(['NON_STOP', 'FREESTYLE']);
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -14,6 +17,11 @@ const storage = require('../../services/storageService');
 async function get(id, client) {
   const exam = await repo.findById(id, client);
   if (!exam) throw new HttpError('Không tìm thấy đề thi.', 404, 'EXAM_NOT_FOUND');
+  return attachPresentation(exam);
+}
+
+async function attachPresentation(exam) {
+  if (exam?.cardImage?.storageKey) exam.cardImage.url = await storage.getSignedUrl(exam.cardImage.storageKey).catch(() => null);
   return exam;
 }
 
@@ -88,7 +96,9 @@ async function getWithDurations(id) {
 
 async function list(filters = {}) {
   validateListFilters(filters);
-  return repo.list(filters);
+  const result = await repo.list(filters);
+  result.data = await Promise.all(result.data.map(attachPresentation));
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -96,7 +106,18 @@ async function list(filters = {}) {
 // ---------------------------------------------------------------------------
 async function create(data, userId) {
   validateExam(data);
-  return repo.create(data, userId);
+  // Preserve the legacy Draft creation path for internal import/seed clients.
+  // Admin creation sends groupIds and uses the atomic metadata assignment below.
+  if (data.groupIds === undefined) return attachPresentation(await repo.create(data, userId));
+  const exam = await db.transaction(async client => {
+    let created = await repo.create(data, userId, client);
+    if (data.groupIds !== undefined) {
+      if (!await repo.replaceGroups(created.id, data.groupIds, client)) throw new HttpError('Có nhóm đề thi không tồn tại.', 400, 'EXAM_GROUPS_INVALID');
+      created = await repo.findById(created.id, client);
+    }
+    return created;
+  });
+  return attachPresentation(exam);
 }
 
 async function update(id, data, userId) {
@@ -112,8 +133,18 @@ async function update(id, data, userId) {
       }
     }
     await repo.update(id, data, userId, client);
+    if (data.groupIds !== undefined && !await repo.replaceGroups(id, data.groupIds, client)) throw new HttpError('Có nhóm đề thi không tồn tại.', 400, 'EXAM_GROUPS_INVALID');
   });
   return getWithDurations(id);
+}
+
+async function listGroups() { return repo.listGroups(); }
+
+async function createGroup(data, userId) {
+  const name = String(data?.name || '').trim().replace(/\s+/g, ' ');
+  if (!name) throw new HttpError('Tên nhóm đề thi là bắt buộc.', 400, 'EXAM_GROUP_NAME_REQUIRED');
+  if (name.length > 120) throw new HttpError('Tên nhóm đề thi không được vượt quá 120 ký tự.', 400, 'EXAM_GROUP_NAME_TOO_LONG');
+  return repo.createGroup(name, userId);
 }
 
 async function remove(id) {
@@ -121,8 +152,8 @@ async function remove(id) {
     const exam = await repo.lockExam(id, client);
     if (!exam) throw new HttpError('Không tìm thấy đề thi.', 404, 'EXAM_NOT_FOUND');
     if (exam.status === 'ACTIVE') throw new HttpError('Không thể xóa đề thi đang hoạt động.', 409, 'ACTIVE_EXAM_DELETE_FORBIDDEN');
-    const used = await client.query('SELECT 1 FROM exam_events WHERE exam_id=$1 LIMIT 1', [id]);
-    if (used.rows[0]) throw new HttpError('Không thể xóa đề thi đang được sử dụng trong kỳ thi.', 409, 'EXAM_IN_USE');
+    const used = await client.query('SELECT 1 FROM exam_attempts WHERE exam_id=$1 LIMIT 1', [id]);
+    if (used.rows[0]) throw new HttpError('Không thể xóa đề thi đã có lượt làm bài.', 409, 'EXAM_HAS_ATTEMPTS');
     await repo.remove(id, client);
   });
 }
@@ -137,11 +168,30 @@ function assertModeCompatible(examType, examMode) {
   }
 }
 
+async function validateSectionScoreScale({ scoreScaleId, examMode, questionCount }, client) {
+  if (!scoreScaleId) return null;
+  if (!LR_MODES.has(examMode)) {
+    throw new HttpError('Thang điểm theo số câu đúng chỉ áp dụng cho Listening và Reading.', 400, 'SECTION_SCORE_SCALE_MODE_INVALID');
+  }
+  const scale = await scoreScaleRepository.findById(scoreScaleId, client);
+  if (!scale) throw new HttpError('Không tìm thấy thang điểm được chọn.', 404, 'SECTION_SCORE_SCALE_NOT_FOUND');
+  if (scale.scaleType !== 'LR_RAW_CORRECT') throw new HttpError('Loại thang điểm không phù hợp với phần thi.', 400, 'SECTION_SCORE_SCALE_TYPE_INVALID');
+  if (scale.status !== 'ACTIVE') throw new HttpError('Chỉ có thể gán thang điểm đang hoạt động.', 409, 'SECTION_SCORE_SCALE_NOT_ACTIVE');
+  if (scale.questionCount !== Number(questionCount)) {
+    throw new HttpError(`Thang điểm có ${scale.questionCount} câu, không khớp với ${Number(questionCount)} câu cấu hình của phần thi.`, 409, 'SECTION_SCORE_SCALE_QUESTION_COUNT_MISMATCH');
+  }
+  if (scale.rawRanges.length !== scale.questionCount + 1) {
+    throw new HttpError('Thang điểm chưa có đầy đủ chi tiết từ 0 đến số câu tối đa.', 409, 'SECTION_SCORE_SCALE_RANGES_INCOMPLETE');
+  }
+  return scale;
+}
+
 async function createSection(examId, data) {
   validateSection(data);
   await db.transaction(async client => {
     const exam = await ensureEditable(examId, client);
     assertModeCompatible(exam.examType, data.examMode);
+    await validateSectionScoreScale(data, client);
     await repo.createSection(examId, data, client);
   });
   return getWithDurations(examId);
@@ -157,8 +207,14 @@ async function updateSection(examId, sectionId, data) {
   validateSection(data, true);
   await db.transaction(async client => {
     const exam = await ensureEditable(examId, client);
-    await ensureSection(examId, sectionId, client);
+    const section = await ensureSection(examId, sectionId, client);
+    const next = {
+      examMode: data.examMode === undefined ? section.examMode : data.examMode,
+      questionCount: data.questionCount === undefined ? section.questionCount : data.questionCount,
+      scoreScaleId: data.scoreScaleId === undefined ? section.scoreScaleId : data.scoreScaleId,
+    };
     if (data.examMode !== undefined) assertModeCompatible(exam.examType, data.examMode);
+    await validateSectionScoreScale(next, client);
     await repo.updateSection(examId, sectionId, data, client);
   });
   return getWithDurations(examId);
@@ -319,6 +375,9 @@ async function validation(examId) {
 
   if (!exam.title) errors.push({ scope: 'exam', message: 'Đề thi chưa có tên.' });
   if (!exam.examType) errors.push({ scope: 'exam', code: EXAM_ERROR_CODES.EXAM_TYPE_REQUIRED, message: 'Đề thi chưa có kiểu đề.' });
+  if (!exam.difficulty) errors.push({ scope: 'exam', code: 'EXAM_DIFFICULTY_REQUIRED', message: 'Đề thi chưa được thiết lập độ khó.' });
+  if (!exam.groups?.length) errors.push({ scope: 'exam', code: 'EXAM_GROUP_REQUIRED', message: 'Đề thi phải thuộc ít nhất một nhóm.' });
+  if (!exam.cardImage?.storageKey) errors.push({ scope: 'exam', code: 'EXAM_IMAGE_REQUIRED', message: 'Đề thi chưa có ảnh đại diện.' });
   if (!exam.sections.length) errors.push({ scope: 'exam', message: 'Đề thi phải có ít nhất một Phần thi.' });
 
   const rows = await repo.loadValidationRows(examId);
@@ -334,6 +393,15 @@ async function validation(examId) {
     }
     if (!(section.questionCount > 0)) errors.push({ scope: 'section', sectionId: section.id, message: `Phần thi “${section.title}” phải có số câu cấu hình lớn hơn 0.` });
     if (!(section.configuredDurationSeconds > 0)) errors.push({ scope: 'section', sectionId: section.id, message: `Phần thi “${section.title}” phải có thời gian cấu hình lớn hơn 0.` });
+    if (LR_MODES.has(section.examMode)) {
+      if (!section.scoreScaleId) {
+        errors.push({ scope: 'section', sectionId: section.id, code: 'SECTION_SCORE_SCALE_REQUIRED', message: `Phần thi “${section.title}” chưa được gán thang điểm.` });
+      } else if (!section.scoreScale || section.scoreScale.status !== 'ACTIVE') {
+        errors.push({ scope: 'section', sectionId: section.id, code: 'SECTION_SCORE_SCALE_NOT_ACTIVE', message: `Thang điểm của phần thi “${section.title}” không còn hoạt động.` });
+      } else if (section.scoreScale.scaleType !== 'LR_RAW_CORRECT' || section.scoreScale.questionCount !== section.questionCount || section.scoreScale.rangeCount !== section.questionCount + 1) {
+        errors.push({ scope: 'section', sectionId: section.id, code: 'SECTION_SCORE_SCALE_INVALID', message: `Thang điểm của phần thi “${section.title}” không phù hợp hoặc chưa đủ chi tiết.` });
+      }
+    }
     if (!section.parts.length) errors.push({ scope: 'section', sectionId: section.id, message: `Phần thi “${section.title}” phải có ít nhất một Part.` });
     // Actual child-question count must equal the configured count at Publish.
     if (section.actualSubQuestionCount !== section.questionCount) {
@@ -348,6 +416,9 @@ async function validation(examId) {
     for (const part of section.parts) {
       if (!part.title) errors.push({ scope: 'part', sectionId: section.id, partId: part.id, message: 'Có Part chưa có tên.' });
       if (!part.questions.length) errors.push({ scope: 'part', sectionId: section.id, partId: part.id, message: `Part “${part.title}” chưa có câu hỏi.` });
+      if (TIMED_MODES.has(section.examMode) && !part.instructionAudio?.id) {
+        errors.push({ scope: 'part', sectionId: section.id, partId: part.id, code: 'PART_INSTRUCTION_AUDIO_REQUIRED', message: `Part “${part.title}” phải có audio hướng dẫn.` });
+      }
       if (Number(part.breakDurationSeconds) < 0) errors.push({ scope: 'part', sectionId: section.id, partId: part.id, message: `Part “${part.title}” có thời gian nghỉ không hợp lệ.` });
       if (section.examMode === 'WRITING_NON_STOP' && !(Number(part.configuredDurationSeconds) > 0)) {
         errors.push({ scope: 'part', sectionId: section.id, partId: part.id, code: 'PART_DURATION_REQUIRED', message: `Part “${part.title}” phải có thời gian làm bài lớn hơn 0.` });
@@ -393,7 +464,7 @@ async function publish(examId, userId) {
   // Warm the public delivery cache after commit; a cache outage must never roll
   // back a successful Publish.
   try {
-    const source = await publicExamRepository.findVersionQuestionDelivery(published.versionId);
+    const source = await examDeliveryRepository.findVersionQuestionDelivery(published.versionId);
     if (source) {
       await deliveryCache.publishGeneration(examId, source.snapshot, source.media);
     }
@@ -404,14 +475,14 @@ async function publish(examId, userId) {
 async function deactivate(examId, userId) {
   const exam = await get(examId);
   if (exam.status !== 'ACTIVE') return exam;
-  const activeEvent = await repo.findInProgressEvent(examId);
-  if (activeEvent) throw new HttpError(`Không thể ngừng hoạt động vì đề thi đang được sử dụng trong kỳ thi “${activeEvent.name}”.`, 409, 'EXAM_EVENT_IN_PROGRESS');
   await repo.update(examId, { status: 'INACTIVE' }, userId);
+  try { await deliveryCache.clearPublished(examId); }
+  catch (error) { console.error('[ExamDeliveryCache] Clear after deactivate failed:', error.message); }
   return getWithDurations(examId);
 }
 
 module.exports = {
-  list, get: getWithDurations, create, update, remove,
+  list, get: getWithDurations, create, update, remove, listGroups, createGroup,
   createSection, updateSection, deleteSection, reorderSections,
   createPart, updatePart, deletePart, reorderParts,
   listEligibleQuestions, addQuestions, removeQuestion, reorderQuestions,

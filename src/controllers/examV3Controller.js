@@ -1,5 +1,6 @@
 const service = require('../modules/exams/examService');
 const mediaService = require('../modules/exams/examMediaService');
+const cardImageService = require('../modules/exams/examCardImageService');
 
 // Exam
 const list = async (req, res) => res.json({ success: true, ...await service.list(req.query) });
@@ -7,6 +8,10 @@ const detail = async (req, res) => res.json({ success: true, data: await service
 const create = async (req, res) => res.status(201).json({ success: true, data: await service.create(req.body, req.auth?.userId) });
 const update = async (req, res) => res.json({ success: true, data: await service.update(req.params.examId, req.body, req.auth?.userId) });
 const remove = async (req, res) => { await service.remove(req.params.examId); res.json({ success: true, id: req.params.examId }); };
+const listGroups = async (req, res) => res.json({ success: true, data: await service.listGroups() });
+const createGroup = async (req, res) => res.status(201).json({ success: true, data: await service.createGroup(req.body, req.auth?.userId) });
+const uploadCardImage = async (req, res) => res.status(201).json({ success: true, data: await cardImageService.upload(req.params.examId, req.file, req.auth?.userId) });
+const removeCardImage = async (req, res) => res.json({ success: true, data: await cardImageService.remove(req.params.examId, req.auth?.userId) });
 
 // Sections
 const createSection = async (req, res) => res.status(201).json({ success: true, data: await service.createSection(req.params.examId, req.body) });
@@ -34,7 +39,7 @@ const publish = async (req, res) => res.json({ success: true, data: await servic
 const deactivate = async (req, res) => res.json({ success: true, data: await service.deactivate(req.params.examId, req.auth?.userId) });
 
 module.exports = {
-  list, detail, create, update, remove,
+  list, detail, create, update, remove, listGroups, createGroup, uploadCardImage, removeCardImage,
   createSection, updateSection, removeSection, reorderSections,
   createPart, updatePart, removePart, reorderParts, uploadPartAudio, removePartAudio,
   availableQuestions, addQuestions, removeQuestion, reorderQuestions,

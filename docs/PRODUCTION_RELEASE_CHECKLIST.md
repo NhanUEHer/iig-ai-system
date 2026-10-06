@@ -42,9 +42,10 @@ Do not continue without a usable database backup and an application rollback tar
 3. Link/provision runtime model directories separately when those features are enabled.
 4. Link persistent media directories or configure R2; do not overwrite existing media.
 5. Run `npm ci --omit=dev` in the release root.
-6. Confirm `frontend/dist/index.html` and `frontend/dist/events/index.html` exist.
-7. Confirm `/events/<event-id>` and all nested attempt routes fall back to `frontend/dist/events/index.html`.
-8. Run `npm run check:syntax`.
+6. Confirm `frontend/dist/index.html` and `exam-web/dist/index.html` exist.
+7. Deploy them on separate virtual hosts. Both applications own `/exams`, so they must not share one SPA fallback root.
+8. On the candidate host, proxy `/api/*` and media paths to the same backend used by the admin host.
+9. Run `npm run check:syntax`.
 
 ## 5. Database migration
 
@@ -89,7 +90,7 @@ deletes production records.
 - Event avatar/banner upload, replacement and removal works.
 - Success toast is green and error toast is red with readable text.
 - Browser refresh works on deep admin routes.
-- Public LR registration, introduction, attempt and result deep links load under `/events/*`.
+- Public LR catalog, registration, attempt and result deep links load on the candidate host under `/exams/*`.
 - Autosave survives refresh; offline changes retry after reconnection.
 - Expiry auto-submits once and repeated submit requests return the same result.
 - Application and Nginx logs contain no new 5xx errors.

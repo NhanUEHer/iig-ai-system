@@ -42,6 +42,7 @@ function validateCandidateRegistration(input = {}, now = new Date()) {
     fullName,
     phone,
     email,
+    schoolName: String(input.schoolName || '').trim().slice(0, 240) || null,
     birthYear,
     toeicExperience,
     marketingConsent: input.marketingConsent === true,

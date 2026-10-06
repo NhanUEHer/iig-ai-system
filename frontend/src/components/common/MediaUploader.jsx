@@ -13,7 +13,7 @@ function matchesAcceptedType(file, acceptedTypes) {
   return acceptedTypes.some(type => type.endsWith('/*') ? file.type.startsWith(type.slice(0, -1)) : file.type === type);
 }
 
-export default function MediaUploader({ endpoint, onUploaded, items = [], onDelete, maxFileSize = DEFAULT_MAX_SIZE, accept = ['image/*', 'audio/*', 'video/*'], multiple = true, note = 'Ảnh, audio hoặc video · tối đa 20MB', height = 58, variant = 'default', disabled = false }) {
+export default function MediaUploader({ endpoint, onUploaded, onFilesSelected, items = [], onDelete, maxFileSize = DEFAULT_MAX_SIZE, accept = ['image/*', 'audio/*', 'video/*'], multiple = true, note = 'Ảnh, audio hoặc video · tối đa 20MB', height = 58, variant = 'default', disabled = false }) {
   const inputRef = useRef(null);
   const [uploads, setUploads] = useState([]);
   const [error, setError] = useState('');
@@ -56,7 +56,9 @@ export default function MediaUploader({ endpoint, onUploaded, items = [], onDele
       if (file.size > maxFileSize) { setError(`Tệp ${file.name} vượt quá dung lượng cho phép.`); return false; }
       return true;
     });
-    for (const file of multiple ? valid : valid.slice(0, 1)) await uploadFile(file);
+    const files = multiple ? valid : valid.slice(0, 1);
+    if (!endpoint) { if (files.length) onFilesSelected?.(files); return; }
+    for (const file of files) await uploadFile(file);
   };
   const handleFiles = event => { const selected = Array.from(event.target.files || []); event.target.value = ''; submitFiles(selected); };
   const handleDrop = event => { event.preventDefault(); submitFiles(Array.from(event.dataTransfer?.files || [])); };
@@ -64,7 +66,7 @@ export default function MediaUploader({ endpoint, onUploaded, items = [], onDele
   const hasMedia = items.length > 0;
   return <div className={`media-uploader media-uploader--${variant} ${disabled ? 'is-disabled' : ''}`} aria-disabled={disabled}>
     <input ref={inputRef} className="media-uploader__input" type="file" accept={accept.join(',')} multiple={multiple} disabled={disabled} onChange={handleFiles} />
-    {activeUpload ? <UploadProgress upload={activeUpload} onRetry={() => { if (disabled) return; setUploads([]); setError(''); inputRef.current?.click(); }} /> : hasMedia && variant === 'content' ? <ContentMediaPreview media={items[0]} onDelete={onDelete} onReplace={() => inputRef.current?.click()} disabled={disabled} /> : <button type="button" className="media-uploader__drop-area" style={{ minHeight: height }} disabled={disabled} onClick={() => inputRef.current?.click()} onDragOver={event => { if (!disabled) event.preventDefault(); }} onDrop={handleDrop}><div className="media-uploader__prompt"><UploadCloud /><p><strong>Drag &amp; drop</strong> or browse files</p><small>{note}</small></div></button>}
+    {activeUpload ? <UploadProgress upload={activeUpload} onRetry={() => { if (disabled) return; setUploads([]); setError(''); inputRef.current?.click(); }} /> : hasMedia && variant === 'content' ? <ContentMediaPreview media={items[0]} onDelete={onDelete} onReplace={() => inputRef.current?.click()} disabled={disabled} /> : <button type="button" className="media-uploader__drop-area" style={{ minHeight: height }} disabled={disabled} onClick={() => inputRef.current?.click()} onDragOver={event => { if (!disabled) event.preventDefault(); }} onDrop={handleDrop}><div className="media-uploader__prompt"><UploadCloud /><p><strong>Drag &amp; drop</strong> or browse files</p>{note && <small>{note}</small>}</div></button>}
     {error && !activeUpload && <small className="media-uploader__error">{error}</small>}
     {hasMedia && variant !== 'content' && <MediaGallery items={items} onDelete={onDelete} />}
   </div>;

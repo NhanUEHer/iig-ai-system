@@ -17,12 +17,11 @@ test('candidate exam persistence migration creates candidates, attempts and answ
   assert.match(source, /expires_at/i);
 });
 
-test('candidate lookup migration supports event contact and active-attempt lookup', () => {
-  const source = read('074_candidate_lookup_indexes.sql');
-  assert.match(source, /exam_event_id/i);
-  assert.match(source, /email/i);
-  assert.match(source, /phone/i);
-  assert.match(source, /exam_attempts/i);
+test('event retirement migration makes attempts belong directly to an exam', () => {
+  const source = read('120_remove_exam_events.sql');
+  assert.match(source, /ALTER TABLE exam_attempts DROP COLUMN IF EXISTS exam_event_id/i);
+  assert.match(source, /ON exam_attempts\(candidate_id,exam_id\)/i);
+  assert.match(source, /WHERE status='IN_PROGRESS'/i);
 });
 
 test('candidate table repair remains idempotent for existing environments', () => {
@@ -31,4 +30,3 @@ test('candidate table repair remains idempotent for existing environments', () =
   assert.match(source, /exam_candidates/i);
   assert.match(source, /exam_attempts/i);
 });
-

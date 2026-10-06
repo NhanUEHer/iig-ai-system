@@ -34,6 +34,7 @@ test('exam repository maps exam type and structural counts to the API shape', ()
   assert.equal(exam.partCount, 3);
   assert.equal(exam.subQuestionCount, 20);
   assert.equal(exam.configuredDurationSeconds, 3600);
+  assert.equal(exam.popularityCount, 0);
   assert.equal(exam.hasPublishedSnapshot, false);
 });
 
@@ -49,27 +50,24 @@ test('exam list statistics avoid cross-join multiplication and include configure
   const source = fs.readFileSync(path.join(__dirname, '../src/modules/exams/examRepository.js'), 'utf8');
   assert.match(source, /SELECT COUNT\(\*\) FROM exam_sections es WHERE es\.exam_id=e\.id/);
   assert.match(source, /SUM\(es\.configured_duration_seconds\)/);
+  assert.match(source, /COUNT\(\*\) FROM exam_attempts ea WHERE ea\.exam_id=e\.id/);
+  assert.match(source, /ORDER BY popularity_count DESC/);
   assert.doesNotMatch(source, /LEFT JOIN exam_sections es ON es\.exam_id=e\.id/);
 });
 
-test('exam service protects exams referenced by an exam event', () => {
+test('exam service protects exams that already have candidate attempts', () => {
   const fs = require('node:fs');
   const path = require('node:path');
   const source = fs.readFileSync(path.join(__dirname, '../src/modules/exams/examService.js'), 'utf8');
-  assert.match(source, /SELECT 1 FROM exam_events WHERE exam_id=\$1/);
-  assert.match(source, /EXAM_IN_USE/);
+  assert.match(source, /SELECT 1 FROM exam_attempts WHERE exam_id=\$1/);
+  assert.match(source, /EXAM_HAS_ATTEMPTS/);
 });
 
-test('exam service blocks deactivation while a published event is in progress', () => {
+test('exam service no longer depends on exam events for deactivation', () => {
   const fs = require('node:fs');
   const path = require('node:path');
   const serviceSource = fs.readFileSync(path.join(__dirname, '../src/modules/exams/examService.js'), 'utf8');
-  const repositorySource = fs.readFileSync(path.join(__dirname, '../src/modules/exams/examRepository.js'), 'utf8');
-  assert.match(serviceSource, /findInProgressEvent\(examId\)/);
-  assert.match(serviceSource, /EXAM_EVENT_IN_PROGRESS/);
-  assert.match(repositorySource, /status='PUBLISHED'/);
-  assert.match(repositorySource, /start_at<=CURRENT_TIMESTAMP/);
-  assert.match(repositorySource, /end_at>CURRENT_TIMESTAMP/);
+  assert.doesNotMatch(serviceSource, /findInProgressEvent|EXAM_EVENT_IN_PROGRESS|exam_events/);
 });
 
 test('exam service uses Publish (not a form status change) to activate', async () => {
