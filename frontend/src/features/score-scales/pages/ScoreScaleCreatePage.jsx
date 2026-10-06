@@ -32,10 +32,16 @@ function validateInfo(form) {
 
 function validateRanges(form, rows) {
   const invalidRow = rows.find(row => row.convertedScore === '' || !Number.isFinite(Number(row.convertedScore)) || Number(row.convertedScore) < Number(form.minScore) || Number(row.convertedScore) > Number(form.maxScore));
-  return invalidRow ? { ranges: `Vui lòng nhập điểm hợp lệ cho số câu đúng ${invalidRow.correctCount}.` } : {};
+  if (invalidRow) return { ranges: `Vui lòng nhập điểm hợp lệ cho số câu đúng ${invalidRow.correctCount}.` };
+  const decreasing = rows.find((row, index) => index > 0 && Number(row.convertedScore) < Number(rows[index - 1].convertedScore));
+  if (decreasing) return { ranges: `Điểm của ${decreasing.correctCount} câu đúng không được thấp hơn dòng trước.` };
+  if (Number(rows[0]?.convertedScore) !== Number(form.minScore) || Number(rows.at(-1)?.convertedScore) !== Number(form.maxScore)) {
+    return { ranges: 'Điểm của 0 câu đúng phải bằng điểm tối thiểu và điểm của toàn bộ câu đúng phải bằng điểm tối đa.' };
+  }
+  return {};
 }
 
-export default function ScoreScaleCreatePage({ navigate, showMsg, scoreScaleId = '' }) {
+export default function ScoreScaleCreatePage({ navigate, showMsg, scoreScaleId = '', canManage = true }) {
   const [form, setForm] = useState(initialForm);
   const [rows, setRows] = useState([]);
   const [errors, setErrors] = useState({});
@@ -45,7 +51,7 @@ export default function ScoreScaleCreatePage({ navigate, showMsg, scoreScaleId =
   const [persistedStatus, setPersistedStatus] = useState('DRAFT');
   const [activeTab, setActiveTab] = useState('information');
   const mappingRef = useRef(null);
-  const editable = persistedStatus === 'DRAFT';
+  const editable = canManage && persistedStatus === 'DRAFT';
   const isEdit = Boolean(scoreScaleId);
 
   useEffect(() => {

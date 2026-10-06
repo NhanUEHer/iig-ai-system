@@ -100,6 +100,7 @@ function App() {
   else if (path.startsWith('/change-password')) activeTab = 'change-password';
   else if (path.startsWith('/question-bank/groups')) activeTab = 'question-groups';
   else if (path.startsWith('/question-bank')) activeTab = 'question-bank';
+  else if (path.startsWith('/score-scales')) activeTab = 'score-scales';
   else if (path.startsWith('/exam-candidates')) activeTab = 'exam-candidates';
   else if (path.startsWith('/exams')) activeTab = 'exams';
 
@@ -562,9 +563,9 @@ function App() {
               <Route path="/exams/new" element={hasPermission('exams.manage') ? <ExamCreatePage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/exams/:id/edit" element={hasPermission('exams.manage') ? <ExamEditPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/exam-candidates" element={hasPermission('exam_candidates.view') ? <ExamCandidateListPage showMsg={showMsg} canExport={hasPermission('exam_candidates.export')} /> : <Navigate to={defaultPath} replace />} />
-              <Route path="/score-scales" element={hasPermission('exams.view') ? <ScoreScaleListPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/score-scales" element={hasPermission('exams.view') ? <ScoreScaleListPage navigate={navigate} showMsg={showMsg} canManage={hasPermission('exams.manage')} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/score-scales/new" element={hasPermission('exams.manage') ? <ScoreScaleCreatePage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
-              <Route path="/score-scales/:id/edit" element={hasPermission('exams.manage') ? <ScoreScaleEditPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/score-scales/:id/edit" element={hasPermission('exams.view') ? <ScoreScaleEditPage navigate={navigate} showMsg={showMsg} canManage={hasPermission('exams.manage')} /> : <Navigate to={defaultPath} replace />} />
 
               <Route path="/" element={<Navigate to={defaultPath} replace />} />
               <Route path="*" element={<Navigate to={defaultPath} replace />} />

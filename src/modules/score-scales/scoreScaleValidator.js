@@ -28,11 +28,19 @@ function validateRanges(data) {
   const count = Number(data.questionCount);
   if (!Array.isArray(data.rawRanges) || data.rawRanges.length !== count + 1) throw new HttpError(`Cần nhập đủ mapping từ 0 đến ${count} câu đúng.`, 400, 'SCORE_SCALE_RANGES_INCOMPLETE');
   const seen = new Set();
-  for (const row of data.rawRanges) {
+  let previousScore = null;
+  const ordered = [...data.rawRanges].sort((left, right) => Number(left.correctCount) - Number(right.correctCount));
+  for (const row of ordered) {
     if (!integer(row.correctCount) || Number(row.correctCount) < 0 || Number(row.correctCount) > count || seen.has(Number(row.correctCount))) throw new HttpError('Mapping số câu đúng không hợp lệ hoặc bị trùng.', 400, 'SCORE_SCALE_RANGES_INVALID');
     const score = Number(row.convertedScore);
     if (!Number.isFinite(score) || score < Number(data.minScore) || score > Number(data.maxScore)) throw new HttpError('Điểm quy đổi phải nằm trong khoảng điểm của thang.', 400, 'SCORE_SCALE_CONVERTED_SCORE_INVALID');
+    if (previousScore !== null && score < previousScore) throw new HttpError('Điểm quy đổi không được giảm khi số câu đúng tăng.', 400, 'SCORE_SCALE_CONVERTED_SCORE_NOT_MONOTONIC');
+    previousScore = score;
     seen.add(Number(row.correctCount));
+  }
+  const byCount = new Map(ordered.map(row => [Number(row.correctCount), Number(row.convertedScore)]));
+  if (byCount.get(0) !== Number(data.minScore) || byCount.get(count) !== Number(data.maxScore)) {
+    throw new HttpError('Điểm của 0 câu đúng phải bằng điểm tối thiểu và điểm của toàn bộ câu đúng phải bằng điểm tối đa.', 400, 'SCORE_SCALE_ENDPOINTS_INVALID');
   }
 }
 
