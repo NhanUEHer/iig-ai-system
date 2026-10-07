@@ -70,9 +70,9 @@ else
   echo "Candidate exam web build was explicitly skipped."
 fi
 if [ "$ADMIN_ONLY" != true ]; then
-  npm run build --prefix mobile-web
+  npm run build --prefix exam-web
   mkdir -p frontend/dist/events
-  rsync -a --delete mobile-web/dist/ frontend/dist/events/
+  rsync -a --delete exam-web/dist/ frontend/dist/events/
   test -s frontend/dist/events/index.html
 else
   echo "Admin-only release: candidate web build is skipped and production /events will be preserved."

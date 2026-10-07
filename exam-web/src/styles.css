@@ -404,6 +404,7 @@ body .question-navigator>header>button{width:32px;height:32px;display:grid;place
 .avatars span:nth-child(3){background:linear-gradient(145deg,#eab64f,#a16a0c);color:#fff}
 .avatars span:nth-child(4){background:linear-gradient(145deg,#53aa91,#226b59);color:#fff}
 .avatars span:last-child:after{content:'';position:absolute;right:-1px;bottom:-1px;width:8px;height:8px;border:2px solid #0a4768;border-radius:50%;background:#2fd19a}
+.mobile-menu-toggle,.mobile-nav{display:none}
 
 @media(max-width:520px){
   .hero-cta{min-width:0;width:100%}
@@ -438,6 +439,12 @@ body .question-navigator>header>button{width:32px;height:32px;display:grid;place
   .site-header{height:60px}
   .header-inner,.container{width:min(100% - 32px,720px)}
   .site-header nav{display:none}
+  .mobile-menu-toggle{width:38px;height:38px;display:grid;place-items:center;margin-left:4px;border:1px solid #cfe0eb;border-radius:10px;background:#fff;color:#0d5278;cursor:pointer}
+  .mobile-menu-toggle .material-symbols-outlined{font-size:23px}
+  .mobile-nav{position:absolute;z-index:100;top:60px;right:14px;left:14px;display:grid;gap:4px;padding:8px;border:1px solid #dce7ef;border-radius:12px;background:#fff;box-shadow:0 12px 28px rgba(10,48,76,.16)}
+  .mobile-nav a{display:flex;align-items:center;gap:10px;padding:12px;border-radius:8px;color:#254c66;text-decoration:none;font-size:13px;font-weight:800}
+  .mobile-nav a.active,.mobile-nav a:active{background:#edf7fd;color:#075b91}
+  .mobile-nav .material-symbols-outlined{font-size:19px}
   .brand img{width:auto;height:44px;max-height:44px}
   .brand{height:44px;flex:0 0 auto}
   .challenge-badge{display:inline-flex;margin-left:auto;padding:5px 9px;font-size:10px}

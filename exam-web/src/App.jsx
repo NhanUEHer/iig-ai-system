@@ -14,6 +14,7 @@ import { registerExamCandidate } from './services/publicExamApi'
 const Icon = ({ children, className = '' }) => <span className={`material-symbols-outlined ${className}`}>{children}</span>
 
 export function Header({ active = 'home' }) {
+  const [menuOpen, setMenuOpen] = useState(false)
   return (
     <header className="site-header">
       <div className="header-inner">
@@ -28,7 +29,13 @@ export function Header({ active = 'home' }) {
           <a href="https://elearning.iigvietnam.com/" target="_blank" rel="noreferrer">Khóa học IIG</a>
         </nav>
         <a className="hotline" href="tel:1900636929"><Icon>call</Icon><span>1900 636 929</span></a>
+        <button className="mobile-menu-toggle" type="button" aria-label={menuOpen ? 'Đóng menu' : 'Mở menu'} aria-expanded={menuOpen} onClick={() => setMenuOpen(value => !value)}><Icon>{menuOpen ? 'close' : 'menu'}</Icon></button>
       </div>
+      {menuOpen && <nav className="mobile-nav" aria-label="Điều hướng mobile">
+        <a className={active === 'home' ? 'active' : ''} href="/" onClick={() => setMenuOpen(false)}><Icon>home</Icon>Trang chủ</a>
+        <a className={active === 'exams' ? 'active' : ''} href="/exams" onClick={() => setMenuOpen(false)}><Icon>quiz</Icon>Danh sách đề thi</a>
+        <a href="https://elearning.iigvietnam.com/" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}><Icon>school</Icon>Khóa học IIG</a>
+      </nav>}
     </header>
   )
 }
