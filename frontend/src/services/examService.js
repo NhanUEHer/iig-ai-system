@@ -28,5 +28,5 @@ export const addExamQuestions = (id,sectionId,partId,questionIds) => unwrap(api.
 export const deleteExamQuestion = (id,sectionId,partId,questionId) => unwrap(api.delete(`/exams/${id}/sections/${sectionId}/parts/${partId}/questions/${questionId}`)).then(r=>r.data);
 export const reorderExamQuestions = (id,sectionId,partId,questionIds) => unwrap(api.put(`/exams/${id}/sections/${sectionId}/parts/${partId}/questions/reorder`,{questionIds})).then(r=>r.data);
 export const validateExam = id => unwrap(api.get(`/exams/${id}/validation`)).then(r=>r.data);
-export const activateExam = id => unwrap(api.post(`/exams/${id}/activate`)).then(r=>r.data);
+export const activateExam = id => unwrap(api.post(`/exams/${id}/publish`)).then(r=>r.data);
 export const deactivateExam = id => unwrap(api.post(`/exams/${id}/deactivate`)).then(r=>r.data);
