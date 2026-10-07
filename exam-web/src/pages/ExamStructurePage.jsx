@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getPublicExamDetail, startExamAttempt } from '../services/publicExamApi'
 import { getExamBrowserSessionId } from '../services/examAttemptTabLock'
 
@@ -12,6 +12,8 @@ function ExamStructurePage({ examId }) {
   const [error, setError] = useState('')
   const [starting, setStarting] = useState(false)
   const [deviceConflict, setDeviceConflict] = useState(false)
+  const [audioStatus, setAudioStatus] = useState('idle')
+  const audioRef = useRef(null)
 
   useEffect(() => {
     let active = true
@@ -19,14 +21,67 @@ function ExamStructurePage({ examId }) {
     getPublicExamDetail(examId)
       .then(result => { if (active) setExam(result.data) })
       .catch(requestError => { if (active) setError(requestError.message) })
-    return () => { active = false }
+    return () => {
+      active = false
+      const audio = audioRef.current
+      if (audio) {
+        audio.pause()
+        audio.currentTime = 0
+      }
+    }
   }, [examId])
 
-  const hasSpeaking = exam?.examType === 'SPEAKING' || exam?.examType === 'SPEAKING_WRITING' || exam?.sections?.some(section => section.examMode === 'RECORD_NON_STOP')
+  const requiresAudio = Boolean(
+    exam && (
+      ['LISTENING', 'LISTENING_READING', 'SPEAKING', 'SPEAKING_WRITING'].includes(exam.examType)
+      || exam.sections?.some(section => ['NON_STOP', 'RECORD_NON_STOP'].includes(section.examMode))
+    ),
+  )
   const partOffsets = exam?.sections?.map((_, sectionIndex, sections) => sections.slice(0, sectionIndex).reduce((total, section) => total + Math.max(1, section.parts?.length || 0), 0)) || []
+
+  const verifyAudioPlayback = useCallback(async () => {
+    if (!requiresAudio) {
+      setAudioStatus('ready')
+      return true
+    }
+
+    setAudioStatus('checking')
+    let audio = audioRef.current
+    if (!audio) {
+      audio = new Audio('/audio/sound-test.mp3')
+      audio.preload = 'auto'
+      audioRef.current = audio
+    }
+
+    audio.volume = 0.05
+    audio.currentTime = 0
+    try {
+      await audio.play()
+      audio.pause()
+      audio.currentTime = 0
+      setAudioStatus('ready')
+      return true
+    } catch (playbackError) {
+      setAudioStatus(playbackError?.name === 'NotAllowedError' ? 'blocked' : 'unavailable')
+      return false
+    }
+  }, [requiresAudio])
+
+  useEffect(() => {
+    if (!exam) return
+    if (!requiresAudio) {
+      setAudioStatus('ready')
+      return
+    }
+    verifyAudioPlayback()
+  }, [exam, requiresAudio, verifyAudioPlayback])
 
   const startAttempt = async () => {
     if (!exam || starting) return
+    if (requiresAudio && audioStatus !== 'ready') {
+      await verifyAudioPlayback()
+      return
+    }
     const candidate = JSON.parse(window.localStorage.getItem(`exam-candidate:${examId}`) || 'null')
     if (!candidate?.candidateToken) {
       window.location.href = `/exams/${examId}`
@@ -38,7 +93,7 @@ function ExamStructurePage({ examId }) {
       const result = await startExamAttempt({
         examId,
         candidateToken: candidate.candidateToken,
-        audioConfirmed: true,
+        audioConfirmed: !requiresAudio || audioStatus === 'ready',
         clientSessionId: getExamBrowserSessionId(),
       })
       window.localStorage.setItem(`exam-attempt:${examId}`, JSON.stringify({
@@ -100,12 +155,20 @@ function ExamStructurePage({ examId }) {
                 <footer>Tổng: {section.questionCount} câu hỏi</footer>
               </article>)}
             </div>
+            {requiresAudio && <section className={`structure-audio-check ${audioStatus}`} aria-live="polite">
+              <span><Icon>{audioStatus === 'ready' ? 'volume_up' : audioStatus === 'checking' ? 'hourglass_top' : 'volume_off'}</Icon></span>
+              <div>
+                <strong>{audioStatus === 'ready' ? 'Âm thanh đã sẵn sàng' : audioStatus === 'checking' ? 'Đang kiểm tra quyền phát âm thanh...' : audioStatus === 'unavailable' ? 'Không tải được âm thanh thử' : 'Trình duyệt chưa cho phép phát âm thanh'}</strong>
+                <p>{audioStatus === 'ready' ? 'Bạn có thể bắt đầu bài thi Listening.' : audioStatus === 'unavailable' ? 'Hãy kiểm tra kết nối mạng hoặc thiết bị âm thanh rồi thử lại.' : 'Nhấn nút bên cạnh để bật âm thanh trước khi bắt đầu thi.'}</p>
+              </div>
+              {['blocked', 'unavailable'].includes(audioStatus) && <button type="button" onClick={verifyAudioPlayback}><Icon>play_arrow</Icon>Bật âm thanh</button>}
+            </section>}
           </>}
         </div>
 
         <footer className="exam-structure-footer">
-          <a href={`/exams/${examId}/${hasSpeaking ? 'record-test' : 'sound-test'}`}><Icon>arrow_back</Icon>Quay lại</a>
-          <button className="primary" type="button" disabled={!exam || starting} onClick={startAttempt}>{starting ? 'Đang bắt đầu...' : 'Bắt đầu thi'} <Icon>arrow_forward</Icon></button>
+          <a href={`/exams/${examId}`}><Icon>arrow_back</Icon>Quay lại</a>
+          <button className="primary" type="button" disabled={!exam || starting || (requiresAudio && audioStatus !== 'ready')} onClick={startAttempt}>{starting ? 'Đang bắt đầu...' : audioStatus === 'checking' ? 'Đang kiểm tra audio...' : 'Bắt đầu thi'} <Icon>arrow_forward</Icon></button>
         </footer>
       </section>
     </main>

@@ -3,13 +3,6 @@ import { getPublicExamDetail, registerExamCandidate } from '../services/publicEx
 import { FeaturedCourses } from './ExamListPage'
 
 const Icon = ({ children }) => <span className="material-symbols-outlined">{children}</span>
-const ranking = [
-  { rank: 1, initials: 'MA', name: 'Trần Minh Anh', duration: '89 phút', score: 945 },
-  { rank: 2, initials: 'TH', name: 'Nguyễn Tuấn Hùng', duration: '104 phút', score: 920 },
-  { rank: 3, initials: 'VT', name: 'Vũ Thị Tuyết', duration: '112 phút', score: 895 },
-  { rank: 4, initials: 'BL', name: 'Đỗ Bảo Long', duration: '98 phút', score: 880 },
-  { rank: 5, initials: 'DL', name: 'Phạm Diệu Linh', duration: '101 phút', score: 875 },
-]
 
 const sectionLetter = title => ({ listening: 'L', reading: 'R', speaking: 'S', writing: 'W' }[String(title || '').toLowerCase()] || String(title || 'P').slice(0, 1).toUpperCase())
 const formatMinutes = seconds => `${Math.max(1, Math.round(Number(seconds || 0) / 60))} phút`
@@ -67,23 +60,8 @@ function Guidelines({ exam }) {
   </DetailCard>
 }
 
-function HallOfFame({ isSW }) {
-  const max = isSW ? 400 : 990
-  const currentScore = isSW ? 250 : 550
-  const targetScore = isSW ? 300 : 650
-  const progress = Math.round((currentScore / targetScore) * 1000) / 10
+function ExamSidebar() {
   return <aside className="detail-sidebar">
-    <section className="hall-card">
-      <header><span className="hall-icon"><Icon>workspace_premium</Icon></span><div><h2>Bảng Vinh Danh</h2></div></header>
-      <div className="ranking-list">{ranking.map((item, index) => {
-        const score = isSW ? [390, 375, 360, 350, 345][index] : item.score
-        return <article key={item.rank}><span className={`rank-avatar rank-${item.rank}`}>{item.initials}<i>{item.rank}</i></span><div><h3>{item.name}</h3><p><Icon>schedule</Icon>{item.duration}<i /><span className={item.rank <= 3 ? 'complete' : ''}>{item.rank <= 3 ? '100% hoàn thành' : '100%'}</span></p></div><strong>{score}<small>/{max}</small></strong></article>
-      })}</div>
-      <section className="current-ranking">
-        <header><div><small>Thứ hạng của bạn</small><strong>#156</strong></div><em>{currentScore}<small>/{max}</small></em></header>
-        <div className="ranking-progress"><span>Mục tiêu {targetScore}+ {isSW ? 'S&W' : 'L&R'}</span><strong>Cần thêm {targetScore - currentScore} điểm</strong><i><b style={{ width: `${progress}%` }} /></i></div>
-      </section>
-    </section>
     <section className="tip-card"><header><Icon>tips_and_updates</Icon><h2>Bí quyết bứt phá mục tiêu 650+</h2></header><ul><li><Icon>check_circle</Icon><span>Phân bổ thời gian: 45 phút nghe và tối đa 75 phút đọc để không bỏ sót câu hỏi.</span></li><li><Icon>check_circle</Icon><span>Đọc kỹ yêu cầu, xác định từ khóa trước khi lựa chọn đáp án.</span></li><li><Icon>check_circle</Icon><span>Hoàn thành toàn bộ câu hỏi trước khi nộp bài.</span></li></ul><a href="#courses"><Icon>school</Icon>Khám phá khóa học IIG</a></section>
   </aside>
 }
@@ -103,19 +81,15 @@ function ExamDetailPage({ examId, Header, Footer }) {
   const enterExam = async () => {
     let profile = null
     try { profile = JSON.parse(window.localStorage.getItem('exam-candidate-profile') || 'null') } catch { profile = null }
-    if (!profile?.email || !profile?.phone || !profile?.fullName) {
-      window.location.href = `/?registerExam=${encodeURIComponent(examId)}#registration`
-      return
-    }
     setEntering(true)
     try {
-      const result = await registerExamCandidate({ examId, candidate: { ...profile, privacyConsent: true } })
+      const result = await registerExamCandidate({ examId, candidate: { ...(profile || {}), privacyConsent: true } })
       window.localStorage.setItem(`exam-candidate:${examId}`, JSON.stringify({
         examId,
         candidateId: result.data.candidate.id,
         candidateToken: result.data.candidateToken,
       }))
-      window.location.href = `/exams/${examId}/rules`
+      window.location.href = `/exams/${examId}/structure`
     } catch (requestError) {
       setError(requestError.message)
       setEntering(false)
@@ -143,7 +117,7 @@ function ExamDetailPage({ examId, Header, Footer }) {
             <Structure exam={exam} />
             <div id="exam-guidelines"><Guidelines exam={exam} /></div>
           </div>
-          <HallOfFame isSW={exam.examType === 'SPEAKING_WRITING'} />
+          <ExamSidebar />
         </div>
       </div>
       <div id="courses" className="detail-courses"><FeaturedCourses /></div>

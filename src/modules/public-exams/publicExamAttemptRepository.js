@@ -6,18 +6,20 @@ const normalizePhone = value => String(value || '').replace(/[ .-]/g, '');
 
 async function registerCandidate(data) {
   return db.transaction(async client => {
-    const phone = normalizePhone(data.phone);
-    const email = data.email.toLowerCase();
-    await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text))', [`public-candidate:${email}:${phone}`]);
+    const phone = normalizePhone(data.phone) || null;
+    const email = String(data.email || '').trim().toLowerCase() || null;
+    const identityKey = email || phone || crypto.randomUUID();
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text))', [`public-candidate:${identityKey}`]);
     const matches = (await client.query(
       `SELECT id,full_name,email,phone,school_name
        FROM exam_candidates
-       WHERE LOWER(BTRIM(email))=$1 OR REGEXP_REPLACE(phone,'[ .-]','','g')=$2
+       WHERE ($1::text IS NOT NULL AND LOWER(BTRIM(email))=$1)
+          OR ($2::text IS NOT NULL AND REGEXP_REPLACE(phone,'[ .-]','','g')=$2)
        ORDER BY updated_at DESC,id`,
       [email, phone],
     )).rows;
-    const emailMatch = matches.find(row => String(row.email || '').trim().toLowerCase() === email);
-    const phoneMatch = matches.find(row => normalizePhone(row.phone) === phone);
+    const emailMatch = email ? matches.find(row => String(row.email || '').trim().toLowerCase() === email) : null;
+    const phoneMatch = phone ? matches.find(row => normalizePhone(row.phone) === phone) : null;
     if (emailMatch && phoneMatch && emailMatch.id !== phoneMatch.id) return { conflict: true };
     const existing = emailMatch || phoneMatch;
     if (existing) {

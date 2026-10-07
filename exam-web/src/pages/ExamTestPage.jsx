@@ -108,6 +108,8 @@ function ExamTestPage({ examId }) {
   const [tabAccess, setTabAccess] = useState(() => session ? 'checking' : 'acquired')
   const [resumeReady, setResumeReady] = useState(() => !session)
   const audioRef = useRef(null)
+  const audioAbortRef = useRef(null)
+  const audioWatchdogRef = useRef(null)
   const playbackRunRef = useRef(0)
   const pendingSavesRef = useRef(new Map())
   const failedSavesRef = useRef(new Set())
@@ -185,6 +187,13 @@ function ExamTestPage({ examId }) {
   const requiresAudio = AUTO_AUDIO_MODES.has(activePart?.examMode)
   const isFreestyle = activePart?.examMode === 'FREESTYLE'
   const introHtml = useMemo(() => safeHtml(activePart?.instructionHtml), [activePart?.instructionHtml])
+  const instructionAudioUrl = activePart?.instructionAudio?.url || ''
+  const instructionAudioDurationSeconds = Math.max(0, Number(activePart?.instructionAudio?.durationSeconds || 0))
+  const questionGroupId = questionGroup?.id || null
+  const questionAudioUrl = questionGroup?.content?.audioUrl || ''
+  const questionAudioDurationSeconds = Math.max(0, Number(questionGroup?.content?.media?.find(item => item.type === 'AUDIO')?.durationSeconds || 0))
+  const questionBreakDurationSeconds = Math.max(0, Number(questionGroup?.breakDurationSeconds || 0))
+  const hasNextQuestionGroup = Boolean(groupList[groupIndex + 1])
 
   useEffect(() => {
     if (!session?.attemptId) return
@@ -193,8 +202,81 @@ function ExamTestPage({ examId }) {
 
   const stopAudio = useCallback(() => {
     playbackRunRef.current += 1
-    audioRef.current?.pause()
-    audioRef.current = null
+    if (audioWatchdogRef.current) window.clearTimeout(audioWatchdogRef.current)
+    audioWatchdogRef.current = null
+    const abort = audioAbortRef.current
+    audioAbortRef.current = null
+    if (abort) abort()
+    const audio = audioRef.current
+    if (audio) {
+      audio.pause()
+      audio.onended = null
+      audio.onerror = null
+      audio.onplaying = null
+      audio.onloadedmetadata = null
+    }
+  }, [])
+
+  const playAudioToEnd = useCallback((url, { expectedDurationSeconds = 0, onPlaying } = {}) => {
+    let audio = audioRef.current
+    if (!audio) {
+      audio = new Audio()
+      audio.preload = 'auto'
+      audioRef.current = audio
+    }
+    audio.pause()
+    audio.src = url
+    audio.currentTime = 0
+    audio.load()
+
+    return new Promise((resolve, reject) => {
+      let settled = false
+      const clearWatchdog = () => {
+        if (audioWatchdogRef.current) window.clearTimeout(audioWatchdogRef.current)
+        audioWatchdogRef.current = null
+      }
+      const cleanup = () => {
+        clearWatchdog()
+        audio.onended = null
+        audio.onerror = null
+        audio.onplaying = null
+        audio.onloadedmetadata = null
+        if (audioAbortRef.current === abort) audioAbortRef.current = null
+      }
+      const finish = (callback, value) => {
+        if (settled) return
+        settled = true
+        cleanup()
+        callback(value)
+      }
+      const timeout = () => {
+        const timeoutError = new Error('Audio không tiếp tục phát trong thời gian cho phép.')
+        timeoutError.name = 'AudioTimeoutError'
+        finish(reject, timeoutError)
+      }
+      const armPlaybackWatchdog = () => {
+        clearWatchdog()
+        const mediaDuration = Number.isFinite(audio.duration) ? audio.duration : 0
+        const remaining = Math.max(0, (mediaDuration || expectedDurationSeconds) - Number(audio.currentTime || 0))
+        audioWatchdogRef.current = window.setTimeout(timeout, Math.max(30, remaining + 20) * 1000)
+      }
+      const abort = () => {
+        const abortError = new Error('Audio playback was cancelled.')
+        abortError.name = 'AbortError'
+        finish(reject, abortError)
+      }
+
+      audioAbortRef.current = abort
+      audio.onended = () => finish(resolve)
+      audio.onerror = () => finish(reject, new Error('Không thể tải hoặc phát audio.'))
+      audio.onloadedmetadata = armPlaybackWatchdog
+      audio.onplaying = () => {
+        armPlaybackWatchdog()
+        onPlaying?.()
+      }
+      audioWatchdogRef.current = window.setTimeout(timeout, 20 * 1000)
+      audio.play().catch(playbackError => finish(reject, playbackError))
+    })
   }, [])
 
   const loadQuestionGroup = useCallback(async (groups, index, partId) => {
@@ -282,17 +364,21 @@ function ExamTestPage({ examId }) {
   }, [activePart, loadQuestionGroup, session, stopAudio, timeExpired])
 
   const playIntroduction = useCallback(async () => {
-    const url = activePart?.instructionAudio?.url
-    if (!url) { setAudioState('missing'); return }
+    if (!instructionAudioUrl) { setAudioState('missing'); return }
     stopAudio()
-    const audio = new Audio(url)
-    audio.preload = 'auto'
-    audio.addEventListener('ended', startPart, { once: true })
-    audio.addEventListener('error', () => setAudioState('error'), { once: true })
-    audioRef.current = audio
+    const runId = playbackRunRef.current
     setAudioState('loading')
-    try { await audio.play(); setAudioState('playing') } catch { setAudioState('blocked') }
-  }, [activePart, startPart, stopAudio])
+    try {
+      await playAudioToEnd(instructionAudioUrl, {
+        expectedDurationSeconds: instructionAudioDurationSeconds,
+        onPlaying: () => setAudioState('playing'),
+      })
+      if (runId === playbackRunRef.current) await startPart()
+    } catch (playbackError) {
+      if (runId !== playbackRunRef.current || playbackError?.name === 'AbortError') return
+      setAudioState(playbackError?.name === 'NotAllowedError' ? 'blocked' : 'error')
+    }
+  }, [instructionAudioDurationSeconds, instructionAudioUrl, playAudioToEnd, startPart, stopAudio])
 
   useEffect(() => {
     if (!positionReady || phase !== 'introduction' || !requiresAudio || !activePart) return undefined
@@ -332,41 +418,33 @@ function ExamTestPage({ examId }) {
   }, [activePart?.id, examId, groupIndex, groupList, loadQuestionGroup, partIndex, parts, session?.attemptId, stopAudio])
 
   const playQuestionAudio = useCallback(async ({ manual = false } = {}) => {
-    const url = questionGroup?.content?.audioUrl
-    if (!url) { setAudioState('error'); return }
+    if (!questionAudioUrl) { setAudioState('error'); return }
     stopAudio()
     const runId = playbackRunRef.current
     setAudioState('loading')
-    for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await playAudioToEnd(questionAudioUrl, {
+        expectedDurationSeconds: questionAudioDurationSeconds,
+        onPlaying: () => setAudioState('playing'),
+      })
       if (runId !== playbackRunRef.current) return
-      const audio = new Audio(url)
-      audio.preload = 'auto'
-      audioRef.current = audio
-      try {
-        await new Promise((resolve, reject) => {
-          audio.addEventListener('ended', resolve, { once: true })
-          audio.addEventListener('error', reject, { once: true })
-          audio.play().then(() => setAudioState('playing')).catch(reject)
-        })
-        if (runId !== playbackRunRef.current) return
+      if (hasNextQuestionGroup && questionBreakDurationSeconds > 0) {
         setAudioState('break')
-        await wait(Number(questionGroup.breakDurationSeconds || 0) * 1000)
-        if (runId === playbackRunRef.current) await advanceQuestion()
-        return
-      } catch (playbackError) {
-        audio.pause()
-        if (!manual && playbackError?.name === 'NotAllowedError') { setAudioState('blocked'); return }
-        if (attempt < 2) await wait((attempt + 1) * 1000)
+        await wait(questionBreakDurationSeconds * 1000)
       }
+      if (runId === playbackRunRef.current) await advanceQuestion()
+    } catch (playbackError) {
+      if (runId !== playbackRunRef.current || playbackError?.name === 'AbortError') return
+      if (!manual && playbackError?.name === 'NotAllowedError') { setAudioState('blocked'); return }
+      setAudioState('error')
     }
-    if (runId === playbackRunRef.current) setAudioState('error')
-  }, [advanceQuestion, questionGroup, stopAudio])
+  }, [advanceQuestion, hasNextQuestionGroup, playAudioToEnd, questionAudioDurationSeconds, questionAudioUrl, questionBreakDurationSeconds, stopAudio])
 
   useEffect(() => {
-    if (phase !== 'question' || !questionGroup || !requiresAudio) return undefined
+    if (phase !== 'question' || !questionGroupId || !requiresAudio) return undefined
     playQuestionAudio()
     return stopAudio
-  }, [phase, questionGroup?.id, playQuestionAudio, requiresAudio, stopAudio])
+  }, [phase, questionGroupId, playQuestionAudio, requiresAudio, stopAudio])
 
   const openFreestyleGroup = useCallback(async index => {
     if (!isFreestyle || locked || !groupList[index]) return
@@ -503,7 +581,14 @@ function ExamTestPage({ examId }) {
     }
   }
 
-  useEffect(() => () => stopAudio(), [stopAudio])
+  useEffect(() => () => {
+    stopAudio()
+    if (audioRef.current) {
+      audioRef.current.removeAttribute('src')
+      audioRef.current.load()
+      audioRef.current = null
+    }
+  }, [stopAudio])
 
   if (tabAccess === 'blocked') return <div className="exam-live-page"><div className="exam-live-state exam-tab-conflict"><span><Icon>tab_unselected</Icon></span><h1>Bài thi đang được mở ở tab khác</h1><p>Để bảo vệ tiến trình và đáp án, mỗi lượt thi chỉ được thao tác trên một tab. Hãy quay lại tab đang làm bài hoặc đóng tab đó trước khi thử lại.</p><div><button type="button" onClick={() => window.location.reload()}><Icon>refresh</Icon>Kiểm tra lại</button><a href={`/exams/${examId}`}>Quay về đề thi</a></div></div></div>
   if (tabAccess === 'checking') return <div className="exam-live-page"><div className="exam-live-state"><span className="catalog-spinner" /><strong>Đang kiểm tra phiên làm bài...</strong></div></div>
@@ -536,8 +621,8 @@ function ExamTestPage({ examId }) {
           {audioState === 'playing' && <strong>Đang phát hướng dẫn…</strong>}
           {audioState === 'loading' && <strong>Đang tải audio hướng dẫn…</strong>}
           {audioState === 'blocked' && <><strong>Trình duyệt đang chặn tự động phát.</strong><button type="button" onClick={playIntroduction}><Icon>play_arrow</Icon>Phát hướng dẫn</button></>}
-          {audioState === 'error' && <><strong>Không thể phát audio hướng dẫn.</strong><button type="button" onClick={playIntroduction}><Icon>refresh</Icon>Thử lại</button></>}
-          {audioState === 'missing' && <strong>Part này chưa có audio hướng dẫn. Vui lòng liên hệ bộ phận hỗ trợ.</strong>}
+          {audioState === 'error' && <><strong>Không thể phát audio hướng dẫn.</strong><button type="button" onClick={playIntroduction}><Icon>refresh</Icon>Thử lại</button><button type="button" onClick={startPart}>Tiếp tục vào Part</button></>}
+          {audioState === 'missing' && <><strong>Part này chưa có audio hướng dẫn.</strong><button type="button" onClick={startPart}>Tiếp tục vào Part</button></>}
         </div> : <button className="part-intro-continue" type="button" onClick={startPart}>Tiếp tục <Icon>arrow_forward</Icon></button>}
       </div>
     </section></main>}
@@ -563,7 +648,7 @@ function ExamTestPage({ examId }) {
           {saveError && <p className="listening-save-error"><Icon>error</Icon>{saveError}</p>}
         </section>
         {(audioState === 'blocked' || audioState === 'error') && <div className="listening-audio-overlay">
-          <Icon>volume_off</Icon><strong>{audioState === 'blocked' ? 'Trình duyệt cần cho phép phát âm thanh.' : 'Không thể phát audio sau 3 lần thử.'}</strong>
+          <Icon>volume_off</Icon><strong>{audioState === 'blocked' ? 'Trình duyệt cần cho phép phát âm thanh.' : 'Audio bị gián đoạn hoặc không thể tiếp tục phát.'}</strong>
           <button type="button" onClick={() => playQuestionAudio({ manual: true })}><Icon>refresh</Icon>Thử lại</button>
         </div>}
         {isFreestyle && <>
