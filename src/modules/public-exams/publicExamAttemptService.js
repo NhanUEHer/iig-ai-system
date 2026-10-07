@@ -79,6 +79,25 @@ async function attemptContext(examId, attemptId, token, options = {}) {
 
 async function piece(examId, attemptId, token, type, id, options = {}) {
   const { identity, attempt, now } = await attemptContext(examId, attemptId, token, options);
+  // Published delivery is immutable while an exam is ACTIVE and is warmed at
+  // publish time. Read it before the attempt-local cache so a burst of users
+  // entering the same exam does not rebuild the same bundle from PostgreSQL
+  // once per attempt. The attempt-local/DB path remains the safe fallback for
+  // Redis outages or an unwarmed generation.
+  const published = await deliveryCache.readPublished(examId, type, id).catch(() => null);
+  if (published?.payload) {
+    return {
+      attempt: {
+        id: attempt.id,
+        status: attempt.status,
+        startedAt: attempt.started_at,
+        expiresAt: attempt.expires_at,
+        remainingSeconds: Math.max(0, Math.floor((new Date(attempt.expires_at) - now) / 1000)),
+      },
+      payload: published.payload,
+      cache: 'PUBLISHED_HIT',
+    };
+  }
   const cached = await deliveryCache.getAttemptPieceOrBuild(attemptId, type, id, async () => {
     const source = await repository.findDelivery(examId, attemptId, identity.sub);
     if (!source) throw new HttpError('Không tìm thấy lượt thi.', 404, 'ATTEMPT_NOT_FOUND');
