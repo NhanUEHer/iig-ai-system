@@ -16,6 +16,15 @@ function safeHtml(html) {
   return documentNode.body.innerHTML
 }
 
+function displayPromptHtml(html) {
+  return safeHtml(html).replace(/^(\s*(?:<[^>]+>\s*)*)(?:Question\s+)?\d+\.\s*/i, '$1')
+}
+
+function displayOptionText(text, key) {
+  const escapedKey = String(key || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return String(text || '').replace(new RegExp(`^\\s*${escapedKey}\\s*[.)]\\s*`, 'i'), '')
+}
+
 function formatClock(value) {
   const seconds = Math.max(0, Number(value || 0))
   const hours = Math.floor(seconds / 3600)
@@ -545,10 +554,10 @@ function ExamTestPage({ examId }) {
         <section className={`listening-questions-pane ${mobilePane === 'questions' ? 'mobile-active' : ''}`}>
           <h2>Câu hỏi</h2>
           <div className="listening-subquestions">{questionGroup.questions.slice().sort((a, b) => a.sortOrder - b.sortOrder).map(question => <article id={`question-${question.id}`} key={question.id}>
-            <div className="listening-prompt"><b>{question.number}.</b><span dangerouslySetInnerHTML={{ __html: safeHtml(question.promptHtml) }} /></div>
+            <div className="listening-prompt"><b>{question.number}.</b><span dangerouslySetInnerHTML={{ __html: displayPromptHtml(question.promptHtml) }} /></div>
             <div className="listening-options">{question.options.map(option => <label className={question.selectedOption === option.key ? 'selected' : ''} key={option.id || option.key}>
               <input type="radio" name={question.id} value={option.key} checked={question.selectedOption === option.key} disabled={locked} onChange={() => chooseOption(question.id, option.key)} />
-              <span><b>{option.key}.</b> {option.text}</span>
+              <span><b>{option.key}.</b> {displayOptionText(option.text, option.key)}</span>
             </label>)}</div>
           </article>)}</div>
           {saveError && <p className="listening-save-error"><Icon>error</Icon>{saveError}</p>}
