@@ -2,8 +2,9 @@ const crypto = require('crypto');
 const redis = require('../../config/redis');
 const storage = require('../../services/storageService');
 
-const CACHE_SCHEMA = 'v2';
+const CACHE_SCHEMA = 'v3';
 const TTL_SECONDS = Math.max(300, Number(process.env.EXAM_DELIVERY_CACHE_TTL_SECONDS || 86400));
+const MEDIA_URL_FIELDS = new Set(['url', 'audioUrl', 'imageUrl', 'videoUrl', 'questionAudioUrl']);
 const valueOf = (object, camel, snake) => object?.[camel] ?? object?.[snake] ?? null;
 const cacheKey = versionId => `exam:delivery:${CACHE_SCHEMA}:${versionId}`;
 const gradingKey = versionId => `exam:grading:${CACHE_SCHEMA}:${versionId}`;
@@ -22,15 +23,37 @@ const memoryRead = (cache, key) => {
 };
 const memoryWrite = (cache, key, value) => { cache.set(key, { value, expiresAt: Date.now() + TTL_SECONDS * 1000 }); return value; };
 
-async function signedMedia(mediaRows) {
-  return Promise.all(mediaRows.map(async item => ({
+function storedMedia(mediaRows) {
+  return mediaRows.map(item => ({
     id: item.id,
     type: String(item.media_type || '').toUpperCase(),
     mimeType: item.mime_type || null,
     name: item.original_name || null,
     durationSeconds: Number(item.duration_seconds || 0),
-    url: item.storage_key ? await storage.getSignedUrl(item.storage_key) : null,
-  })));
+    // Published generations are intentionally long-lived. Keep the durable
+    // reference in Redis and sign it only when an API response is assembled.
+    url: item.storage_key || null,
+  }));
+}
+
+function isStoredMediaReference(value) {
+  return typeof value === 'string' && (value.startsWith('r2:') || value.startsWith('local:'));
+}
+
+async function hydrateMediaUrls(payload) {
+  const signed = new Map();
+  const resolve = reference => {
+    if (!signed.has(reference)) signed.set(reference, storage.getSignedUrl(reference));
+    return signed.get(reference);
+  };
+  const visit = async (value, field = '') => {
+    if (MEDIA_URL_FIELDS.has(field) && isStoredMediaReference(value)) return resolve(value);
+    if (Array.isArray(value)) return Promise.all(value.map(item => visit(item)));
+    if (!value || typeof value !== 'object') return value;
+    const entries = await Promise.all(Object.entries(value).map(async ([key, item]) => [key, await visit(item, key)]));
+    return Object.fromEntries(entries);
+  };
+  return visit(payload);
 }
 
 async function build(snapshot = {}, mediaRows = []) {
@@ -53,8 +76,8 @@ async function build(snapshot = {}, mediaRows = []) {
         number += 1;
         const contentId = valueOf(subQuestion, 'contentId', 'content_id');
         const content = contents.get(contentId) || null;
-        const contentMedia = await signedMedia(mediaByTarget.get(contentId) || []);
-        const questionMedia = await signedMedia(mediaByTarget.get(subQuestion.id) || []);
+        const contentMedia = storedMedia(mediaByTarget.get(contentId) || []);
+        const questionMedia = storedMedia(mediaByTarget.get(subQuestion.id) || []);
         const audio = contentMedia.find(item => item.type === 'AUDIO') || null;
         const image = contentMedia.find(item => item.type === 'IMAGE') || null;
         const video = contentMedia.find(item => item.type === 'VIDEO') || null;
@@ -100,7 +123,7 @@ async function build(snapshot = {}, mediaRows = []) {
       title: part.title || `Phần ${partIndex + 1}`,
       order: Number(valueOf(part, 'displayOrder', 'display_order') ?? partIndex),
       instructionHtml: part.instructionHtml || '',
-      instructionAudio: (await signedMedia(mediaByTarget.get(part.id) || []))[0] || null,
+      instructionAudio: storedMedia(mediaByTarget.get(part.id) || [])[0] || null,
       breakDurationSeconds: Number(part.breakDurationSeconds || 0),
       configuredDurationSeconds: Number(part.configuredDurationSeconds || 0),
       questions,
@@ -463,7 +486,7 @@ async function getOrBuild(versionId, builder) {
 }
 
 module.exports = {
-  build, buildBundle, buildDeliveryBundle, buildGrading,
+  build, buildBundle, buildDeliveryBundle, buildGrading, hydrateMediaUrls,
   publishGeneration, clearPublished, readPublished, currentKey, publishedPrefix,
   writeAttemptBundle, readAttemptPiece, getAttemptPieceOrBuild, attemptPrefix,
   read, write, readGrading, writeGrading, getOrBuild, getGradingOrBuild,

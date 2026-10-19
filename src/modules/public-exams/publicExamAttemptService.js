@@ -86,6 +86,7 @@ async function piece(examId, attemptId, token, type, id, options = {}) {
   // Redis outages or an unwarmed generation.
   const published = await deliveryCache.readPublished(examId, type, id).catch(() => null);
   if (published?.payload) {
+    const payload = await deliveryCache.hydrateMediaUrls(published.payload);
     return {
       attempt: {
         id: attempt.id,
@@ -94,7 +95,7 @@ async function piece(examId, attemptId, token, type, id, options = {}) {
         expiresAt: attempt.expires_at,
         remainingSeconds: Math.max(0, Math.floor((new Date(attempt.expires_at) - now) / 1000)),
       },
-      payload: published.payload,
+      payload,
       cache: 'PUBLISHED_HIT',
     };
   }
@@ -104,6 +105,7 @@ async function piece(examId, attemptId, token, type, id, options = {}) {
     return deliveryCache.buildDeliveryBundle(source.snapshot, source.media);
   });
   if (!cached.payload) throw new HttpError('Không tìm thấy nội dung trong lượt thi.', 404, 'ATTEMPT_CONTENT_NOT_FOUND');
+  const payload = await deliveryCache.hydrateMediaUrls(cached.payload);
   return {
     attempt: {
       id: attempt.id,
@@ -112,7 +114,7 @@ async function piece(examId, attemptId, token, type, id, options = {}) {
       expiresAt: attempt.expires_at,
       remainingSeconds: Math.max(0, Math.floor((new Date(attempt.expires_at) - now) / 1000)),
     },
-    payload: cached.payload,
+    payload,
     cache: cached.cache,
   };
 }
