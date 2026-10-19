@@ -63,6 +63,7 @@ async function detail(examId) {
   if (!manifestResult?.payload || !structureResult?.payload) {
     throw new HttpError('Đề thi chưa được publish hoặc dữ liệu phát hành không còn khả dụng.', 404, 'PUBLIC_EXAM_NOT_PUBLISHED');
   }
+  const structurePayload = await deliveryCache.hydrateMediaUrls(structureResult.payload);
   const exam = manifestResult.payload.exam || {};
   const imageUrl = exam.cardImageStorageKey
     ? await storage.getSignedUrl(exam.cardImageStorageKey).catch(() => null)
@@ -82,7 +83,7 @@ async function detail(examId) {
     partCount: Number(exam.totalParts || 0),
     questionCount: Number(exam.totalQuestions || 0),
     durationSeconds: Number(exam.totalDurationSeconds || 0),
-    sections: (structureResult.payload.sections || []).map(section => ({
+    sections: (structurePayload.sections || []).map(section => ({
       id: section.id,
       title: section.title || '',
       examMode: section.examMode || null,
