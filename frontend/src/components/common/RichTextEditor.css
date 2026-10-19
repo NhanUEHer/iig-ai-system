@@ -1,0 +1,231 @@
+.rich-editor-wrapper {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ds-border-strong, #374151);
+  border-radius: var(--ds-radius-sm, 6px);
+  background: var(--ds-surface-raised, #1f2937);
+  overflow: hidden;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.rich-editor-wrapper:focus-within {
+  border-color: var(--ds-primary, #155dfc);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ds-primary, #155dfc) 14%, transparent);
+}
+
+.rich-editor-wrapper.error {
+  border-color: var(--ds-danger, #ef4444) !important;
+}
+
+.rich-editor-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  min-height: 36px;
+  gap: 2px;
+  padding: 3px 6px;
+  background: var(--ds-surface-soft, #111827);
+  border-bottom: 1px solid var(--ds-border, #374151);
+}
+
+.rich-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 27px;
+  height: 27px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ds-text-muted, #9ca3af);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rich-btn:hover {
+  background: var(--ds-surface-raised, #1f2937);
+  color: var(--ds-text, #f9fafb);
+  border-color: var(--ds-border, #374151);
+}
+
+.rich-btn:focus-visible {
+  outline: 2px solid var(--ds-primary, #155dfc);
+  outline-offset: -2px;
+}
+
+.rich-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.rich-toolbar-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--ds-border, #374151);
+  margin: 0 3px;
+}
+
+.rich-editor-content {
+  box-sizing: border-box;
+  padding: 9px 11px;
+  color: var(--ds-text, #f9fafb);
+  font-family: var(--font-body, system-ui, sans-serif);
+  font-size: 13px;
+  line-height: 1.5;
+  outline: none;
+  overflow-y: auto;
+  position: relative;
+}
+
+.rich-editor-content[data-placeholder]:empty:before {
+  content: attr(data-placeholder);
+  color: var(--ds-text-subtle, #6b7280);
+  pointer-events: none;
+  display: block;
+}
+
+.rich-editor-content h1 {
+  font-size: 1.25em;
+  font-weight: 700;
+  margin: 0.4em 0 0.2em;
+}
+
+.rich-editor-content h2 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin: 0.3em 0 0.2em;
+}
+
+.rich-editor-content ul,
+.rich-editor-content ol {
+  padding-left: 20px;
+  margin: 0.4em 0;
+}
+
+.rich-editor-content p {
+  margin: 0 0 0.4em;
+}
+
+.rich-editor-content a {
+  color: var(--ds-primary, #60a5fa);
+  text-decoration: underline;
+}
+
+.rich-editor-content pre {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  overflow-x: auto;
+}
+
+/* Stitch question-builder editor: compact, light toolbar and textarea-like canvas. */
+.rich-editor-wrapper--stitch {
+  border-color: #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
+
+.rich-editor-wrapper--stitch .rich-editor-toolbar {
+  min-height: 34px;
+  flex-wrap: nowrap;
+  gap: 4px;
+  padding: 3px 11px;
+  overflow-x: auto;
+  background: rgba(248, 250, 252, .9);
+  border-bottom-color: #e2e8f0;
+}
+
+.rich-editor-wrapper--stitch .rich-btn {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.rich-editor-wrapper--stitch .rich-btn:nth-child(1),
+.rich-editor-wrapper--stitch .rich-btn:nth-child(5),
+.rich-editor-wrapper--stitch .rich-btn:nth-child(6) {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.rich-editor-wrapper--stitch .rich-btn:nth-child(2) {
+  font-family: Georgia, serif;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.rich-editor-wrapper--stitch .rich-btn:nth-child(3) { text-decoration: underline; }
+.rich-editor-wrapper--stitch .rich-btn:nth-child(4) { text-decoration: line-through; }
+
+.rich-editor-wrapper--stitch .rich-btn:hover {
+  border: 0;
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.rich-editor-wrapper--stitch .rich-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.rich-editor-wrapper--stitch .rich-btn--text {
+  width: 25px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.rich-editor-wrapper--stitch .rich-btn--blank {
+  width: auto;
+  padding: 0 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+}
+
+.rich-editor-wrapper--stitch .rich-toolbar-divider {
+  width: 1px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0 2px;
+  background: #cbd5e1;
+}
+
+.rich-editor-wrapper--stitch .rich-editor-content {
+  min-height: 90px;
+  padding: 12px;
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.rich-editor-wrapper--stitch .rich-editor-content[data-placeholder]:empty:before {
+  color: #94a3b8;
+}
+.rich-editor-wrapper.is-disabled {
+  background: #f8fafc;
+  opacity: .78;
+}
+
+.rich-editor-wrapper.is-disabled .rich-editor-toolbar {
+  background: #f1f5f9;
+}
+
+.rich-editor-wrapper.is-disabled .rich-btn {
+  cursor: not-allowed;
+}
+
+.rich-editor-wrapper.is-disabled .rich-editor-content {
+  cursor: default;
+}

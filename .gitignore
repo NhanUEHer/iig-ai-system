@@ -34,8 +34,11 @@ public/custom_voices/
 dist/
 frontend/dist/
 dist-ssr/
+releases/
 
 # Logs & temp files
+/tmp/
+/outputs/
 *.log
 npm-debug.log*
 yarn-debug.log*

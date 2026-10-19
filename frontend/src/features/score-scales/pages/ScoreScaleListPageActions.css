@@ -1,0 +1,8 @@
+.score-scale-list-page .question-bank-row-menu > div {
+  width: 168px;
+}
+
+.score-scale-list-page .question-bank-row-menu > div button {
+  min-height: 36px;
+  white-space: nowrap;
+}

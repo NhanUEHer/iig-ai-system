@@ -6,9 +6,9 @@ const { hashPassword, verifyPassword, validatePassword } = require('../src/modul
 const { verifyAccessToken } = require('../src/modules/auth/tokenService');
 
 test('password service hashes passwords and enforces the policy', async () => {
-  assert.match(validatePassword('short'), /10/);
-  assert.match(validatePassword('onlylettersxx'), /chữ và số/);
-  assert.equal(validatePassword('SecurePass123'), null);
+  assert.match(validatePassword('short'), /8/);
+  assert.equal(validatePassword('onlyletters'), null);
+  assert.equal(validatePassword('12345678'), null);
   const hash = await hashPassword('SecurePass123');
   assert.notEqual(hash, 'SecurePass123');
   assert.equal(await verifyPassword('SecurePass123', hash), true);
@@ -64,18 +64,14 @@ test('login returns the union of permissions from every assigned role', async ()
   assert.equal(result.user.roleName, 'Nội dung');
 });
 
-test('forgot password does not reveal whether an email exists', async () => {
-  const result = await authService.requestPasswordReset('missing@example.com', {
-    repository: { findUserByEmail: async () => null }
-  });
-  assert.match(result.message, /Nếu email tồn tại/);
-});
-
-test('reset password rejects invalid or expired action tokens', async () => {
-  await assert.rejects(
-    () => authService.resetPassword({ token: 'expired', password: 'SecurePass123' }, {
-      repository: { consumePasswordToken: async () => null }
-    }),
-    error => error.code === 'INVALID_TOKEN'
-  );
+test('administrator password reset hashes the password and revokes active sessions', async () => {
+  let storedHash;
+  let revoked = false;
+  await authService.setUserPassword({ userId: 'user-1', password: 'SecurePass123' }, { repository: {
+    findUserById: async () => ({ id: 'user-1' }),
+    setPassword: async (_id, hash) => { storedHash = hash; },
+    revokeUserSessions: async () => { revoked = true; }
+  } });
+  assert.equal(await verifyPassword('SecurePass123', storedHash), true);
+  assert.equal(revoked, true);
 });

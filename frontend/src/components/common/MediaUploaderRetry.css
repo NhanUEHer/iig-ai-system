@@ -1,0 +1,29 @@
+.media-uploader__progress > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.media-uploader__progress > footer small {
+  min-width: 0;
+  flex: 1;
+}
+
+.media-uploader__progress > footer button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border: 1px solid #fecaca;
+  border-radius: 7px;
+  background: #fff;
+  color: #dc2626;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.media-uploader__progress > footer button:hover { background: #fff1f2; }
+.media-uploader__progress > footer button svg { width: 13px; height: 13px; }

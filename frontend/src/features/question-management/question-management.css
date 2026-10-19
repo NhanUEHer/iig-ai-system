@@ -1,0 +1,106 @@
+.qm-page .question-bank-filters>.ui-filter-multiselect{width:210px;flex:0 1 210px}.qm-table-card .ui-table-wrap{overflow-x:auto}.qm-table-card .ui-table{min-width:1328px;table-layout:fixed}.qm-table-card .ui-table__select{width:48px;min-width:48px;text-align:center}.qm-table-card .ui-table__select input{width:16px;height:16px;accent-color:#2563eb;cursor:pointer}.qm-col-name{width:260px}.qm-col-group{width:220px}.qm-title-link{display:block;max-width:100%;overflow:hidden;border:0;background:none;color:#0f172a;font:600 13px Inter,system-ui,sans-serif;text-align:left;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}.qm-title-link:hover{color:#2563eb}.qm-table-card code,.qm-card-header code,.qm-item-card code{display:inline-block;padding:4px 7px;border:1px solid #dbe3ee;border-radius:5px;background:#f1f5f9;color:#64748b;font:600 11px ui-monospace,SFMono-Regular,monospace}.qm-status{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:1px solid;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap}.qm-status i{width:6px;height:6px;border-radius:50%}.qm-status.is-active{border-color:#a7f3d0;background:#ecfdf5;color:#047857}.qm-status.is-active i{background:#10b981}.qm-status.is-inactive{border-color:#dbe3ee;background:#f1f5f9;color:#64748b}.qm-status.is-inactive i{background:#94a3b8}.qm-status.is-draft{border-color:#fde68a;background:#fffbeb;color:#b45309}.qm-status.is-draft i{background:#f59e0b}
+.qm-editor-page{box-sizing:border-box;flex:1;min-height:0;overflow-y:auto;background:#f8fafc;color:#0f172a;font-family:Inter,system-ui,sans-serif}.qm-editor-topbar{position:sticky;top:0;z-index:20;box-sizing:border-box;height:64px;display:flex;align-items:center;padding:0 32px;border-bottom:1px solid #e2e8f0;background:#fff;box-shadow:0 1px 2px rgba(15,23,42,.03)}.qm-editor-main{box-sizing:border-box;width:100%;padding:28px 32px 40px}.qm-form-card,.qm-builder-card{overflow:hidden;border:1px solid #e2e8f0;border-radius:12px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.04)}.qm-builder-card{margin-top:18px}.qm-card-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 24px;border-bottom:1px solid #e2e8f0}.qm-card-header>div{display:flex;align-items:center;gap:12px}.qm-card-header h1{margin:0;font-size:20px}.qm-card-header>small{color:#64748b}.qm-card-header b{color:#dc2626}.qm-card-body{padding:22px 24px}.qm-form-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px 22px}.qm-card-body>.ui-field+.ui-field{margin-top:18px}.qm-form-footer,.qm-tab-footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid #e2e8f0;background:#fff}.qm-form-error{margin:16px 0 0;color:#dc2626;font-size:13px}.qm-builder-card>.ui-tabs{padding:0 24px;border-bottom:1px solid #e2e8f0}.qm-builder-card .ui-tabs__trigger{display:inline-flex;align-items:center;gap:8px}.qm-builder-card .ui-tabs__trigger svg{width:17px}.qm-lock-note{margin:18px 24px 0;padding:11px 14px;border:1px solid #bfdbfe;border-radius:8px;background:#eff6ff;color:#1d4ed8;font-size:13px}.qm-tab-panel{padding:0}.qm-tab-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 24px}.qm-tab-heading h2{margin:0 0 4px;font-size:16px}.qm-tab-heading p{margin:0;color:#64748b;font-size:12px}.qm-editor-stack{display:grid;gap:16px;padding:0 24px 24px}.qm-item-card{overflow:hidden;border:1px solid #dbe3ee;border-radius:10px;background:#fff}.qm-item-card>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #e2e8f0;background:#f8fafc}.qm-item-card>header>div{display:flex;align-items:center;gap:9px}.qm-item-card>header em{color:#94a3b8;font-size:11px;font-style:normal}.qm-item-body{display:grid;gap:18px;padding:18px}.qm-order-buttons{display:flex;gap:3px}.qm-order-buttons button{display:grid;place-items:center;width:30px;height:30px;padding:0;border:1px solid #dbe3ee;border-radius:6px;background:#fff;color:#64748b;cursor:pointer}.qm-order-buttons button:disabled{opacity:.35;cursor:not-allowed}.qm-order-buttons svg{width:15px}.qm-empty{display:flex;min-height:150px;align-items:center;justify-content:center;flex-direction:column;padding:20px 24px;color:#94a3b8;text-align:center}.qm-empty>svg{width:30px;height:30px;margin-bottom:8px}.qm-empty strong{color:#475569;font-size:13px}.qm-empty span{margin-top:4px;font-size:12px}.qm-save-first{margin:0;padding:10px 12px;border:1px dashed #cbd5e1;border-radius:8px;background:#f8fafc;color:#64748b;font-size:12px}.qm-loading{display:grid;min-height:420px;place-items:center;background:#f8fafc;color:#64748b}
+.qm-create-main{padding:24px 32px}.qm-create-card .qm-card-header{min-height:64px;box-sizing:border-box;padding:0 24px}.qm-create-card .qm-card-header h1{font-size:16px;font-weight:650}.qm-create-card .qm-card-header>small{font-size:12px}.qm-create-card .qm-card-body{padding:24px}.qm-create-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.qm-create-grid--primary{grid-template-columns:minmax(0,2fr) minmax(220px,1fr)}.qm-create-grid+.qm-create-grid{margin-top:20px}.qm-create-card .qm-card-body>.ui-field{margin-top:20px}.qm-create-card .ui-field{gap:7px}.qm-create-card .ui-field__label{color:#334155;font-size:12px;font-weight:600}.qm-create-card .ui-control{border-color:#cbd5e1;border-radius:8px;color:#1e293b;font-size:12px}.qm-create-card textarea.ui-control{min-height:100px;padding:10px 13px;line-height:1.55}.qm-create-card .ui-field__hint{font-size:11px}.qm-create-card .qm-form-footer{padding:14px 24px;border-top:1px solid #f1f5f9}.qm-create-card .qm-form-footer .ui-button{border-radius:8px;font-size:12px}.qm-create-card .qm-form-footer .ui-button--ghost{color:#475569}.qm-create-card .qm-form-footer .ui-button svg{width:15px;height:15px}
+.qm-edit-card .qm-card-header{min-height:64px;box-sizing:border-box;padding:0 24px}.qm-edit-card .qm-card-header h1{font-size:16px;font-weight:650}.qm-edit-card .qm-card-body{padding:24px}.qm-edit-card .ui-field{gap:7px}.qm-edit-card .ui-field__label{color:#334155;font-size:12px;font-weight:600}.qm-edit-card .ui-control{border-color:#cbd5e1;border-radius:8px;color:#1e293b;font-size:12px}.qm-edit-card .ui-control:disabled{background:#f8fafc;color:#64748b}.qm-edit-card textarea.ui-control{min-height:100px;padding:10px 13px;line-height:1.55}.qm-edit-card .ui-field__hint{font-size:11px}.qm-edit-grid--primary{grid-template-columns:minmax(0,2fr) minmax(220px,1fr)}.qm-edit-grid--secondary{margin-top:20px}.qm-edit-card .qm-card-body>.ui-field{margin-top:20px}.qm-edit-card .qm-form-footer{padding:14px 24px}.qm-edit-card .qm-form-footer .ui-button{border-radius:8px;font-size:12px}.qm-edit-card .qm-form-footer .ui-button svg{width:15px;height:15px}
+.qm-form-card:has(.qm-single-select.is-open){overflow:visible}.qm-single-select.ui-filter-multiselect{z-index:20;width:100%;flex:none}.qm-single-select.is-open{z-index:900}.qm-single-select .ui-filter-multiselect__menu{z-index:901;box-sizing:border-box;width:100%;min-width:100%;border-radius:12px}.qm-create-card .qm-single-select .ui-filter-multiselect__trigger,.qm-edit-card .qm-single-select .ui-filter-multiselect__trigger{height:36px;border-color:#cbd5e1;color:#1e293b;font-size:12px}
+.qm-edit-grid--secondary{align-items:start}
+.qm-media-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.qm-media-field{overflow:hidden;border:1px solid #dbe3ee;border-radius:8px;background:#fff}.qm-media-field>input{display:none}.qm-media-field__head{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;border-bottom:1px solid #eef2f7;background:#f8fafc}.qm-media-field__head span{display:flex;align-items:center;gap:7px;color:#475569;font-size:12px;font-weight:600;text-transform:capitalize}.qm-media-field__head svg{width:15px}.qm-media-field__head small{color:#059669;font-size:10px}.qm-media-field__empty{display:flex;width:100%;min-height:88px;align-items:center;justify-content:center;gap:7px;border:0;background:#fff;color:#64748b;cursor:pointer}.qm-media-field__empty svg{width:18px}.qm-media-field__current{padding:10px}.qm-media-field__current audio,.qm-media-field__current video,.qm-media-field__current img{display:block;width:100%;max-height:110px;object-fit:contain}.qm-media-field__current>span{display:flex;min-height:54px;align-items:center;justify-content:center;gap:8px;color:#64748b;font-size:12px}.qm-media-field__current>div{display:flex;justify-content:flex-end;gap:6px;margin-top:8px}.qm-media-field__current button{display:inline-flex;align-items:center;gap:5px;padding:5px 7px;border:1px solid #dbe3ee;border-radius:5px;background:#fff;color:#475569;font-size:11px;cursor:pointer}.qm-media-field__current button:last-child{color:#dc2626}.qm-media-field__current button svg{width:13px}.qm-media-field.is-disabled{opacity:.65}
+.qm-options{padding:14px;border:1px solid #e2e8f0;border-radius:9px;background:#f8fafc}.qm-options>header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.qm-option{display:grid;grid-template-columns:22px minmax(0,1fr) 34px;align-items:center;gap:9px;margin-top:9px}.qm-option input[type=radio]{width:17px;height:17px;accent-color:#2563eb}
+@media(max-width:1100px){.qm-page .question-bank-filters>.ui-filter-multiselect{width:auto;flex:1 1 190px}.qm-media-grid{grid-template-columns:1fr}.qm-col-name{width:220px}.qm-col-group{width:180px}}@media(max-width:760px){.qm-editor-topbar,.qm-editor-main{padding-left:16px;padding-right:16px}.qm-editor-main{padding-top:18px}.qm-card-header,.qm-tab-heading{align-items:flex-start;flex-direction:column}.qm-form-grid,.qm-create-grid,.qm-create-grid--primary{grid-template-columns:1fr}.qm-create-grid+.qm-create-grid{margin-top:16px}.qm-card-body,.qm-card-header,.qm-editor-stack{padding-left:16px;padding-right:16px}.qm-builder-card>.ui-tabs{padding:0 16px}.qm-form-footer,.qm-tab-footer{padding:14px 16px}.qm-tab-footer .ui-button{flex:1}}
+
+/* Keep every single-line form control visually aligned, regardless of native element type. */
+.qm-create-card .ui-control:not(.ui-control--textarea),
+.qm-edit-card .ui-control:not(.ui-control--textarea),
+.qm-create-card .qm-single-select .ui-filter-multiselect__trigger,
+.qm-edit-card .qm-single-select .ui-filter-multiselect__trigger {
+  box-sizing: border-box;
+  height: 36px;
+  min-height: 36px;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: normal;
+}
+
+.qm-edit-card .ui-control:disabled {
+  opacity: 1;
+}
+
+.qm-form-footer .ui-button--secondary,
+.qm-tab-footer .ui-button--secondary {
+  border-color: #94a3b8;
+  color: #334155;
+}
+
+.qm-edit-card .ui-control:disabled {
+  border-color: #dbe3ee;
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.qm-edit-card .qm-form-grid {
+  gap: 20px;
+}
+
+/* Editor pages own their vertical scroll inside the application content area. */
+.qm-editor-page {
+  box-sizing: border-box;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Keep primary actions visually identical wherever they appear in the editor. */
+.qm-tab-heading .ui-button,
+.qm-tab-footer .ui-button {
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.qm-tab-heading .ui-button svg,
+.qm-tab-footer .ui-button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.qm-tab-panel .question-content-empty {
+  box-sizing: border-box;
+  min-height: 180px;
+  margin: 0 24px 24px;
+  padding: 20px 24px;
+}
+
+.qm-tab-panel .question-content-editor input.ui-control {
+  box-sizing: border-box;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: normal;
+}
+
+.qm-create-card .qm-card-header h1,
+.qm-edit-card .qm-card-header h1 {
+  font-size: 16px !important;
+  line-height: 1.25;
+}
+
+.qm-builder-card .ui-tabs__trigger:focus,
+.qm-builder-card .ui-tabs__trigger:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.qm-editor-stack .stitch-mcq-card {
+  margin-bottom: 0;
+}
+
+.question-content-editor__tools{display:flex!important;align-items:center;gap:10px!important}.question-content-editor__tools>button{display:grid;width:28px;height:28px;place-items:center;padding:0;border:0;border-radius:8px;background:transparent;color:#94a3b8;cursor:pointer}.question-content-editor__tools>button svg{width:15px;height:15px;stroke-width:2}.question-content-editor__tools>button:hover:not(:disabled){background:#f1f5f9;color:#475569}.question-content-editor__tools .question-content-editor__drag{cursor:grab}.question-content-editor__tools .question-content-editor__drag:active{cursor:grabbing}.question-content-editor__tools .question-content-editor__toggle{border:1px solid #e2e8f0;background:#fff;color:#64748b}.question-content-editor__tools .question-content-editor__toggle:hover{border-color:#bfdbfe;background:#eff6ff;color:#2563eb}.question-content-editor__tools .question-content-editor__delete:hover:not(:disabled){background:#fff1f2;color:#e11d48}.question-content-editor__tools>button:disabled{opacity:.35;cursor:not-allowed}.question-content-editor.is-dragging{opacity:.5}.question-content-editor.is-drop-target{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+
+@media(max-width:760px) {
+  .qm-tab-panel .question-content-empty {
+    margin-right: 16px;
+    margin-left: 16px;
+  }
+
+}

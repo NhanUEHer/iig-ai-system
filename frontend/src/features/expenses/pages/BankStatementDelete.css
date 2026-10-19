@@ -1,0 +1,27 @@
+.expense-delete {
+  width: 30px !important;
+  height: 30px !important;
+  padding: 0 !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  color: #98a2b3 !important;
+}
+
+.expense-delete:hover {
+  border-color: #fecdca !important;
+  background: #fef3f2 !important;
+  color: #d92d20 !important;
+}
+
+.expense-delete svg,
+.expense-delete-locked svg {
+  width: 13px;
+}
+
+.expense-delete-locked {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  color: #98a2b3;
+}

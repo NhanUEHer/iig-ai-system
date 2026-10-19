@@ -1,0 +1,4 @@
+.ui-sortable-list { display:grid; gap:8px; }
+.ui-sortable-item { display:flex; align-items:stretch; min-width:0; border:1px solid #E2E8F0; border-radius:8px; background:#fff; transition:border-color .15s,background .15s,opacity .15s; }
+.ui-sortable-item:hover { border-color:#BFDBFE; }.ui-sortable-item.is-dragging { opacity:.5; }.ui-sortable-item.is-over { border-color:#155DFC; background:#EFF6FF; }
+.ui-sortable-handle { display:grid; width:40px; flex:none; place-items:center; border:0; border-right:1px solid #E2E8F0; border-radius:8px 0 0 8px; background:#F8FAFC; color:#A2ACB9; cursor:grab; }.ui-sortable-handle:active { cursor:grabbing; }.ui-sortable-handle:disabled { cursor:not-allowed; }.ui-sortable-handle svg { width:18px; height:18px; }.ui-sortable-content { min-width:0; flex:1; }

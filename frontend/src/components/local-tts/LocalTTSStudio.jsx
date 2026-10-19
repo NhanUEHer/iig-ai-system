@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { ArrowLeft, ArrowRight, AudioLines, CheckCircle2, Clock3, Download, Eye, Gauge, History, Mic2, Play, Plus, RefreshCw, RotateCcw, Save, ShieldCheck, Sparkles, Trash2, Upload, Users, WandSparkles, X } from 'lucide-react';
 import { readSession } from '../../services/authSession';
+import {useDialog} from '../feedback/dialogContext';
 import './LocalTTSStudio.css';
 import './LocalTTSStudioTypography.css';
 import './LocalTTSHistory.css';
@@ -19,6 +20,7 @@ const mediaUrl = (url, version) => url
 const makeLine = (index, voices = []) => ({ id: `${Date.now()}-${index}`, speaker_name: `Speaker ${String.fromCharCode(65 + index % 4)}`, text: '', voice_id: voices[index % Math.max(voices.length, 1)]?.id || (index % 2 ? 'en-US-AvaNeural' : 'en-US-AndrewNeural'), style: 'natural', rate: '', pitch: '', pause_after_ms: 450 });
 
 export default function LocalTTSStudio() {
+  const {confirm:confirmDialog}=useDialog();
   const currentUser = readSession();
   const canManage = currentUser?.permissions?.includes('audio.manage');
   const [mode, setMode] = useState('dialogue');
@@ -78,7 +80,7 @@ export default function LocalTTSStudio() {
     } catch (generateError) { setError(generateError.response?.data?.error || 'Không thể tổng hợp audio local.'); }
     finally { setGenerating(false); }
   };
-  const deleteHistory = async id => { if (!window.confirm('Xóa audio này khỏi lịch sử?')) return; await axios.delete(`${API}/history/${id}`); await load(); };
+  const deleteHistory = async id => { if (!await confirmDialog({title:'Xóa audio?',message:'Audio này sẽ bị xóa khỏi lịch sử.',confirmText:'Xóa audio'})) return; await axios.delete(`${API}/history/${id}`); await load(); };
   const viewHistory = async id => {
     setDetailLoading(true);
     try { const response = await axios.get(`${API}/history/${id}`); setHistoryDetail(response.data.data); }

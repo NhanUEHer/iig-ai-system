@@ -29,4 +29,8 @@ router.get('/kpi-config',requirePermission('reports.manage'),asyncHandler(contro
 router.post('/kpi-config',requirePermission('reports.manage'),asyncHandler(controller.createKpiConfig));
 router.put('/kpi-config/order',requirePermission('reports.manage'),asyncHandler(controller.reorderKpiConfig));
 router.put('/kpi-config/:id',requirePermission('reports.manage'),asyncHandler(controller.updateKpiConfig));
+router.get('/detail-row-config',requirePermission('reports.manage'),asyncHandler(controller.listDetailRows));
+router.post('/detail-row-config',requirePermission('reports.manage'),asyncHandler(controller.createDetailRow));
+router.put('/detail-row-config/order',requirePermission('reports.manage'),asyncHandler(controller.reorderDetailRows));
+router.put('/detail-row-config/:id',requirePermission('reports.manage'),asyncHandler(controller.updateDetailRow));
 module.exports = router;

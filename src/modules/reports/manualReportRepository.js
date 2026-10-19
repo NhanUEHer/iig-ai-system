@@ -1,6 +1,7 @@
 const crypto=require('crypto');
 const db=require('../../config/db');
 const {DETAIL_CONFIG}=require('./manualReportConfig');
+const detailRowConfigRepository=require('./detailRowConfigRepository');
 
 async function insertRows(client,versionId,detailKey,rows) {
   const [table,columns]=DETAIL_CONFIG[detailKey];
@@ -59,6 +60,7 @@ module.exports={
         WHERE d.is_active=TRUE`,[versionId,userId,period.current_version_id,month,copyTargets,year]);
       await client.query(`INSERT INTO report_manual_submissions(period_id,version_id,team_id)
         SELECT $1,$2,id FROM report_teams WHERE is_active=TRUE`,[period.id,versionId]);
+      await detailRowConfigRepository.createPeriodRows(client,versionId);
       await client.query(`INSERT INTO report_entry_audit_logs(period_id,version_id,action,actor_id,change_summary) VALUES($1,$2,'period_created',$3,$4::jsonb)`,[period.id,versionId,userId,JSON.stringify({year,month,copyTargets})]);
       return {periodId:period.id,versionId,versionNo:Number(version.rows[0].version_no)};
     });
@@ -97,16 +99,36 @@ module.exports={
     return {...item,kpis:kpis.rows,note:note.rows[0]||{},};
   },
   async getDetails(versionId,detailKey) { const [table]=DETAIL_CONFIG[detailKey];const result=await db.query(`SELECT * FROM ${table} WHERE version_id=$1 ORDER BY display_order,row_key`,[versionId]);return result.rows; },
-  async getRevenueHistory(year,month) {
+  async getRevenueHistory(year,month,versionId=null) {
     const previousYear=month===1?year-1:year,previousMonth=month===1?12:month-1;
     const result=await db.query(`SELECT source_period,product_code,product_group,product_name,revenue FROM (
-      SELECT 'previous' source_period,d.product_code,d.product_group,d.product_name,d.revenue FROM report_periods p JOIN report_revenue_details d ON d.version_id=p.current_version_id WHERE p.year=$1 AND p.month=$2
+      SELECT 'previous' source_period,d.product_code,d.product_group,d.product_name,d.revenue FROM report_periods p JOIN report_revenue_details d ON d.version_id=COALESCE((SELECT source_version_id FROM report_history_snapshots WHERE version_id=$5 AND comparison_type='previous_period'),p.current_version_id) WHERE p.year=$1 AND p.month=$2
       UNION ALL
-      SELECT 'prior_year',d.product_code,d.product_group,d.product_name,d.revenue FROM report_periods p JOIN report_revenue_details d ON d.version_id=p.current_version_id WHERE p.year=$3 AND p.month=$4
-    ) history`,[previousYear,previousMonth,year-1,month]);
+      SELECT 'prior_year',d.product_code,d.product_group,d.product_name,d.revenue FROM report_periods p JOIN report_revenue_details d ON d.version_id=COALESCE((SELECT source_version_id FROM report_history_snapshots WHERE version_id=$5 AND comparison_type='prior_year'),p.current_version_id) WHERE p.year=$3 AND p.month=$4
+    ) history`,[previousYear,previousMonth,year-1,month,versionId]);
     return result.rows;
   },
-  async saveWorkspace({base,detailKey,rows,extraDetails,kpis,note,validation,userId,expectedRevision}) {
+  async getSocialHistory(year,month,versionId=null) {
+    const previousYear=month===1?year-1:year,previousMonth=month===1?12:month-1;
+    const result=await db.query(`SELECT d.channel_code,d.channel_name,d.followers_current,d.reach_current
+      FROM report_periods p JOIN report_social_details d ON d.version_id=COALESCE((SELECT source_version_id FROM report_history_snapshots WHERE version_id=$3 AND comparison_type='previous_period'),p.current_version_id)
+      WHERE p.year=$1 AND p.month=$2`,[previousYear,previousMonth,versionId]);
+    return result.rows;
+  },
+  async getKpiHistory(year,month,teamCode,versionId=null) {
+    const previousYear=month===1?year-1:year,previousMonth=month===1?12:month-1;
+    const result=await db.query(`SELECT source_period,team_code,code,actual_value FROM (
+      SELECT 'previous' source_period,t.code team_code,COALESCE(k.kpi_code,d.code) code,k.actual_value
+      FROM report_periods p JOIN report_kpi_values k ON k.version_id=COALESCE((SELECT source_version_id FROM report_history_snapshots WHERE version_id=$6 AND comparison_type='previous_period'),p.current_version_id) JOIN report_kpi_definitions d ON d.id=k.kpi_definition_id JOIN report_teams t ON t.id=d.team_id
+      WHERE p.year=$1 AND p.month=$2 AND t.code=$5
+      UNION ALL
+      SELECT 'prior_year',t.code,COALESCE(k.kpi_code,d.code),k.actual_value
+      FROM report_periods p JOIN report_kpi_values k ON k.version_id=COALESCE((SELECT source_version_id FROM report_history_snapshots WHERE version_id=$6 AND comparison_type='prior_year'),p.current_version_id) JOIN report_kpi_definitions d ON d.id=k.kpi_definition_id JOIN report_teams t ON t.id=d.team_id
+      WHERE p.year=$3 AND p.month=$4 AND t.code=$5
+    ) history`,[previousYear,previousMonth,year-1,month,teamCode,versionId]);
+    return result.rows;
+  },
+  async saveWorkspace({base,detailKey,rows,extraDetails,kpis,note,validation,userId,expectedRevision,auditAction}) {
     return db.transaction(async client=>{
       const locked=await client.query(`SELECT status,revision FROM report_manual_submissions WHERE id=$1 FOR UPDATE`,[base.submission_id]);
       if(!locked.rows[0])return null;if(!['draft','editing','returned'].includes(locked.rows[0].status))return {conflict:true,status:locked.rows[0].status};
@@ -120,7 +142,7 @@ module.exports={
         VALUES($1,$2,$3,$4,$5,$6,$7,'Đang cập nhật') ON CONFLICT(version_id,team_id) DO UPDATE SET highlights=EXCLUDED.highlights,issues=EXCLUDED.issues,risks=EXCLUDED.risks,proposals=EXCLUDED.proposals,next_month_plan=EXCLUDED.next_month_plan,updated_at=CURRENT_TIMESTAMP`,[base.version_id,base.team_id,note.highlights||null,note.issues||null,note.risks||null,note.proposals||null,note.next_month_plan||null]);
       await client.query(`UPDATE report_manual_submissions SET status='editing',validation_result=$2::jsonb,revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[base.submission_id,JSON.stringify(validation)]);
       await client.query(`UPDATE report_periods SET status='in_progress',updated_at=CURRENT_TIMESTAMP WHERE id=$1 AND status IN('open','draft','reopened')`,[base.period_id]);
-      await client.query(`INSERT INTO report_entry_audit_logs(period_id,version_id,team_id,action,actor_id,change_summary) VALUES($1,$2,$3,'workspace_saved',$4,$5::jsonb)`,[base.period_id,base.version_id,base.team_id,userId,JSON.stringify({rows:rows.length,kpis:kpis.length,errors:validation.errors.length,warnings:validation.warnings.length})]);
+      if(auditAction==='draft_saved')await client.query(`INSERT INTO report_entry_audit_logs(period_id,version_id,team_id,action,actor_id,change_summary) VALUES($1,$2,$3,'draft_saved',$4,$5::jsonb)`,[base.period_id,base.version_id,base.team_id,userId,JSON.stringify({rows:rows.length,kpis:kpis.length,errors:validation.errors.length,warnings:validation.warnings.length})]);
       return {saved:true,validation};
     });
   },
@@ -141,6 +163,14 @@ module.exports={
       const version=await client.query(`SELECT * FROM report_data_versions WHERE period_id=$1 AND source_type='manual_entry' AND status='draft' ORDER BY version_no DESC LIMIT 1 FOR UPDATE`,[periodId]);if(!version.rows[0])return {noDraft:true};
       const unassigned=await client.query(`SELECT COUNT(*)::int count FROM report_manual_submissions WHERE version_id=$1 AND assigned_user_id IS NULL`,[version.rows[0].id]);if(unassigned.rows[0].count)return {unassigned:unassigned.rows[0].count};
       const pending=await client.query(`SELECT COUNT(*)::int count FROM report_manual_submissions WHERE version_id=$1 AND status<>'approved'`,[version.rows[0].id]);if(pending.rows[0].count)return {pending:pending.rows[0].count};
+      const previousYear=Number(period.rows[0].month)===1?Number(period.rows[0].year)-1:Number(period.rows[0].year),previousMonth=Number(period.rows[0].month)===1?12:Number(period.rows[0].month)-1;
+      await client.query(`INSERT INTO report_history_snapshots(version_id,comparison_type,source_period_id,source_version_id)
+        SELECT $1,source.comparison_type,p.id,p.current_version_id FROM (VALUES
+          ('previous_period'::varchar,$2::int,$3::int),('prior_year'::varchar,$4::int,$5::int)
+        ) source(comparison_type,year,month) JOIN report_periods p ON p.year=source.year AND p.month=source.month
+        JOIN report_data_versions source_version ON source_version.id=p.current_version_id AND source_version.status='published'
+        ON CONFLICT(version_id,comparison_type) DO UPDATE SET source_period_id=EXCLUDED.source_period_id,source_version_id=EXCLUDED.source_version_id,captured_at=CURRENT_TIMESTAMP`,
+        [version.rows[0].id,previousYear,previousMonth,Number(period.rows[0].year)-1,Number(period.rows[0].month)]);
       await client.query(`UPDATE report_data_versions SET status='superseded' WHERE period_id=$1 AND status='published'`,[periodId]);
       await client.query(`UPDATE report_data_versions SET status='published',published_by=$2,published_at=CURRENT_TIMESTAMP WHERE id=$1`,[version.rows[0].id,userId]);
       await client.query(`UPDATE report_periods SET current_version_id=$2,status='published',approved_by=$3,approved_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[periodId,version.rows[0].id,userId]);
@@ -214,7 +244,7 @@ module.exports={
     const values=[periodId];let teamFilter='';if(teamCode){values.push(teamCode);teamFilter=`AND (t.code=$${values.length} OR l.team_id IS NULL)`;}values.push(limit);
     const result=await db.query(`SELECT l.id,l.action,l.change_summary,l.created_at,t.code team_code,t.name team_name,u.id actor_id,u.name actor_name,u.email actor_email
       FROM report_entry_audit_logs l LEFT JOIN report_teams t ON t.id=l.team_id LEFT JOIN users u ON u.id=l.actor_id
-      WHERE l.period_id=$1 ${teamFilter} ORDER BY l.created_at DESC LIMIT $${values.length}`,values);
+      WHERE l.period_id=$1 AND l.action<>'workspace_saved' ${teamFilter} ORDER BY l.created_at DESC LIMIT $${values.length}`,values);
     return result.rows;
   },
   async assignSubmission({periodId,teamCode,userId,actorId}) {

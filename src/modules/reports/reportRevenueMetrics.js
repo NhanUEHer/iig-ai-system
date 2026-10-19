@@ -25,7 +25,9 @@ function enrichRevenueDetails(details=[],history=[]) {
   const total=details.reduce((sum,row)=>sum+(numberOrNull(row.revenue)||0),0);
   return details.map(row=>{
     const revenue=numberOrNull(row.revenue),target=numberOrNull(row.monthly_target);
-    const previousRevenue=historicalValue(previous,row),priorYearRevenue=historicalValue(prior,row);
+    const historyPrevious=historicalValue(previous,row),historyPrior=historicalValue(prior,row);
+    const previousRevenue=historyPrevious===null?numberOrNull(row.previous_revenue):historyPrevious;
+    const priorYearRevenue=historyPrior===null?numberOrNull(row.prior_year_revenue):historyPrior;
     return {...row,
       previous_revenue:previousRevenue,prior_year_revenue:priorYearRevenue,
       revenue_share:total&&revenue!==null?revenue/total:null,

@@ -278,15 +278,20 @@ Never commit `.env`, model environments, checkpoints, generated audio, reference
 
 ## Production backup, data sync and deployment
 
-- `scripts/backup-production.sh` creates a full PostgreSQL custom dump, a focused scoring-data dump, row counts, media archive, and server-side code rollback archive. Database manifests are generated with the production `pg_restore` version before downloads are accepted.
+- `scripts/backup-production.sh` creates a full PostgreSQL custom dump, a focused scoring-data dump, row counts, and a media archive in `.partial-*` directories. It publishes a backup only after manifests and SHA-256 checks pass, removes partial output on failure, and retains the three newest server backups.
 - `scripts/sync-production-scoring-to-local.sh` first backs up the local database, exports production scoring rows as portable column inserts, then replaces the four local business tables inside one transaction.
-- `deploy.sh` verifies the project, builds a Production frontend, requires a verified backup, uploads to a staging directory, installs dependencies, and only then activates the release with `rsync --delete`.
-- Deployment preserves `.env`, database data, generated media, `tts_env`, model `asset/`, and the server backup directory. Other legacy code is removed from the active application directory.
-- PM2 receives the production environment using `--update-env`. Final smoke validation calls backend port `5005`; Nginx serves the SPA on port `3100`.
+- `deploy.sh` requires a clean, tagged `main` synchronized with `origin/main`, matching backend/frontend versions, Node.js 22.13.0 or newer, at least 2 GB free on production, and an exclusive remote deploy lock. `ALLOW_UNPUSHED_RELEASE=true` is an emergency-only override.
+- Deployment excludes local override secrets (`.env*.local`) and the repository-root `tmp/` directory. Bank-statement source files must never be shipped from a developer workspace; production receives them only through authenticated import and stores them in R2 under `expense-statements/YYYY/MM/...`.
+- Releases are immutable under `/opt/ai-scoring-releases/<deploy-id>`. Shared `.env`, generated media, model files, and Python environments remain under `/opt/ai-scoring`; `/opt/ai-scoring-current` points to the active release.
+- Activation switches `/opt/ai-scoring-current`, restarts PM2, and verifies the exact production version and commit on port `5005`. A failed identity/health check automatically restores the previous release and restarts PM2.
+- A new verified backup is the default. `PREVERIFIED_BACKUP_ID=<id>` reuses a checksum/manifest-backed backup; `SKIP_BACKUP=true` is an explicit emergency choice and prints a warning.
+- The three newest immutable releases are retained for fast rollback. Nginx serves the SPA and generated media through `/opt/ai-scoring-current` on port `3100`.
 
 Never put the Hetzner password in any repository file. Provide `VPS_PASSWORD` only in the process environment, or store it in macOS Keychain under service `ai-scoring-vps` and account `root@<VPS_IP>`; `deploy.sh` can read that item without printing the secret.
 
 Development audio storage uses Cloudflare R2 when `AUDIO_STORAGE_MODE=r2`. PostgreSQL stores only an `r2:<object-key>` reference and metadata. The bucket layout mirrors production: `cleaned-audio/` for processed answers, `dialogues/` for generated audio, `question-bank/` for question assets, and `test/` for connectivity checks. Run `npm run audio:migrate-dev-r2` for a dry run and append `-- --apply` to upload existing local files, update their database references, and remove the migrated local copies.
+
+Production bank-statement imports require R2 credentials even when audio storage is local. The R2 token must allow Put/Get/Head/Delete on the configured bucket. The application stores statement sources under `expense-statements/`; in production an R2 write failure rejects the import so a committed transaction can never lose its source statement.
 
 ## Database migrations
 

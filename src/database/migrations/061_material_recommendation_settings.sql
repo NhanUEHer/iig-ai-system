@@ -1,0 +1,25 @@
+CREATE TABLE IF NOT EXISTS material_recommendation_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_by UUID NOT NULL UNIQUE REFERENCES users(id),
+  exam_programs JSONB NOT NULL DEFAULT '["TOEIC_LR","TOEIC_SW"]',
+  enabled_skills JSONB NOT NULL DEFAULT '["LISTENING","READING","SPEAKING","WRITING"]',
+  target_scores JSONB NOT NULL DEFAULT '{"LISTENING_READING":"450-850","SPEAKING_WRITING":"120-160"}',
+  instruction_language VARCHAR(16) NOT NULL DEFAULT 'BILINGUAL',
+  minimum_sources INTEGER NOT NULL DEFAULT 2,
+  minimum_confidence NUMERIC(5,4) NOT NULL DEFAULT 0.75,
+  trend_window_days INTEGER NOT NULL DEFAULT 30,
+  enabled_material_types JSONB NOT NULL DEFAULT '["STRATEGY_LESSON","SKILL_DRILL","ERROR_DRILL","VOCABULARY_PACK","MINI_TEST","FULL_MOCK_TEST","SAMPLE_ANSWER","SELF_REVIEW_RUBRIC"]',
+  material_quantities JSONB NOT NULL DEFAULT '{"STRATEGY_LESSON":1,"SKILL_DRILL":10,"ERROR_DRILL":10,"VOCABULARY_PACK":20,"MINI_TEST":2,"FULL_MOCK_TEST":1,"SAMPLE_ANSWER":3,"SELF_REVIEW_RUBRIC":1}',
+  difficulty_mix JSONB NOT NULL DEFAULT '{"BASIC":30,"INTERMEDIATE":50,"ADVANCED":20}',
+  priority_signals JSONB NOT NULL DEFAULT '["REPEATED_PROMPT","RECURRING_TASK_TOPIC","COMMON_ERROR","CONTENT_GAP"]',
+  maximum_source_similarity NUMERIC(5,4) NOT NULL DEFAULT 0.65,
+  require_blueprint_approval BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT material_setting_language CHECK (instruction_language IN ('VI','EN','BILINGUAL')),
+  CONSTRAINT material_setting_min_sources CHECK (minimum_sources BETWEEN 1 AND 20),
+  CONSTRAINT material_setting_confidence CHECK (minimum_confidence BETWEEN 0 AND 1),
+  CONSTRAINT material_setting_window CHECK (trend_window_days BETWEEN 7 AND 365),
+  CONSTRAINT material_setting_similarity CHECK (maximum_source_similarity BETWEEN 0.30 AND 0.90)
+);
+

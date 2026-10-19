@@ -1,0 +1,32 @@
+import React,{useCallback,useEffect,useMemo,useState} from 'react';
+import {createPortal} from 'react-dom';
+import {BookOpen,ChevronLeft,ChevronRight,Plus,RotateCcw,Search,X} from 'lucide-react';
+import {listAvailableQuestions} from '../../../services/examService';
+import {listQuestionGroups} from '../../../services/questionBankService';
+import './ExamQuestionPicker.css';
+
+const typeName=type=>type==='RECORD'?'Record':type==='WRITING'?'Writing':'Trắc nghiệm đơn';
+const initialFilters={search:'',groupId:'',page:1,limit:10};
+const formatAudioDuration=value=>{const total=Math.max(0,Math.round(Number(value)||0));return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;};
+
+export default function ExamQuestionPicker({open,examId,part,onClose,onAdd}){
+  const [filters,setFilters]=useState(initialFilters);const [result,setResult]=useState({data:[],meta:{}});const [groups,setGroups]=useState([]);
+  const [selected,setSelected]=useState([]);const [loading,setLoading]=useState(false);const [submitting,setSubmitting]=useState(false);const [error,setError]=useState('');
+  const load=useCallback(async()=>{if(!open||!part?.id)return;setLoading(true);setError('');try{setResult(await listAvailableQuestions(examId,part.id,filters));}catch(requestError){setError(requestError.response?.data?.error||'Không thể tải danh sách câu hỏi.');}finally{setLoading(false);}},[open,examId,part?.id,filters]);
+  useEffect(()=>{load();},[load]);
+  useEffect(()=>{if(!open)return undefined;setSelected([]);setFilters(initialFilters);listQuestionGroups().then(response=>setGroups(response.data||[])).catch(()=>setGroups([]));const previous=document.body.style.overflow;document.body.style.overflow='hidden';const close=event=>event.key==='Escape'&&onClose?.();document.addEventListener('keydown',close);return()=>{document.body.style.overflow=previous;document.removeEventListener('keydown',close);};},[open,onClose]);
+  const update=(key,value)=>setFilters(current=>({...current,[key]:value,...(key==='page'?{}:{page:1})}));
+  const rows=result.data||[];const selectableRows=rows;const allCurrent=selectableRows.length>0&&selectableRows.every(row=>selected.includes(row.id));
+  const toggleAll=()=>setSelected(current=>allCurrent?current.filter(id=>!selectableRows.some(row=>row.id===id)):[...new Set([...current,...selectableRows.map(row=>row.id)])]);
+  const toggle=row=>setSelected(current=>current.includes(row.id)?current.filter(id=>id!==row.id):[...current,row.id]);
+  const pages=useMemo(()=>{const count=result.meta?.totalPages||1;const current=result.meta?.page||1;return Array.from(new Set([1,current-1,current,current+1,count].filter(page=>page>=1&&page<=count))).sort((a,b)=>a-b);},[result.meta]);
+  const submit=async()=>{if(!selected.length||submitting)return;setSubmitting(true);try{await onAdd(selected);}finally{setSubmitting(false);}};
+  if(!open)return null;
+  return createPortal(<div className="exam-picker-backdrop" onMouseDown={event=>event.target===event.currentTarget&&onClose?.()}><section className="exam-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="exam-picker-title">
+    <header><div><div className="exam-picker-title"><span><BookOpen/></span><h2 id="exam-picker-title">Chọn câu hỏi</h2></div><p>Thêm câu hỏi phù hợp vào <strong>{part?.title||'Part'}</strong></p></div><button type="button" onClick={onClose} aria-label="Đóng popup"><X/></button></header>
+    <div className="exam-picker-filters"><label><Search/><input value={filters.search} onChange={event=>update('search',event.target.value)} placeholder="Tìm theo mã hoặc tên câu hỏi"/></label><select value={filters.groupId} onChange={event=>update('groupId',event.target.value)} aria-label="Lọc theo nhóm câu hỏi"><option value="">Tất cả nhóm câu hỏi</option>{groups.map(group=><option key={group.id} value={group.id}>{group.name||group.title}</option>)}</select><button type="button" onClick={()=>setFilters(initialFilters)} title="Đặt lại bộ lọc" aria-label="Đặt lại bộ lọc"><RotateCcw/></button></div>
+    <div className="exam-picker-table-area"><table><thead><tr><th><input type="checkbox" checked={allCurrent} onChange={toggleAll} aria-label="Chọn tất cả câu hỏi trên trang"/></th><th>Mã</th><th>Tên câu hỏi</th><th>Nhóm câu hỏi</th><th>Dạng</th><th>Số câu</th><th>Thời lượng audio</th></tr></thead><tbody>{loading?Array.from({length:5},(_,index)=><tr className="loading" key={index}><td colSpan="7"><span/></td></tr>):error?<tr><td colSpan="7" className="message error">{error}<button type="button" onClick={load}>Thử lại</button></td></tr>:!rows.length?<tr><td colSpan="7" className="message">Không có câu hỏi phù hợp.</td></tr>:rows.map(row=><tr key={row.id} className={selected.includes(row.id)?'selected':''}><td><input type="checkbox" checked={selected.includes(row.id)} onChange={()=>toggle(row)}/></td><td><code>{row.code||String(row.id).slice(0,8).toUpperCase()}</code></td><td><strong>{row.questionName}</strong></td><td>{row.groupName}</td><td><span className={`type type-${row.questionType.toLowerCase()}`}>{typeName(row.questionType)}</span></td><td className="center"><b>{row.subQuestionCount}</b></td><td className="center duration">{formatAudioDuration(row.audioDurationSeconds)}</td></tr>)}</tbody></table></div>
+    <div className="exam-picker-pagination"><span>{result.meta?.total?`Hiển thị ${(result.meta.page-1)*result.meta.limit+1} - ${Math.min(result.meta.page*result.meta.limit,result.meta.total)} trên ${result.meta.total} câu hỏi`:'Hiển thị 0 câu hỏi'}</span><div><button type="button" disabled={(result.meta?.page||1)<=1} onClick={()=>update('page',(result.meta?.page||1)-1)}><ChevronLeft/>Trước</button>{pages.map((page,index)=><React.Fragment key={page}>{index>0&&page-pages[index-1]>1&&<i>...</i>}<button type="button" className={page===result.meta?.page?'active':''} onClick={()=>update('page',page)}>{page}</button></React.Fragment>)}<button type="button" disabled={(result.meta?.page||1)>=(result.meta?.totalPages||1)} onClick={()=>update('page',(result.meta?.page||1)+1)}>Sau<ChevronRight/></button></div></div>
+    <footer><span><i/>Đã chọn&nbsp;<strong>{selected.length}</strong>&nbsp;câu hỏi</span><div><button type="button" onClick={onClose}>Hủy</button><button type="button" className="primary" disabled={!selected.length||submitting} onClick={submit}><Plus/>{submitting?'Đang thêm...':`Thêm (${selected.length})`}</button></div></footer>
+  </section></div>,document.body);
+}

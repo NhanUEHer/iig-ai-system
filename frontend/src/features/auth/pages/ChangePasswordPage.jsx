@@ -8,9 +8,7 @@ export default function ChangePasswordPage({ onChanged, showMsg }) {
   const [visible, setVisible] = useState({ currentPassword: false, newPassword: false, confirmPassword: false });
   const [busy, setBusy] = useState(false);
   const rules = useMemo(() => [
-    { label: 'Tối thiểu 10 ký tự', valid: form.newPassword.length >= 10 },
-    { label: 'Có ít nhất một chữ cái', valid: /[A-Za-z]/.test(form.newPassword) },
-    { label: 'Có ít nhất một chữ số', valid: /\d/.test(form.newPassword) },
+    { label: 'Tối thiểu 8 ký tự', valid: form.newPassword.length >= 8 },
     { label: 'Mật khẩu xác nhận khớp', valid: Boolean(form.confirmPassword) && form.newPassword === form.confirmPassword }
   ], [form.newPassword, form.confirmPassword]);
   const ready = Boolean(form.currentPassword) && rules.every(rule => rule.valid);

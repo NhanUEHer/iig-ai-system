@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { ArrowLeft, ArrowRight, CalendarClock, CheckCircle2, Database, Edit3, Link2, Plus, RefreshCw, Search, Trash2, UploadCloud, X } from 'lucide-react';
+import {useDialog} from '../../../components/feedback/dialogContext';
 import './MappingKeycodePage.css';
 
 const API_BASE = '/api/submissions';
 const formatDate = value => value ? new Date(value).toLocaleString('vi-VN') : '—';
 
 export default function MappingKeycodePage({ mappings = [], meta = { page: 1, limit: 10, total: 0, totalPages: 1 }, loadingMappings = false, onRefresh, showMsg, currentUser }) {
+  const {confirm:confirmDialog}=useDialog();
   const [search, setSearch] = useState('');
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
@@ -66,7 +68,7 @@ export default function MappingKeycodePage({ mappings = [], meta = { page: 1, li
     finally { setSaving(false); }
   };
   const remove = async item => {
-    if (!window.confirm(`Xóa mapping ${item.keycode}?`)) return;
+    if (!await confirmDialog({title:'Xóa mapping?',message:`Mapping của keycode ${item.keycode} sẽ bị xóa.`,confirmText:'Xóa mapping'})) return;
     try { await axios.delete(`${API_BASE}/mappings/${item.keycode}`); showMsg?.('Đã xóa mapping.', 'success'); await onRefresh?.(); }
     catch (error) { showMsg?.(error.response?.data?.error || 'Không thể xóa mapping.', 'error'); }
   };

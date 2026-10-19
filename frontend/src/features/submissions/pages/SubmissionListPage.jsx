@@ -8,6 +8,7 @@ import './SubmissionListPage.css';
 import './SubmissionListDark.css';
 import './SubmissionGrading.css';
 import './SubmissionSync.css';
+import {useDialog} from '../../../components/feedback/dialogContext';
 
 const API_BASE = '/api/submissions';
 const STATUS_OPTIONS = [
@@ -26,6 +27,7 @@ export default function SubmissionListPage({
   submissions = [], meta = { page: 1, limit: 10, total: 0, totalPages: 1 }, loading, statusFilter, setStatusFilter,
   getStatusBadge, navigate, onRefresh, onStartSync
 }) {
+  const {confirm:confirmDialog,alert:alertDialog}=useDialog();
   const [searchKey, setSearchKey] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [pageSize, setPageSize] = useState(10);
@@ -96,19 +98,19 @@ export default function SubmissionListPage({
   };
 
   const removeOne = async item => {
-    if (Number(item.status) !== 1 || !window.confirm(`Xóa bài ${item.keycode}?`)) return;
+    if (Number(item.status) !== 1 || !await confirmDialog({title:'Xóa bài thi?',message:`Bài ${item.keycode} sẽ bị xóa khỏi hệ thống.`,confirmText:'Xóa bài'})) return;
     try { await axios.delete(`${API_BASE}/${item.id}`); await onRefresh?.(); }
-    catch (error) { window.alert(error.response?.data?.error || 'Không thể xóa bài.'); }
+    catch (error) { await alertDialog({title:'Không thể xóa bài',message:error.response?.data?.error || 'Không thể xóa bài.',tone:'danger'}); }
   };
 
   const removeSelected = async () => {
-    if (!selectedIds.length || !window.confirm(`Xóa các bài chưa chấm trong ${selectedIds.length} bài đã chọn?`)) return;
+    if (!selectedIds.length || !await confirmDialog({title:'Xóa các bài chưa chấm?',message:`Hệ thống sẽ xóa các bài chưa chấm trong ${selectedIds.length} bài đã chọn.`,confirmText:'Xóa bài'})) return;
     setActionBusy(true);
     try {
       await axios.post(`${API_BASE}/bulk-delete`, { ids: selectedIds });
       setSelectedIds([]);
       await onRefresh?.();
-    } catch (error) { window.alert(error.response?.data?.error || 'Không thể xóa các bài đã chọn.'); }
+    } catch (error) { await alertDialog({title:'Không thể xóa bài',message:error.response?.data?.error || 'Không thể xóa các bài đã chọn.',tone:'danger'}); }
     finally { setActionBusy(false); }
   };
 
@@ -123,7 +125,7 @@ export default function SubmissionListPage({
       link.download = `iig-scoring-${new Date().toISOString().slice(0, 10)}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
-    } catch (error) { window.alert(error.response?.data?.error || 'Không thể xuất dữ liệu.'); }
+    } catch (error) { await alertDialog({title:'Không thể xuất dữ liệu',message:error.response?.data?.error || 'Không thể xuất dữ liệu.',tone:'danger'}); }
     finally { setActionBusy(false); }
   };
 
@@ -133,7 +135,7 @@ export default function SubmissionListPage({
     try {
       const response = await axios.post(`${API_BASE}/bulk-grade`, { submissionIds: selectedIds });
       setGradingJob(response.data.data);
-    } catch (error) { window.alert(error.response?.data?.error || 'Không thể tạo job chấm hàng loạt.'); }
+    } catch (error) { await alertDialog({title:'Không thể bắt đầu chấm',message:error.response?.data?.error || 'Không thể tạo job chấm hàng loạt.',tone:'danger'}); }
     finally { setActionBusy(false); }
   };
 

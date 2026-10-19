@@ -1,6 +1,7 @@
 const service = require('../modules/reports/reportService');
 const manualService = require('../modules/reports/manualReportService');
 const kpiConfigService = require('../modules/reports/kpiConfigService');
+const detailRowConfigService = require('../modules/reports/detailRowConfigService');
 module.exports = {
   async bootstrap(req,res){ res.json({success:true,data:await service.bootstrap()}); },
   async inspect(req,res){ res.status(201).json({success:true,data:await service.inspectUpload({body:req.body,userId:req.auth.userId})}); },
@@ -30,5 +31,9 @@ module.exports = {
   async listKpiConfig(req,res){res.json({success:true,data:await kpiConfigService.list(req.query)});},
   async createKpiConfig(req,res){res.status(201).json({success:true,data:await kpiConfigService.create(req.body,req.auth.userId),message:'Đã tạo chỉ số KPI.'});},
   async updateKpiConfig(req,res){res.json({success:true,data:await kpiConfigService.update(req.params.id,req.body,req.auth.userId),message:'Đã cập nhật chỉ số KPI.'});},
-  async reorderKpiConfig(req,res){res.json({success:true,data:await kpiConfigService.reorder(req.body,req.auth.userId),message:'Đã cập nhật thứ tự KPI.'});}
+  async reorderKpiConfig(req,res){res.json({success:true,data:await kpiConfigService.reorder(req.body,req.auth.userId),message:'Đã cập nhật thứ tự KPI.'});},
+  async listDetailRows(req,res){res.json({success:true,data:await detailRowConfigService.list(req.query)});},
+  async createDetailRow(req,res){res.status(201).json({success:true,data:await detailRowConfigService.create(req.body),message:'Đã tạo dòng chi tiết.'});},
+  async updateDetailRow(req,res){res.json({success:true,data:await detailRowConfigService.update(req.params.id,req.body),message:'Đã cập nhật dòng chi tiết.'});},
+  async reorderDetailRows(req,res){res.json({success:true,data:await detailRowConfigService.reorder(req.body),message:'Đã cập nhật thứ tự dòng chi tiết.'});}
 };

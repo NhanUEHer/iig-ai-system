@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { ArrowLeft, ArrowRight, Edit2, KeyRound, Plus, RefreshCw, Search, ShieldCheck, Trash2, Users } from 'lucide-react';
+import {useDialog} from '../../../components/feedback/dialogContext';
 import './UserManagementPage.css';
 import './UserManagementTypography.css';
 
 const emptyRole = { slug: '', name: '', description: '', permissions: [] };
 
 export default function RoleManagementPage({ currentUser, showMsg }) {
+  const {confirm:confirmDialog}=useDialog();
   const canManage = currentUser?.permissions?.includes('roles.manage');
   const [roles, setRoles] = useState([]);
   const [catalog, setCatalog] = useState([]);
@@ -41,7 +43,7 @@ export default function RoleManagementPage({ currentUser, showMsg }) {
     } catch (error) { showMsg?.(error.response?.data?.error || 'Không thể lưu vai trò.', 'error'); }
   };
   const remove = async role => {
-    if (!window.confirm(`Xóa vai trò ${role.name}?`)) return;
+    if (!await confirmDialog({title:'Xóa vai trò?',message:`Vai trò ${role.name} sẽ bị xóa khỏi hệ thống.`,confirmText:'Xóa vai trò'})) return;
     try { await axios.delete(`/api/auth/roles/${role.slug}`); showMsg?.('Đã xóa vai trò.', 'success'); await load(page); }
     catch (error) { showMsg?.(error.response?.data?.error || 'Không thể xóa vai trò.', 'error'); }
   };

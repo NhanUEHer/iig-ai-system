@@ -16,13 +16,57 @@ import KpiReportPage from './features/reports/pages/KpiReportPage';
 import ManualReportPage from './features/reports/pages/ManualReportPage';
 import ReportPeriodManagementPage from './features/reports/pages/ReportPeriodManagementPage';
 import KpiConfigurationPage from './features/reports/pages/KpiConfigurationPage';
+import BankStatementImportsPage from './features/expenses/pages/BankStatementImportsPage';
+import BankTransactionsPage from './features/expenses/pages/BankTransactionsPage';
+import ExpenseDashboardPage from './features/expenses/pages/ExpenseDashboardPage';
 import LogsConsolePage from './features/logs/pages/LogsConsolePage';
 import { clearSession, readSession, saveSession } from './services/authSession';
 import ChangePasswordPage from './features/auth/pages/ChangePasswordPage';
+import AccountProfileModal from './features/auth/components/AccountProfileModal';
 import BulkSyncPanel from './components/sync/BulkSyncPanel';
+import KeyVocabPage from './features/key-vocab/pages/KeyVocabPage';
+import DictionaryPage from './features/dictionary/pages/DictionaryPage';
+import ContentSourcePage from './features/content-sources/pages/ContentSourcePage';
+import ContentSourceDetailPage from './features/content-sources/pages/ContentSourceDetailPage';
+import ContentDevelopmentPage from './features/content-sources/pages/ContentDevelopmentPage';
+import ComponentShowcasePage from './components/ui/ComponentShowcasePage';
+import { Toast } from './components/ui';
+import QuestionBankListPage from './features/question-management/QuestionListPage';
+import QuestionBankCreatePage from './features/question-management/QuestionCreatePage';
+import QuestionBankEditPage from './features/question-management/QuestionEditPage';
+import QuestionGroupManagementPage from './features/question-bank/pages/QuestionGroupManagementPage';
+import ExamListPage from './features/exams/pages/ExamListPage';
+import ExamCreatePage from './features/exams/pages/ExamCreatePage';
+import ExamEditPage from './features/exams/pages/ExamEditPage';
+import ExamCandidateListPage from './features/exam-candidates/pages/ExamCandidateListPage';
+import ScoreScaleListPage from './features/score-scales/pages/ScoreScaleListPage';
+import ScoreScaleCreatePage from './features/score-scales/pages/ScoreScaleCreatePage';
+import ScoreScaleEditPage from './features/score-scales/pages/ScoreScaleEditPage';
+
 
 const API_BASE = '/api/submissions';
 const AUTH_BASE = '/api/auth';
+
+const firstAllowedPath = user => {
+  const permissions = user?.permissions || [];
+  const has = permission => permissions.includes(permission);
+  const hasAny = values => values.some(has);
+  if (has('submissions.view')) return '/submissions';
+  if (has('mappings.view')) return '/mappings';
+  if (has('agents.view')) return '/ai';
+  if (has('audio.view')) return '/local-tts';
+  if (hasAny(['content_sources.view','content_sources.create'])) return '/content-sources';
+  if (hasAny(['key_vocab.view','key_vocab.generate','key_vocab.manage'])) return '/key-vocab';
+  if (hasAny(['dictionary.view','dictionary.generate','dictionary.manage'])) return '/dictionary';
+  if (hasAny(['reports.view','reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'])) return '/reports/kpi';
+  if (hasAny(['expenses.view','expenses.import','expenses.manage'])) return '/expenses/dashboard';
+  if (has('users.view')) return '/users';
+  if (has('roles.view')) return '/roles';
+  if (has('logs.view')) return '/logs';
+  if (has('exams.view')) return '/exams';
+  if (has('exam_candidates.view')) return '/exam-candidates';
+  return '/change-password';
+};
 
 function App() {
   const [currentUser, setCurrentUser] = useState(() => {
@@ -34,6 +78,7 @@ function App() {
   const location = useLocation();
   const path = location.pathname;
   const hasPermission = permission => currentUser?.permissions?.includes(permission);
+  const defaultPath = firstAllowedPath(currentUser);
 
   let activeTab = 'submissions';
   if (path.startsWith('/mappings')) activeTab = 'mappings';
@@ -41,28 +86,41 @@ function App() {
   else if (path.startsWith('/users')) activeTab = 'users';
   else if (path.startsWith('/roles')) activeTab = 'roles';
   else if (path.startsWith('/local-tts')) activeTab = 'local-tts';
+  else if (path.startsWith('/content-development')) activeTab = 'content-development';
+  else if (path.startsWith('/content-sources')) activeTab = 'content-sources';
+  else if (path.startsWith('/key-vocab')) activeTab = 'key-vocab';
+  else if (path.startsWith('/dictionary')) activeTab = 'key-vocab';
   else if (path.startsWith('/logs')) activeTab = 'logs';
   else if (path.startsWith('/reports/kpi-config')) activeTab = 'report-kpi-config';
   else if (path.startsWith('/reports/manage')) activeTab = 'report-manage';
   else if (path.startsWith('/reports/kpi')) activeTab = 'report-kpi';
+  else if (path.startsWith('/expenses/dashboard')) activeTab = 'expense-dashboard';
+  else if (path.startsWith('/expenses/transactions')) activeTab = 'expense-transactions';
+  else if (path.startsWith('/expenses')) activeTab = 'expenses';
   else if (path.startsWith('/change-password')) activeTab = 'change-password';
+  else if (path.startsWith('/question-bank/groups')) activeTab = 'question-groups';
+  else if (path.startsWith('/question-bank')) activeTab = 'question-bank';
+  else if (path.startsWith('/score-scales')) activeTab = 'score-scales';
+  else if (path.startsWith('/exam-candidates')) activeTab = 'exam-candidates';
+  else if (path.startsWith('/exams')) activeTab = 'exams';
 
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    return localStorage.getItem('sidebar_collapsed') === 'true';
-  });
+  // Layout V2 follows the Stitch workspace: start from the compact rail.
+  // Use a new storage key so the previous expanded-menu preference does not
+  // silently preserve the legacy layout after this visual migration.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed_v2') !== 'false');
 
   const toggleSidebar = () => {
     setSidebarCollapsed(prev => {
       const next = !prev;
-      localStorage.setItem('sidebar_collapsed', String(next));
+      localStorage.setItem('sidebar_collapsed_v2', String(next));
       return next;
     });
   };
 
   const [message, setMessage] = useState(null);
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
   const showMsg = (text, type = 'success') => {
-    setMessage({ text, type });
-    setTimeout(() => setMessage(null), 4000);
+    setMessage({ text, type, id: Date.now() });
   };
 
   const [liveLogs, setLiveLogs] = useState([]);
@@ -96,7 +154,8 @@ function App() {
         setCurrentUser(userObj);
         saveSession(userObj);
         showMsg(`Chào mừng ${userObj.name}!`, 'success');
-        const returnTo=location.state?.from||sessionStorage.getItem('auth_return_to')||'/submissions';
+        const requestedPath = location.state?.from || sessionStorage.getItem('auth_return_to');
+        const returnTo = requestedPath && requestedPath !== '/login' ? requestedPath : firstAllowedPath(userObj);
         sessionStorage.removeItem('auth_return_to');
         navigate(returnTo,{replace:true});
       } else {
@@ -150,7 +209,7 @@ function App() {
   const [syncPanelMinimized, setSyncPanelMinimized] = useState(false);
 
   const fetchSubmissions = async (params = { page: 1, limit: 10 }) => {
-    if (!currentUser) return;
+    if (!hasPermission('submissions.view')) return;
     setLoading(true);
     try {
       const res = await axios.get(API_BASE, { params });
@@ -189,8 +248,8 @@ function App() {
   const retrySubmissionSync = keycode => runSyncItems([{ keycode, status: 'queued', message: 'Chờ thử lại' }]);
 
   useEffect(() => {
-    if (currentUser) fetchSubmissions();
-  }, [currentUser]);
+    if (!authChecking && path.startsWith('/submissions') && currentUser?.permissions?.includes('submissions.view')) fetchSubmissions();
+  }, [authChecking, currentUser, path]);
 
   const filteredSubmissions = submissions.filter(sub => {
     const matchSearch = (sub.student_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -225,8 +284,8 @@ function App() {
   };
 
   useEffect(() => {
-    if (hasPermission('mappings.view')) fetchMappings();
-  }, [currentUser]);
+    if (!authChecking && path.startsWith('/mappings') && currentUser?.permissions?.includes('mappings.view')) fetchMappings();
+  }, [authChecking, currentUser, path]);
 
   const filteredMappings = mappings.filter(m =>
     (m.keycode || '').toLowerCase().includes(searchMapping.toLowerCase()) ||
@@ -301,8 +360,8 @@ function App() {
   };
 
   useEffect(() => {
-    if (hasPermission('agents.view')) fetchAgents();
-  }, [currentUser]);
+    if (!authChecking && path.startsWith('/ai') && currentUser?.permissions?.includes('agents.view')) fetchAgents();
+  }, [authChecking, currentUser, path]);
 
   // User Management Data
   const [users, setUsers] = useState([]);
@@ -327,8 +386,8 @@ function App() {
   };
 
   useEffect(() => {
-    if (hasPermission('users.view')) fetchUsers();
-  }, [currentUser]);
+    if (!authChecking && path.startsWith('/users') && currentUser?.permissions?.includes('users.view')) fetchUsers();
+  }, [authChecking, currentUser, path]);
 
   const getStatusBadge = (status) => {
     switch (String(status)) {
@@ -351,11 +410,13 @@ function App() {
 
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden', background: 'var(--background)' }}>
-      {message && (
-        <div className={`toast ${message.type}`}>
-          {message.text}
-        </div>
-      )}
+      {message && <Toast
+        key={message.id}
+        severity={message.type === 'error' ? 'error' : message.type === 'success' ? 'success' : 'info'}
+        title={message.type === 'error' ? 'Không thể thực hiện' : message.type === 'success' ? 'Thành công' : 'Thông báo'}
+        autoClose={4500}
+        onClose={() => setMessage(null)}
+      >{message.text}</Toast>}
 
       {authChecking ? (
         <div className="auth-loading"><div className="auth-loading-mark">IIG</div><span>Đang xác thực phiên làm việc…</span></div>
@@ -374,9 +435,6 @@ function App() {
               setShowLoginPassword={setShowLoginPassword}
             />
           } />
-          <Route path="/forgot-password" element={<LoginPage message={message} />} />
-          <Route path="/reset-password" element={<LoginPage message={message} />} />
-          <Route path="/setup-password" element={<LoginPage message={message} />} />
           <Route path="*" element={(()=>{const returnTo=`${location.pathname}${location.search}`;sessionStorage.setItem('auth_return_to',returnTo);return <Navigate to="/login" replace state={{from:returnTo}}/>;})()} />
         </Routes>
       ) : (
@@ -388,6 +446,7 @@ function App() {
             navigate={navigate}
             currentUser={currentUser}
             handleLogout={handleLogout}
+            onOpenAccount={() => setAccountModalOpen(true)}
           />
 
           <main style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
@@ -405,7 +464,7 @@ function App() {
                   onRefresh={fetchSubmissions}
                   onStartSync={startSubmissionSync}
                   currentUser={currentUser}
-                /> : <Navigate to="/change-password" replace />
+                /> : <Navigate to={defaultPath} replace />
               } />
 
               <Route path="/submissions/:id" element={
@@ -414,7 +473,7 @@ function App() {
                   getStatusBadge={getStatusBadge}
                   addLiveLog={addLiveLog}
                   currentUser={currentUser}
-                /> : <Navigate to="/change-password" replace />
+                /> : <Navigate to={defaultPath} replace />
               } />
 
               <Route path="/mappings" element={
@@ -427,13 +486,13 @@ function App() {
                     showMsg={showMsg}
                     currentUser={currentUser}
                   />
-                ) : <Navigate to="/submissions" replace />
+                ) : <Navigate to={defaultPath} replace />
               } />
 
               <Route path="/ai" element={
                 hasPermission('agents.view') ? (
                   <AIConfigPage showMsg={showMsg} />
-                ) : <Navigate to="/submissions" replace />
+                ) : <Navigate to={defaultPath} replace />
               } />
 
               <Route path="/users" element={
@@ -442,52 +501,91 @@ function App() {
                     currentUser={currentUser}
                     showMsg={showMsg}
                   />
-                ) : <Navigate to="/submissions" replace />
+                ) : <Navigate to={defaultPath} replace />
               } />
 
               <Route path="/roles" element={
-                hasPermission('roles.view') ? <RoleManagementPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                hasPermission('roles.view') ? <RoleManagementPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
               } />
 
-              <Route path="/local-tts" element={hasPermission('audio.view') ? <LocalTTSStudio /> : <Navigate to="/submissions" replace />} />
+              <Route path="/local-tts" element={hasPermission('audio.view') ? <LocalTTSStudio /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/content-sources" element={['content_sources.view','content_sources.create'].some(hasPermission) ? <ContentSourcePage showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/content-sources/:sourceId" element={hasPermission('content_sources.view') ? <ContentSourceDetailPage showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/content-development" element={['content_sources.view','content_sources.analyze'].some(hasPermission) ? <ContentDevelopmentPage showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+
+
+
+
+
+              <Route path="/key-vocab" element={['key_vocab.view','key_vocab.generate','key_vocab.manage'].some(hasPermission) ? <KeyVocabPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/dictionary" element={['dictionary.view','dictionary.generate','dictionary.manage'].some(hasPermission) ? <DictionaryPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
 
               <Route path="/change-password" element={<ChangePasswordPage onChanged={handleLogout} showMsg={showMsg} />} />
 
               <Route path="/logs" element={
-                hasPermission('logs.view') ? <LogsConsolePage liveLogs={liveLogs} setLiveLogs={setLiveLogs} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                hasPermission('logs.view') ? <LogsConsolePage liveLogs={liveLogs} setLiveLogs={setLiveLogs} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
               } />
 
               <Route path="/reports/kpi" element={
-                ['reports.view','reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <KpiReportPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                ['reports.view','reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <KpiReportPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
               } />
               <Route path="/reports/kpi/input" element={
-                hasPermission('reports.view') ? <Navigate to="/reports/manage" replace /> : <Navigate to="/submissions" replace />
+                hasPermission('reports.view') ? <Navigate to="/reports/manage" replace /> : <Navigate to={defaultPath} replace />
               } />
               <Route path="/reports/manage" element={
-                ['reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <ReportPeriodManagementPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                ['reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <ReportPeriodManagementPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
               } />
               <Route path="/reports/manage/:periodId" element={
-                ['reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <ManualReportPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                ['reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <ManualReportPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
               } />
               <Route path="/reports/manage/:periodId/:teamCode" element={
-                ['reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <ManualReportPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to="/submissions" replace />
+                ['reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'].some(hasPermission) ? <ManualReportPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
               } />
               <Route path="/reports/kpi-config" element={
                 hasPermission('reports.manage') ? <KpiConfigurationPage showMsg={showMsg} /> : <Navigate to="/reports/manage" replace />
               } />
+              <Route path="/expenses/imports" element={
+                ['expenses.view','expenses.import','expenses.manage'].some(hasPermission) ? <BankStatementImportsPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
+              } />
+              <Route path="/expenses/transactions" element={
+                ['expenses.view','expenses.manage'].some(hasPermission) ? <BankTransactionsPage showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
+              } />
+              <Route path="/expenses/dashboard" element={
+                ['expenses.view','expenses.manage'].some(hasPermission) ? <ExpenseDashboardPage showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
+              } />
 
-              <Route path="/" element={<Navigate to="/submissions" replace />} />
-              <Route path="*" element={<Navigate to="/submissions" replace />} />
+              <Route path="/dev/components" element={<ComponentShowcasePage />} />
+              <Route path="/question-bank" element={hasPermission('question_bank.view') ? <QuestionBankListPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/question-bank/groups" element={hasPermission('question_bank.view') ? <QuestionGroupManagementPage showMsg={showMsg} canManage={hasPermission('question_bank.taxonomy_manage')} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/question-bank/new" element={hasPermission('question_bank.manage') ? <QuestionBankCreatePage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/question-bank/:id/edit" element={hasPermission('question_bank.manage') ? <QuestionBankEditPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/exams" element={hasPermission('exams.view') ? <ExamListPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/exams/new" element={hasPermission('exams.manage') ? <ExamCreatePage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/exams/:id/edit" element={hasPermission('exams.manage') ? <ExamEditPage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/exam-candidates" element={hasPermission('exam_candidates.view') ? <ExamCandidateListPage showMsg={showMsg} canExport={hasPermission('exam_candidates.export')} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/score-scales" element={hasPermission('exams.view') ? <ScoreScaleListPage navigate={navigate} showMsg={showMsg} canManage={hasPermission('exams.manage')} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/score-scales/new" element={hasPermission('exams.manage') ? <ScoreScaleCreatePage navigate={navigate} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/score-scales/:id/edit" element={hasPermission('exams.view') ? <ScoreScaleEditPage navigate={navigate} showMsg={showMsg} canManage={hasPermission('exams.manage')} /> : <Navigate to={defaultPath} replace />} />
+
+              <Route path="/" element={<Navigate to={defaultPath} replace />} />
+              <Route path="*" element={<Navigate to={defaultPath} replace />} />
             </Routes>
           </main>
-          <BulkSyncPanel
+          <AccountProfileModal
+            open={accountModalOpen}
+            onClose={() => setAccountModalOpen(false)}
+            currentUser={currentUser}
+            onLogout={handleLogout}
+            showMsg={showMsg}
+          />
+          {hasPermission('submissions.view') && <BulkSyncPanel
             job={syncJob}
             open={syncPanelOpen}
             minimized={syncPanelMinimized}
             onMinimize={() => { setSyncPanelOpen(value => !value); setSyncPanelMinimized(value => !value); }}
             onClose={() => { setSyncPanelOpen(false); setSyncPanelMinimized(false); setSyncJob(null); }}
             onRetry={retrySubmissionSync}
-          />
+          />}
         </>
       )}
     </div>

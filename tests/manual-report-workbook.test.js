@@ -82,16 +82,21 @@ test('Ads import remains compatible with templates downloaded before the trend c
   assert.ok(parsed.warnings.some(message => message.includes('phiên bản cũ')));
 });
 
-test('template number parser accepts Vietnamese and international formats', () => {
+test('template number parser follows Vietnamese separators for text cells', () => {
   assert.equal(parseNumber('4,711772500'), '4.711772500');
   assert.equal(parseNumber('1.234.567,89'), '1234567.89');
-  assert.equal(parseNumber('1,234,567.89'), '1234567.89');
+  assert.equal(parseNumber('0,317'), '0.317');
+  assert.equal(parseNumber('1.000'), '1000');
 });
 
 test('template number parser preserves imported decimal scale without rounding', () => {
   assert.equal(parseNumber('4,711772500'), '4.711772500');
-  assert.equal(parseNumber('4.711774'), '4.711774');
+  assert.equal(parseNumber(4.711774), '4.711774');
   assert.equal(parseNumber('34'), '34');
+});
+
+test('template number parser rejects malformed or international text separators',()=>{
+  for(const value of ['1.00','1.0000','1,2,3','1,234,567.89','1.234,56.7'])assert.equal(parseNumber(value),null,value);
 });
 
 test('template date parser normalizes Excel serials and API date strings', () => {
@@ -106,6 +111,40 @@ test('product template import converts Excel dates to YYYY-MM-DD', () => {
   const parsed=parseTemplate(buildTemplate(current),current);
   assert.deepEqual(parsed.errors,[]);
   assert.equal(parsed.details[0].actual_end_date,'2026-06-30');
+});
+
+test('Trade template keeps deployment dates as DD/MM/YYYY text cells', () => {
+  const current=workspace('TRADE');
+  current.details=[{organization_name:'Trường A',activity_date_text:'01/08/2026 - 03/08/2026',activity_days:7}];
+  const workbook=XLSX.read(buildTemplate(current),{type:'buffer',cellNF:true});
+  const sheet=workbook.Sheets['Chi tiết'];
+  const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:null});
+  const column=rows[5].indexOf('Ngày triển khai');
+  const header=XLSX.utils.encode_cell({r:5,c:column}),value=XLSX.utils.encode_cell({r:6,c:column});
+  assert.equal(sheet[value].z,'@');
+  assert.match(sheet[header].c[0].t,/DD\/MM\/YYYY/);
+  const parsed=parseTemplate(buildTemplate(current),current);
+  assert.equal(parsed.details[0].activity_days,'7');
+});
+
+test('Product template displays editable dates as DD/MM/YYYY', () => {
+  const current=workspace('PROD');
+  const workbook=XLSX.read(buildTemplate(current),{type:'buffer',cellNF:true});
+  const sheet=workbook.Sheets['Chi tiết'];
+  const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:null});
+  const column=rows[5].indexOf('Ngày hoàn thành');
+  assert.equal(sheet[XLSX.utils.encode_cell({r:6,c:column})].z,'dd/mm/yyyy');
+});
+
+test('Communication template excludes system-derived previous followers and reach', () => {
+  const current=workspace('COM');
+  const workbook=XLSX.read(buildTemplate(current),{type:'buffer'});
+  const rows=XLSX.utils.sheet_to_json(workbook.Sheets['Chi tiết'],{header:1,defval:null});
+  assert.ok(rows[5].includes('Reach kỳ này'));
+  assert.ok(rows[5].includes('Followers kỳ này'));
+  assert.ok(!rows[5].includes('Followers kỳ trước'));
+  assert.ok(!rows[5].includes('Reach kỳ trước'));
+  assert.ok(!rows[5].includes('% vs TTr Reach'));
 });
 
 test('import rejects changed KPI metadata', () => {

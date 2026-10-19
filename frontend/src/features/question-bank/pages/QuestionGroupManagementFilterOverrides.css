@@ -1,0 +1,30 @@
+.question-group-toolbar__filters>.ui-search{min-width:200px!important;flex:1!important;width:auto!important;height:36px!important;border-color:#e2e8f0!important;border-radius:8px!important;background:#f8fafc80!important;font-size:12px!important}.question-group-toolbar__filters>.ui-search input{font-size:12px!important}.question-group-toolbar__filters>.ui-filter-multiselect{width:176px!important;flex:none!important}.question-group-toolbar__filters>.ui-filter-multiselect__trigger{height:36px!important}.question-group-toolbar .ui-filter-multiselect__option input[type=checkbox]{box-sizing:border-box!important;display:block!important;width:16px!important;min-width:16px!important;height:16px!important;min-height:16px!important;flex:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:3px!important;accent-color:#2563eb!important}.question-group-toolbar .ui-filter-multiselect.is-open .ui-filter-multiselect__trigger svg{color:#94a3b8!important}.question-group-toolbar .question-group-button.primary svg{color:#fff!important}
+@media(max-width:720px){.question-group-toolbar__filters>.ui-search,.question-group-toolbar__filters>.ui-filter-multiselect{box-sizing:border-box!important;width:100%!important}}
+
+/* Column proportions for the group list (checkbox + 7 data columns). */
+.question-group-list-page .ui-table {
+  min-width: 1080px !important;
+  table-layout: fixed;
+}
+
+.question-group-list-page .ui-table th:nth-child(1) { width: 4% !important; min-width: 48px !important; }
+.question-group-list-page .ui-table th:nth-child(2) { width: 6% !important; min-width: 64px !important; text-align: center !important; }
+.question-group-list-page .ui-table th:nth-child(3) { width: 14% !important; min-width: 150px !important; }
+.question-group-list-page .ui-table th:nth-child(4) { width: 28% !important; min-width: 280px !important; }
+.question-group-list-page .ui-table th:nth-child(5) { width: 14% !important; min-width: 150px !important; text-align: center !important; }
+.question-group-list-page .ui-table th:nth-child(6) { width: 14% !important; min-width: 150px !important; text-align: left !important; }
+.question-group-list-page .ui-table th:nth-child(7) { width: 13% !important; min-width: 140px !important; text-align: center !important; }
+.question-group-list-page .ui-table th:nth-child(8) { width: 7% !important; min-width: 72px !important; text-align: center !important; }
+
+.question-group-list-page .ui-table td:nth-child(2),
+.question-group-list-page .ui-table td:nth-child(5),
+.question-group-list-page .ui-table td:nth-child(7),
+.question-group-list-page .ui-table td:nth-child(8) {
+  text-align: center !important;
+}
+
+.question-group-list-page .ui-table td:nth-child(4) strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

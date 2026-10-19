@@ -1,0 +1,13 @@
+.recommendation-settings .setting-section{margin:0 0 16px;padding:16px;border:1px solid var(--bento-border);border-radius:10px}
+.recommendation-settings .setting-section h3{margin:0 0 4px;font-size:13px}
+.setting-help{margin:0 0 12px;color:var(--on-surface-var);font-size:10px;line-height:1.45}
+.settings-decision-summary{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px;padding:14px 16px;border-radius:10px;background:#f0edff;color:#49329b}
+.settings-decision-summary small,.settings-decision-summary strong,.settings-decision-summary span{display:block}
+.settings-decision-summary small{font-size:9px;font-weight:800;letter-spacing:.1em}
+.settings-decision-summary strong{font-size:13px;margin:5px 0}
+.settings-decision-summary span{font-size:10px;line-height:1.45;color:#625b7a}
+.settings-decision-summary>svg{width:23px;flex:0 0 auto}
+.recommendation-settings .rule-preview>header{align-items:center;padding:11px 12px}
+.recommendation-settings .rule-preview>header small,.recommendation-settings .rule-preview>header strong{display:block}
+.recommendation-settings .rule-preview>header small{font-size:8px;letter-spacing:.08em;color:#1768ed}
+.recommendation-settings .rule-preview>header strong{font-size:11px;margin-top:4px}
