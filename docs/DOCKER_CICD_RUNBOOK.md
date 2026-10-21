@@ -8,10 +8,11 @@ The release contains three immutable ARM64 images built from one commit:
 - `iig-admin-admin-web`: Admin React application served by Nginx.
 - `iig-admin-exam-web`: candidate Exam React application served by Nginx.
 
-During the first migration phase, PostgreSQL, Redis, media and model files remain
-on the VPS. Containers reach PostgreSQL and Redis through
-`host.docker.internal`; persistent media/model directories are mounted from
-`/opt/ai-scoring`. Database containerization is a separate migration.
+During the first migration phase, PostgreSQL, media and model files remain on
+the VPS. Containers reach PostgreSQL through `host.docker.internal`; each
+environment runs its own unpublished Redis container. Persistent media/model
+directories are mounted from `/opt/ai-scoring`. Database containerization is a
+separate migration.
 
 ## Release path
 
@@ -60,6 +61,12 @@ Use separate loopback ports per environment. Recommended defaults:
 | Beta | 3211 | 3212 | 3213 |
 | Production | 3221 | 3222 | 3223 |
 
+Reserve distinct Docker subnets as well: `172.26.0.0/24` for Beta and
+`172.27.0.0/24` for Production. PostgreSQL must listen only on loopback and the
+Docker host gateway (`172.17.0.1`), while `pg_hba.conf` permits only these two
+application subnets with password authentication. Never restore a public
+`0.0.0.0/0` PostgreSQL rule.
+
 Use separate mutable media roots. Beta should use
 `MEDIA_ROOT=/opt/iig-admin-data/beta`; Production may initially use the existing
 `MEDIA_ROOT=/opt/ai-scoring`. Both can use the existing read-only model runtime
@@ -68,7 +75,7 @@ with `MODEL_ROOT=/opt/ai-scoring`. Never point Beta at Production media.
 For phase one, convert only host-local endpoints in the copied runtime env:
 
 - PostgreSQL host `127.0.0.1` -> `host.docker.internal`.
-- Redis host `127.0.0.1` -> `host.docker.internal`.
+- Redis URL -> `redis://redis:6379/0`; Redis has no published host port.
 - Application `PORT` is controlled by Compose and should not be copied.
 
 Do not print or commit either populated environment file.

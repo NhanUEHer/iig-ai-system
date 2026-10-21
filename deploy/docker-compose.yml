@@ -10,6 +10,19 @@ x-app-defaults: &app-defaults
       max-file: "3"
 
 services:
+  redis:
+    <<: *app-defaults
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "100"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis-data:/data
+    networks: [app]
+
   migrate:
     <<: *app-defaults
     image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-admin-api:${IMAGE_TAG:?IMAGE_TAG is required}
@@ -56,6 +69,8 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     networks: [app]
 
   admin-web:
@@ -85,3 +100,10 @@ services:
 networks:
   app:
     name: iig-admin-${DEPLOY_ENV:-beta}
+    ipam:
+      config:
+        - subnet: ${APP_SUBNET:?APP_SUBNET is required}
+
+volumes:
+  redis-data:
+    name: iig-admin-${DEPLOY_ENV:-beta}-redis-data
