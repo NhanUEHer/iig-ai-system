@@ -15,6 +15,7 @@ test('environment validation normalizes a valid port', () => {
 
 test('environment validation accepts only known application environments', () => {
   assert.deepEqual(validateEnv({ DATABASE_URL: 'postgres://db', APP_ENV: 'development' }), { port: 5000 });
+  assert.deepEqual(validateEnv({ DATABASE_URL: 'postgres://db', APP_ENV: 'beta' }), { port: 5000 });
   assert.throws(() => validateEnv({ DATABASE_URL: 'postgres://db', APP_ENV: 'staging' }), /APP_ENV/);
 });
 
@@ -33,5 +34,8 @@ test('build info distinguishes Dev and Production and exposes version', () => {
   });
   assert.deepEqual(getBuildInfo({ NODE_ENV: 'production', APP_ENV: 'production', APP_VERSION: '2.0.0', APP_COMMIT: 'abc123' }), {
     environment: 'production', label: 'Production', version: '2.0.0', commit: 'abc123'
+  });
+  assert.deepEqual(getBuildInfo({ NODE_ENV: 'production', APP_ENV: 'beta', APP_VERSION: '2.0.0', APP_COMMIT: 'abc123' }), {
+    environment: 'beta', label: 'Beta', version: '2.0.0', commit: 'abc123'
   });
 });
