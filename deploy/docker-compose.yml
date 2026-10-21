@@ -100,9 +100,7 @@ services:
 networks:
   app:
     name: iig-admin-${DEPLOY_ENV:-beta}
-    ipam:
-      config:
-        - subnet: ${APP_SUBNET:?APP_SUBNET is required}
+    external: true
 
 volumes:
   redis-data:

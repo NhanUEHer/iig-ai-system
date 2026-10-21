@@ -19,7 +19,9 @@ test('container topology keeps one shared API and two isolated web applications'
   assert.equal((compose.match(/^  api:/gm) || []).length, 1);
   assert.match(compose, /condition: service_completed_successfully/);
   assert.match(compose, /condition: service_healthy/);
-  assert.match(compose, /APP_SUBNET is required/);
+  assert.match(compose, /name: iig-admin-\$\{DEPLOY_ENV:-beta\}/);
+  assert.match(compose, /external: true/);
+  assert.doesNotMatch(compose, /ipam:/);
   assert.match(compose, /redis-data:\/data/);
   assert.doesNotMatch(compose, /^\s+- .*:6379:6379$/m);
   assert.match(compose, /127\.0\.0\.1:\$\{ADMIN_PORT/);
@@ -64,7 +66,12 @@ test('GitHub deployment credential is constrained by a forced-command gateway', 
   const gateway = read('deploy/docker/deploy-ssh-gateway.sh');
   const workflow = read('.github/workflows/release-containers.yml');
   assert.match(gateway, /SSH_ORIGINAL_COMMAND/);
+  assert.match(gateway, /scp -t \/opt\/iig-admin\/beta["|]/);
   assert.match(gateway, /scp -t \/opt\/iig-admin\/beta\//);
+  assert.match(gateway, /scp -t \/opt\/iig-admin\/prod["|]/);
+  assert.match(gateway, /scp -t \/opt\/iig-admin\/prod\//);
+  assert.match(gateway, /scp -d -t \/opt\/iig-admin\/beta\//);
+  assert.match(gateway, /scp -d -t \/opt\/iig-admin\/prod\//);
   assert.match(gateway, /image_tag.*app_commit/);
   assert.match(workflow, /deploy beta \$IMAGE_TAG \$APP_VERSION \$APP_COMMIT/);
   assert.match(workflow, /deploy production \$IMAGE_TAG \$APP_VERSION \$APP_COMMIT/);

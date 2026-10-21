@@ -4,8 +4,13 @@ set -euo pipefail
 requested_command="${SSH_ORIGINAL_COMMAND:-}"
 
 case "$requested_command" in
-  "scp -t /opt/iig-admin/beta/"|"scp -t /opt/iig-admin/prod/")
+  "scp -t /opt/iig-admin/beta"|"scp -t /opt/iig-admin/beta/"|\
+  "scp -t /opt/iig-admin/prod"|"scp -t /opt/iig-admin/prod/")
     exec /usr/bin/scp -t "${requested_command#scp -t }"
+    ;;
+  "scp -d -t /opt/iig-admin/beta"|"scp -d -t /opt/iig-admin/beta/"|\
+  "scp -d -t /opt/iig-admin/prod"|"scp -d -t /opt/iig-admin/prod/")
+    exec /usr/bin/scp -d -t "${requested_command#scp -d -t }"
     ;;
 esac
 
