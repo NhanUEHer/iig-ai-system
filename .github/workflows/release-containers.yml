@@ -116,7 +116,7 @@ jobs:
           APP_COMMIT: ${{ github.sha }}
         run: |
           APP_VERSION="${{ needs.prepare.outputs.version }}"
-          ssh root@${{ secrets.VPS_HOST }} "cd /opt/iig-admin/beta && IMAGE_TAG='$IMAGE_TAG' APP_VERSION='$APP_VERSION' APP_COMMIT='$APP_COMMIT' DEPLOY_DIR=/opt/iig-admin/beta bash deploy-containers.sh"
+          ssh root@${{ secrets.VPS_HOST }} "deploy beta $IMAGE_TAG $APP_VERSION $APP_COMMIT"
 
   deploy-production:
     if: github.ref_name == 'main' || github.event.inputs.environment == 'production'
@@ -140,4 +140,4 @@ jobs:
           APP_COMMIT: ${{ github.sha }}
         run: |
           APP_VERSION="${{ needs.prepare.outputs.version }}"
-          ssh root@${{ secrets.VPS_HOST }} "cd /opt/iig-admin/prod && IMAGE_TAG='$IMAGE_TAG' APP_VERSION='$APP_VERSION' APP_COMMIT='$APP_COMMIT' DEPLOY_DIR=/opt/iig-admin/prod bash deploy-containers.sh"
+          ssh root@${{ secrets.VPS_HOST }} "deploy production $IMAGE_TAG $APP_VERSION $APP_COMMIT"

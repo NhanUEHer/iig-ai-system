@@ -36,6 +36,10 @@ Create GitHub environments `beta` and `production`. Require manual reviewers on
 - `VPS_SSH_PRIVATE_KEY`: restricted deployment SSH key.
 - `VPS_KNOWN_HOSTS`: pinned `known_hosts` entry generated out of band.
 
+Use a dedicated SSH key whose public key is constrained with
+`deploy/docker/deploy-ssh-gateway.sh` as an `authorized_keys` forced command.
+Do not upload a general-purpose root or operator private key to GitHub.
+
 GHCR publishing uses `GITHUB_TOKEN`. The packages must be readable by the VPS;
 authenticate Docker on the VPS once with a read-only package token.
 

@@ -48,3 +48,13 @@ test('deployment verifies API identity and both frontend health endpoints', () =
   assert.match(deploy, /restoring previous immutable release/);
   assert.doesNotMatch(deploy, /docker image prune/);
 });
+
+test('GitHub deployment credential is constrained by a forced-command gateway', () => {
+  const gateway = read('deploy/docker/deploy-ssh-gateway.sh');
+  const workflow = read('.github/workflows/release-containers.yml');
+  assert.match(gateway, /SSH_ORIGINAL_COMMAND/);
+  assert.match(gateway, /scp -t \/opt\/iig-admin\/beta\//);
+  assert.match(gateway, /image_tag.*app_commit/);
+  assert.match(workflow, /deploy beta \$IMAGE_TAG \$APP_VERSION \$APP_COMMIT/);
+  assert.match(workflow, /deploy production \$IMAGE_TAG \$APP_VERSION \$APP_COMMIT/);
+});
