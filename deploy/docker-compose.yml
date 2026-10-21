@@ -1,0 +1,68 @@
+name: iig-admin-${DEPLOY_ENV:-beta}
+
+x-app-defaults: &app-defaults
+  restart: unless-stopped
+  init: true
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  api:
+    <<: *app-defaults
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-admin-api:${IMAGE_TAG:?IMAGE_TAG is required}
+    env_file:
+      - .env.container
+    environment:
+      NODE_ENV: production
+      APP_ENV: ${DEPLOY_ENV:-beta}
+      APP_VERSION: ${APP_VERSION:?APP_VERSION is required}
+      APP_COMMIT: ${APP_COMMIT:?APP_COMMIT is required}
+      PORT: 3001
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ${MEDIA_ROOT:?MEDIA_ROOT is required}/public/cleaned-audio:/app/public/cleaned-audio
+      - ${MEDIA_ROOT:?MEDIA_ROOT is required}/public/local_audio:/app/public/local_audio
+      - ${MEDIA_ROOT:?MEDIA_ROOT is required}/public/local_voices:/app/public/local_voices
+      - ${MEDIA_ROOT:?MEDIA_ROOT is required}/public/tmp_local:/app/public/tmp_local
+      - ${MEDIA_ROOT:?MEDIA_ROOT is required}/public/dialogues:/app/public/dialogues
+      - ${MEDIA_ROOT:?MEDIA_ROOT is required}/public/custom_voices:/app/public/custom_voices
+      - ${MEDIA_ROOT:?MEDIA_ROOT is required}/public/question-bank-media:/app/public/question-bank-media
+      - ${MODEL_ROOT:?MODEL_ROOT is required}/tts_env:/app/tts_env:ro
+      - ${MODEL_ROOT:?MODEL_ROOT is required}/voice_clone_env:/app/voice_clone_env:ro
+      - ${MODEL_ROOT:?MODEL_ROOT is required}/voice_clone_models:/app/voice_clone_models:ro
+      - ${MODEL_ROOT:?MODEL_ROOT is required}/src/models:/app/src/models:ro
+    ports:
+      - 127.0.0.1:${API_PORT:-3211}:3001
+    networks: [app]
+
+  admin-web:
+    <<: *app-defaults
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-admin-web:${IMAGE_TAG:?IMAGE_TAG is required}
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ${MEDIA_ROOT:?MEDIA_ROOT is required}/public:/srv/media:ro
+    ports:
+      - 127.0.0.1:${ADMIN_PORT:-3212}:8080
+    networks: [app]
+
+  exam-web:
+    <<: *app-defaults
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-exam-web:${IMAGE_TAG:?IMAGE_TAG is required}
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ${MEDIA_ROOT:?MEDIA_ROOT is required}/public:/srv/media:ro
+    ports:
+      - 127.0.0.1:${EXAM_PORT:-3213}:8080
+    networks: [app]
+
+networks:
+  app:
+    name: iig-admin-${DEPLOY_ENV:-beta}

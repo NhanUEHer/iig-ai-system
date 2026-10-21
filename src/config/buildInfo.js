@@ -5,7 +5,7 @@ function getBuildInfo(env = process.env) {
   const environment = env.APP_ENV || nodeEnv;
   return {
     environment,
-    label: environment === 'production' ? 'Production' : 'Dev',
+    label: environment === 'production' ? 'Production' : environment === 'beta' ? 'Beta' : 'Dev',
     version: env.APP_VERSION || packageJson.version,
     commit: env.APP_COMMIT || null
   };

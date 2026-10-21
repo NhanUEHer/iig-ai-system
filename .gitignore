@@ -29,6 +29,8 @@ public/custom_voices/
 # Environment variables (highly sensitive)
 .env
 .env*.local
+deploy/.env
+deploy/.env.container
 
 # Build output
 dist/

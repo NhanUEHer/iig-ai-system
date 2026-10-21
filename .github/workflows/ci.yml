@@ -24,3 +24,36 @@ jobs:
       - run: npm ci --prefix frontend
       - run: npm ci --prefix exam-web
       - run: npm run check
+
+  docker-build:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      matrix:
+        include:
+          - name: api
+            context: .
+            file: Dockerfile
+          - name: admin-web
+            context: frontend
+            file: frontend/Dockerfile
+          - name: exam-web
+            context: exam-web
+            file: exam-web/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          push: false
+          platforms: linux/arm64
+          build-args: |
+            VITE_APP_ENV=ci
+            VITE_APP_VERSION=${{ github.sha }}
+            VITE_APP_COMMIT=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}

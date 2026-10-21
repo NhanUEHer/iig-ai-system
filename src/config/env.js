@@ -28,8 +28,8 @@ function validateEnv(env = process.env) {
   if (env.NODE_ENV === 'production' && env.APP_URL && !env.APP_URL.startsWith('https://')) {
     throw new Error('APP_URL must use HTTPS in production.');
   }
-  if (env.APP_ENV && !['development', 'production'].includes(env.APP_ENV)) {
-    throw new Error('APP_ENV must be development or production.');
+  if (env.APP_ENV && !['development', 'beta', 'production'].includes(env.APP_ENV)) {
+    throw new Error('APP_ENV must be development, beta or production.');
   }
   return { port };
 }
