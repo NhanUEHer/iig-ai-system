@@ -33,6 +33,8 @@ test('container release uses immutable SHA tags and protected environments', () 
   assert.match(workflow, /environment: production/);
   assert.doesNotMatch(workflow, /:latest/);
   assert.match(workflow, /platforms: linux\/arm64/);
+  assert.match(workflow, /version="\$\(node -p 'require\("\.\/package\.json"\)\.version'\)"/);
+  assert.doesNotMatch(workflow, /node -p \\"require\('\.\/package\.json'\)\.version\\"/);
 });
 
 test('runtime secrets and mutable data are excluded from images', () => {
