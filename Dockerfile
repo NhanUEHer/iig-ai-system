@@ -14,7 +14,6 @@ RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 COPY src ./src
 COPY scripts/run-migrations.js ./scripts/run-migrations.js
-COPY public ./public
 COPY deploy/docker/api-entrypoint.sh /usr/local/bin/api-entrypoint
 
 RUN mkdir -p \
