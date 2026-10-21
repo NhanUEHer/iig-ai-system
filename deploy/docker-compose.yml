@@ -72,7 +72,7 @@ services:
 
   exam-web:
     <<: *app-defaults
-    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-exam-web:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-admin-exam-web:${IMAGE_TAG:?IMAGE_TAG is required}
     depends_on:
       api:
         condition: service_healthy

@@ -13,6 +13,8 @@ test('container topology keeps one shared API and two isolated web applications'
   assert.match(compose, /^  admin-web:/m);
   assert.match(compose, /^  exam-web:/m);
   assert.match(compose, /iig-admin-admin-web/);
+  assert.match(compose, /iig-admin-exam-web/);
+  assert.doesNotMatch(compose, /\/iig-exam-web:/);
   assert.equal((compose.match(/^  api:/gm) || []).length, 1);
   assert.match(compose, /condition: service_completed_successfully/);
   assert.match(compose, /127\.0\.0\.1:\$\{ADMIN_PORT/);
