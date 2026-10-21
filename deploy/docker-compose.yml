@@ -41,7 +41,7 @@ services:
 
   admin-web:
     <<: *app-defaults
-    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-admin-web:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-admin-admin-web:${IMAGE_TAG:?IMAGE_TAG is required}
     depends_on:
       api:
         condition: service_healthy
