@@ -10,6 +10,22 @@ x-app-defaults: &app-defaults
       max-file: "3"
 
 services:
+  migrate:
+    <<: *app-defaults
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-admin-api:${IMAGE_TAG:?IMAGE_TAG is required}
+    restart: "no"
+    command: ["node", "scripts/run-migrations.js"]
+    env_file:
+      - .env.container
+    environment:
+      NODE_ENV: production
+      APP_ENV: ${DEPLOY_ENV:-beta}
+      APP_VERSION: ${APP_VERSION:?APP_VERSION is required}
+      APP_COMMIT: ${APP_COMMIT:?APP_COMMIT is required}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    networks: [app]
+
   api:
     <<: *app-defaults
     image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-admin-api:${IMAGE_TAG:?IMAGE_TAG is required}
@@ -37,6 +53,9 @@ services:
       - ${MODEL_ROOT:?MODEL_ROOT is required}/src/models:/app/src/models:ro
     ports:
       - 127.0.0.1:${API_PORT:-3211}:3001
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     networks: [app]
 
   admin-web:

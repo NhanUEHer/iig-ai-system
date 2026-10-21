@@ -9,10 +9,12 @@ const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 test('container topology keeps one shared API and two isolated web applications', () => {
   const compose = read('deploy/docker-compose.yml');
   assert.match(compose, /^  api:/m);
+  assert.match(compose, /^  migrate:/m);
   assert.match(compose, /^  admin-web:/m);
   assert.match(compose, /^  exam-web:/m);
   assert.match(compose, /iig-admin-admin-web/);
   assert.equal((compose.match(/^  api:/gm) || []).length, 1);
+  assert.match(compose, /condition: service_completed_successfully/);
   assert.match(compose, /127\.0\.0\.1:\$\{ADMIN_PORT/);
   assert.match(compose, /127\.0\.0\.1:\$\{EXAM_PORT/);
 });

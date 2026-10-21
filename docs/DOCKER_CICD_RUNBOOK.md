@@ -24,7 +24,9 @@ on the VPS. Containers reach PostgreSQL and Redis through
 6. Deployment pulls immutable images, starts all services, waits for Compose
    health, and verifies API version/commit plus both web health endpoints.
 
-The VPS never builds source. A failed health command fails the deployment job;
+The VPS never builds source. Compose runs the append-only migration service to
+successful completion before starting the API. A failed migration or health
+command fails the deployment job;
 the prior tag remains recorded in `.env.rollback.<timestamp>` for rollback.
 
 ## Required GitHub configuration
