@@ -68,4 +68,6 @@ test('GitHub deployment credential is constrained by a forced-command gateway', 
   assert.match(gateway, /image_tag.*app_commit/);
   assert.match(workflow, /deploy beta \$IMAGE_TAG \$APP_VERSION \$APP_COMMIT/);
   assert.match(workflow, /deploy production \$IMAGE_TAG \$APP_VERSION \$APP_COMMIT/);
+  assert.equal((workflow.match(/scp -O /g) || []).length, 2);
+  assert.doesNotMatch(workflow, /run: scp (?!-O )/);
 });
