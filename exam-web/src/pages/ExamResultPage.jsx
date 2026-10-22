@@ -31,42 +31,17 @@ function SectionResult({ section, index }) {
   const listening = /listen/i.test(`${section.sectionTitle} ${section.examMode}`)
   const skillTitle = listening ? 'Kỹ năng Nghe (Listening)' : 'Kỹ năng Đọc (Reading)'
   const accuracy = section.totalQuestions ? section.correctCount / section.totalQuestions * 100 : 0
-  const weakestPart = (section.parts || []).reduce((weakest, part) => !weakest || part.accuracyPercent < weakest.accuracyPercent ? part : weakest, null)
   return <article className="result-section-card">
     <header>
       <div><i className={listening ? 'listening' : 'reading'}><Icon>{listening ? 'headphones' : 'auto_stories'}</Icon></i><span><small>Phần thi {index + 1}</small><h3>{skillTitle}</h3></span></div>
-      <div className="result-section-score"><strong>{formatNumber(section.exactScore)}<small>/ {formatNumber(section.maxPossibleScore)}</small></strong><span>Dãy điểm: {formatNumber(section.scoreRange?.min)}–{formatNumber(section.scoreRange?.max)}</span></div>
+      <div className="result-section-score"><strong>{formatNumber(section.exactScore)}<small>/ {formatNumber(section.maxPossibleScore)}</small></strong></div>
     </header>
     <div className="result-section-stats"><span><small>Đúng</small><b>{section.correctCount} câu</b></span><span><small>Sai</small><b>{section.incorrectCount} câu</b></span><span><small>Bỏ qua</small><b>{section.unansweredCount} câu</b></span></div>
     <div className="result-parts"><div className="result-parts-heading"><h4>Tiến trình từng Part</h4><b>Tỷ lệ chính xác {formatNumber(accuracy)}%</b></div>{(section.parts || []).map(part => <div className="result-part" key={part.id}>
       <div><span>{part.title}</span><b>{part.correctCount}/{part.totalQuestions} câu ({formatNumber(part.accuracyPercent)}%)</b></div>
       <span><i style={{ width: `${Math.max(0, Math.min(100, part.accuracyPercent))}%` }} /></span>
     </div>)}</div>
-    {weakestPart && <div className="result-study-tip"><Icon>psychology</Icon><p><strong>Gợi ý từ thầy cô IIG</strong><span><b>Cần chú ý:</b> Ưu tiên củng cố {weakestPart.title} — phần hiện đạt {formatNumber(weakestPart.accuracyPercent)}% câu đúng.</span></p></div>}
   </article>
-}
-
-function Ranking({ data, candidate, score, maxScore }) {
-  const [selectedKey, setSelectedKey] = useState('current')
-  if (!data?.ranking) return null
-  const scorePercent = maxScore ? Math.max(0, Math.min(100, score / maxScore * 100)) : 0
-  const leaders = (data.leaderboard?.entries || []).slice(0, 3).map(entry => ({
-    key: `rank-${entry.rank}`,
-    rank: entry.rank,
-    name: entry.displayName,
-    score: Number(entry.score || 0),
-    maxScore: Number(entry.maxScore || maxScore),
-  }))
-  const entries = [...leaders, { key: 'current', rank: data.ranking.rank, name: candidate?.fullName || 'Bạn', score, maxScore, current: true }]
-  const selected = entries.find(entry => entry.key === selectedKey) || entries[entries.length - 1]
-  const selectedPercent = selected.maxScore ? Math.max(0, Math.min(100, selected.score / selected.maxScore * 100)) : 0
-  const scoreDifference = selected.score - score
-  return <section className="result-ranking-card">
-    <header><div><span className="result-ranking-icon"><Icon>emoji_events</Icon></span><div><h2>Bảng xếp hạng &amp; vị trí của bạn</h2><p>So sánh kết quả cùng {formatNumber(data.ranking.totalCandidates)} lượt bài đã nộp.</p></div></div><aside><span><small>Vị trí của bạn</small><b>#{data.ranking.rank}<em>/ {formatNumber(data.ranking.totalCandidates)}</em></b></span><i /><span><small>Phân vị năng lực</small><b>Top {data.ranking.topPercent}%</b></span></aside></header>
-    <div className="result-score-spectrum"><div><span>Phổ điểm toàn đợt thi (0 – {formatNumber(maxScore)})</span><b className={scoreDifference > 0 ? 'positive' : ''}>{selected.current ? `Điểm của bạn: ${formatNumber(score)}` : `${selected.name}: ${formatNumber(selected.score)} điểm · ${scoreDifference > 0 ? '+' : ''}${formatNumber(scoreDifference)} so với bạn`}</b></div><div className="result-spectrum-track"><i className="current-pin" style={{ '--pin-position': `${scorePercent}%` }}>Bạn ({formatNumber(score)}đ)</i>{!selected.current && <i className="compare-pin" style={{ '--pin-position': `${selectedPercent}%` }}>{selected.name} ({formatNumber(selected.score)}đ)</i>}<span /></div><footer><span>0</span><span>{formatNumber(maxScore * .45)}</span><span>{formatNumber(maxScore * .65)}</span><span>{formatNumber(maxScore)}</span></footer></div>
-    <div className="result-ranking-hint"><Icon>touch_app</Icon>Chọn một thí sinh để so sánh vị trí điểm</div>
-    <div className="result-ranking-list">{entries.map(entry => <button type="button" className={`${entry.current ? 'current' : ''} ${selected.key === entry.key ? 'selected' : ''}`} aria-pressed={selected.key === entry.key} onClick={() => setSelectedKey(entry.key)} key={entry.key}><i>{entry.current ? 'YOU' : `${entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : '🥉'} ${entry.rank}`}</i><span><small>{entry.current ? 'Vị trí của bạn' : entry.rank === 1 ? 'Thủ khoa đợt thi' : `Hạng ${entry.rank}`}</small><b>{entry.name}</b><em>{entry.current ? `Hạng #${entry.rank} · ` : ''}{formatNumber(entry.score)} / {formatNumber(entry.maxScore)} điểm</em></span><Icon>chevron_right</Icon></button>)}</div>
-  </section>
 }
 
 export default function ExamResultPage({ examId, Header, Footer }) {
@@ -108,8 +83,6 @@ export default function ExamResultPage({ examId, Header, Footer }) {
   const maxScore = Number(result?.maxScore || 0)
   const candidate = result?.candidate || readJson('exam-candidate-profile')
   const scorePercent = maxScore ? Math.max(0, Math.min(100, totalScore / maxScore * 100)) : 0
-  const targetScore = Math.min(maxScore || 650, 650)
-  const scoreGap = Math.max(0, targetScore - totalScore)
   const sections = (result?.sections || []).slice().sort((left, right) => {
     const priority = section => /listen/i.test(`${section.sectionTitle} ${section.examMode}`) ? 0 : /read/i.test(`${section.sectionTitle} ${section.examMode}`) ? 1 : 2
     return priority(left) - priority(right)
@@ -121,8 +94,8 @@ export default function ExamResultPage({ examId, Header, Footer }) {
       <nav className="result-breadcrumb"><a href="/">Trang chủ</a><Icon>chevron_right</Icon><a href="/exams">Danh sách đề thi</a><Icon>chevron_right</Icon><span>{result?.exam?.title || 'Đề thi'}</span><Icon>chevron_right</Icon><b>Kết quả làm bài</b></nav>
 
       <section className="result-hero">
-        <div className="result-hero-copy"><div className="result-hero-meta"><span><Icon>check_circle</Icon>Đã hoàn thành</span><small><Icon>timer</Icon>{formatDuration(result?.durationSeconds)}{result?.exam?.allowedDurationSeconds ? ` / ${formatDuration(result.exam.allowedDurationSeconds)}` : ''}</small><small><Icon>event</Icon>{formatDateTime(result?.submittedAt)}</small></div><h1>Chúc mừng bạn <em>{candidate?.fullName || 'Thí sinh'}</em> đã hoàn thành bài thi! 🎉</h1><p>{scoreGap > 0 ? <>Bạn đã nỗ lực rất tốt! Chỉ còn cách mục tiêu <strong>{formatNumber(targetScore)} điểm</strong> thêm {formatNumber(scoreGap)} điểm. Cùng xem phân tích để tiếp tục cải thiện nhé.</> : <>Bạn đã đạt mục tiêu <strong>{formatNumber(targetScore)} điểm</strong>. Hãy xem phân tích chi tiết để tiếp tục duy trì phong độ.</>}</p><div className="result-hero-actions"><button type="button" disabled title="Tính năng xem lời giải sẽ được triển khai sau"><Icon>menu_book</Icon>Xem lời giải &amp; phân tích chi tiết</button><button type="button" onClick={retry}><Icon>refresh</Icon>Làm lại bài thi</button></div></div>
-        <div className="result-score-showcase"><div className="result-score-gauge" style={{ '--score-progress': `${scorePercent * 3.6}deg` }}><div><strong>{formatNumber(totalScore)}</strong><span>/ {formatNumber(maxScore)} TOEIC</span></div></div><div className="result-estimated-range"><span><Icon>analytics</Icon>Dãy điểm ước lượng</span><strong>{formatNumber(result?.scoreRange?.min)} – {formatNumber(result?.scoreRange?.max)} <small>điểm</small></strong><p>Khoảng điểm được tính theo thang điểm đã thiết lập cho từng kỹ năng.</p></div></div>
+        <div className="result-hero-copy"><div className="result-hero-meta"><span><Icon>check_circle</Icon>Đã hoàn thành</span><small><Icon>timer</Icon>{formatDuration(result?.durationSeconds)}{result?.exam?.allowedDurationSeconds ? ` / ${formatDuration(result.exam.allowedDurationSeconds)}` : ''}</small><small><Icon>event</Icon>{formatDateTime(result?.submittedAt)}</small></div><h1>Chúc mừng bạn <em>{candidate?.fullName || 'Thí sinh'}</em> đã hoàn thành bài thi! 🎉</h1><p>Bạn đã hoàn thành bài thi. Kết quả chi tiết được tổng hợp bên dưới.</p><div className="result-hero-actions"><button type="button" disabled title="Tính năng xem lời giải sẽ được triển khai sau"><Icon>menu_book</Icon>Xem lời giải &amp; phân tích chi tiết</button><button type="button" onClick={retry}><Icon>refresh</Icon>Làm lại bài thi</button></div></div>
+        <div className="result-score-showcase"><div className="result-score-gauge" style={{ '--score-progress': `${scorePercent * 3.6}deg` }}><div><strong>{formatNumber(totalScore)}</strong><span>/ {formatNumber(maxScore)} TOEIC</span></div></div></div>
       </section>
 
       <section className="result-quick-stats">
@@ -133,7 +106,6 @@ export default function ExamResultPage({ examId, Header, Footer }) {
       </section>
 
       <section className="result-analysis"><div>{sections.map((section, index) => <SectionResult section={section} index={index} key={section.sectionId} />)}</div></section>
-      <Ranking data={result} candidate={candidate} score={totalScore} maxScore={maxScore} />
     </main>
     <div className="result-featured-courses"><FeaturedCourses /></div>
     <div className="result-after-courses"><section className="result-next-step"><div><Icon>support_agent</Icon><span><strong>Cần tư vấn lộ trình học phù hợp với kết quả?</strong><small>Liên hệ chuyên gia IIG để được hỗ trợ xây dựng kế hoạch ôn luyện.</small></span></div><a href="tel:1900636929">Đăng ký tư vấn miễn phí</a></section></div>
