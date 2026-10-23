@@ -4,6 +4,7 @@ const QUESTION_TYPES = [
   { value: 'MCQ_SINGLE', label: 'Dạng 1: MCQ' },
   { value: 'RECORD', label: 'Dạng 2: Record' },
   { value: 'WRITING', label: 'Dạng 3: Writing' },
+  { value: 'COMPLETE_WORDS', label: 'Dạng 4: Complete the Words' },
 ];
 
 const map = row => row && ({
@@ -13,6 +14,7 @@ const map = row => row && ({
   groupId: row.group_id,
   groupName: row.group_title || null,
   questionType: row.question_type,
+  stemHtml: row.stem_html || '',
   note: row.note,
   status: row.status,
   createdAt: row.created_at,
@@ -100,7 +102,7 @@ async function create(data, userId) {
 async function update(id, data, userId) {
   const fields = [];
   const values = [id];
-  for (const [key, column] of [['questionName', 'question_name'], ['groupId', 'group_id'], ['note', 'note'], ['status', 'status']]) {
+  for (const [key, column] of [['questionName', 'question_name'], ['groupId', 'group_id'], ['note', 'note'], ['status', 'status'], ['stemHtml', 'stem_html']]) {
     if (data[key] !== undefined) { values.push(data[key]); fields.push(`${column}=$${values.length}`); }
   }
   if (!fields.length) return findById(id);

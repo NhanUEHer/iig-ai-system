@@ -1,5 +1,5 @@
 const HttpError = require('../../http/httpError');
-const { isValidExamType, isValidExamMode, EXAM_ERROR_CODES } = require('./examConstants');
+const { isValidExamType, isValidTestType, isValidExamMode, EXAM_ERROR_CODES } = require('./examConstants');
 
 const statuses = new Set(['DRAFT', 'ACTIVE', 'INACTIVE']);
 const difficulties = new Set(['BASIC', 'INTERMEDIATE', 'ADVANCED', 'EXPERT']);
@@ -17,6 +17,10 @@ function validateListFilters(query = {}) {
   if (selectedTypes.some(type => !isValidExamType(type))) {
     throw new HttpError('Bộ lọc kiểu đề thi không hợp lệ.', 400, 'EXAM_TYPES_INVALID');
   }
+  const selectedTestTypes = listValues(query.testTypes || query.testType);
+  if (selectedTestTypes.some(type => !isValidTestType(type))) {
+    throw new HttpError('Bộ lọc loại bài thi không hợp lệ.', 400, 'TEST_TYPES_INVALID');
+  }
 }
 
 // Exam information contract (spec §5/§6): title, status, exam type, description,
@@ -27,6 +31,11 @@ function validateExam(data, partial = false) {
     if (String(data.title).trim().length > 240) throw new HttpError('Tên đề thi không được vượt quá 240 ký tự.', 400, 'EXAM_TITLE_TOO_LONG');
   }
   if (data.status !== undefined && !statuses.has(data.status)) throw new HttpError('Trạng thái đề thi không hợp lệ.', 400, 'EXAM_STATUS_INVALID');
+  // Legacy import/seed clients omit this field; the service/database default
+  // them to TOEIC. Explicit values are always validated.
+  if (data.testType !== undefined) {
+    if (!isValidTestType(data.testType)) throw new HttpError('Loại bài thi không hợp lệ.', 400, 'TEST_TYPE_INVALID');
+  }
   if (!partial || data.examType !== undefined) {
     if (!data.examType) throw new HttpError('Kiểu đề thi là bắt buộc.', 400, EXAM_ERROR_CODES.EXAM_TYPE_REQUIRED);
     if (!isValidExamType(data.examType)) throw new HttpError('Kiểu đề thi không hợp lệ.', 400, EXAM_ERROR_CODES.EXAM_TYPE_INVALID);
@@ -84,6 +93,9 @@ function validatePartContent(data) {
   }
   if (data.configuredDurationSeconds !== undefined && !nonNegativeInt(data.configuredDurationSeconds)) {
     throw new HttpError('Thời gian làm bài của Part không được âm.', 400, 'PART_DURATION_INVALID');
+  }
+  if (data.answerDurationSeconds !== undefined && data.answerDurationSeconds !== null && !positiveInt(data.answerDurationSeconds)) {
+    throw new HttpError('Thời gian trả lời mỗi câu phải là số nguyên dương.', 400, 'PART_ANSWER_DURATION_INVALID');
   }
 }
 

@@ -1,6 +1,9 @@
 # Node modules
 node_modules/
+node_modules
 frontend/node_modules/
+exam-web/node_modules/
+exam-web/node_modules
 
 # Local Python model runtimes and checkpoints
 voice_clone_env/
@@ -25,6 +28,7 @@ public/local_voices/
 public/tmp_local/
 public/dialogues/
 public/custom_voices/
+public/question-bank-media/
 
 # Environment variables (highly sensitive)
 .env

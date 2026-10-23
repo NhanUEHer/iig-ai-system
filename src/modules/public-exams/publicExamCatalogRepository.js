@@ -1,6 +1,6 @@
 const db = require('../../config/db');
 
-const catalogSelect = `e.id,e.exam_code,e.title,e.exam_type,e.description,e.display_label,e.difficulty,
+const catalogSelect = `e.id,e.exam_code,e.title,e.test_type,e.exam_type,e.description,e.display_label,e.difficulty,
   e.card_image_storage_key,e.card_image_mime_type,e.card_image_file_size,e.updated_at,
   (SELECT COUNT(*) FROM exam_attempts ea WHERE ea.exam_id=e.id)::int popularity_count,
   (SELECT COUNT(*) FROM exam_sections es WHERE es.exam_id=e.id)::int section_count,
@@ -18,6 +18,7 @@ function mapRow(row) {
     id: row.id,
     code: row.exam_code,
     title: row.title,
+    testType: row.test_type || 'TOEIC',
     examType: row.exam_type,
     description: row.description || '',
     label: row.display_label || '',

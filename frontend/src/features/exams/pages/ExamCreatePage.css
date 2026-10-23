@@ -17,6 +17,7 @@
 .exam-create-form{padding:22px 24px;display:flex;flex-direction:column;gap:18px}
 .exam-create-grid{display:grid;gap:20px}
 .exam-create-grid--primary{grid-template-columns:minmax(0,2fr) minmax(250px,1fr)}
+.exam-create-grid--classification{grid-template-columns:minmax(220px,1fr) minmax(0,2fr)}
 .exam-create-page .ui-field{gap:8px}
 .exam-create-page .ui-field__label{margin:0;color:#334155;font-size:12px;font-weight:600}
 .exam-create-page .ui-field__required{color:#ef4444}
@@ -43,5 +44,5 @@
 .exam-create-footer .ui-button{min-height:36px;border-radius:8px;font-size:12px}
 .exam-create-footer .ui-button svg{width:16px;height:16px}
 @media(max-width:900px){.exam-create-header{padding-right:20px;padding-left:20px}.exam-create-main{margin:20px}.exam-create-grid--primary{grid-template-columns:minmax(0,3fr) minmax(220px,2fr)}}
-@media(max-width:720px){.exam-create-header{padding-right:16px;padding-left:16px}.exam-create-main{margin:16px}.exam-create-card-header{padding:18px 16px;align-items:flex-start;flex-direction:column}.exam-create-form{padding:18px 16px}.exam-create-grid--primary{grid-template-columns:1fr}.exam-create-footer{padding:14px 16px;align-items:stretch;flex-direction:column}.exam-create-footer>aside{justify-content:flex-end}}
+@media(max-width:720px){.exam-create-header{padding-right:16px;padding-left:16px}.exam-create-main{margin:16px}.exam-create-card-header{padding:18px 16px;align-items:flex-start;flex-direction:column}.exam-create-form{padding:18px 16px}.exam-create-grid--primary,.exam-create-grid--classification{grid-template-columns:1fr}.exam-create-footer{padding:14px 16px;align-items:stretch;flex-direction:column}.exam-create-footer>aside{justify-content:flex-end}}
 @media(max-width:520px){.exam-create-title-row{align-items:flex-start;flex-direction:column}.exam-create-title-row h1{font-size:20px}.exam-create-footer>aside{display:grid;grid-template-columns:1fr 1fr}.exam-create-footer .ui-button{width:100%}}

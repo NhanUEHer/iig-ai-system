@@ -18,12 +18,14 @@ const EXAM_TYPE_OPTIONS = [
   { value: 'SPEAKING', label: 'Đề Speaking' },
   { value: 'WRITING', label: 'Đề Writing' },
 ];
+const TEST_TYPE_OPTIONS = [{ value: 'TOEIC', label: 'TOEIC' }, { value: 'TOEFL_IBT', label: 'TOEFL iBT' }];
 
-const initialForm = { title: '', status: 'DRAFT', examType: '', description: '', introduction: '', displayLabel: '', difficulty: 'INTERMEDIATE', groupIds: [] };
+const initialForm = { title: '', status: 'DRAFT', testType: 'TOEIC', examType: '', description: '', introduction: '', displayLabel: '', difficulty: 'INTERMEDIATE', groupIds: [] };
 function validate(form) {
   const errors = {};
   if (!form.title.trim()) errors.title = 'Vui lòng nhập tên đề thi.';
   if (!form.examType) errors.examType = 'Vui lòng chọn kiểu đề thi.';
+  if (!form.testType) errors.testType = 'Vui lòng chọn loại bài thi.';
   if (!form.difficulty) errors.difficulty = 'Vui lòng chọn độ khó.';
   if (!form.groupIds.length) errors.groupIds = 'Vui lòng chọn ít nhất một nhóm đề thi.';
   if (form.introduction.length > 5000) errors.introduction = 'Giới thiệu đề thi không được vượt quá 5000 ký tự.';
@@ -57,6 +59,7 @@ export default function ExamCreatePage({ navigate, showMsg }) {
       const exam = await createExam({
         title: form.title.trim(),
         status: 'DRAFT',
+        testType: form.testType,
         examType: form.examType,
         description: form.description.trim(),
         introduction: form.introduction,
@@ -93,9 +96,14 @@ export default function ExamCreatePage({ navigate, showMsg }) {
               <MultiSelectFilter single disabled className="exam-create-single-select exam-create-status-select" value={form.status} options={[{ value: 'DRAFT', label: 'Bản nháp' }]} placeholder="Bản nháp" />
             </FormField>
           </div>
-          <FormField id="exam-type" label="Kiểu đề thi" required error={errors.examType}>
-            <MultiSelectFilter single className="exam-create-single-select exam-create-type-select" value={form.examType} onApply={value => update('examType', value)} options={EXAM_TYPE_OPTIONS} placeholder="Chọn kiểu đề thi" searchPlaceholder="Tìm kiểu đề thi..." />
-          </FormField>
+          <div className="exam-create-grid exam-create-grid--classification">
+            <FormField id="test-type" label="Loại bài thi" required error={errors.testType}>
+              <MultiSelectFilter single className="exam-create-single-select exam-create-type-select" value={form.testType} onApply={value => update('testType', value)} options={TEST_TYPE_OPTIONS} placeholder="Chọn loại bài thi" />
+            </FormField>
+            <FormField id="exam-type" label="Dạng đề thi" required error={errors.examType}>
+              <MultiSelectFilter single className="exam-create-single-select exam-create-type-select" value={form.examType} onApply={value => update('examType', value)} options={EXAM_TYPE_OPTIONS} placeholder="Chọn kiểu đề thi" searchPlaceholder="Tìm kiểu đề thi..." />
+            </FormField>
+          </div>
           <ExamCatalogFields value={form} onChange={setForm} groupOptions={groups.map(group => ({ value: group.id, label: group.name }))} errors={errors} imageItem={imageFile?{id:'local-card-image',mediaType:'IMAGE',url:imagePreview,originalName:imageFile.name,fileSize:imageFile.size}:null} onPickImage={setImageFile} onRemoveImage={() => setImageFile(null)} onCreateGroup={async name => { try { const group=await createExamGroup(name); setGroups(current => current.some(item=>item.id===group.id)?current:[...current,group]); update('groupIds',[...new Set([...form.groupIds,group.id])]); showMsg?.('Đã thêm nhóm đề thi mới.','success'); } catch(error) { showMsg?.(error.response?.data?.error||'Không thể thêm nhóm đề thi.','error'); throw error; } }} />
           <FormField id="exam-description" label="Mô tả đề thi">
             <div className="exam-create-counted-control">

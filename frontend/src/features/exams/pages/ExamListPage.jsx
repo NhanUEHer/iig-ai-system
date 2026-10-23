@@ -22,6 +22,7 @@ const EXAM_TYPE_OPTIONS = [
   { value: 'SPEAKING', label: 'Speaking' },
   { value: 'WRITING', label: 'Writing' },
 ];
+const TEST_TYPE_OPTIONS = [{ value: 'TOEIC', label: 'TOEIC' }, { value: 'TOEFL_IBT', label: 'TOEFL iBT' }];
 
 const formatDate = value => value
   ? new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric', year: '2-digit', hour12: false }).format(new Date(value)).replace(',', '')
@@ -38,7 +39,7 @@ function formatDuration(value) {
 
 export default function ExamListPage({ navigate }) {
   const [searchInput, setSearchInput] = useState('');
-  const [filters, setFilters] = useState({ search: '', statuses: [], examTypes: [], page: 1, limit: 10 });
+  const [filters, setFilters] = useState({ search: '', statuses: [], testTypes: [], examTypes: [], page: 1, limit: 10 });
   const [result, setResult] = useState({ data: [], meta: { page: 1, limit: 10, total: 0, totalPages: 1 } });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -48,7 +49,7 @@ export default function ExamListPage({ navigate }) {
     setLoading(true);
     setError('');
     try {
-      setResult(await listExams({ ...filters, statuses: filters.statuses.join(','), examTypes: filters.examTypes.join(',') }));
+      setResult(await listExams({ ...filters, statuses: filters.statuses.join(','), testTypes: filters.testTypes.join(','), examTypes: filters.examTypes.join(',') }));
     } catch (requestError) {
       setError(requestError.response?.data?.error || 'Không thể tải danh sách đề thi.');
     } finally {
@@ -68,7 +69,7 @@ export default function ExamListPage({ navigate }) {
 
   const clearFilters = () => {
     setSearchInput('');
-    setFilters(current => ({ ...current, search: '', statuses: [], examTypes: [], page: 1 }));
+    setFilters(current => ({ ...current, search: '', statuses: [], testTypes: [], examTypes: [], page: 1 }));
   };
   const typeLabel = value => EXAM_TYPE_OPTIONS.find(option => option.value === value)?.label || 'Chưa phân loại';
   const difficultyLabel = value => DIFFICULTY_OPTIONS.find(option => option.value === value)?.label || 'Chưa thiết lập';
@@ -76,6 +77,7 @@ export default function ExamListPage({ navigate }) {
     { key: 'number', label: 'STT', className: 'is-center', width: 64, render: (_row, index) => (Number(result.meta?.page || 1) - 1) * Number(result.meta?.limit || filters.limit) + index + 1 },
     { key: 'examCode', label: 'Mã đề thi', width: 118, render: row => <code className="exam-list-code">{row.examCode || '—'}</code> },
     { key: 'title', label: 'Đề thi', render: row => <div className="exam-list-identity">{row.cardImage?.url?<img src={row.cardImage.url} alt=""/>:<span className="exam-list-image-placeholder"/>}<div><button type="button" className="exam-list-title-button" onClick={() => navigate(`/exams/${row.id}/edit`)}>{row.title}</button>{row.displayLabel&&<small>{row.displayLabel}</small>}</div></div> },
+    { key: 'testType', label: 'Loại đề', render: row => <span className="exam-list-type">{row.testType === 'TOEFL_IBT' ? 'TOEFL iBT' : 'TOEIC'}</span> },
     { key: 'examType', label: 'Kiểu đề thi', render: row => <span className={`exam-list-type${row.examType ? '' : ' is-unclassified'}`}>{typeLabel(row.examType)}</span> },
     { key: 'catalog', label: 'Phân loại', render: row => <div className="exam-list-catalog"><strong>{difficultyLabel(row.difficulty)}</strong><small>{row.groups?.length?row.groups.map(group=>group.name).join(', '):'Chưa có nhóm'}</small></div> },
     { key: 'status', label: 'Trạng thái', className: 'is-center', render: row => { const meta = examStatusMeta(row.status); return <span className={`exam-list-status is-${meta.tone}`}><i />{meta.label}</span>; } },
@@ -86,7 +88,7 @@ export default function ExamListPage({ navigate }) {
     { key: 'updatedAt', label: 'Ngày cập nhật', render: row => <span className="exam-list-date">{formatDate(row.updatedAt)}</span> },
     { key: 'actions', label: 'Thao tác', className: 'question-bank-actions is-center', width: 82, render: row => <QuestionBankRowActions actions={[{ label: 'Chỉnh sửa', icon: <Pencil />, onClick: () => navigate(`/exams/${row.id}/edit`) }]} /> },
   ];
-  const hasFilters = Boolean(searchInput || filters.statuses.length || filters.examTypes.length);
+  const hasFilters = Boolean(searchInput || filters.statuses.length || filters.testTypes.length || filters.examTypes.length);
 
   return <section className="exam-list-page">
     <header className="exam-list-header"><Breadcrumb separator={<ChevronRight />} items={[{ label: 'Quản lý đề thi' }, { label: 'Danh sách đề thi', current: true }]} /></header>
@@ -94,12 +96,14 @@ export default function ExamListPage({ navigate }) {
       <section className="exam-list-filter-card">
         <div className="exam-list-filters">
           <SearchInput value={searchInput} onChange={event => setSearchInput(event.target.value)} onClear={() => setSearchInput('')} placeholder="Tìm tên đề thi, mã đề..." />
+          <MultiSelectFilter options={TEST_TYPE_OPTIONS} value={filters.testTypes} onApply={value => updateFilter('testTypes', value)} placeholder="Tất cả loại đề" selectedLabel="Loại đề" allLabel="Tất cả loại đề" />
           <MultiSelectFilter options={EXAM_TYPE_OPTIONS} value={filters.examTypes} onApply={value => updateFilter('examTypes', value)} placeholder="Tất cả kiểu đề" selectedLabel="Kiểu đề" allLabel="Tất cả kiểu đề" searchPlaceholder="Tìm kiểu đề..." />
           <MultiSelectFilter options={EXAM_STATUS_OPTIONS} value={filters.statuses} onApply={value => updateFilter('statuses', value)} placeholder="Tất cả trạng thái" selectedLabel="Trạng thái" allLabel="Tất cả trạng thái" searchPlaceholder="Tìm trạng thái..." />
         </div>
         <Button size="sm" className="exam-list-add" icon={<Plus />} onClick={() => navigate('/exams/new')}>Thêm đề thi</Button>
         {hasFilters && <div className="exam-list-active-filters">
           <span>Đang lọc:</span>
+          {filters.testTypes.length > 0 && <span className="exam-list-filter-chip">Loại: {TEST_TYPE_OPTIONS.filter(option => filters.testTypes.includes(option.value)).map(option => option.label).join(', ')}<button type="button" onClick={() => updateFilter('testTypes', [])}><X /></button></span>}
           {filters.examTypes.length > 0 && <span className="exam-list-filter-chip">Kiểu đề: {EXAM_TYPE_OPTIONS.filter(option => filters.examTypes.includes(option.value)).map(option => option.label).join(', ')}<button type="button" onClick={() => updateFilter('examTypes', [])}><X /></button></span>}
           {filters.statuses.length > 0 && <span className="exam-list-filter-chip">Trạng thái: {EXAM_STATUS_OPTIONS.filter(option => filters.statuses.includes(option.value)).map(option => option.label).join(', ')}<button type="button" onClick={() => updateFilter('statuses', [])}><X /></button></span>}
           <button className="exam-list-clear-filters" type="button" onClick={clearFilters}>Xóa tất cả bộ lọc</button>

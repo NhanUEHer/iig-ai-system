@@ -3,6 +3,7 @@
 // the authority that enforces them.
 
 const EXAM_TYPES = ['LISTENING_READING', 'READING', 'LISTENING', 'SPEAKING_WRITING', 'SPEAKING', 'WRITING'];
+const TEST_TYPES = ['TOEIC', 'TOEFL_IBT'];
 
 const EXAM_MODES = ['FREESTYLE', 'NON_STOP', 'RECORD_NON_STOP', 'WRITING_NON_STOP'];
 
@@ -24,8 +25,20 @@ const MODE_QUESTION_TYPE = {
   WRITING_NON_STOP: 'WRITING',
 };
 
+const MODE_QUESTION_TYPES = {
+  FREESTYLE: ['MCQ_SINGLE', 'COMPLETE_WORDS'],
+  NON_STOP: ['MCQ_SINGLE'],
+  RECORD_NON_STOP: ['RECORD'],
+  WRITING_NON_STOP: ['WRITING'],
+};
+
 // Modes whose actual duration is computed dynamically (Listening / Speaking).
 const TIMED_MODES = new Set(['NON_STOP', 'RECORD_NON_STOP']);
+
+function questionTypesForExam(testType, examMode) {
+  if (examMode === 'FREESTYLE' && testType !== 'TOEFL_IBT') return ['MCQ_SINGLE'];
+  return MODE_QUESTION_TYPES[examMode] || [];
+}
 
 const EXAM_ERROR_CODES = {
   EXAM_TYPE_INVALID: 'EXAM_TYPE_INVALID',
@@ -44,19 +57,24 @@ const EXAM_ERROR_CODES = {
 };
 
 function isValidExamType(value) { return EXAM_TYPES.includes(value); }
+function isValidTestType(value) { return TEST_TYPES.includes(value); }
 function isValidExamMode(value) { return EXAM_MODES.includes(value); }
 function modesForExamType(examType) { return EXAM_TYPE_MODES[examType] || []; }
 function isModeCompatible(examType, examMode) { return modesForExamType(examType).includes(examMode); }
 
 module.exports = {
   EXAM_TYPES,
+  TEST_TYPES,
   EXAM_MODES,
   EXAM_TYPE_MODES,
   MODE_QUESTION_TYPE,
+  MODE_QUESTION_TYPES,
   TIMED_MODES,
   EXAM_ERROR_CODES,
   isValidExamType,
+  isValidTestType,
   isValidExamMode,
+  questionTypesForExam,
   modesForExamType,
   isModeCompatible,
 };

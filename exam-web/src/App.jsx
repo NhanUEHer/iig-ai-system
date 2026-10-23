@@ -8,7 +8,7 @@ import ExamResultPage from './pages/ExamResultPage'
 
 const Icon = ({ children, className = '' }) => <span className={`material-symbols-outlined ${className}`}>{children}</span>
 
-export function Header({ active = 'home' }) {
+export function Header({ active = 'home', campaignLabel = 'IIG Online Test 2026' }) {
   const [menuOpen, setMenuOpen] = useState(false)
   return (
     <header className="site-header">
@@ -17,7 +17,7 @@ export function Header({ active = 'home' }) {
           <img src="/iig-vietnam-logo.png" alt="IIG Việt Nam" />
         </a>
         <span className="header-divider" />
-        <span className="challenge-badge"><i />TOEIC Challenge 2026</span>
+        <span className="challenge-badge"><i />{campaignLabel}</span>
         <nav aria-label="Điều hướng chính">
           <a className={active === 'home' ? 'active' : ''} href="/">Trang chủ</a>
           <a className={active === 'exams' ? 'active' : ''} href="/exams">Danh sách đề thi</a>
@@ -215,5 +215,5 @@ export default function App() {
   if (resultMatch) return <ExamResultPage examId={resultMatch[1]} Header={Header} Footer={Footer} />
   const detailMatch = path.match(/^\/exams\/([0-9a-f-]+)$/i)
   if (detailMatch) return <ExamDetailPage examId={detailMatch[1]} Header={Header} Footer={Footer} />
-  return <><Header /><main><Hero /><Features /><Registration /></main><Footer /></>
+  return <><Header campaignLabel="TOEIC Challenge 2026" /><main><Hero /><Features /><Registration /></main><Footer /></>
 }

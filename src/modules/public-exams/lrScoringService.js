@@ -5,6 +5,10 @@ const LR_MODES = new Set(['NON_STOP', 'FREESTYLE']);
 const number = value => Number(value || 0);
 
 function scoringError(message, code) { return new HttpError(message, 409, code); }
+function normalizeText(value, caseSensitive) {
+  const normalized = String(value ?? '').normalize('NFKC').trim();
+  return caseSensitive ? normalized : normalized.toLocaleLowerCase('en-US');
+}
 
 function evaluate({ grading, answers = [], recordingIds = [] }) {
   const answerMap = new Map(answers.map(answer => [answer.subQuestionId, answer]));
@@ -14,17 +18,25 @@ function evaluate({ grading, answers = [], recordingIds = [] }) {
   const items = Object.values(grading.questions || {}).map(question => {
     const answer = answerMap.get(question.subQuestionId);
     const selectedOption = answer?.selectedOptionKey || null;
+    const textAnswer = answer?.textAnswer ?? null;
     const isLr = lrSectionIds.has(question.sectionId);
-    if (isLr && (!question.correctOptionKey || number(question.correctOptionCount) !== 1)) {
+    const completeWords = question.questionType === 'COMPLETE_WORDS';
+    if (isLr && !completeWords && (!question.correctOptionKey || number(question.correctOptionCount) !== 1)) {
       throw scoringError('Câu hỏi trong snapshot không có đúng một đáp án đúng.', 'SCORING_CORRECT_OPTION_INVALID');
     }
-    const answered = Boolean(selectedOption) || recorded.has(question.subQuestionId);
+    if (isLr && completeWords && !String(question.correctText || '').trim()) throw scoringError('Câu hỏi Complete the Words không có đáp án đúng.', 'SCORING_CORRECT_TEXT_INVALID');
+    const answered = Boolean(selectedOption) || Boolean(String(textAnswer || '').trim()) || recorded.has(question.subQuestionId);
     // Keep unanswered questions distinct from incorrect answers in PostgreSQL.
     // Aggregate incorrectCount only includes questions the candidate answered.
-    const isCorrect = isLr && Boolean(selectedOption) ? selectedOption === question.correctOptionKey : null;
+    const isCorrect = isLr && answered
+      ? (completeWords
+        ? normalizeText(textAnswer, question.caseSensitive) === normalizeText(question.correctText, question.caseSensitive)
+        : selectedOption === question.correctOptionKey)
+      : null;
     return {
       ...question,
       selectedOption,
+      textAnswer,
       flagged: answer?.flagged === true,
       savedAt: answer?.savedAt || null,
       answered,

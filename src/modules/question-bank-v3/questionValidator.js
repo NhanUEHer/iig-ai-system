@@ -1,6 +1,6 @@
 const HttpError = require('../../http/httpError');
 const ALLOWED_STATUS = new Set(['DRAFT', 'ACTIVE', 'INACTIVE']);
-const ALLOWED_TYPES = new Set(['MCQ_SINGLE', 'RECORD', 'WRITING']);
+const ALLOWED_TYPES = new Set(['MCQ_SINGLE', 'RECORD', 'WRITING', 'COMPLETE_WORDS']);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function validateQuestionInput(input = {}, partial = false) {

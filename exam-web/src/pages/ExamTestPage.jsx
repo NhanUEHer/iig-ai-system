@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createElement, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getAttemptPartQuestions, getAttemptQuestionGroup, getPublicExamDetail, resumeExamAttempt, saveAttemptAnswer, submitExamAttempt } from '../services/publicExamApi'
 import { acquireExamAttemptTab } from '../services/examAttemptTabLock'
+import { getNextFreestyleTransitionIndex, shouldPauseBetweenListeningGroups } from '../services/examFlow'
+import { LegacyMcqQuestionGroup, ToeflListeningMcq, ToeflReadingMcq } from '../components/exam/McqQuestionGroup'
 
 const Icon = ({ children }) => <span className="material-symbols-outlined">{children}</span>
 const AUTO_AUDIO_MODES = new Set(['NON_STOP', 'RECORD_NON_STOP'])
@@ -23,6 +25,66 @@ function displayPromptHtml(html) {
 function displayOptionText(text, key) {
   const escapedKey = String(key || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   return String(text || '').replace(new RegExp(`^\\s*${escapedKey}\\s*[.)]\\s*`, 'i'), '')
+}
+
+function CompleteWordField({ question, disabled, onChange, onBlur }) {
+  const inputLength = Math.max(1, Number(question.inputLength || 1))
+  const value = String(question.textAnswer || '').slice(0, inputLength)
+  const inputRefs = useRef([])
+  const characterAt = index => value[index] && value[index] !== ' ' ? value[index] : ''
+  const updateCharacters = (startIndex, rawValue) => {
+    const characters = Array.from({ length: inputLength }, (_, index) => characterAt(index) || ' ')
+    const incoming = Array.from(String(rawValue || ''))
+    if (!incoming.length) characters[startIndex] = ' '
+    else incoming.slice(0, inputLength - startIndex).forEach((character, offset) => { characters[startIndex + offset] = character })
+    onChange(question.id, characters.join(''))
+    const nextIndex = Math.min(inputLength - 1, startIndex + Math.max(1, incoming.length))
+    if (incoming.length && startIndex < inputLength - 1) window.requestAnimationFrame(() => inputRefs.current[nextIndex]?.focus())
+  }
+  const handleKeyDown = (event, index) => {
+    if (event.key === 'ArrowLeft' && index > 0) { event.preventDefault(); inputRefs.current[index - 1]?.focus() }
+    if (event.key === 'ArrowRight' && index < inputLength - 1) { event.preventDefault(); inputRefs.current[index + 1]?.focus() }
+    if (event.key === 'Backspace' && !characterAt(index) && index > 0) { event.preventDefault(); inputRefs.current[index - 1]?.focus() }
+  }
+  return <span className="complete-word-field" style={{ '--character-count': inputLength }}>
+    {Array.from({ length: inputLength }, (_, index) => <input
+      key={index}
+      ref={element => { inputRefs.current[index] = element }}
+      aria-label={`Khoảng trống ${question.gapIndex}, ký tự ${index + 1} trên ${inputLength}`}
+      autoComplete="off"
+      disabled={disabled}
+      inputMode="text"
+      maxLength={1}
+      value={characterAt(index)}
+      onChange={event => updateCharacters(index, event.target.value)}
+      onKeyDown={event => handleKeyDown(event, index)}
+      onPaste={event => { event.preventDefault(); updateCharacters(index, event.clipboardData.getData('text')) }}
+      onBlur={() => onBlur(question.id)}
+    />)}
+  </span>
+}
+
+const COMPLETE_WORD_TAGS = new Set(['p', 'div', 'span', 'strong', 'b', 'em', 'i', 'u', 'br', 'ul', 'ol', 'li'])
+function renderCompleteWordsStem(html, questions, onChange, onBlur, disabled) {
+  const documentNode = new DOMParser().parseFromString(safeHtml(html), 'text/html')
+  const byIndex = new Map(questions.map(question => [Number(question.gapIndex), question]))
+  let key = 0
+  const renderText = text => String(text || '').split(/(\[\d+\])/g).filter(Boolean).map(part => {
+    const match = part.match(/^\[(\d+)\]$/)
+    if (!match) return part
+    const question = byIndex.get(Number(match[1]))
+    if (!question) return part
+    return <CompleteWordField key={`gap-${question.id}`} question={question} disabled={disabled} onChange={onChange} onBlur={onBlur} />
+  })
+  const renderNode = node => {
+    if (node.nodeType === Node.TEXT_NODE) return renderText(node.textContent)
+    if (node.nodeType !== Node.ELEMENT_NODE) return null
+    const tag = node.tagName.toLowerCase()
+    const children = [...node.childNodes].flatMap(child => renderNode(child) || [])
+    if (!COMPLETE_WORD_TAGS.has(tag)) return children
+    return createElement(tag, { key: `node-${key++}` }, children)
+  }
+  return [...documentNode.body.childNodes].flatMap(node => renderNode(node) || [])
 }
 
 function formatClock(value) {
@@ -102,6 +164,10 @@ function ExamTestPage({ examId }) {
   const [mobilePane, setMobilePane] = useState('content')
   const [locked, setLocked] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [toeflListeningPhase, setToeflListeningPhase] = useState('audio')
+  const [listeningSubIndex, setListeningSubIndex] = useState(0)
+  const [readingSubIndex, setReadingSubIndex] = useState(0)
+  const [questionRemainingSeconds, setQuestionRemainingSeconds] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [timeExpired, setTimeExpired] = useState(() => Boolean(sessionExpiry && sessionExpiry <= Date.now()))
   const [positionReady, setPositionReady] = useState(false)
@@ -115,6 +181,8 @@ function ExamTestPage({ examId }) {
   const failedSavesRef = useRef(new Set())
   const latestAnswersRef = useRef(new Map())
   const resumeAttemptedRef = useRef(false)
+  const countdownAudioContextRef = useRef(null)
+  const listeningTransitionRef = useRef(false)
 
   useEffect(() => {
     if (!session?.attemptId) {
@@ -184,6 +252,8 @@ function ExamTestPage({ examId }) {
     .flatMap(section => (section.parts || []).slice().sort((a, b) => a.sortOrder - b.sortOrder)
       .map(part => ({ ...part, sectionId: section.id, examMode: section.examMode, sectionTitle: section.title }))), [exam])
   const activePart = parts[partIndex] || null
+  const isToeflListening = exam?.testType === 'TOEFL_IBT' && activePart?.examMode === 'NON_STOP'
+  const isToeflReading = exam?.testType === 'TOEFL_IBT' && activePart?.examMode === 'FREESTYLE'
   const requiresAudio = AUTO_AUDIO_MODES.has(activePart?.examMode)
   const isFreestyle = activePart?.examMode === 'FREESTYLE'
   const introHtml = useMemo(() => safeHtml(activePart?.instructionHtml), [activePart?.instructionHtml])
@@ -193,7 +263,13 @@ function ExamTestPage({ examId }) {
   const questionAudioUrl = questionGroup?.content?.audioUrl || ''
   const questionAudioDurationSeconds = Math.max(0, Number(questionGroup?.content?.media?.find(item => item.type === 'AUDIO')?.durationSeconds || 0))
   const questionBreakDurationSeconds = Math.max(0, Number(questionGroup?.breakDurationSeconds || 0))
+  const answerDurationSeconds = Math.max(1, Number(activePart?.answerDurationSeconds || questionGroup?.answerDurationSeconds || 1))
   const hasNextQuestionGroup = Boolean(groupList[groupIndex + 1])
+  const isCompleteWordsGroup = questionGroup?.questions?.[0]?.questionType === 'COMPLETE_WORDS'
+
+  useEffect(() => {
+    if (isToeflReading) setNavigatorOpen(false)
+  }, [isToeflReading])
 
   useEffect(() => {
     if (!session?.attemptId) return
@@ -279,7 +355,7 @@ function ExamTestPage({ examId }) {
     })
   }, [])
 
-  const loadQuestionGroup = useCallback(async (groups, index, partId) => {
+  const loadQuestionGroup = useCallback(async (groups, index, partId, listeningMode) => {
     if (!session || !groups[index]) return
     setLocked(true)
     setQuestionGroup(null)
@@ -288,13 +364,18 @@ function ExamTestPage({ examId }) {
     const result = await getAttemptQuestionGroup({ ...session, parentQuestionId: groups[index].id })
     setRemainingSeconds(result.data.attempt.remainingSeconds)
     setQuestionGroup(result.data.questionGroup)
+    setListeningSubIndex(0)
+    setReadingSubIndex(0)
+    setToeflListeningPhase('audio')
+    setQuestionRemainingSeconds(0)
     writeAttemptPosition(examId, session.attemptId, partId, groups[index].id)
     setAnsweredIds(current => {
       const next = new Set(current)
-      result.data.questionGroup.questions.forEach(question => { if (question.selectedOption) next.add(question.id) })
+      result.data.questionGroup.questions.forEach(question => { if (question.selectedOption || String(question.textAnswer || '').trim()) next.add(question.id) })
       return next
     })
-    setLocked(false)
+    setLocked(listeningMode)
+    return result.data.questionGroup
   }, [examId, session])
 
   useEffect(() => {
@@ -323,7 +404,8 @@ function ExamTestPage({ examId }) {
       setPartQuestionList(result.data.questions || [])
       setAnsweredIds(new Set((result.data.questions || []).filter(question => question.answered).map(question => question.id)))
       setGroupIndex(targetGroupIndex)
-      await loadQuestionGroup(groups, targetGroupIndex, position.partId)
+      const targetIsToeflListening = exam.testType === 'TOEFL_IBT' && parts[targetPartIndex]?.examMode === 'NON_STOP'
+      await loadQuestionGroup(groups, targetGroupIndex, position.partId, targetIsToeflListening)
     }).catch(() => {
       if (!active) return
       setPhase('introduction')
@@ -356,12 +438,12 @@ function ExamTestPage({ examId }) {
         return next
       })
       if (!groups.length) throw new Error('Part này chưa có câu hỏi.')
-      await loadQuestionGroup(groups, 0, activePart.id)
+      await loadQuestionGroup(groups, 0, activePart.id, isToeflListening)
     } catch (requestError) {
       setError(requestError.message)
       setLocked(false)
     }
-  }, [activePart, loadQuestionGroup, session, stopAudio, timeExpired])
+  }, [activePart, isToeflListening, loadQuestionGroup, session, stopAudio, timeExpired])
 
   const playIntroduction = useCallback(async () => {
     if (!instructionAudioUrl) { setAudioState('missing'); return }
@@ -397,7 +479,7 @@ function ExamTestPage({ examId }) {
     const nextIndex = groupIndex + 1
     if (groupList[nextIndex]) {
       setGroupIndex(nextIndex)
-      await loadQuestionGroup(groupList, nextIndex, activePart.id).catch(requestError => setError(requestError.message))
+      await loadQuestionGroup(groupList, nextIndex, activePart.id, isToeflListening).catch(requestError => setError(requestError.message))
       return
     }
     const nextPartIndex = partIndex + 1
@@ -415,7 +497,77 @@ function ExamTestPage({ examId }) {
       return
     }
     setPhase('completed')
-  }, [activePart?.id, examId, groupIndex, groupList, loadQuestionGroup, partIndex, parts, session?.attemptId, stopAudio])
+  }, [activePart?.id, examId, groupIndex, groupList, isToeflListening, loadQuestionGroup, partIndex, parts, session?.attemptId, stopAudio])
+
+  const advanceToeflSubQuestion = useCallback(async () => {
+    if (!isToeflListening || !questionGroup || listeningTransitionRef.current) return
+    listeningTransitionRef.current = true
+    setLocked(true)
+    try {
+      await Promise.allSettled([...pendingSavesRef.current.values()])
+      const nextIndex = listeningSubIndex + 1
+      if (questionGroup.questions[nextIndex]) {
+        setListeningSubIndex(nextIndex)
+        setQuestionRemainingSeconds(answerDurationSeconds)
+        setToeflListeningPhase('answer')
+        setLocked(false)
+        return
+      }
+      if (shouldPauseBetweenListeningGroups({
+        isToeflListening,
+        hasNextQuestionGroup,
+        isLastSubQuestion: true,
+        breakDurationSeconds: questionBreakDurationSeconds,
+      })) {
+        const transitionRunId = playbackRunRef.current
+        setQuestionRemainingSeconds(0)
+        setToeflListeningPhase('break')
+        setAudioState('break')
+        await wait(questionBreakDurationSeconds * 1000)
+        if (transitionRunId !== playbackRunRef.current) return
+      }
+      setToeflListeningPhase('audio')
+      await advanceQuestion()
+    } finally {
+      listeningTransitionRef.current = false
+    }
+  }, [advanceQuestion, answerDurationSeconds, hasNextQuestionGroup, isToeflListening, listeningSubIndex, questionBreakDurationSeconds, questionGroup])
+
+  useEffect(() => {
+    if (!isToeflListening || toeflListeningPhase !== 'answer' || questionRemainingSeconds <= 0) return undefined
+    const timer = window.setTimeout(() => setQuestionRemainingSeconds(value => Math.max(0, value - 1)), 1000)
+    return () => window.clearTimeout(timer)
+  }, [isToeflListening, questionRemainingSeconds, toeflListeningPhase])
+
+  useEffect(() => {
+    if (!isToeflListening || toeflListeningPhase !== 'answer' || questionRemainingSeconds < 1 || questionRemainingSeconds > 5) return
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext
+    if (!AudioContextClass) return
+    try {
+      const context = countdownAudioContextRef.current || new AudioContextClass()
+      countdownAudioContextRef.current = context
+      const playTick = () => {
+        const oscillator = context.createOscillator()
+        const gain = context.createGain()
+        oscillator.type = 'sine'
+        oscillator.frequency.setValueAtTime(920, context.currentTime)
+        gain.gain.setValueAtTime(0.0001, context.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.16, context.currentTime + 0.006)
+        gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.075)
+        oscillator.connect(gain)
+        gain.connect(context.destination)
+        oscillator.start(context.currentTime)
+        oscillator.stop(context.currentTime + 0.08)
+      }
+      if (context.state === 'suspended') context.resume().then(playTick).catch(() => {})
+      else playTick()
+    } catch { /* Countdown remains visible when Web Audio is unavailable. */ }
+  }, [isToeflListening, questionRemainingSeconds, toeflListeningPhase])
+
+  useEffect(() => {
+    if (!isToeflListening || toeflListeningPhase !== 'answer' || questionRemainingSeconds !== 0) return
+    advanceToeflSubQuestion()
+  }, [advanceToeflSubQuestion, isToeflListening, questionRemainingSeconds, toeflListeningPhase])
 
   const playQuestionAudio = useCallback(async ({ manual = false } = {}) => {
     if (!questionAudioUrl) { setAudioState('error'); return }
@@ -428,6 +580,14 @@ function ExamTestPage({ examId }) {
         onPlaying: () => setAudioState('playing'),
       })
       if (runId !== playbackRunRef.current) return
+      if (isToeflListening) {
+        setListeningSubIndex(0)
+        setQuestionRemainingSeconds(answerDurationSeconds)
+        setToeflListeningPhase('answer')
+        setAudioState('complete')
+        setLocked(false)
+        return
+      }
       if (hasNextQuestionGroup && questionBreakDurationSeconds > 0) {
         setAudioState('break')
         await wait(questionBreakDurationSeconds * 1000)
@@ -438,7 +598,7 @@ function ExamTestPage({ examId }) {
       if (!manual && playbackError?.name === 'NotAllowedError') { setAudioState('blocked'); return }
       setAudioState('error')
     }
-  }, [advanceQuestion, hasNextQuestionGroup, playAudioToEnd, questionAudioDurationSeconds, questionAudioUrl, questionBreakDurationSeconds, stopAudio])
+  }, [advanceQuestion, answerDurationSeconds, hasNextQuestionGroup, isToeflListening, playAudioToEnd, questionAudioDurationSeconds, questionAudioUrl, questionBreakDurationSeconds, stopAudio])
 
   useEffect(() => {
     if (phase !== 'question' || !questionGroupId || !requiresAudio) return undefined
@@ -453,19 +613,31 @@ function ExamTestPage({ examId }) {
     try {
       await Promise.allSettled([...pendingSavesRef.current.values()])
       setGroupIndex(index)
-      await loadQuestionGroup(groupList, index, activePart.id)
-      setNavigatorOpen(false)
+      const loadedGroup = await loadQuestionGroup(groupList, index, activePart.id, false)
+      if (!isToeflReading) setNavigatorOpen(false)
+      return loadedGroup
     } catch (requestError) {
       setSaveError(requestError.message)
       setLocked(false)
     }
-  }, [activePart?.id, groupList, isFreestyle, loadQuestionGroup, locked])
+  }, [activePart?.id, groupList, isFreestyle, isToeflReading, loadQuestionGroup, locked])
+
+  const openFreestyleQuestion = useCallback(async (targetGroupIndex, questionId) => {
+    if (!isToeflReading || locked) return
+    if (targetGroupIndex === groupIndex) {
+      const targetSubIndex = questionGroup?.questions?.findIndex(question => question.id === questionId) ?? -1
+      if (targetSubIndex >= 0) setReadingSubIndex(targetSubIndex)
+      return
+    }
+    const loadedGroup = await openFreestyleGroup(targetGroupIndex)
+    const targetSubIndex = loadedGroup?.questions?.findIndex(question => question.id === questionId) ?? -1
+    if (targetSubIndex >= 0) setReadingSubIndex(targetSubIndex)
+  }, [groupIndex, isToeflReading, locked, openFreestyleGroup, questionGroup?.questions])
 
   const previousFreestylePartIndex = partIndex > 0
     && parts[partIndex - 1]?.examMode === 'FREESTYLE'
     && parts[partIndex - 1]?.sectionId === activePart?.sectionId ? partIndex - 1 : -1
-  const nextFreestylePartIndex = parts[partIndex + 1]?.examMode === 'FREESTYLE'
-    && parts[partIndex + 1]?.sectionId === activePart?.sectionId ? partIndex + 1 : -1
+  const nextFreestyleTransitionIndex = getNextFreestyleTransitionIndex(parts, partIndex, isToeflReading)
 
   const openPreviousFreestylePart = useCallback(async () => {
     if (previousFreestylePartIndex < 0 || locked || !session) return
@@ -481,18 +653,18 @@ function ExamTestPage({ examId }) {
       setGroupList(groups)
       setPartQuestionList(result.data.questions || [])
       setGroupIndex(groups.length - 1)
-      await loadQuestionGroup(groups, groups.length - 1, targetPart.id)
+      await loadQuestionGroup(groups, groups.length - 1, targetPart.id, false)
     } catch (requestError) {
       setSaveError(requestError.message)
       setLocked(false)
     }
   }, [loadQuestionGroup, locked, parts, previousFreestylePartIndex, session])
 
-  const openNextFreestylePartIntro = useCallback(async () => {
-    if (nextFreestylePartIndex < 0 || locked) return
+  const openNextPartIntro = useCallback(async () => {
+    if (nextFreestyleTransitionIndex < 0 || locked) return
     await Promise.allSettled([...pendingSavesRef.current.values()])
-    setPartIndex(nextFreestylePartIndex)
-    writeAttemptPosition(examId, session?.attemptId, parts[nextFreestylePartIndex].id, null, 'introduction')
+    setPartIndex(nextFreestyleTransitionIndex)
+    writeAttemptPosition(examId, session?.attemptId, parts[nextFreestyleTransitionIndex].id, null, 'introduction')
     setGroupList([])
     setPartQuestionList([])
     setQuestionGroup(null)
@@ -501,11 +673,13 @@ function ExamTestPage({ examId }) {
     setAudioState('idle')
     setPhase('introduction')
     setLocked(false)
-  }, [examId, locked, nextFreestylePartIndex, parts, session?.attemptId])
+  }, [examId, locked, nextFreestyleTransitionIndex, parts, session?.attemptId])
 
   const toggleCurrentGroupMark = () => {
     if (!isFreestyle || !session?.attemptId) return
-    const questionIds = (questionGroup?.questions || []).map(question => question.id)
+    const questionIds = isToeflReading && !isCompleteWordsGroup
+      ? [questionGroup?.questions?.[readingSubIndex]?.id].filter(Boolean)
+      : (questionGroup?.questions || []).map(question => question.id)
     if (!questionIds.length) return
     setMarkedIds(current => {
       const next = new Set(current)
@@ -522,7 +696,7 @@ function ExamTestPage({ examId }) {
     setQuestionGroup(current => ({ ...current, questions: current.questions.map(question => question.id === questionId ? { ...question, selectedOption: optionKey } : question) }))
     setAnsweredIds(current => new Set(current).add(questionId))
     if (!session) return
-    latestAnswersRef.current.set(questionId, optionKey)
+    latestAnswersRef.current.set(questionId, { selectedOptionKey: optionKey })
     const previous = pendingSavesRef.current.get(questionId) || Promise.resolve()
     const request = previous.catch(() => null)
       .then(() => saveAnswerWithRetry({ ...session, subQuestionId: questionId, selectedOptionKey: optionKey }))
@@ -538,6 +712,26 @@ function ExamTestPage({ examId }) {
     pendingSavesRef.current.set(questionId, request)
   }
 
+  const changeTextAnswer = (questionId, value) => {
+    if (locked) return
+    setQuestionGroup(current => ({ ...current, questions: current.questions.map(question => question.id === questionId ? { ...question, textAnswer: value } : question) }))
+    if (String(value).trim()) setAnsweredIds(current => new Set(current).add(questionId))
+    else setAnsweredIds(current => { const next = new Set(current); next.delete(questionId); return next })
+    latestAnswersRef.current.set(questionId, { textAnswer: value })
+  }
+
+  const persistTextAnswer = questionId => {
+    if (!session || locked) return
+    const payload = latestAnswersRef.current.get(questionId) || { textAnswer: questionGroup?.questions.find(question => question.id === questionId)?.textAnswer || '' }
+    const previous = pendingSavesRef.current.get(questionId) || Promise.resolve()
+    const request = previous.catch(() => null)
+      .then(() => saveAnswerWithRetry({ ...session, subQuestionId: questionId, ...payload }))
+      .then(result => { failedSavesRef.current.delete(questionId); return result })
+      .catch(requestError => { failedSavesRef.current.add(questionId); setSaveError(`Chưa lưu được đáp án câu này: ${requestError.message}`); return null })
+      .finally(() => { if (pendingSavesRef.current.get(questionId) === request) pendingSavesRef.current.delete(questionId) })
+    pendingSavesRef.current.set(questionId, request)
+  }
+
   const submitAttempt = async ({ skipConfirmation = false } = {}) => {
     if (!session || submitting || (!skipConfirmation && !window.confirm('Bạn chắc chắn muốn nộp bài?'))) return
     setSubmitting(true)
@@ -548,10 +742,10 @@ function ExamTestPage({ examId }) {
         setSaveError(`Đang thử lưu lại ${failedSavesRef.current.size} câu chưa đồng bộ...`)
         const failedIds = [...failedSavesRef.current]
         await Promise.allSettled(failedIds.map(async questionId => {
-          const optionKey = latestAnswersRef.current.get(questionId)
-          if (!optionKey) return
+          const answerPayload = latestAnswersRef.current.get(questionId)
+          if (!answerPayload) return
           try {
-            await saveAnswerWithRetry({ ...session, subQuestionId: questionId, selectedOptionKey: optionKey })
+            await saveAnswerWithRetry({ ...session, subQuestionId: questionId, ...answerPayload })
             failedSavesRef.current.delete(questionId)
           } catch { /* Keep this id for the explicit warning below. */ }
         }))
@@ -583,6 +777,8 @@ function ExamTestPage({ examId }) {
 
   useEffect(() => () => {
     stopAudio()
+    countdownAudioContextRef.current?.close().catch(() => {})
+    countdownAudioContextRef.current = null
     if (audioRef.current) {
       audioRef.current.removeAttribute('src')
       audioRef.current.load()
@@ -598,16 +794,27 @@ function ExamTestPage({ examId }) {
   if (!positionReady) return <div className="exam-live-page"><div className="exam-live-state"><span className="catalog-spinner" /><strong>Đang khôi phục vị trí làm bài...</strong></div></div>
 
   const range = questionGroup?.range
-  const headerTitle = phase === 'question' && range ? `${activePart.sectionTitle}: Câu hỏi ${range.from}${range.to > range.from ? `–${range.to}` : ''} / ${exam.questionCount}` : 'ONLINE TEST SYSTEM'
+  const toeflHeaderNumber = isCompleteWordsGroup
+    ? `${range?.from}${range?.to > range?.from ? `–${range.to}` : ''}`
+    : questionGroup?.questions?.[readingSubIndex]?.number || range?.from
+  const listeningHeaderNumber = toeflListeningPhase === 'answer'
+    ? questionGroup?.questions?.[listeningSubIndex]?.number || range?.from
+    : `${range?.from}${range?.to > range?.from ? `–${range.to}` : ''}`
+  const headerTitle = phase === 'question' && range
+    ? `${activePart.sectionTitle}: ${isToeflReading ? 'Question' : 'Câu hỏi'} ${isToeflReading ? toeflHeaderNumber : isToeflListening ? listeningHeaderNumber : `${range.from}${range.to > range.from ? `–${range.to}` : ''}`} ${isToeflReading ? 'of' : '/'} ${exam.questionCount}`
+    : 'ONLINE TEST SYSTEM'
 
-  return <div className="exam-live-page">
+  const showListeningQuestionTimer = isToeflListening && phase === 'question' && toeflListeningPhase === 'answer'
+  const listeningTimerUrgent = showListeningQuestionTimer && questionRemainingSeconds > 0 && questionRemainingSeconds <= 5
+
+  return <div className={`exam-live-page ${isToeflReading ? 'toefl-reading-exam' : ''} ${isToeflListening ? 'toefl-listening-exam' : ''}`}>
     <header className="exam-live-header">
       <a href={`/exams/${examId}`} aria-label="IIG Việt Nam"><img src="/iig-vietnam-logo.png" alt="IIG Việt Nam" /></a>
       <strong>{headerTitle}</strong>
       <div className="exam-live-metrics">
-        {requiresAudio && <span className="audio"><Icon>{audioState === 'playing' ? 'volume_up' : 'volume_off'}</Icon></span>}
+        {(requiresAudio || isToeflReading) && <span className="audio"><Icon>{audioState === 'playing' ? 'volume_up' : 'volume_off'}</Icon></span>}
         <span><Icon>checklist</Icon>{answeredIds.size}/{exam.questionCount}</span>
-        <span><Icon>timer</Icon>{formatClock(remainingSeconds)}</span>
+        <span className={listeningTimerUrgent ? 'timer urgent' : 'timer'}><Icon>timer</Icon>{formatClock(showListeningQuestionTimer ? questionRemainingSeconds : remainingSeconds)}</span>
         <button type="button" disabled={submitting} onClick={() => submitAttempt()}>{submitting ? 'Đang nộp...' : 'Nộp bài'}</button>
       </div>
     </header>
@@ -634,17 +841,19 @@ function ExamTestPage({ examId }) {
           {questionGroup.content?.title && <h1>{questionGroup.content.title}</h1>}
           {questionGroup.content?.html && <div className="listening-content-html" dangerouslySetInnerHTML={{ __html: safeHtml(questionGroup.content.html) }} />}
           {questionGroup.content?.imageUrl && <img src={questionGroup.content.imageUrl} alt={questionGroup.content.title || 'Nội dung câu hỏi'} />}
+          {isToeflListening && toeflListeningPhase === 'audio' && <div className={`listening-playback-indicator ${audioState}`} role="status" aria-label={audioState === 'playing' ? 'Đang phát audio' : 'Đang chuẩn bị audio'}>
+            <span aria-hidden="true">{Array.from({ length: 39 }, (_, index) => <i key={index} />)}</span>
+          </div>}
           {questionGroup.content?.videoUrl && <video src={questionGroup.content.videoUrl} controls playsInline />}
         </section>
         <section className={`listening-questions-pane ${mobilePane === 'questions' ? 'mobile-active' : ''}`}>
-          <h2>Câu hỏi</h2>
-          <div className="listening-subquestions">{questionGroup.questions.slice().sort((a, b) => a.sortOrder - b.sortOrder).map(question => <article id={`question-${question.id}`} key={question.id}>
-            <div className="listening-prompt"><b>{question.number}.</b><span dangerouslySetInnerHTML={{ __html: displayPromptHtml(question.promptHtml) }} /></div>
-            <div className="listening-options">{question.options.map(option => <label className={question.selectedOption === option.key ? 'selected' : ''} key={option.id || option.key}>
-              <input type="radio" name={question.id} value={option.key} checked={question.selectedOption === option.key} disabled={locked} onChange={() => chooseOption(question.id, option.key)} />
-              <span><b>{option.key}.</b> {displayOptionText(option.text, option.key)}</span>
-            </label>)}</div>
-          </article>)}</div>
+          {(!isToeflListening || toeflListeningPhase === 'answer') && <h2>{isToeflReading ? 'Question' : 'Câu hỏi'}</h2>}
+          {isToeflListening && toeflListeningPhase !== 'answer' ? null : isCompleteWordsGroup ? <article className="complete-words-candidate">
+            <p className="complete-words-instruction">Fill in the missing letters in the paragraph.</p>
+            <div className="complete-words-stem">{renderCompleteWordsStem(questionGroup.questions[0].stemHtml, questionGroup.questions, changeTextAnswer, persistTextAnswer, locked)}</div>
+          </article> : isToeflListening ? <ToeflListeningMcq question={questionGroup.questions[listeningSubIndex]} locked={locked} onChoose={chooseOption} promptHtml={displayPromptHtml} optionText={displayOptionText} />
+            : isToeflReading ? <ToeflReadingMcq questions={questionGroup.questions} index={readingSubIndex} locked={locked} onChoose={chooseOption} promptHtml={displayPromptHtml} optionText={displayOptionText} />
+              : <LegacyMcqQuestionGroup questions={questionGroup.questions} locked={locked} onChoose={chooseOption} promptHtml={displayPromptHtml} optionText={displayOptionText} />}
           {saveError && <p className="listening-save-error"><Icon>error</Icon>{saveError}</p>}
         </section>
         {(audioState === 'blocked' || audioState === 'error') && <div className="listening-audio-overlay">
@@ -658,21 +867,24 @@ function ExamTestPage({ examId }) {
             <h3>{activePart.title}</h3>
             <div className="question-number-grid">{partQuestionList.map(question => {
               const targetIndex = groupList.findIndex(group => group.id === question.parentQuestionId)
-              const current = targetIndex === groupIndex
+              const current = targetIndex === groupIndex && (!isToeflReading || question.id === questionGroup?.questions?.[readingSubIndex]?.id)
               const marked = markedIds.has(question.id)
               const answered = answeredIds.has(question.id)
-              return <button type="button" key={question.id} className={`${current ? 'current' : ''} ${answered ? 'answered' : ''} ${marked ? 'marked' : ''}`} onClick={() => openFreestyleGroup(targetIndex)}>{question.number}</button>
+              return <button type="button" key={question.id} className={`${current ? 'current' : ''} ${answered ? 'answered' : ''} ${marked ? 'marked' : ''}`} onClick={() => isToeflReading ? openFreestyleQuestion(targetIndex, question.id) : openFreestyleGroup(targetIndex)}>{question.number}</button>
             })}</div>
             <div className="question-navigator-legend"><span><i />Chưa trả lời</span><span className="answered"><i />Đã trả lời</span><span className="marked"><i />Đánh dấu</span></div>
           </aside>
           <footer className="freestyle-question-footer">
-            <label className="freestyle-group-mark"><input type="checkbox" checked={(questionGroup.questions || []).length > 0 && questionGroup.questions.every(question => markedIds.has(question.id))} onChange={toggleCurrentGroupMark} /><span>Đánh dấu để xem lại</span></label>
+            <label className="freestyle-group-mark"><input type="checkbox" checked={isToeflReading && !isCompleteWordsGroup ? markedIds.has(questionGroup.questions?.[readingSubIndex]?.id) : (questionGroup.questions || []).length > 0 && questionGroup.questions.every(question => markedIds.has(question.id))} onChange={toggleCurrentGroupMark} /><span>{isToeflReading ? 'Mark item for review' : 'Đánh dấu để xem lại'}</span></label>
             <div className="freestyle-footer-actions">
-              <button type="button" disabled={locked || (groupIndex === 0 && previousFreestylePartIndex < 0)} onClick={() => groupIndex > 0 ? openFreestyleGroup(groupIndex - 1) : openPreviousFreestylePart()}><Icon>arrow_back</Icon>Quay lại</button>
-              <button type="button" disabled={locked || (groupIndex >= groupList.length - 1 && nextFreestylePartIndex < 0)} onClick={() => groupIndex < groupList.length - 1 ? openFreestyleGroup(groupIndex + 1) : openNextFreestylePartIntro()}>Tiếp theo<Icon>arrow_forward</Icon></button>
+              <button type="button" disabled={locked || ((!isToeflReading || !isCompleteWordsGroup) && readingSubIndex === 0 && groupIndex === 0 && previousFreestylePartIndex < 0) || (isCompleteWordsGroup && groupIndex === 0 && previousFreestylePartIndex < 0)} onClick={() => isToeflReading&&!isCompleteWordsGroup&&readingSubIndex>0?setReadingSubIndex(index=>index-1):groupIndex > 0 ? openFreestyleGroup(groupIndex - 1) : openPreviousFreestylePart()}>{!isToeflReading && <Icon>arrow_back</Icon>}{isToeflReading ? 'Back' : 'Quay lại'}</button>
+              <button type="button" disabled={locked || ((!isToeflReading || !isCompleteWordsGroup) && readingSubIndex >= (questionGroup?.questions?.length||1)-1 && groupIndex >= groupList.length - 1 && nextFreestyleTransitionIndex < 0) || (isCompleteWordsGroup && groupIndex >= groupList.length - 1 && nextFreestyleTransitionIndex < 0)} onClick={() => isToeflReading&&!isCompleteWordsGroup&&readingSubIndex<(questionGroup?.questions?.length||1)-1?setReadingSubIndex(index=>index+1):groupIndex < groupList.length - 1 ? openFreestyleGroup(groupIndex + 1) : openNextPartIntro()}>{isToeflReading ? 'Next' : 'Tiếp theo'}{!isToeflReading && <Icon>arrow_forward</Icon>}</button>
             </div>
           </footer>
         </>}
+        {isToeflListening && toeflListeningPhase === 'answer' && <footer className="toefl-listening-footer">
+          <button type="button" disabled={locked} onClick={advanceToeflSubQuestion}>Next</button>
+        </footer>}
       </div>}
     </main>}
 

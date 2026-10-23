@@ -5,4 +5,5 @@ const update = async (req, res) => res.json({ success: true, data: await service
 const remove = async (req, res) => res.json({ success: true, data: await service.remove(req.params.questionId, req.params.subQuestionId) });
 const reorder = async (req, res) => res.json({ success: true, data: await service.reorder(req.params.questionId, req.body.subQuestionIds || req.body.orderedIds) });
 const saveAll = async (req, res) => res.json({ success: true, data: await service.saveAll(req.params.questionId, req.body.items) });
-module.exports = { list, create, update, remove, reorder, saveAll };
+const saveCompleteWords = async (req, res) => res.json({ success: true, data: await service.saveCompleteWords(req.params.questionId, req.body) });
+module.exports = { list, create, update, remove, reorder, saveAll, saveCompleteWords };

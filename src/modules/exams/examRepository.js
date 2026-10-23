@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const db = require('../../config/db');
-const { MODE_QUESTION_TYPE } = require('./examConstants');
+const { questionTypesForExam } = require('./examConstants');
 
 // ---------------------------------------------------------------------------
 // Mappers
@@ -10,6 +10,7 @@ const mapExam = row => row && ({
   examCode: row.exam_code,
   title: row.title,
   status: row.status,
+  testType: row.test_type || 'TOEIC',
   examType: row.exam_type || null,
   description: row.description || '',
   introduction: row.introduction || '',
@@ -68,6 +69,8 @@ const mapPart = row => row && ({
   instructionHtml: row.instruction_html || null,
   instructionAudioMediaId: row.instruction_audio_media_id || null,
   breakDurationSeconds: Number(row.break_duration_seconds || 0),
+  answerDurationSeconds: row.answer_duration_seconds == null ? null : Number(row.answer_duration_seconds),
+  subQuestionGapSeconds: Number(row.sub_question_gap_seconds || 0),
   configuredDurationSeconds: Number(row.configured_duration_seconds || 0),
   sortOrder: Number(row.sort_order || 0),
 });
@@ -87,7 +90,7 @@ const statsSelect = `(SELECT COUNT(*) FROM exam_sections es WHERE es.exam_id=e.i
   COALESCE((SELECT jsonb_agg(jsonb_build_object('id',eg.id,'name',eg.name) ORDER BY eg.name)
     FROM exam_group_assignments ega JOIN exam_groups eg ON eg.id=ega.group_id WHERE ega.exam_id=e.id),'[]'::jsonb) exam_groups`;
 
-async function list({ page = 1, limit = 10, search = '', status = '', statuses = '', examType = '', examTypes = '' } = {}) {
+async function list({ page = 1, limit = 10, search = '', status = '', statuses = '', testType = '', testTypes = '', examType = '', examTypes = '' } = {}) {
   const params = [];
   const where = [];
   const normalizedSearch = String(search || '').trim();
@@ -96,6 +99,8 @@ async function list({ page = 1, limit = 10, search = '', status = '', statuses =
   if (selectedStatuses.length) { params.push(selectedStatuses); where.push(`e.status=ANY($${params.length}::varchar[])`); }
   const selectedTypes = String(examTypes || examType || '').split(',').map(v => v.trim()).filter(Boolean);
   if (selectedTypes.length) { params.push(selectedTypes); where.push(`e.exam_type=ANY($${params.length}::varchar[])`); }
+  const selectedTestTypes = String(testTypes || testType || '').split(',').map(v => v.trim()).filter(Boolean);
+  if (selectedTestTypes.length) { params.push(selectedTestTypes); where.push(`e.test_type=ANY($${params.length}::varchar[])`); }
   const filter = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const count = await db.query(`SELECT COUNT(*)::int total FROM exams e ${filter}`, params);
   const safeLimit = Math.min(Math.max(Number(limit) || 10, 1), 100);
@@ -158,18 +163,18 @@ async function findById(id, client = db) {
 }
 
 async function lockExam(id, client) {
-  const result = await client.query('SELECT id,status,exam_type FROM exams WHERE id=$1 FOR UPDATE', [id]);
+  const result = await client.query('SELECT id,status,test_type,exam_type FROM exams WHERE id=$1 FOR UPDATE', [id]);
   const row = result.rows[0];
-  return row ? { id: row.id, status: row.status, examType: row.exam_type || null } : null;
+  return row ? { id: row.id, status: row.status, testType: row.test_type || 'TOEIC', examType: row.exam_type || null } : null;
 }
 
 async function create(data, userId, client = db) {
   const id = crypto.randomUUID();
   const examCode = `EX-${id.replaceAll('-', '').slice(0, 8).toUpperCase()}`;
   const r = await client.query(
-    `INSERT INTO exams(id,exam_code,title,status,exam_type,description,introduction,display_label,difficulty,duration_minutes,duration_seconds,points_per_question,score_scale,created_by,updated_by)
-     VALUES($1,$2,$3,'DRAFT',$4,$5,$6,$7,$8,0,0,10,100,$9,$9) RETURNING id`,
-    [id, examCode, data.title.trim(), data.examType, String(data.description || '').trim(), String(data.introduction || ''), String(data.displayLabel || '').trim() || null, data.difficulty || null, userId || null],
+    `INSERT INTO exams(id,exam_code,title,status,test_type,exam_type,description,introduction,display_label,difficulty,duration_minutes,duration_seconds,points_per_question,score_scale,created_by,updated_by)
+     VALUES($1,$2,$3,'DRAFT',$4,$5,$6,$7,$8,$9,0,0,10,100,$10,$10) RETURNING id`,
+    [id, examCode, data.title.trim(), data.testType, data.examType, String(data.description || '').trim(), String(data.introduction || ''), String(data.displayLabel || '').trim() || null, data.difficulty || null, userId || null],
   );
   return findById(r.rows[0].id, client);
 }
@@ -180,6 +185,7 @@ async function update(id, data, userId, client = db) {
   const push = (column, value) => { values.push(value); fields.push(`${column}=$${values.length}`); };
   if (data.title !== undefined) push('title', data.title.trim());
   if (data.status !== undefined) push('status', data.status);
+  if (data.testType !== undefined) push('test_type', data.testType);
   if (data.examType !== undefined) push('exam_type', data.examType);
   if (data.description !== undefined) push('description', String(data.description || '').trim());
   if (data.introduction !== undefined) push('introduction', String(data.introduction || ''));
@@ -384,8 +390,8 @@ async function findPart(examId, sectionId, partId, client = db) {
 async function createPart(examId, sectionId, data, client = db) {
   const order = await client.query('SELECT COALESCE(MAX(sort_order),-1)+1 value,COALESCE(MAX(part_number),0)+1 number FROM exam_parts WHERE exam_id=$1', [examId]);
   const r = await client.query(
-    `INSERT INTO exam_parts(exam_id,section_id,part_number,title,instruction_html,instruction_audio_media_id,break_duration_seconds,configured_duration_seconds,sort_order,display_order,duration_minutes)
-     VALUES($1,$2,$3,$4,NULL,NULL,0,0,$5,$5,0) RETURNING *`,
+    `INSERT INTO exam_parts(exam_id,section_id,part_number,title,instruction_html,instruction_audio_media_id,break_duration_seconds,configured_duration_seconds,answer_duration_seconds,sub_question_gap_seconds,sort_order,display_order,duration_minutes)
+     VALUES($1,$2,$3,$4,NULL,NULL,0,0,NULL,0,$5,$5,0) RETURNING *`,
     [examId, sectionId, order.rows[0].number, data.title.trim(), order.rows[0].value],
   );
   return mapPart(r.rows[0]);
@@ -400,6 +406,8 @@ async function updatePartContent(examId, sectionId, partId, data, client = db) {
   if (data.instructionAudioMediaId !== undefined) push('instruction_audio_media_id', data.instructionAudioMediaId || null);
   if (data.breakDurationSeconds !== undefined) push('break_duration_seconds', Number(data.breakDurationSeconds || 0));
   if (data.configuredDurationSeconds !== undefined) push('configured_duration_seconds', Number(data.configuredDurationSeconds || 0));
+  if (data.answerDurationSeconds !== undefined) push('answer_duration_seconds', data.answerDurationSeconds == null ? null : Number(data.answerDurationSeconds));
+  if (data.subQuestionGapSeconds !== undefined) push('sub_question_gap_seconds', Number(data.subQuestionGapSeconds || 0));
   if (!fields.length) return findPart(examId, sectionId, partId, client);
   fields.push('updated_at=CURRENT_TIMESTAMP');
   const r = await client.query(`UPDATE exam_parts SET ${fields.join(',')} WHERE id=$1 AND exam_id=$2 AND section_id=$3 RETURNING *`, values);
@@ -450,11 +458,11 @@ async function listPartIdsInSection(examId, sectionId, client = db) {
 // Build the mode-specific eligibility predicate. All modes require ACTIVE status,
 // the matching parent-question type, and at least one sub-question. NON_STOP and
 // RECORD_NON_STOP additionally require exactly one content that has a ready audio.
-function eligibilityWhere(mode, params, examId, { includeUnusedCheck = true } = {}) {
-  const questionType = MODE_QUESTION_TYPE[mode];
+function eligibilityWhere(testType, mode, params, examId, { includeUnusedCheck = true } = {}) {
+  const questionTypes = questionTypesForExam(testType, mode);
   const where = [
     `q.status='ACTIVE'`,
-    `q.question_type=$${params.push(questionType)}`,
+    `q.question_type=ANY($${params.push(questionTypes)}::text[])`,
     `EXISTS(SELECT 1 FROM question_bank_sub_questions sq WHERE sq.question_id=q.id)`,
   ];
   if (includeUnusedCheck) where.push(`NOT EXISTS(SELECT 1 FROM exam_part_questions used WHERE used.exam_id=$${params.push(examId)} AND used.question_id=q.id)`);
@@ -472,9 +480,9 @@ function eligibilityWhere(mode, params, examId, { includeUnusedCheck = true } = 
   return where;
 }
 
-async function listEligibleQuestions(examId, mode, { page = 1, limit = 10, search = '', groupId = '' } = {}) {
+async function listEligibleQuestions(examId, testType, mode, { page = 1, limit = 10, search = '', groupId = '' } = {}) {
   const params = [];
-  const where = eligibilityWhere(mode, params, examId);
+  const where = eligibilityWhere(testType, mode, params, examId);
   if (String(search || '').trim()) {
     const idx = params.push(`%${String(search).trim()}%`);
     where.push(`(q.question_name ILIKE $${idx} OR q.code ILIKE $${idx})`);
@@ -502,9 +510,9 @@ async function listEligibleQuestions(examId, mode, { page = 1, limit = 10, searc
 }
 
 // Which of the given question ids are eligible for the mode (used to revalidate on add).
-async function filterEligibleIds(examId, mode, ids, client = db) {
+async function filterEligibleIds(examId, testType, mode, ids, client = db) {
   const params = [];
-  const where = eligibilityWhere(mode, params, examId);
+  const where = eligibilityWhere(testType, mode, params, examId);
   where.push(`q.id=ANY($${params.push(ids)}::uuid[])`);
   const r = await client.query(`SELECT q.id FROM question_bank_questions q WHERE ${where.join(' AND ')}`, params);
   return new Set(r.rows.map(row => row.id));
@@ -597,8 +605,9 @@ async function loadInstructionAudioDetails(partIds, client = db) {
 // ---------------------------------------------------------------------------
 async function loadValidationRows(examId, client = db) {
   const r = await client.query(
-    `SELECT q.id,q.code,q.question_name,q.question_type,q.status,s.id sub_id,
+    `SELECT q.id,q.code,q.question_name,q.question_type,q.status,q.stem_html,s.id sub_id,
        s.recording_duration_seconds,s.preparation_duration_seconds,s.max_character_count,s.min_word_count,
+       s.gap_index,s.correct_text,s.case_sensitive,
        COUNT(o.id)::int option_count,COUNT(o.id) FILTER(WHERE o.is_correct)::int correct_count
      FROM exam_part_questions epq JOIN question_bank_questions q ON q.id=epq.question_id
      LEFT JOIN question_bank_sub_questions s ON s.question_id=q.id
@@ -609,10 +618,10 @@ async function loadValidationRows(examId, client = db) {
   return r.rows;
 }
 
-async function findIneligibleQuestionIds(examId, mode, ids, client = db) {
+async function findIneligibleQuestionIds(examId, testType, mode, ids, client = db) {
   if (!ids.length) return [];
   const params = [];
-  const where = eligibilityWhere(mode, params, null, { includeUnusedCheck: false });
+  const where = eligibilityWhere(testType, mode, params, null, { includeUnusedCheck: false });
   where.push(`q.id=ANY($${params.push(ids)}::uuid[])`);
   const eligible = await client.query(`SELECT q.id FROM question_bank_questions q WHERE ${where.join(' AND ')}`, params);
   const allowed = new Set(eligible.rows.map(row => row.id));
@@ -640,6 +649,7 @@ async function buildSnapshot(examId, client) {
       id: exam.id,
       code: exam.examCode,
       title: exam.title,
+      testType: exam.testType,
       examType: exam.examType,
       displayLabel: exam.displayLabel,
       difficulty: exam.difficulty,
@@ -674,14 +684,15 @@ async function buildSnapshot(examId, client) {
       instructionHtml: part.instructionHtml,
       instructionAudioMediaId: part.instructionAudioMediaId,
       breakDurationSeconds: part.breakDurationSeconds,
+      answerDurationSeconds: part.answerDurationSeconds,
       configuredDurationSeconds: part.configuredDurationSeconds,
       sortOrder: part.sortOrder,
       questions: [],
     };
     for (const q of part.questions) {
-      const detail = await client.query('SELECT q.id,q.code,q.question_name,q.question_type,q.note,q.status,g.title group_name FROM question_bank_questions q JOIN question_groups g ON g.id=q.group_id WHERE q.id=$1', [q.id]);
+      const detail = await client.query('SELECT q.id,q.code,q.question_name,q.question_type,q.stem_html,q.note,q.status,g.title group_name FROM question_bank_questions q JOIN question_groups g ON g.id=q.group_id WHERE q.id=$1', [q.id]);
       const contents = await client.query('SELECT id,title,content_html,script_html,translation_html,audio_media_id,image_media_id,video_media_id,sort_order AS display_order FROM question_bank_contents WHERE question_id=$1 ORDER BY sort_order,id', [q.id]);
-      const subs = await client.query('SELECT id,content_id,prompt_text AS prompt_html,hint_html AS hint,explanation_html AS explanation,note,instruction_html,audio_media_id,preparation_duration_seconds,recording_duration_seconds,max_character_count,min_word_count,max_word_count,sort_order AS display_order FROM question_bank_sub_questions WHERE question_id=$1 ORDER BY sort_order,id', [q.id]);
+      const subs = await client.query('SELECT id,content_id,prompt_text AS prompt_html,hint_html AS hint,explanation_html AS explanation,note,instruction_html,audio_media_id,preparation_duration_seconds,recording_duration_seconds,max_character_count,min_word_count,max_word_count,gap_index,correct_text,case_sensitive,sort_order AS display_order FROM question_bank_sub_questions WHERE question_id=$1 ORDER BY sort_order,id', [q.id]);
       for (const sub of subs.rows) {
         const opts = await client.query('SELECT id,option_key,option_text,is_correct,sort_order AS display_order FROM question_bank_sub_question_options WHERE sub_question_id=$1 ORDER BY sort_order,id', [sub.id]);
         sub.options = opts.rows;

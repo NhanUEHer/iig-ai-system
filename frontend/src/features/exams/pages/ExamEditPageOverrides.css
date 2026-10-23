@@ -158,6 +158,7 @@
 .exam-general-card>header>span{color:#94a3b8;font-size:11px}.exam-general-card>header>span b{color:#f43f5e}
 .exam-general-card>.exam-general-form{padding:24px;gap:20px}
 .exam-general-form__title{display:grid;grid-template-columns:2fr 1fr;gap:20px}
+.exam-general-form__classification{display:grid;grid-template-columns:minmax(220px,1fr) minmax(0,2fr);gap:20px}
 .exam-general-form .ui-control:not(textarea){
   height:40px;
   min-height:40px;
@@ -194,7 +195,7 @@
 .exam-general-card>footer button:last-child{padding:0 20px;display:inline-flex;align-items:center;gap:7px;background:#2563eb;color:#fff;box-shadow:0 4px 10px rgba(37,99,235,.18)}
 .exam-general-card>footer button:disabled{opacity:.5;cursor:not-allowed}.exam-general-card>footer svg{width:15px}
 @media(max-width:800px){
-  .exam-general-form__title{grid-template-columns:1fr}
+  .exam-general-form__title,.exam-general-form__classification{grid-template-columns:1fr}
   .exam-general-card>header,.exam-general-card>.exam-general-form,.exam-general-card>footer{padding-left:16px;padding-right:16px}
 }
 .exam-section-identity h3{

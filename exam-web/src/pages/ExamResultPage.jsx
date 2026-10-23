@@ -83,19 +83,21 @@ export default function ExamResultPage({ examId, Header, Footer }) {
   const maxScore = Number(result?.maxScore || 0)
   const candidate = result?.candidate || readJson('exam-candidate-profile')
   const scorePercent = maxScore ? Math.max(0, Math.min(100, totalScore / maxScore * 100)) : 0
+  const isToefl = result?.exam?.testType === 'TOEFL_IBT'
   const sections = (result?.sections || []).slice().sort((left, right) => {
+    if (isToefl) return 0
     const priority = section => /listen/i.test(`${section.sectionTitle} ${section.examMode}`) ? 0 : /read/i.test(`${section.sectionTitle} ${section.examMode}`) ? 1 : 2
     return priority(left) - priority(right)
   })
 
   return <div className="exam-result-page">
-    <Header active="exams" />
+    <Header active="exams" campaignLabel={isToefl ? 'TOEFL iBT Online Test' : 'TOEIC Challenge 2026'} />
     <main className="result-main">
       <nav className="result-breadcrumb"><a href="/">Trang chủ</a><Icon>chevron_right</Icon><a href="/exams">Danh sách đề thi</a><Icon>chevron_right</Icon><span>{result?.exam?.title || 'Đề thi'}</span><Icon>chevron_right</Icon><b>Kết quả làm bài</b></nav>
 
       <section className="result-hero">
         <div className="result-hero-copy"><div className="result-hero-meta"><span><Icon>check_circle</Icon>Đã hoàn thành</span><small><Icon>timer</Icon>{formatDuration(result?.durationSeconds)}{result?.exam?.allowedDurationSeconds ? ` / ${formatDuration(result.exam.allowedDurationSeconds)}` : ''}</small><small><Icon>event</Icon>{formatDateTime(result?.submittedAt)}</small></div><h1>Chúc mừng bạn <em>{candidate?.fullName || 'Thí sinh'}</em> đã hoàn thành bài thi! 🎉</h1><p>Bạn đã hoàn thành bài thi. Kết quả chi tiết được tổng hợp bên dưới.</p><div className="result-hero-actions"><button type="button" disabled title="Tính năng xem lời giải sẽ được triển khai sau"><Icon>menu_book</Icon>Xem lời giải &amp; phân tích chi tiết</button><button type="button" onClick={retry}><Icon>refresh</Icon>Làm lại bài thi</button></div></div>
-        <div className="result-score-showcase"><div className="result-score-gauge" style={{ '--score-progress': `${scorePercent * 3.6}deg` }}><div><strong>{formatNumber(totalScore)}</strong><span>/ {formatNumber(maxScore)} TOEIC</span></div></div></div>
+        <div className="result-score-showcase"><div className="result-score-gauge" style={{ '--score-progress': `${scorePercent * 3.6}deg` }}><div><strong>{formatNumber(totalScore)}</strong><span>/ {formatNumber(maxScore)} {isToefl ? 'TOEFL iBT' : 'TOEIC'}</span></div></div></div>
       </section>
 
       <section className="result-quick-stats">
@@ -107,7 +109,7 @@ export default function ExamResultPage({ examId, Header, Footer }) {
 
       <section className="result-analysis"><div>{sections.map((section, index) => <SectionResult section={section} index={index} key={section.sectionId} />)}</div></section>
     </main>
-    <div className="result-featured-courses"><FeaturedCourses /></div>
+    {!isToefl && <div className="result-featured-courses"><FeaturedCourses /></div>}
     <div className="result-after-courses"><section className="result-next-step"><div><Icon>support_agent</Icon><span><strong>Cần tư vấn lộ trình học phù hợp với kết quả?</strong><small>Liên hệ chuyên gia IIG để được hỗ trợ xây dựng kế hoạch ôn luyện.</small></span></div><a href="tel:1900636929">Đăng ký tư vấn miễn phí</a></section></div>
     <Footer />
   </div>
