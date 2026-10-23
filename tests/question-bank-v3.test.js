@@ -209,9 +209,25 @@ test('Record preparation and writing limits are persisted by repository and migr
   assert.match(repository, /minWordCount:\s*r\.min_word_count/);
   assert.match(repository, /audioMediaId:\s*r\.audio_media_id/);
   assert.match(repository, /audio_media_id=CASE WHEN \$12::boolean THEN \$13::uuid ELSE audio_media_id END/);
-  assert.match(repository, /UPDATE question_bank_media SET sub_question_id=\$2/);
+  assert.match(repository, /SET scope='SUB_QUESTION',sub_question_id=\$2,content_id=NULL/);
   assert.match(repository, /SUB_QUESTION_AUDIO_INVALID/);
   assert.match(migration, /audio_media_id UUID/);
+});
+
+test('Question Bank media writes keep legacy scope consistent with their concrete target', () => {
+  const contentRepository = read('src/modules/question-bank-v3/contentRepository.js');
+  const subQuestionRepository = read('src/modules/question-bank-v3/subQuestionRepository.js');
+  const mediaService = read('src/modules/question-bank-v3/mediaService.js');
+
+  assert.match(contentRepository, /SET scope='CONTENT',content_id=\$2,sub_question_id=NULL/);
+  assert.match(subQuestionRepository, /SET scope='SUB_QUESTION',sub_question_id=\$2,content_id=NULL/);
+  assert.match(subQuestionRepository, /await attachAudio\(client, questionId, row\.id, data\.audioMediaId \|\| null\)/);
+  assert.match(subQuestionRepository, /if \(updatesAudio\) await attachAudio\(client, questionId, id, mediaId\)/);
+  assert.match(subQuestionRepository, /DELETE FROM question_bank_media WHERE id=\$1 RETURNING storage_key/);
+  assert.match(mediaService, /content_id,scope,media_type/);
+  assert.match(mediaService, /VALUES\(\$1,\$2,\$3,'CONTENT',\$4/);
+  assert.match(mediaService, /sub_question_id,scope,media_type/);
+  assert.match(mediaService, /VALUES\(\$1,\$2,\$3,'SUB_QUESTION','AUDIO',\$4/);
 });
 
 test('Writing requires positive maximum characters and non-negative minimum words', () => {

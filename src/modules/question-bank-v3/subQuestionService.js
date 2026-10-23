@@ -91,15 +91,26 @@ async function list(id) { await ensure(id); return repo.list(id); }
 async function create(id, data) {
   const question = await ensure(id, true);
   validate(data, question.questionType);
-  const subId = await repo.create(id, normalizeForType(data, question.questionType));
-  return repo.find(id, subId);
+  try {
+    const result = await repo.create(id, normalizeForType(data, question.questionType));
+    return repo.find(id, result.id);
+  } catch (error) {
+    if (error.code === 'SUB_QUESTION_AUDIO_INVALID') throw new HttpError('Audio câu hỏi không hợp lệ hoặc không thuộc câu hỏi này.', 400, 'SUB_QUESTION_AUDIO_INVALID');
+    throw error;
+  }
 }
 
 async function update(questionId, id, data) {
   const question = await ensure(questionId, true);
   if (!await repo.find(questionId, id)) throw new HttpError('Không tìm thấy câu hỏi con.', 404, 'SUB_QUESTION_NOT_FOUND');
   validate(data, question.questionType);
-  await repo.update(questionId, id, normalizeForType(data, question.questionType));
+  try {
+    const result = await repo.update(questionId, id, normalizeForType(data, question.questionType));
+    await cleanup(result.deletedStorageKeys);
+  } catch (error) {
+    if (error.code === 'SUB_QUESTION_AUDIO_INVALID') throw new HttpError('Audio câu hỏi không hợp lệ hoặc không thuộc câu hỏi này.', 400, 'SUB_QUESTION_AUDIO_INVALID');
+    throw error;
+  }
   return repo.find(questionId, id);
 }
 
