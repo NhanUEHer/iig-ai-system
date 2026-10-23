@@ -124,7 +124,7 @@ async function findDelivery(examId, attemptId, candidateId) {
   return { attempt, snapshot, media };
 }
 
-async function saveAnswer({ examId, attemptId, candidateId, parentQuestionId, subQuestionId, selectedOption, flagged, now }) {
+async function saveAnswer({ examId, attemptId, candidateId, parentQuestionId, subQuestionId, selectedOption, textAnswer, flagged, now }) {
   return db.transaction(async client => {
     const attempt = (await client.query(
       `SELECT id,status,expires_at FROM exam_attempts
@@ -133,12 +133,12 @@ async function saveAnswer({ examId, attemptId, candidateId, parentQuestionId, su
     )).rows[0];
     if (!attempt || attempt.status !== 'IN_PROGRESS' || new Date(attempt.expires_at) <= now) return null;
     const answer = (await client.query(
-      `INSERT INTO exam_attempt_answers(attempt_id,question_id,sub_question_id,selected_option,is_flagged,answered_at,created_at,updated_at)
-       VALUES($1,$2,$3,$4,$5,$6,$6,$6)
+      `INSERT INTO exam_attempt_answers(attempt_id,question_id,sub_question_id,selected_option,text_answer,is_flagged,answered_at,created_at,updated_at)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$7,$7)
        ON CONFLICT(attempt_id,sub_question_id) WHERE sub_question_id IS NOT NULL
-       DO UPDATE SET selected_option=EXCLUDED.selected_option,is_flagged=EXCLUDED.is_flagged,answered_at=EXCLUDED.answered_at,updated_at=EXCLUDED.updated_at
-       RETURNING sub_question_id,selected_option,is_flagged,updated_at`,
-      [attemptId, parentQuestionId, subQuestionId, selectedOption, flagged, now],
+       DO UPDATE SET selected_option=EXCLUDED.selected_option,text_answer=EXCLUDED.text_answer,is_flagged=EXCLUDED.is_flagged,answered_at=EXCLUDED.answered_at,updated_at=EXCLUDED.updated_at
+       RETURNING sub_question_id,selected_option,text_answer,is_flagged,updated_at`,
+      [attemptId, parentQuestionId, subQuestionId, selectedOption, textAnswer, flagged, now],
     )).rows[0];
     await client.query('UPDATE exam_attempts SET last_activity_at=$2,updated_at=$2 WHERE id=$1', [attemptId, now]);
     return answer;
@@ -147,7 +147,7 @@ async function saveAnswer({ examId, attemptId, candidateId, parentQuestionId, su
 
 async function findAnswers(attemptId) {
   return (await db.query(
-    `SELECT sub_question_id,selected_option,is_flagged,answered_at
+    `SELECT sub_question_id,selected_option,text_answer,is_flagged,answered_at
      FROM exam_attempt_answers
      WHERE attempt_id=$1 AND sub_question_id IS NOT NULL`,
     [attemptId],
@@ -201,7 +201,7 @@ async function findResultPresentation(examId, attemptId, candidateId) {
          FROM exam_attempts
          WHERE exam_id=$1 AND status='SUBMITTED'
        )
-       SELECT e.id AS exam_id,e.exam_code,e.title AS exam_title,e.exam_type,
+       SELECT e.id AS exam_id,e.exam_code,e.title AS exam_title,e.test_type,e.exam_type,
               COALESCE((SELECT SUM(es.configured_duration_seconds) FROM exam_sections es WHERE es.exam_id=e.id),
                        e.duration_minutes*60+e.duration_seconds,0)::int AS allowed_duration_seconds,
               c.id AS candidate_id,c.candidate_number,c.full_name,c.email,c.phone,c.school_name,

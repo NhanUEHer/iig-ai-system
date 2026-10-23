@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { validateQuestionInput } = require('../src/modules/question-bank-v3/questionValidator');
-const { validate, normalizeForType } = require('../src/modules/question-bank-v3/subQuestionService');
+const { validate, validateCompleteWords, markerIndexes, normalizeForType } = require('../src/modules/question-bank-v3/subQuestionService');
 const { validate: validateMedia, hasSignature, mediaTypeFromSlug } = require('../src/modules/question-bank-v3/mediaService');
 
 const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
@@ -15,11 +15,35 @@ const mainQuestion = questionType => ({
   status: 'DRAFT',
 });
 
-test('Question Bank V3 accepts MCQ, Record and Writing main question types', () => {
-  for (const type of ['MCQ_SINGLE', 'RECORD', 'WRITING']) {
+test('Question Bank V3 accepts all implemented main question types', () => {
+  for (const type of ['MCQ_SINGLE', 'RECORD', 'WRITING', 'COMPLETE_WORDS']) {
     assert.doesNotThrow(() => validateQuestionInput(mainQuestion(type)));
   }
   assert.throws(() => validateQuestionInput(mainQuestion('UNKNOWN')), error => error.code === 'QUESTION_TYPE_INVALID');
+});
+
+test('Complete the Words validates contiguous markers and matching answers', () => {
+  const stem = '<p>We mi[1] think th[2] prehistoric people danced.</p>';
+  const gaps = [
+    { gapIndex: 1, correctText: 'ght', caseSensitive: false },
+    { gapIndex: 2, correctText: 'at', caseSensitive: false },
+  ];
+  assert.deepEqual(markerIndexes(stem), [1, 2]);
+  assert.doesNotThrow(() => validateCompleteWords(stem, gaps));
+  assert.throws(() => validateCompleteWords('<p>A[1] B[3]</p>', gaps), error => error.code === 'GAP_MARKERS_MISMATCH');
+  assert.throws(() => validateCompleteWords('<p>A[1] B[1]</p>', gaps), error => error.code === 'GAP_MARKER_DUPLICATE');
+  assert.throws(() => validateCompleteWords(stem, [{ gapIndex: 1, correctText: ' ' }, gaps[1]]), error => error.code === 'GAP_ANSWER_INVALID');
+});
+
+test('Complete the Words migration and repository preserve the atomic contract', () => {
+  const migration = read('src/database/migrations/121_toefl_complete_words.sql');
+  const repository = read('src/modules/question-bank-v3/subQuestionRepository.js');
+  assert.match(migration, /ADD COLUMN IF NOT EXISTS stem_html TEXT/);
+  assert.match(migration, /ADD COLUMN IF NOT EXISTS gap_index INTEGER/);
+  assert.match(migration, /ADD COLUMN IF NOT EXISTS text_answer TEXT/);
+  assert.match(migration, /uq_qb_sub_question_gap_index/);
+  assert.match(repository, /saveCompleteWords/);
+  assert.match(repository, /question_type='COMPLETE_WORDS'/);
 });
 
 test('MCQ sub-question accepts question_text plus two options with a single correct answer', () => {

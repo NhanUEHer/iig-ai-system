@@ -5,8 +5,8 @@ const storage = require('../src/services/storageService');
 const deliveryCache = require('../src/modules/public-exam-events/examDeliveryCache');
 
 test('delivery cache schema bypasses legacy generations containing expired URLs', () => {
-  assert.equal(deliveryCache.cacheKey('version-1'), 'exam:delivery:v3:version-1');
-  assert.equal(deliveryCache.currentKey('exam-1'), 'exam:published:v3:exam-1:current');
+  assert.equal(deliveryCache.cacheKey('version-1'), 'exam:delivery:v4:version-1');
+  assert.equal(deliveryCache.currentKey('exam-1'), 'exam:published:v4:exam-1:current');
 });
 
 test('published delivery cache stores durable media references instead of expiring signed URLs', async () => {

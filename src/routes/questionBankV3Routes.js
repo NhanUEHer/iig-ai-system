@@ -36,6 +36,7 @@ router.get('/media/:mediaId/url', requirePermission('question_bank.view'), async
 router.get('/questions/:questionId/sub-questions', requirePermission('question_bank.view'), asyncHandler(subQuestion.list));
 router.put('/questions/:questionId/sub-questions/reorder', requirePermission('question_bank.manage'), asyncHandler(subQuestion.reorder));
 router.put('/questions/:questionId/sub-questions', requirePermission('question_bank.manage'), asyncHandler(subQuestion.saveAll));
+router.put('/questions/:questionId/complete-words', requirePermission('question_bank.manage'), asyncHandler(subQuestion.saveCompleteWords));
 router.post('/questions/:questionId/sub-questions', requirePermission('question_bank.manage'), asyncHandler(subQuestion.create));
 router.put('/questions/:questionId/sub-questions/:subQuestionId', requirePermission('question_bank.manage'), asyncHandler(subQuestion.update));
 router.delete('/questions/:questionId/sub-questions/:subQuestionId', requirePermission('question_bank.manage'), asyncHandler(subQuestion.remove));

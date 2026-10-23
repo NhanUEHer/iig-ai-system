@@ -23,15 +23,17 @@ function questionActualDuration(mode, source = {}) {
 }
 
 // Part actual duration = instruction audio (once) + sum(question durations)
+// + the configured answer window for every child question
 // + max(parentCount - 1, 0) * breakDuration. Breaks only apply between parent
 // questions, never after the last one and never between sub-questions.
-function partActualDuration(mode, { instructionAudioSeconds = 0, questionDurations = [], breakDurationSeconds = 0, configuredDurationSeconds = 0 } = {}) {
+function partActualDuration(mode, { instructionAudioSeconds = 0, questionDurations = [], breakDurationSeconds = 0, answerDurationSeconds = 0, subQuestionCount = 0, configuredDurationSeconds = 0 } = {}) {
   if (mode === 'WRITING_NON_STOP') return toSeconds(configuredDurationSeconds);
   if (!TIMED_MODES.has(mode)) return null;
   const questionsTotal = questionDurations.reduce((sum, value) => sum + toSeconds(value), 0);
+  const answersTotal = toSeconds(answerDurationSeconds) * Math.max(0, Number(subQuestionCount) || 0);
   const parentCount = questionDurations.length;
   const breakCount = Math.max(parentCount - 1, 0);
-  return Math.round(toSeconds(instructionAudioSeconds) + questionsTotal + breakCount * toSeconds(breakDurationSeconds));
+  return Math.round(toSeconds(instructionAudioSeconds) + questionsTotal + answersTotal + breakCount * toSeconds(breakDurationSeconds));
 }
 
 // Section actual duration = sum of its parts' actual durations (timed modes only).

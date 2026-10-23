@@ -17,6 +17,13 @@ function questionText(data) { return String(data.questionText ?? data.promptHtml
 // Validate a single sub-question against the rules of its parent question type.
 // Used both for direct writes and for the activation readiness check.
 function validate(data, type) {
+  if (type === 'COMPLETE_WORDS') {
+    const gapIndex = Number(data.gapIndex);
+    if (!Number.isInteger(gapIndex) || gapIndex <= 0) throw new HttpError('Số thứ tự khoảng trống không hợp lệ.', 400, 'GAP_INDEX_INVALID');
+    const answer = String(data.correctText || '').trim();
+    if (!answer || answer.length > 120) throw new HttpError('Đáp án khoảng trống không hợp lệ.', 400, 'GAP_ANSWER_INVALID');
+    return;
+  }
   if (!questionText(data)) throw new HttpError('Nội dung câu hỏi là bắt buộc.', 400, 'PROMPT_REQUIRED');
   if (type === 'RECORD') {
     const prep = Number(data.preparationDurationSeconds);
@@ -49,7 +56,34 @@ function normalizeForType(data, type) {
     normalized.maxCharacterCount = null;
     normalized.minWordCount = null;
   }
+  if (type !== 'COMPLETE_WORDS') {
+    normalized.gapIndex = null;
+    normalized.correctText = null;
+    normalized.caseSensitive = false;
+  }
   return normalized;
+}
+
+function markerIndexes(stemHtml) {
+  const text = String(stemHtml || '').replace(/<[^>]*>/g, ' ');
+  return [...text.matchAll(/\[(\d+)\]/g)].map(match => Number(match[1]));
+}
+
+function validateCompleteWords(stemHtml, gaps) {
+  if (!String(stemHtml || '').trim()) throw new HttpError('Đoạn văn có khoảng trống là bắt buộc.', 400, 'STEM_REQUIRED');
+  if (!Array.isArray(gaps) || !gaps.length) throw new HttpError('Cần ít nhất một khoảng trống.', 400, 'GAPS_REQUIRED');
+  const markers = markerIndexes(stemHtml);
+  const unique = new Set(markers);
+  if (markers.length !== unique.size) throw new HttpError('Mỗi ký hiệu [n] chỉ được xuất hiện một lần.', 400, 'GAP_MARKER_DUPLICATE');
+  const expected = Array.from({ length: gaps.length }, (_value, index) => index + 1);
+  if (markers.length !== expected.length || expected.some(index => !unique.has(index))) {
+    throw new HttpError('Các ký hiệu khoảng trống phải liên tục từ [1] và khớp với danh sách đáp án.', 400, 'GAP_MARKERS_MISMATCH');
+  }
+  const indexes = gaps.map(item => Number(item.gapIndex));
+  if (new Set(indexes).size !== indexes.length || expected.some(index => !indexes.includes(index))) {
+    throw new HttpError('Danh sách đáp án không khớp với các khoảng trống.', 400, 'GAPS_MISMATCH');
+  }
+  gaps.forEach(item => validate(item, 'COMPLETE_WORDS'));
 }
 
 async function list(id) { await ensure(id); return repo.list(id); }
@@ -88,6 +122,7 @@ async function reorder(q, ids) {
 // aborts the request and rolls back the transaction.
 async function saveAll(questionId, items) {
   const question = await ensure(questionId, true);
+  if (question.questionType === 'COMPLETE_WORDS') throw new HttpError('Hãy dùng trình soạn Complete the Words.', 400, 'COMPLETE_WORDS_ENDPOINT_REQUIRED');
   if (!Array.isArray(items)) throw new HttpError('Danh sách câu hỏi con không hợp lệ.', 400, 'SUB_QUESTION_ITEMS_INVALID');
   items.forEach(item => validate(item, question.questionType));
   const normalizedItems = items.map(item => normalizeForType(item, question.questionType));
@@ -102,4 +137,36 @@ async function saveAll(questionId, items) {
   }
 }
 
-module.exports = { list, create, update, remove, reorder, saveAll, validate, normalizeForType };
+async function saveCompleteWords(questionId, data) {
+  const question = await ensure(questionId, true);
+  if (question.questionType !== 'COMPLETE_WORDS') throw new HttpError('Câu hỏi không thuộc dạng Complete the Words.', 400, 'QUESTION_TYPE_MISMATCH');
+  const gaps = data?.gaps;
+  const support = data?.support || {};
+  validateCompleteWords(data?.stemHtml, gaps);
+  const normalized = gaps
+    .map(item => ({
+      id: item.id,
+      questionText: `Khoảng trống [${Number(item.gapIndex)}]`,
+      gapIndex: Number(item.gapIndex),
+      correctText: String(item.correctText).trim(),
+      caseSensitive: !!item.caseSensitive,
+      instructionHtml: String(support.instructionHtml || '').trim() || null,
+      hintHtml: String(support.hintHtml || '').trim() || null,
+      explanationHtml: String(support.explanationHtml || '').trim() || null,
+      note: String(support.note || '').trim() || null,
+    }))
+    .sort((a, b) => a.gapIndex - b.gapIndex);
+  try {
+    const result = await repo.saveCompleteWords(questionId, String(data.stemHtml), normalized);
+    const savedSupport = result.items[0] || {};
+    return { stemHtml: String(data.stemHtml), gaps: result.items, support: {
+      instructionHtml: savedSupport.instructionHtml || '', hintHtml: savedSupport.hintHtml || '',
+      explanationHtml: savedSupport.explanationHtml || '', note: savedSupport.note || '',
+    } };
+  } catch (error) {
+    if (error.code === 'SUB_QUESTION_NOT_IN_QUESTION') throw new HttpError('Khoảng trống không thuộc câu hỏi này.', 400, 'SUB_QUESTION_NOT_IN_QUESTION');
+    throw error;
+  }
+}
+
+module.exports = { list, create, update, remove, reorder, saveAll, saveCompleteWords, validate, validateCompleteWords, markerIndexes, normalizeForType };

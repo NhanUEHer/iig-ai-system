@@ -76,6 +76,19 @@ test('LR scoring rejects missing scale mapping and invalid correct options', () 
   assert.throws(() => scoring.evaluate({ grading: invalid }), error => error.code === 'SCORING_CORRECT_OPTION_INVALID');
 });
 
+test('LR scoring evaluates Complete the Words text with configurable case sensitivity', () => {
+  const completeWords = structuredClone(grading);
+  completeWords.questions.r1 = { ...completeWords.questions.r1, questionType: 'COMPLETE_WORDS', correctOptionKey: null, correctOptionCount: 0, correctText: 'GHT', caseSensitive: false };
+  completeWords.questions.r2 = { ...completeWords.questions.r2, questionType: 'COMPLETE_WORDS', correctOptionKey: null, correctOptionCount: 0, correctText: 'At', caseSensitive: true };
+  const result = scoring.evaluate({ grading: completeWords, answers: [
+    { subQuestionId: 'r1', textAnswer: ' ght ' },
+    { subQuestionId: 'r2', textAnswer: 'at' },
+  ] });
+  assert.equal(result.items.find(item => item.subQuestionId === 'r1').isCorrect, true);
+  assert.equal(result.items.find(item => item.subQuestionId === 'r2').isCorrect, false);
+  assert.equal(result.sectionResults.find(section => section.sectionId === readingId).correctCount, 1);
+});
+
 test('attempt result migration stores answer correctness, section scores and indexed attempt summaries', () => {
   const fs = require('node:fs');
   const path = require('node:path');

@@ -142,6 +142,7 @@ async function readAttemptAnswers(attemptId, { databaseFallback = false, hydrate
     const durable = databaseAnswers.map(answer => ({
       subQuestionId: answer.sub_question_id,
       selectedOptionKey: answer.selected_option,
+      textAnswer: answer.text_answer,
       flagged: answer.is_flagged === true,
       savedAt: answer.answered_at,
     }));
@@ -175,7 +176,7 @@ async function resume(examId, attemptId, token, options = {}) {
     startedAt: attempt.started_at,
     expiresAt: attempt.expires_at,
     remainingSeconds: Math.max(0, Math.floor((new Date(attempt.expires_at) - now) / 1000)),
-    answeredQuestionIds: [...answers.values()].filter(answer => answer.selectedOptionKey).map(answer => answer.subQuestionId),
+    answeredQuestionIds: [...answers.values()].filter(answer => answer.selectedOptionKey || String(answer.textAnswer || '').trim()).map(answer => answer.subQuestionId),
   };
 }
 
@@ -184,7 +185,7 @@ async function partQuestions(examId, attemptId, partId, token, options) {
   const result = await piece(examId, attemptId, token, 'partQuestions', partId, options);
   const byId = await readAttemptAnswers(attemptId);
   return { attempt: result.attempt, ...result.payload,
-    questions: result.payload.questions.map(question => ({ ...question, answered: Boolean(byId.get(question.id)?.selectedOptionKey) })),
+    questions: result.payload.questions.map(question => ({ ...question, answered: Boolean(byId.get(question.id)?.selectedOptionKey || String(byId.get(question.id)?.textAnswer || '').trim()) })),
     cache: result.cache };
 }
 
@@ -194,7 +195,8 @@ async function questionGroup(examId, attemptId, parentQuestionId, token, options
   const byId = await readAttemptAnswers(attemptId);
   return { attempt: result.attempt, questionGroup: { ...result.payload,
     questions: result.payload.questions.map(question => ({ ...question,
-      selectedOption: byId.get(question.id)?.selectedOptionKey || null })) }, cache: result.cache };
+      selectedOption: byId.get(question.id)?.selectedOptionKey || null,
+      textAnswer: byId.get(question.id)?.textAnswer ?? null })) }, cache: result.cache };
 }
 
 async function saveAnswer(examId, attemptId, subQuestionId, token, input = {}, options = {}) {
@@ -207,12 +209,18 @@ async function saveAnswer(examId, attemptId, subQuestionId, token, input = {}, o
   const target = grading.questions[subQuestionId];
   if (!target) throw new HttpError('Câu hỏi không thuộc lượt thi.', 404, 'SUB_QUESTION_NOT_FOUND');
   const selectedOption = input.selectedOptionKey == null ? null : String(input.selectedOptionKey).trim();
-  if (selectedOption && !target.optionKeys.includes(selectedOption)) throw new HttpError('Đáp án không hợp lệ.', 400, 'INVALID_SELECTED_OPTION');
-  const answer = { selectedOptionKey: selectedOption, flagged: input.flagged === true, savedAt: now.toISOString() };
+  const textAnswer = input.textAnswer == null ? null : String(input.textAnswer).slice(0, 120);
+  if (target.questionType === 'COMPLETE_WORDS') {
+    if (selectedOption) throw new HttpError('Dạng Complete the Words chỉ nhận câu trả lời văn bản.', 400, 'INVALID_ANSWER_TYPE');
+  } else {
+    if (textAnswer !== null) throw new HttpError('Dạng câu hỏi này không nhận câu trả lời văn bản.', 400, 'INVALID_ANSWER_TYPE');
+    if (selectedOption && !target.optionKeys.includes(selectedOption)) throw new HttpError('Đáp án không hợp lệ.', 400, 'INVALID_SELECTED_OPTION');
+  }
+  const answer = { selectedOptionKey: selectedOption, textAnswer, flagged: input.flagged === true, savedAt: now.toISOString() };
   const cached = await answerStore.save(attemptId, subQuestionId, answer, attempt.expires_at);
   if (!cached) {
     const saved = await repository.saveAnswer({ examId, attemptId, candidateId: identity.sub,
-      parentQuestionId: target.parentQuestionId, subQuestionId, selectedOption, flagged: answer.flagged, now });
+      parentQuestionId: target.parentQuestionId, subQuestionId, selectedOption, textAnswer, flagged: answer.flagged, now });
     if (!saved) throw new HttpError('Không thể lưu vì lượt thi đã kết thúc.', 409, 'ATTEMPT_NOT_IN_PROGRESS');
   }
   return { subQuestionId, ...answer, storage: cached ? 'REDIS' : 'POSTGRESQL_FALLBACK' };
@@ -346,6 +354,7 @@ async function result(examId, attemptId, token) {
       id: meta.exam_id || stored.attempt.exam_id,
       code: meta.exam_code || null,
       title: meta.exam_title || '',
+      testType: meta.test_type || 'TOEIC',
       examType: meta.exam_type || null,
       allowedDurationSeconds: Number(meta.allowed_duration_seconds || 0),
     },

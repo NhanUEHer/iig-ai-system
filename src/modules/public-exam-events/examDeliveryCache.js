@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const redis = require('../../config/redis');
 const storage = require('../../services/storageService');
 
-const CACHE_SCHEMA = 'v3';
+const CACHE_SCHEMA = 'v4';
 const TTL_SECONDS = Math.max(300, Number(process.env.EXAM_DELIVERY_CACHE_TTL_SECONDS || 86400));
 const MEDIA_URL_FIELDS = new Set(['url', 'audioUrl', 'imageUrl', 'videoUrl', 'questionAudioUrl']);
 const valueOf = (object, camel, snake) => object?.[camel] ?? object?.[snake] ?? null;
@@ -75,8 +75,9 @@ async function build(snapshot = {}, mediaRows = []) {
       for (const subQuestion of parent.subQuestions || []) {
         number += 1;
         const contentId = valueOf(subQuestion, 'contentId', 'content_id');
-        const content = contents.get(contentId) || null;
-        const contentMedia = storedMedia(mediaByTarget.get(contentId) || []);
+        const content = contents.get(contentId) || parent.contents?.[0] || null;
+        const resolvedContentId = content?.id || contentId;
+        const contentMedia = storedMedia(mediaByTarget.get(resolvedContentId) || []);
         const questionMedia = storedMedia(mediaByTarget.get(subQuestion.id) || []);
         const audio = contentMedia.find(item => item.type === 'AUDIO') || null;
         const image = contentMedia.find(item => item.type === 'IMAGE') || null;
@@ -87,6 +88,7 @@ async function build(snapshot = {}, mediaRows = []) {
           number,
           parentQuestionId: parent.id,
           questionType: valueOf(parent, 'questionType', 'question_type') || 'MCQ_SINGLE',
+          stemHtml: valueOf(parent, 'stemHtml', 'stem_html') || '',
           group: { from: groupFrom, to: groupTo, label: groupLabel },
           content: content ? {
             id: content.id,
@@ -105,6 +107,8 @@ async function build(snapshot = {}, mediaRows = []) {
           minWordCount: Number(valueOf(subQuestion, 'minWordCount', 'min_word_count') || 0),
           maxWordCount: Number(valueOf(subQuestion, 'maxWordCount', 'max_word_count') || 0),
           maxCharacterCount: Number(valueOf(subQuestion, 'maxCharacterCount', 'max_character_count') || 0),
+          gapIndex: Number(valueOf(subQuestion, 'gapIndex', 'gap_index') || 0),
+          inputLength: String(valueOf(subQuestion, 'correctText', 'correct_text') || '').length,
           options: (subQuestion.options || []).map(option => ({
             id: option.id,
             key: valueOf(option, 'optionKey', 'option_key'),
@@ -125,6 +129,7 @@ async function build(snapshot = {}, mediaRows = []) {
       instructionHtml: part.instructionHtml || '',
       instructionAudio: storedMedia(mediaByTarget.get(part.id) || [])[0] || null,
       breakDurationSeconds: Number(part.breakDurationSeconds || 0),
+      answerDurationSeconds: part.answerDurationSeconds == null ? null : Number(part.answerDurationSeconds),
       configuredDurationSeconds: Number(part.configuredDurationSeconds || 0),
       questions,
     });
@@ -162,6 +167,7 @@ function buildBundle(delivery, snapshot = {}) {
           range: question.group,
           content: question.content,
           breakDurationSeconds: Number(part.breakDurationSeconds || 0),
+          answerDurationSeconds: part.answerDurationSeconds == null ? null : Number(part.answerDurationSeconds),
           questions: [],
         };
         groupedByParent.set(question.parentQuestionId, group);
@@ -173,6 +179,7 @@ function buildBundle(delivery, snapshot = {}) {
         number: question.number,
         sortOrder: group.questions.length,
         questionType: question.questionType,
+        stemHtml: question.stemHtml,
         promptHtml: question.promptHtml,
         questionAudioUrl: question.questionAudioUrl,
         questionMedia: question.questionMedia,
@@ -181,6 +188,8 @@ function buildBundle(delivery, snapshot = {}) {
         minWordCount: question.minWordCount,
         maxWordCount: question.maxWordCount,
         maxCharacterCount: question.maxCharacterCount,
+        gapIndex: question.gapIndex,
+        inputLength: question.inputLength,
         options: question.options,
       });
     }
@@ -229,6 +238,7 @@ function buildBundle(delivery, snapshot = {}) {
         id: delivery.exam.id,
         code: delivery.exam.code || null,
         title: delivery.exam.title,
+        testType: delivery.exam.testType || 'TOEIC',
         examType: delivery.exam.examType || null,
         description: delivery.exam.description || '',
         introductionHtml: delivery.exam.introductionHtml || '',
@@ -244,6 +254,7 @@ function buildBundle(delivery, snapshot = {}) {
     },
     structure: {
       examId: delivery.exam.id,
+      testType: delivery.exam.testType || 'TOEIC',
       sections: (delivery.sections || []).map(section => ({
         ...section,
         parts: section.parts.map(partId => {
@@ -252,6 +263,7 @@ function buildBundle(delivery, snapshot = {}) {
             id: part.id, title: part.title, sortOrder: part.order,
             questionCount: part.questions.length, instructionHtml: part.instructionHtml,
             instructionAudio: part.instructionAudio, breakDurationSeconds: part.breakDurationSeconds,
+            answerDurationSeconds: part.answerDurationSeconds,
             configuredDurationSeconds: part.configuredDurationSeconds,
           };
         }),
@@ -419,6 +431,8 @@ function buildGrading(snapshot = {}) {
       examMode: part.examMode || sections[part.sectionId]?.examMode || null,
       correctOptionKey: valueOf(correct, 'optionKey', 'option_key'),
       correctOptionCount: correctOptions.length,
+      correctText: valueOf(sub, 'correctText', 'correct_text'),
+      caseSensitive: valueOf(sub, 'caseSensitive', 'case_sensitive') === true,
       optionKeys: (sub.options || []).map(option => valueOf(option, 'optionKey', 'option_key')),
       points: Number(snapshot.exam?.pointsPerSubQuestion || 0),
     };

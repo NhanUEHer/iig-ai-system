@@ -65,10 +65,26 @@ test('migration 113 adds public catalog metadata and many-to-many exam groups', 
   assert.match(sql, /PRIMARY KEY \(exam_id, group_id\)/i);
 });
 
+test('migration 122 adds test classification and TOEFL Listening Part timing', () => {
+  const sql = read('src/database/migrations/122_exam_test_type_and_toefl_listening_timing.sql');
+  assert.match(sql, /test_type VARCHAR\(20\) NOT NULL DEFAULT 'TOEIC'/i);
+  assert.match(sql, /'TOEIC', 'TOEFL_IBT'/i);
+  assert.match(sql, /answer_duration_seconds INTEGER/i);
+  assert.match(sql, /sub_question_gap_seconds INTEGER NOT NULL DEFAULT 0/i);
+});
+
+test('migration 127 safely replays TOEFL timing after advanced local histories', () => {
+  const sql = read('src/database/migrations/127_exam_test_type_and_toefl_listening_timing.sql');
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS test_type/i);
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS answer_duration_seconds/i);
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS sub_question_gap_seconds/i);
+});
+
 // ---------------------------------------------------------------------------
 // Constants + compatibility matrix
 // ---------------------------------------------------------------------------
 test('exam types and modes match the approved six/four enumerations', () => {
+  assert.deepEqual(constants.TEST_TYPES, ['TOEIC', 'TOEFL_IBT']);
   assert.deepEqual(constants.EXAM_TYPES.slice().sort(), ['LISTENING', 'LISTENING_READING', 'READING', 'SPEAKING', 'SPEAKING_WRITING', 'WRITING'].sort());
   assert.deepEqual(constants.EXAM_MODES.slice().sort(), ['FREESTYLE', 'NON_STOP', 'RECORD_NON_STOP', 'WRITING_NON_STOP'].sort());
 });
@@ -89,6 +105,13 @@ test('mode question types map to the correct question bank type', () => {
   assert.equal(constants.MODE_QUESTION_TYPE.FREESTYLE, 'MCQ_SINGLE');
   assert.equal(constants.MODE_QUESTION_TYPE.RECORD_NON_STOP, 'RECORD');
   assert.equal(constants.MODE_QUESTION_TYPE.WRITING_NON_STOP, 'WRITING');
+});
+
+test('Complete the Words is restricted to TOEFL iBT Reading while TOEIC keeps legacy MCQ', () => {
+  assert.deepEqual(constants.questionTypesForExam('TOEIC', 'FREESTYLE'), ['MCQ_SINGLE']);
+  assert.deepEqual(constants.questionTypesForExam('TOEFL_IBT', 'FREESTYLE'), ['MCQ_SINGLE', 'COMPLETE_WORDS']);
+  assert.deepEqual(constants.questionTypesForExam('TOEIC', 'NON_STOP'), ['MCQ_SINGLE']);
+  assert.deepEqual(constants.questionTypesForExam('TOEFL_IBT', 'NON_STOP'), ['MCQ_SINGLE']);
 });
 
 // ---------------------------------------------------------------------------
@@ -123,6 +146,8 @@ test('part creation needs only a title; content fields are optional', () => {
   assert.throws(() => validator.validatePartCreate({ title: '  ' }), e => e.code === 'PART_TITLE_REQUIRED');
   assert.doesNotThrow(() => validator.validatePartCreate({ title: 'Part 1' }));
   assert.doesNotThrow(() => validator.validatePartContent({}));
+  assert.doesNotThrow(() => validator.validatePartContent({ answerDurationSeconds: 20 }));
+  assert.throws(() => validator.validatePartContent({ answerDurationSeconds: 0 }), e => e.code === 'PART_ANSWER_DURATION_INVALID');
   assert.doesNotThrow(() => validator.validatePartContent({ instructionHtml: '<p>ok</p>', breakDurationSeconds: 0 }));
   assert.throws(() => validator.validatePartContent({ breakDurationSeconds: -1 }), e => e.code === 'PART_BREAK_DURATION_INVALID');
   assert.doesNotThrow(() => validator.validatePartContent({ configuredDurationSeconds: 1800 }));
@@ -153,6 +178,7 @@ test('Part duration adds instruction audio and (N-1) breaks for 0, 1, 2 and 50 q
   assert.equal(calc.partActualDuration('NON_STOP', { instructionAudioSeconds: 0, questionDurations: mk(2), breakDurationSeconds: 5 }), 25);
   // 50 questions: 49 breaks.
   assert.equal(calc.partActualDuration('NON_STOP', { instructionAudioSeconds: 0, questionDurations: mk(50), breakDurationSeconds: 5 }), 50 * 10 + 49 * 5);
+  assert.equal(calc.partActualDuration('NON_STOP', { instructionAudioSeconds: 7, questionDurations: mk(2), breakDurationSeconds: 5, answerDurationSeconds: 20, subQuestionCount: 3 }), 92);
   // Reading/Writing parts are not timed.
   assert.equal(calc.partActualDuration('FREESTYLE', { questionDurations: mk(3) }), null);
   assert.equal(calc.partActualDuration('WRITING_NON_STOP', { instructionAudioSeconds: 20, configuredDurationSeconds: 1800 }), 1800);
@@ -179,6 +205,7 @@ test('exam detail exposes each question duration for the editor table', () => {
 // ---------------------------------------------------------------------------
 test('eligibility SQL applies mode-specific content/audio rules', () => {
   const source = read('src/modules/exams/examRepository.js');
+  assert.match(source, /questionTypesForExam\(testType, mode\)/);
   // NON_STOP / RECORD_NON_STOP require exactly one content with a ready audio.
   assert.match(source, /question_bank_contents c WHERE c\.question_id=q\.id\)=1/);
   assert.match(source, /JOIN question_bank_media m ON m\.id=c\.audio_media_id WHERE c\.question_id=q\.id AND m\.media_type='AUDIO'/);

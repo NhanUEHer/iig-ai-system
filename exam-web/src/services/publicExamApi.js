@@ -55,9 +55,9 @@ export const getAttemptQuestionGroup = ({ examId, attemptId, attemptToken, paren
   { token: attemptToken },
 )
 
-export const saveAttemptAnswer = ({ examId, attemptId, attemptToken, subQuestionId, selectedOptionKey }) => request(
+export const saveAttemptAnswer = ({ examId, attemptId, attemptToken, subQuestionId, selectedOptionKey, textAnswer }) => request(
   `/public/exams/${encodeURIComponent(examId)}/attempts/${encodeURIComponent(attemptId)}/answers/${encodeURIComponent(subQuestionId)}`,
-  { method: 'PUT', token: attemptToken, body: JSON.stringify({ selectedOptionKey }) },
+  { method: 'PUT', token: attemptToken, body: JSON.stringify(textAnswer !== undefined ? { textAnswer } : { selectedOptionKey }) },
 )
 
 export const submitExamAttempt = ({ examId, attemptId, attemptToken }) => request(

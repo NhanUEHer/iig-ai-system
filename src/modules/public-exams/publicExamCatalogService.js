@@ -72,6 +72,7 @@ async function detail(examId) {
     id: exam.id,
     code: exam.code || null,
     title: exam.title || '',
+    testType: exam.testType || 'TOEIC',
     examType: exam.examType || null,
     description: exam.description || '',
     introductionHtml: exam.introductionHtml || '',
@@ -99,6 +100,7 @@ async function detail(examId) {
         instructionHtml: part.instructionHtml || '',
         instructionAudio: part.instructionAudio || null,
         breakDurationSeconds: Number(part.breakDurationSeconds || 0),
+        answerDurationSeconds: part.answerDurationSeconds == null ? null : Number(part.answerDurationSeconds),
       })),
     })),
   };
