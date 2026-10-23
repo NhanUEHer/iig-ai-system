@@ -37,6 +37,7 @@ test('Complete the Words validates contiguous markers and matching answers', () 
 
 test('Complete the Words migration and repository preserve the atomic contract', () => {
   const migration = read('src/database/migrations/121_toefl_complete_words.sql');
+  const constraintMigration = read('src/database/migrations/128_allow_current_sub_question_types.sql');
   const repository = read('src/modules/question-bank-v3/subQuestionRepository.js');
   assert.match(migration, /ADD COLUMN IF NOT EXISTS stem_html TEXT/);
   assert.match(migration, /ADD COLUMN IF NOT EXISTS gap_index INTEGER/);
@@ -44,6 +45,16 @@ test('Complete the Words migration and repository preserve the atomic contract',
   assert.match(migration, /uq_qb_sub_question_gap_index/);
   assert.match(repository, /saveCompleteWords/);
   assert.match(repository, /question_type='COMPLETE_WORDS'/);
+  assert.match(constraintMigration, /DROP CONSTRAINT IF EXISTS chk_sub_question_type/);
+  assert.match(constraintMigration, /ADD CONSTRAINT chk_sub_question_type CHECK/);
+  for (const type of [
+    'MCQ_SINGLE', 'MCQ_MULTIPLE', 'RECORD_AUDIO', 'RECORD_VIDEO',
+    'WRITING_SHORT', 'WRITING_ESSAY', 'RECORD', 'WRITING', 'COMPLETE_WORDS',
+  ]) {
+    assert.match(constraintMigration, new RegExp(`'${type}'`));
+  }
+  assert.match(constraintMigration, /NOT VALID/);
+  assert.match(constraintMigration, /VALIDATE CONSTRAINT chk_sub_question_type/);
 });
 
 test('MCQ sub-question accepts question_text plus two options with a single correct answer', () => {
