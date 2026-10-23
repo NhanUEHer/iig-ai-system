@@ -99,23 +99,54 @@ async function syncOptions(client, subQuestionId, options) {
   }
 }
 
+async function attachAudio(client, questionId, subQuestionId, mediaId) {
+  if (!mediaId) return;
+  const media = await client.query(
+    `SELECT id FROM question_bank_media
+     WHERE id=$1 AND question_id=$2 AND media_type='AUDIO' AND content_id IS NULL AND sample_answer_id IS NULL
+       AND (sub_question_id IS NULL OR sub_question_id=$3) FOR UPDATE`,
+    [mediaId, questionId, subQuestionId],
+  );
+  if (!media.rows[0]) {
+    const err = new Error('SUB_QUESTION_AUDIO_INVALID');
+    err.code = 'SUB_QUESTION_AUDIO_INVALID';
+    throw err;
+  }
+  await client.query(
+    `UPDATE question_bank_media
+     SET scope='SUB_QUESTION',sub_question_id=$2,content_id=NULL
+     WHERE id=$1`,
+    [mediaId, subQuestionId],
+  );
+}
+
 async function create(questionId, data) {
   return db.transaction(async client => {
     const order = await client.query('SELECT COALESCE(MAX(sort_order)+1,0) n FROM question_bank_sub_questions WHERE question_id=$1', [questionId]);
     const row = await insertRow(client, questionId, data, order.rows[0].n);
+    await attachAudio(client, questionId, row.id, data.audioMediaId || null);
     if (Array.isArray(data.options)) await syncOptions(client, row.id, data.options);
-    return row.id;
+    return { id: row.id, deletedStorageKeys: [] };
   });
 }
 
 async function update(questionId, id, data) {
   return db.transaction(async client => {
-    const current = await client.query('SELECT sort_order FROM question_bank_sub_questions WHERE id=$1 AND question_id=$2 FOR UPDATE', [id, questionId]);
-    if (!current.rows[0]) return false;
+    const current = await client.query('SELECT sort_order,audio_media_id FROM question_bank_sub_questions WHERE id=$1 AND question_id=$2 FOR UPDATE', [id, questionId]);
+    if (!current.rows[0]) return { updated: false, deletedStorageKeys: [] };
     const row = await updateRow(client, questionId, id, data, data.sortOrder ?? current.rows[0].sort_order);
-    if (!row) return false;
+    if (!row) return { updated: false, deletedStorageKeys: [] };
+    const updatesAudio = Object.prototype.hasOwnProperty.call(data, 'audioMediaId');
+    const mediaId = data.audioMediaId || null;
+    if (updatesAudio) await attachAudio(client, questionId, id, mediaId);
+    const oldMediaId = current.rows[0].audio_media_id;
+    let deletedStorageKeys = [];
+    if (updatesAudio && oldMediaId && String(oldMediaId) !== String(mediaId || '')) {
+      const removed = await client.query('DELETE FROM question_bank_media WHERE id=$1 RETURNING storage_key', [oldMediaId]);
+      deletedStorageKeys = removed.rows.map(item => item.storage_key);
+    }
     if (Array.isArray(data.options)) await syncOptions(client, id, data.options);
-    return true;
+    return { updated: true, deletedStorageKeys };
   });
 }
 
@@ -178,20 +209,7 @@ async function saveAll(questionId, items) {
         rowId = row.id;
       }
       const mediaId = item.audioMediaId || null;
-      if (mediaId) {
-        const media = await client.query(
-          `SELECT id FROM question_bank_media
-           WHERE id=$1 AND question_id=$2 AND media_type='AUDIO' AND content_id IS NULL AND sample_answer_id IS NULL
-             AND (sub_question_id IS NULL OR sub_question_id=$3) FOR UPDATE`,
-          [mediaId, questionId, rowId],
-        );
-        if (!media.rows[0]) {
-          const err = new Error('SUB_QUESTION_AUDIO_INVALID');
-          err.code = 'SUB_QUESTION_AUDIO_INVALID';
-          throw err;
-        }
-        await client.query('UPDATE question_bank_media SET sub_question_id=$2 WHERE id=$1', [mediaId, rowId]);
-      }
+      await attachAudio(client, questionId, rowId, mediaId);
       const oldMediaId = existingById.get(String(rowId))?.audio_media_id;
       if (oldMediaId && String(oldMediaId) !== String(mediaId || '')) replacedMediaIds.push(oldMediaId);
       if (Array.isArray(item.options)) await syncOptions(client, rowId, item.options);
