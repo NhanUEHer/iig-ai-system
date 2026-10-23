@@ -4,13 +4,14 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 
-async function durationSeconds(buffer, originalName = 'audio.mp3') {
+async function durationSeconds(buffer, originalName = 'audio.mp3', dependencies = {}) {
+  const run = dependencies.execFile || execFile;
   const extension = path.extname(String(originalName || '')) || '.audio';
   const target = path.join(os.tmpdir(), `question-media-${crypto.randomUUID()}${extension}`);
   await fs.writeFile(target, buffer);
   try {
     const value = await new Promise((resolve, reject) => {
-      execFile('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=nw=1:nk=1', target], (error, stdout) => {
+      run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=nw=1:nk=1', target], (error, stdout) => {
         if (error) return reject(error);
         resolve(Number.parseFloat(stdout));
       });
