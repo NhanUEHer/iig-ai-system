@@ -158,8 +158,8 @@ async function uploadContentMedia(contentId, slug, file, userId) {
       assertEditable(lockedTarget.question_status);
       const previousId = lockedTarget[CONTENT_COLUMN[type]];
       const inserted = await client.query(
-        `INSERT INTO question_bank_media(id,question_id,content_id,media_type,original_name,storage_key,mime_type,file_size,duration_seconds,created_by)
-         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+        `INSERT INTO question_bank_media(id,question_id,content_id,scope,media_type,original_name,storage_key,mime_type,file_size,duration_seconds,created_by)
+         VALUES($1,$2,$3,'CONTENT',$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
         [mediaId, lockedTarget.question_id, contentId, type, file.originalname, storedKey, file.mimetype, file.size, duration, userId || null],
       );
       await client.query(`UPDATE question_bank_contents SET ${CONTENT_COLUMN[type]}=$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1`, [contentId, mediaId]);
@@ -203,8 +203,8 @@ async function uploadSubQuestionAudio(subQuestionId, file, userId) {
       const lockedTarget = await subQuestionTarget(subQuestionId, client, true);
       assertEditable(lockedTarget.question_status);
       const inserted = await client.query(
-        `INSERT INTO question_bank_media(id,question_id,sub_question_id,media_type,original_name,storage_key,mime_type,file_size,duration_seconds,created_by)
-         VALUES($1,$2,$3,'AUDIO',$4,$5,$6,$7,$8,$9) RETURNING *`,
+        `INSERT INTO question_bank_media(id,question_id,sub_question_id,scope,media_type,original_name,storage_key,mime_type,file_size,duration_seconds,created_by)
+         VALUES($1,$2,$3,'SUB_QUESTION','AUDIO',$4,$5,$6,$7,$8,$9) RETURNING *`,
         [mediaId, lockedTarget.question_id, subQuestionId, file.originalname, storedKey, file.mimetype, file.size, duration, userId || null],
       );
       await client.query('UPDATE question_bank_sub_questions SET audio_media_id=$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1', [subQuestionId, mediaId]);

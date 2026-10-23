@@ -131,7 +131,12 @@ async function saveAll(questionId, items) {
             err.code = 'CONTENT_MEDIA_INVALID';
             throw err;
           }
-          await client.query('UPDATE question_bank_media SET content_id=$2 WHERE id=$1', [mediaId, contentId]);
+          await client.query(
+            `UPDATE question_bank_media
+             SET scope='CONTENT',content_id=$2,sub_question_id=NULL
+             WHERE id=$1`,
+            [mediaId, contentId],
+          );
         }
         const oldId = previous?.[column];
         if (oldId && String(oldId) !== String(mediaId || '')) replacedMediaIds.push(oldId);
