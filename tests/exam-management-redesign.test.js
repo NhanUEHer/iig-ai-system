@@ -263,7 +263,17 @@ test('audio metadata reader obtains backend duration from a WAV buffer', async (
   wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
   wav.writeUInt32LE(sampleRate, 24); wav.writeUInt32LE(sampleRate * 2, 28);
   wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(dataSize, 40);
-  assert.equal(await audioMetadata.durationSeconds(wav, 'sample.wav'), 1);
+  let invocation;
+  const fakeExecFile = (command, args, callback) => {
+    invocation = { command, args };
+    callback(null, '1.000000\n');
+  };
+  assert.equal(await audioMetadata.durationSeconds(wav, 'sample.wav', { execFile: fakeExecFile }), 1);
+  assert.equal(invocation.command, 'ffprobe');
+  assert.deepEqual(invocation.args.slice(0, 6), [
+    '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=nw=1:nk=1',
+  ]);
+  assert.match(invocation.args[6], /question-media-.*\.wav$/);
 });
 
 // ---------------------------------------------------------------------------
