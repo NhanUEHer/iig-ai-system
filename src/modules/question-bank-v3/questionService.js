@@ -20,6 +20,10 @@ async function ensureReady(id, question) {
   if (!contentItems.length) throw new HttpError('Câu hỏi cần có ít nhất một nội dung trước khi kích hoạt.', 400, 'QUESTION_CONTENT_REQUIRED');
   const items = await subQuestions.list(id);
   if (!items.length) throw new HttpError('Câu hỏi chưa có câu hỏi con.', 400, 'QUESTION_NOT_READY');
+  if (question.questionType === 'COMPLETE_WORDS') {
+    require('./subQuestionService').validateCompleteWords(question.stemHtml, items);
+    return;
+  }
   for (const item of items) validate(item, question.questionType);
 }
 

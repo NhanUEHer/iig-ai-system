@@ -7,10 +7,11 @@ import RichTextEditor from '../../components/common/RichTextEditor';
 import MediaUploader from '../../components/common/MediaUploader';
 import McqQuestionEditor from '../question-bank/components/McqQuestionEditor';
 import RecordQuestionEditor from '../question-bank/components/RecordQuestionEditor';
+import CompleteWordsEditor from './CompleteWordsEditor';
 import { useDialog } from '../../components/feedback/dialogContext';
 import {
   getQuestion, getQuestionMediaUrl, listQuestionContents, listQuestionGroups, listSubQuestions,
-  removeSubQuestionAudio, saveQuestionContents, saveSubQuestions,
+  removeSubQuestionAudio, saveCompleteWords, saveQuestionContents, saveSubQuestions,
   updateQuestion, uploadSubQuestionAudio,
 } from '../../services/questionBankService';
 import { apiError, clientId, QUESTION_STATUSES, QUESTION_TYPES, statusLabel } from './constants';
@@ -39,6 +40,7 @@ export default function QuestionEditPage({ navigate, showMsg }) {
   const [groups, setGroups] = useState([]);
   const [contents, setContents] = useState([]);
   const [subQuestions, setSubQuestions] = useState([]);
+  const [completeWordsSupport, setCompleteWordsSupport] = useState({ instructionHtml: '', hintHtml: '', explanationHtml: '', note: '' });
   const [mediaUrls, setMediaUrls] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState('');
@@ -64,6 +66,8 @@ export default function QuestionEditPage({ navigate, showMsg }) {
       const contentItems = contentResponse.data || [];
       const subItems = subResponse.data || [];
       setQuestion(nextQuestion); setPersistedStatus(nextQuestion.status); setGroups(groupsResponse.data || []); setContents(contentItems); setSubQuestions(subItems);
+      const support = subItems[0] || {};
+      setCompleteWordsSupport({ instructionHtml: support.instructionHtml || '', hintHtml: support.hintHtml || '', explanationHtml: support.explanationHtml || '', note: support.note || '' });
       await resolveUrls(contentItems, subItems);
     } catch (error) { showMsgRef.current?.(apiError(error, 'Không thể tải câu hỏi.'), 'error'); }
     finally { setLoading(false); }
@@ -98,6 +102,17 @@ export default function QuestionEditPage({ navigate, showMsg }) {
     catch (error) { showMsg?.(apiError(error, 'Không thể lưu câu hỏi con.'), 'error'); }
     finally { setSaving(''); }
   };
+  const saveWordGaps = async () => {
+    try {
+      setSaving('questions');
+      const response = await saveCompleteWords(id, question.stemHtml || '', subQuestions.map(({ clientId: _clientId, ...item }) => item), completeWordsSupport);
+      setQuestion(current => ({ ...current, stemHtml: response.data.stemHtml }));
+      setSubQuestions(response.data.gaps || []);
+      setCompleteWordsSupport(response.data.support || completeWordsSupport);
+      showMsg?.('Đã lưu đoạn văn và toàn bộ khoảng trống.', 'success');
+    } catch (error) { showMsg?.(apiError(error, 'Không thể lưu Complete the Words.'), 'error'); }
+    finally { setSaving(''); }
+  };
   if (loading || !question) return <div className="qm-loading">Đang tải dữ liệu…</div>;
   return <section className="qm-editor-page">
     <header className="qm-editor-topbar"><Breadcrumb separator={<ChevronRight />} items={[{ label: 'Ngân hàng câu hỏi' }, { label: 'Cập nhật câu hỏi', current: true }]} /></header>
@@ -118,7 +133,9 @@ export default function QuestionEditPage({ navigate, showMsg }) {
         <Tabs value={tab} onChange={setTab} items={[{ value: 'content', label: <><FileText />Nội dung</> }, { value: 'questions', label: <><CircleHelp />Câu hỏi</> }]} />
         {locked && <div className="qm-lock-note">Câu hỏi đang hoạt động. Chuyển sang “Dừng hoạt động” và lưu thông tin trước khi chỉnh sửa.</div>}
         {tab === 'content' ? <ContentTab questionId={id} items={contents} setItems={setContents} patch={patchContent} remove={removeContent} locked={locked} saving={saving === 'content'} save={saveContents} mediaUrls={mediaUrls} setMediaUrls={setMediaUrls} showMsg={showMsg} />
-          : <QuestionsTab questionId={id} type={question.questionType} items={subQuestions} setItems={setSubQuestions} patch={patchSub} patchOption={patchOption} locked={locked} saving={saving === 'questions'} save={saveQuestions} mediaUrls={mediaUrls} setMediaUrls={setMediaUrls} showMsg={showMsg} confirm={confirm} />}
+          : question.questionType === 'COMPLETE_WORDS'
+            ? <CompleteWordsEditor stemHtml={question.stemHtml || ''} gaps={subQuestions} support={completeWordsSupport} onStemChange={value => patchQuestion('stemHtml', value)} onGapsChange={setSubQuestions} onSupportChange={setCompleteWordsSupport} onSave={saveWordGaps} onCancel={load} locked={locked} saving={saving === 'questions'} />
+            : <QuestionsTab questionId={id} type={question.questionType} items={subQuestions} setItems={setSubQuestions} patch={patchSub} patchOption={patchOption} locked={locked} saving={saving === 'questions'} save={saveQuestions} mediaUrls={mediaUrls} setMediaUrls={setMediaUrls} showMsg={showMsg} confirm={confirm} />}
       </section>
     </main>
   </section>;

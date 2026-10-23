@@ -5,7 +5,7 @@ import {listAvailableQuestions} from '../../../services/examService';
 import {listQuestionGroups} from '../../../services/questionBankService';
 import './ExamQuestionPicker.css';
 
-const typeName=type=>type==='RECORD'?'Record':type==='WRITING'?'Writing':'Trắc nghiệm đơn';
+const typeName=type=>type==='RECORD'?'Record':type==='WRITING'?'Writing':type==='COMPLETE_WORDS'?'Complete the Words':'Trắc nghiệm đơn';
 const initialFilters={search:'',groupId:'',page:1,limit:10};
 const formatAudioDuration=value=>{const total=Math.max(0,Math.round(Number(value)||0));return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;};
 

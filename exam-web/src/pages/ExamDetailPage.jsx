@@ -60,9 +60,20 @@ function Guidelines({ exam }) {
   </DetailCard>
 }
 
-function ExamSidebar() {
+function ExamSidebar({ exam }) {
+  const isToefl = exam.testType === 'TOEFL_IBT'
+  const title = isToefl ? 'Lưu ý khi làm bài TOEFL iBT' : 'Bí quyết bứt phá mục tiêu 650+'
+  const tips = isToefl ? [
+    'Hoàn thành phần Reading trước khi chuyển sang phần Listening.',
+    'Audio Listening chỉ phát một lần; câu hỏi xuất hiện sau khi audio kết thúc.',
+    'Mỗi câu Listening có thời gian riêng và không thể quay lại câu đã qua.',
+  ] : [
+    'Phân bổ thời gian: 45 phút nghe và tối đa 75 phút đọc để không bỏ sót câu hỏi.',
+    'Đọc kỹ yêu cầu, xác định từ khóa trước khi lựa chọn đáp án.',
+    'Hoàn thành toàn bộ câu hỏi trước khi nộp bài.',
+  ]
   return <aside className="detail-sidebar">
-    <section className="tip-card"><header><Icon>tips_and_updates</Icon><h2>Bí quyết bứt phá mục tiêu 650+</h2></header><ul><li><Icon>check_circle</Icon><span>Phân bổ thời gian: 45 phút nghe và tối đa 75 phút đọc để không bỏ sót câu hỏi.</span></li><li><Icon>check_circle</Icon><span>Đọc kỹ yêu cầu, xác định từ khóa trước khi lựa chọn đáp án.</span></li><li><Icon>check_circle</Icon><span>Hoàn thành toàn bộ câu hỏi trước khi nộp bài.</span></li></ul><a href="#courses"><Icon>school</Icon>Khám phá khóa học IIG</a></section>
+    <section className="tip-card"><header><Icon>tips_and_updates</Icon><h2>{title}</h2></header><ul>{tips.map(tip => <li key={tip}><Icon>check_circle</Icon><span>{tip}</span></li>)}</ul>{!isToefl && <a href="#courses"><Icon>school</Icon>Khám phá khóa học IIG</a>}</section>
   </aside>
 }
 
@@ -100,7 +111,7 @@ function ExamDetailPage({ examId, Header, Footer }) {
   if (error || !exam) return <><Header active="exams" /><main className="detail-page"><div className="detail-state error"><Icon>error</Icon><strong>{error || 'Không tìm thấy đề thi.'}</strong><a href="/exams">Quay lại danh sách đề thi</a></div></main><Footer /></>
 
   return <>
-    <Header active="exams" />
+    <Header active="exams" campaignLabel={exam.testType === 'TOEFL_IBT' ? 'TOEFL iBT Online Test' : 'TOEIC Challenge 2026'} />
     <main className="detail-page">
       <div className="detail-container">
         <nav className="detail-breadcrumb" aria-label="Breadcrumb"><a href="/"><Icon>home</Icon>Trang chủ</a><Icon>chevron_right</Icon><a href="/exams">Danh sách đề thi</a><Icon>chevron_right</Icon><span>{exam.title}</span></nav>
@@ -117,10 +128,10 @@ function ExamDetailPage({ examId, Header, Footer }) {
             <Structure exam={exam} />
             <div id="exam-guidelines"><Guidelines exam={exam} /></div>
           </div>
-          <ExamSidebar />
+          <ExamSidebar exam={exam} />
         </div>
       </div>
-      <div id="courses" className="detail-courses"><FeaturedCourses /></div>
+      {exam.testType !== 'TOEFL_IBT' && <div id="courses" className="detail-courses"><FeaturedCourses /></div>}
     </main>
     <Footer />
   </>

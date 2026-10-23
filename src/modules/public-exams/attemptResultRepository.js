@@ -14,17 +14,17 @@ function mapSection(row) {
 async function persist(client, attemptId, evaluation, now, { capDurationAtExpiry = false } = {}) {
   const answers = evaluation.items.map(item => ({
     question_id: item.parentQuestionId, sub_question_id: item.subQuestionId,
-    selected_option: item.selectedOption || null, is_flagged: item.flagged === true,
+    selected_option: item.selectedOption || null, text_answer: item.textAnswer ?? null, is_flagged: item.flagged === true,
     is_correct: item.isCorrect, score: item.score, answered_at: item.savedAt || now,
   }));
   if (answers.length) await client.query(
     `INSERT INTO exam_attempt_answers(
-       attempt_id,question_id,sub_question_id,selected_option,is_flagged,is_correct,score,answered_at,created_at,updated_at
-     ) SELECT $1,x.question_id,x.sub_question_id,x.selected_option,x.is_flagged,x.is_correct,x.score,x.answered_at,$2,$2
+       attempt_id,question_id,sub_question_id,selected_option,text_answer,is_flagged,is_correct,score,answered_at,created_at,updated_at
+     ) SELECT $1,x.question_id,x.sub_question_id,x.selected_option,x.text_answer,x.is_flagged,x.is_correct,x.score,x.answered_at,$2,$2
      FROM jsonb_to_recordset($3::jsonb) AS x(
-       question_id uuid,sub_question_id uuid,selected_option text,is_flagged boolean,is_correct boolean,score numeric,answered_at timestamptz
+       question_id uuid,sub_question_id uuid,selected_option text,text_answer text,is_flagged boolean,is_correct boolean,score numeric,answered_at timestamptz
      ) ON CONFLICT(attempt_id,sub_question_id) WHERE sub_question_id IS NOT NULL
-     DO UPDATE SET selected_option=EXCLUDED.selected_option,is_flagged=EXCLUDED.is_flagged,
+     DO UPDATE SET selected_option=EXCLUDED.selected_option,text_answer=EXCLUDED.text_answer,is_flagged=EXCLUDED.is_flagged,
        is_correct=EXCLUDED.is_correct,score=EXCLUDED.score,answered_at=EXCLUDED.answered_at,updated_at=EXCLUDED.updated_at`,
     [attemptId, now, JSON.stringify(answers)],
   );

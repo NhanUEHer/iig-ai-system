@@ -25,6 +25,10 @@ export async function saveSubQuestions(questionId, items) {
   const response = await api.put(`/question-bank/questions/${questionId}/sub-questions`, { items });
   return response.data;
 }
+export async function saveCompleteWords(questionId, stemHtml, gaps, support) {
+  const response = await api.put(`/question-bank/questions/${questionId}/complete-words`, { stemHtml, gaps, support });
+  return response.data;
+}
 export async function uploadContentMedia(contentId, mediaType, file) {
   const body = new FormData(); body.append('file', file);
   const response = await api.post(`/question-bank/contents/${contentId}/media/${mediaType}`, body);

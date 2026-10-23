@@ -58,6 +58,7 @@ test('direct public result API returns presentation-ready summary without loadin
       exam_id: examId,
       exam_code: 'LR-04',
       exam_title: 'TOEIC Listening & Reading',
+      test_type: 'TOEIC',
       exam_type: 'TOEIC_LR',
       allowed_duration_seconds: 7200,
       candidate_id: candidateId,
@@ -84,6 +85,7 @@ test('direct public result API returns presentation-ready summary without loadin
     const token = signAttemptToken({ candidateId, examId, attemptId }, new Date('2030-01-01T00:00:00Z'));
     const result = await service.result(examId, attemptId, token);
     assert.equal(result.exam.title, 'TOEIC Listening & Reading');
+    assert.equal(result.exam.testType, 'TOEIC');
     assert.equal(result.candidate.candidateNumber, 'TS-2026-0001');
     assert.equal(result.accuracyPercent, 50);
     assert.equal(result.averageSecondsPerAnswered, 20);

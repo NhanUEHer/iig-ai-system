@@ -3,7 +3,7 @@ const HttpError = require('../../http/httpError');
 const repo = require('./examRepository');
 const calc = require('./durationCalculator');
 const { validateExam, validateListFilters, validateSection, validatePartCreate, validatePartContent } = require('./examValidator');
-const { isModeCompatible, modesForExamType, MODE_QUESTION_TYPE, TIMED_MODES, EXAM_ERROR_CODES } = require('./examConstants');
+const { isModeCompatible, modesForExamType, questionTypesForExam, TIMED_MODES, EXAM_ERROR_CODES } = require('./examConstants');
 const examDeliveryRepository = require('../public-exams/examDeliveryRepository');
 const deliveryCache = require('../public-exam-events/examDeliveryCache');
 const scoreScaleRepository = require('../score-scales/scoreScaleRepository');
@@ -70,11 +70,14 @@ async function withComputedDurations(exam) {
         q.actualDurationSeconds = duration;
         return duration;
       });
-      actualSubCount += part.questions.reduce((sum, q) => sum + Number(q.subQuestionCount || 0), 0);
+      const partSubQuestionCount = part.questions.reduce((sum, q) => sum + Number(q.subQuestionCount || 0), 0);
+      actualSubCount += partSubQuestionCount;
       const partActual = calc.partActualDuration(section.examMode, {
         instructionAudioSeconds: instructionAudio.get(part.id) || 0,
         questionDurations: questionDurations.map(v => v || 0),
         breakDurationSeconds: part.breakDurationSeconds,
+        answerDurationSeconds: part.answerDurationSeconds,
+        subQuestionCount: partSubQuestionCount,
         configuredDurationSeconds: part.configuredDurationSeconds,
       });
       part.actualDurationSeconds = partActual;
@@ -105,6 +108,7 @@ async function list(filters = {}) {
 // Exam CRUD
 // ---------------------------------------------------------------------------
 async function create(data, userId) {
+  data = { ...data, testType: data.testType || 'TOEIC' };
   validateExam(data);
   // Preserve the legacy Draft creation path for internal import/seed clients.
   // Admin creation sends groupIds and uses the atomic metadata assignment below.
@@ -131,6 +135,9 @@ async function update(id, data, userId) {
       if (await repo.countSections(id, client) > 0) {
         throw new HttpError('Không thể đổi kiểu đề khi đề đã có Phần thi. Hãy xóa các Phần thi không tương thích trước.', 409, EXAM_ERROR_CODES.EXAM_TYPE_IMMUTABLE_WITH_SECTIONS);
       }
+    }
+    if (data.testType !== undefined && data.testType !== current.testType && await repo.countSections(id, client) > 0) {
+      throw new HttpError('Không thể đổi loại bài thi khi đề đã có Phần thi.', 409, 'TEST_TYPE_IMMUTABLE_WITH_SECTIONS');
     }
     await repo.update(id, data, userId, client);
     if (data.groupIds !== undefined && !await repo.replaceGroups(id, data.groupIds, client)) throw new HttpError('Có nhóm đề thi không tồn tại.', 400, 'EXAM_GROUPS_INVALID');
@@ -274,12 +281,15 @@ async function assertInstructionAudio(mediaId, partId, client = db) {
 
 async function updatePart(examId, sectionId, partId, data) {
   await db.transaction(async client => {
-    await ensureEditable(examId, client);
+    const exam = await ensureEditable(examId, client);
     const section = await ensureSection(examId, sectionId, client);
     await ensurePart(examId, sectionId, partId, client);
+    const isToeflListening = exam.testType === 'TOEFL_IBT' && section.examMode === 'NON_STOP';
     const nextData = section.examMode === 'WRITING_NON_STOP'
       ? { ...data, breakDurationSeconds: 0 }
-      : { ...data, configuredDurationSeconds: 0, breakDurationSeconds: TIMED_MODES.has(section.examMode) ? data.breakDurationSeconds : 0 };
+      : { ...data, configuredDurationSeconds: 0, breakDurationSeconds: TIMED_MODES.has(section.examMode) ? data.breakDurationSeconds : 0,
+        answerDurationSeconds: isToeflListening ? data.answerDurationSeconds : null,
+        subQuestionGapSeconds: 0 };
     validatePartContent(nextData);
     if (nextData.instructionAudioMediaId) await assertInstructionAudio(nextData.instructionAudioMediaId, partId, client);
     await repo.updatePartContent(examId, sectionId, partId, nextData, client);
@@ -314,10 +324,10 @@ async function reorderParts(examId, sectionId, ids) {
 // Eligibility resolves the exam mode from the Part's Section on the server; the
 // client never supplies a mode (spec §16).
 async function listEligibleQuestions(examId, partId, filters) {
-  await get(examId);
+  const exam = await get(examId);
   const located = await repo.findPartWithSection(examId, partId);
   if (!located) throw new HttpError('Part không thuộc đề thi này.', 404, EXAM_ERROR_CODES.PART_NOT_FOUND);
-  return repo.listEligibleQuestions(examId, located.examMode, filters);
+  return repo.listEligibleQuestions(examId, exam.testType, located.examMode, filters);
 }
 
 async function addQuestions(examId, sectionId, partId, questionIds) {
@@ -325,14 +335,14 @@ async function addQuestions(examId, sectionId, partId, questionIds) {
   const unique = [...new Set(questionIds)];
   if (unique.length !== questionIds.length) throw new HttpError('Danh sách câu hỏi bị trùng.', 400, EXAM_ERROR_CODES.DUPLICATE_QUESTIONS);
   return db.transaction(async client => {
-    await ensureEditable(examId, client);
+    const exam = await ensureEditable(examId, client);
     const section = await ensureSection(examId, sectionId, client);
     await ensurePart(examId, sectionId, partId, client);
     // Check "already in the exam" first so the clearer conflict wins over the
     // eligibility rule (which also excludes questions already used).
     const used = await repo.findUsedQuestions(examId, unique, client);
     if (used.length) throw new HttpError('Một hoặc nhiều câu hỏi đã có trong đề thi.', 409, EXAM_ERROR_CODES.QUESTION_ALREADY_ADDED);
-    const eligible = await repo.filterEligibleIds(examId, section.examMode, unique, client);
+    const eligible = await repo.filterEligibleIds(examId, exam.testType, section.examMode, unique, client);
     const notEligible = unique.filter(id => !eligible.has(id));
     if (notEligible.length) throw new HttpError('Một hoặc nhiều câu hỏi không đủ điều kiện cho kiểu thi này.', 400, EXAM_ERROR_CODES.QUESTION_NOT_ELIGIBLE);
     await repo.addQuestions(examId, partId, unique, client);
@@ -374,11 +384,20 @@ async function validation(examId) {
   const warnings = [];
 
   if (!exam.title) errors.push({ scope: 'exam', message: 'Đề thi chưa có tên.' });
+  if (!exam.testType) errors.push({ scope: 'exam', code: 'TEST_TYPE_REQUIRED', message: 'Đề thi chưa có loại bài thi.' });
   if (!exam.examType) errors.push({ scope: 'exam', code: EXAM_ERROR_CODES.EXAM_TYPE_REQUIRED, message: 'Đề thi chưa có kiểu đề.' });
   if (!exam.difficulty) errors.push({ scope: 'exam', code: 'EXAM_DIFFICULTY_REQUIRED', message: 'Đề thi chưa được thiết lập độ khó.' });
   if (!exam.groups?.length) errors.push({ scope: 'exam', code: 'EXAM_GROUP_REQUIRED', message: 'Đề thi phải thuộc ít nhất một nhóm.' });
   if (!exam.cardImage?.storageKey) errors.push({ scope: 'exam', code: 'EXAM_IMAGE_REQUIRED', message: 'Đề thi chưa có ảnh đại diện.' });
   if (!exam.sections.length) errors.push({ scope: 'exam', message: 'Đề thi phải có ít nhất một Phần thi.' });
+  if (exam.testType === 'TOEFL_IBT' && exam.examType === 'LISTENING_READING') {
+    const modes = exam.sections.map(section => section.examMode);
+    const firstReading = modes.indexOf('FREESTYLE');
+    const firstListening = modes.indexOf('NON_STOP');
+    if (firstReading < 0 || firstListening < 0 || firstReading > firstListening) {
+      errors.push({ scope: 'exam', code: 'TOEFL_SECTION_ORDER_INVALID', message: 'Đề TOEFL Listening & Reading phải có Reading trước Listening.' });
+    }
+  }
 
   const rows = await repo.loadValidationRows(examId);
   const rowsByQuestion = new Map();
@@ -412,7 +431,7 @@ async function validation(examId) {
       warnings.push({ scope: 'section', sectionId: section.id, message: `Phần thi “${section.title}” chênh lệch thời gian ${section.durationDifferenceSeconds}s so với cấu hình.` });
     }
 
-    const expectedType = MODE_QUESTION_TYPE[section.examMode];
+    const expectedTypes = questionTypesForExam(exam.testType, section.examMode);
     for (const part of section.parts) {
       if (!part.title) errors.push({ scope: 'part', sectionId: section.id, partId: part.id, message: 'Có Part chưa có tên.' });
       if (!part.questions.length) errors.push({ scope: 'part', sectionId: section.id, partId: part.id, message: `Part “${part.title}” chưa có câu hỏi.` });
@@ -420,11 +439,14 @@ async function validation(examId) {
         errors.push({ scope: 'part', sectionId: section.id, partId: part.id, code: 'PART_INSTRUCTION_AUDIO_REQUIRED', message: `Part “${part.title}” phải có audio hướng dẫn.` });
       }
       if (Number(part.breakDurationSeconds) < 0) errors.push({ scope: 'part', sectionId: section.id, partId: part.id, message: `Part “${part.title}” có thời gian nghỉ không hợp lệ.` });
+      if (exam.testType === 'TOEFL_IBT' && section.examMode === 'NON_STOP') {
+        if (!(Number(part.answerDurationSeconds) > 0)) errors.push({ scope: 'part', sectionId: section.id, partId: part.id, code: 'PART_ANSWER_DURATION_REQUIRED', message: `Part “${part.title}” phải có thời gian trả lời mỗi câu lớn hơn 0.` });
+      }
       if (section.examMode === 'WRITING_NON_STOP' && !(Number(part.configuredDurationSeconds) > 0)) {
         errors.push({ scope: 'part', sectionId: section.id, partId: part.id, code: 'PART_DURATION_REQUIRED', message: `Part “${part.title}” phải có thời gian làm bài lớn hơn 0.` });
       }
 
-      const ineligibleIds = await repo.findIneligibleQuestionIds(examId, section.examMode, part.questions.map(q => q.id));
+      const ineligibleIds = await repo.findIneligibleQuestionIds(examId, exam.testType, section.examMode, part.questions.map(q => q.id));
       for (const questionId of ineligibleIds) {
         errors.push({ scope: 'question', sectionId: section.id, partId: part.id, questionId, code: EXAM_ERROR_CODES.QUESTION_NOT_ELIGIBLE, message: 'Câu hỏi không còn đủ điều kiện cho kiểu thi của Phần thi.' });
       }
@@ -432,13 +454,14 @@ async function validation(examId) {
       for (const q of part.questions) {
         const id = q.id;
         if (q.status !== 'ACTIVE') errors.push({ scope: 'question', sectionId: section.id, partId: part.id, questionId: id, message: `Câu hỏi “${q.questionName}” chưa hoạt động.` });
-        if (q.questionType !== expectedType) errors.push({ scope: 'question', sectionId: section.id, partId: part.id, questionId: id, message: `Câu hỏi “${q.questionName}” không đúng dạng cho kiểu thi.` });
+        if (!expectedTypes.includes(q.questionType)) errors.push({ scope: 'question', sectionId: section.id, partId: part.id, questionId: id, message: `Câu hỏi “${q.questionName}” không đúng dạng cho kiểu thi.` });
         const subs = rowsByQuestion.get(id) || [];
         if (!subs.length) { errors.push({ scope: 'question', sectionId: section.id, partId: part.id, questionId: id, message: `Câu hỏi “${q.questionName}” chưa có câu hỏi con.` }); continue; }
         for (const sub of subs) {
           if (q.questionType === 'MCQ_SINGLE' && (sub.option_count < 2 || sub.correct_count !== 1)) errors.push({ scope: 'question', sectionId: section.id, partId: part.id, questionId: id, message: `Câu hỏi con của “${q.questionName}” phải có ít nhất 2 đáp án và đúng 1 đáp án đúng.` });
           if (q.questionType === 'RECORD' && !(Number(sub.recording_duration_seconds) > 0)) errors.push({ scope: 'question', sectionId: section.id, partId: part.id, questionId: id, message: `Câu hỏi Record “${q.questionName}” thiếu thời gian ghi âm hợp lệ.` });
           if (q.questionType === 'WRITING' && (!(Number(sub.max_character_count) > 0) || sub.min_word_count === null || sub.min_word_count === undefined)) errors.push({ scope: 'question', sectionId: section.id, partId: part.id, questionId: id, message: `Câu hỏi Writing “${q.questionName}” thiếu giới hạn ký tự hoặc số từ tối thiểu.` });
+          if (q.questionType === 'COMPLETE_WORDS' && (!(Number(sub.gap_index) > 0) || !String(sub.correct_text || '').trim() || !String(sub.stem_html || '').trim())) errors.push({ scope: 'question', sectionId: section.id, partId: part.id, questionId: id, message: `Câu hỏi Complete the Words “${q.questionName}” thiếu đoạn văn hoặc đáp án khoảng trống.` });
         }
       }
     }

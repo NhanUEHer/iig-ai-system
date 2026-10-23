@@ -19,6 +19,9 @@ const map = r => r && ({
   recordingDurationSeconds: r.recording_duration_seconds,
   maxCharacterCount: r.max_character_count,
   minWordCount: r.min_word_count,
+  gapIndex: r.gap_index,
+  correctText: r.correct_text,
+  caseSensitive: !!r.case_sensitive,
   sortOrder: r.sort_order,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
@@ -53,13 +56,15 @@ async function insertRow(client, questionId, data, sortOrder) {
   const q = await client.query(
     `INSERT INTO question_bank_sub_questions(
        question_id,content_id,sub_question_number,question_type,prompt_text,hint_html,explanation_html,note,points,
-       instruction_html,preparation_duration_seconds,recording_duration_seconds,max_character_count,min_word_count,audio_media_id,sort_order,display_order)
-     SELECT $1,NULL,COALESCE(MAX(s.sub_question_number)+1,1),p.question_type,$2,$3,$4,$5,1,$6,$7,$8,$9,$10,$11,$12,$12
+       instruction_html,preparation_duration_seconds,recording_duration_seconds,max_character_count,min_word_count,audio_media_id,
+       gap_index,correct_text,case_sensitive,sort_order,display_order)
+     SELECT $1,NULL,COALESCE(MAX(s.sub_question_number)+1,1),p.question_type,$2,$3,$4,$5,1,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$15
      FROM question_bank_questions p LEFT JOIN question_bank_sub_questions s ON s.question_id=p.id
      WHERE p.id=$1 GROUP BY p.question_type RETURNING *`,
     [questionId, questionText(data), data.hintHtml || null, data.explanationHtml || null, data.note || null,
       data.instructionHtml || null, data.preparationDurationSeconds ?? null, data.recordingDurationSeconds ?? null,
-      data.maxCharacterCount ?? null, data.minWordCount ?? null, data.audioMediaId || null, sortOrder],
+      data.maxCharacterCount ?? null, data.minWordCount ?? null, data.audioMediaId || null,
+      data.gapIndex ?? null, data.correctText ?? null, !!data.caseSensitive, sortOrder],
   );
   return q.rows[0];
 }
@@ -70,11 +75,13 @@ async function updateRow(client, questionId, id, data, sortOrder) {
     `UPDATE question_bank_sub_questions SET prompt_text=$3,hint_html=$4,explanation_html=$5,note=$6,instruction_html=$7,
        preparation_duration_seconds=$8,recording_duration_seconds=$9,max_character_count=$10,min_word_count=$11,
        audio_media_id=CASE WHEN $12::boolean THEN $13::uuid ELSE audio_media_id END,
-       sort_order=$14,display_order=$14,updated_at=CURRENT_TIMESTAMP
+       gap_index=$14,correct_text=$15,case_sensitive=$16,
+       sort_order=$17,display_order=$17,updated_at=CURRENT_TIMESTAMP
      WHERE id=$1 AND question_id=$2 RETURNING id`,
     [id, questionId, questionText(data), data.hintHtml || null, data.explanationHtml || null, data.note || null,
       data.instructionHtml || null, data.preparationDurationSeconds ?? null, data.recordingDurationSeconds ?? null,
-      data.maxCharacterCount ?? null, data.minWordCount ?? null, updatesAudio, data.audioMediaId || null, sortOrder],
+      data.maxCharacterCount ?? null, data.minWordCount ?? null, updatesAudio, data.audioMediaId || null,
+      data.gapIndex ?? null, data.correctText ?? null, !!data.caseSensitive, sortOrder],
   );
   return q.rows[0];
 }
@@ -204,4 +211,40 @@ async function saveAll(questionId, items) {
   });
 }
 
-module.exports = { map, mapOption, list, find, create, update, remove, reorder, saveAll };
+async function saveCompleteWords(questionId, stemHtml, items) {
+  return db.transaction(async client => {
+    await client.query(
+      `UPDATE question_bank_questions SET stem_html=$2,updated_at=CURRENT_TIMESTAMP
+       WHERE id=$1 AND question_type='COMPLETE_WORDS'`,
+      [questionId, stemHtml],
+    );
+    const result = await saveAllWithClient(questionId, items, client);
+    return result;
+  });
+}
+
+async function saveAllWithClient(questionId, items, client) {
+  const existing = await client.query('SELECT id,audio_media_id FROM question_bank_sub_questions WHERE question_id=$1', [questionId]);
+  const existingIds = new Set(existing.rows.map(r => String(r.id)));
+  const keptIds = new Set();
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    const id = item.id ? String(item.id) : null;
+    if (id && !existingIds.has(id)) {
+      const error = new Error('SUB_QUESTION_NOT_IN_QUESTION');
+      error.code = 'SUB_QUESTION_NOT_IN_QUESTION';
+      throw error;
+    }
+    if (id) {
+      await updateRow(client, questionId, id, item, i);
+      keptIds.add(id);
+    } else {
+      await insertRow(client, questionId, item, i);
+    }
+  }
+  const toDelete = [...existingIds].filter(id => !keptIds.has(id));
+  if (toDelete.length) await client.query('DELETE FROM question_bank_sub_questions WHERE question_id=$1 AND id=ANY($2::uuid[])', [questionId, toDelete]);
+  return { items: await list(questionId, client), deletedStorageKeys: [] };
+}
+
+module.exports = { map, mapOption, list, find, create, update, remove, reorder, saveAll, saveCompleteWords };

@@ -17,6 +17,8 @@ test('exam validator enforces the redesigned exam contract', () => {
   assert.throws(() => validator.validateExam({ ...validExam, title: '' }), error => error instanceof HttpError && error.code === 'EXAM_TITLE_REQUIRED');
   assert.throws(() => validator.validateExam({ ...validExam, status: 'PENDING' }), error => error instanceof HttpError && error.code === 'EXAM_STATUS_INVALID');
   assert.throws(() => validator.validateExam({ ...validExam, examType: 'UNKNOWN' }), error => error instanceof HttpError && error.code === 'EXAM_TYPE_INVALID');
+  assert.throws(() => validator.validateExam({ ...validExam, testType: 'IELTS' }), error => error instanceof HttpError && error.code === 'TEST_TYPE_INVALID');
+  assert.doesNotThrow(() => validator.validateExam({ ...validExam, testType: 'TOEFL_IBT' }));
   assert.doesNotThrow(() => validator.validateExam({ ...validExam, introduction: '<p>&nbsp;</p>' }));
   assert.doesNotThrow(() => validator.validateExam({ ...validExam, introduction: undefined }));
   assert.doesNotThrow(() => validator.validateExam(validExam));
@@ -25,11 +27,12 @@ test('exam validator enforces the redesigned exam contract', () => {
 test('exam repository maps exam type and structural counts to the API shape', () => {
   const exam = repository.mapExam({
     id: '11111111-1111-4111-8111-111111111111', exam_code: 'EX-0001', title: 'Exam', status: 'DRAFT',
-    exam_type: 'LISTENING', published_snapshot: null,
+    test_type: 'TOEFL_IBT', exam_type: 'LISTENING', published_snapshot: null,
     section_count: '2', part_count: '3', parent_question_count: '4', sub_question_count: '20', configured_duration_seconds: '3600', lock_version: '1',
   });
   assert.equal(exam.examCode, 'EX-0001');
   assert.equal(exam.examType, 'LISTENING');
+  assert.equal(exam.testType, 'TOEFL_IBT');
   assert.equal(exam.sectionCount, 2);
   assert.equal(exam.partCount, 3);
   assert.equal(exam.subQuestionCount, 20);
@@ -41,6 +44,7 @@ test('exam repository maps exam type and structural counts to the API shape', ()
 test('exam list filters reject unsupported statuses and exam types', () => {
   assert.throws(() => validator.validateListFilters({ statuses: 'DRAFT,DELETED' }), error => error.code === 'EXAM_STATUSES_INVALID');
   assert.throws(() => validator.validateListFilters({ examTypes: 'LISTENING,TOEFL' }), error => error.code === 'EXAM_TYPES_INVALID');
+  assert.throws(() => validator.validateListFilters({ testTypes: 'TOEIC,IELTS' }), error => error.code === 'TEST_TYPES_INVALID');
   assert.doesNotThrow(() => validator.validateListFilters({ statuses: 'DRAFT,ACTIVE', examTypes: 'LISTENING,READING' }));
 });
 

@@ -1,6 +1,6 @@
 const redis = require('../../config/redis');
 
-const SCHEMA = 'v1';
+const SCHEMA = 'v2';
 const MIN_TTL_SECONDS = 3600;
 const MAX_TTL_SECONDS = 7 * 24 * 60 * 60;
 const metaKey = attemptId => `exam:attempt:meta:${SCHEMA}:${attemptId}`;
@@ -48,6 +48,7 @@ async function save(attemptId, subQuestionId, answer, expiresAt) {
   const value = JSON.stringify({
     subQuestionId,
     selectedOptionKey: answer.selectedOptionKey || null,
+    textAnswer: answer.textAnswer ?? null,
     flagged: answer.flagged === true,
     savedAt: answer.savedAt || new Date().toISOString(),
   });
@@ -72,6 +73,7 @@ async function hydrate(attemptId, answers, expiresAt) {
     JSON.stringify({
       subQuestionId: answer.subQuestionId,
       selectedOptionKey: answer.selectedOptionKey || null,
+      textAnswer: answer.textAnswer ?? null,
       flagged: answer.flagged === true,
       savedAt: answer.savedAt || new Date().toISOString(),
     }),

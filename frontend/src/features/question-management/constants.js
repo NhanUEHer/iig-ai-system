@@ -2,6 +2,7 @@ export const QUESTION_TYPES = [
   { value: 'MCQ_SINGLE', label: 'Dạng 1: MCQ' },
   { value: 'RECORD', label: 'Dạng 2: Record' },
   { value: 'WRITING', label: 'Dạng 3: Writing' },
+  { value: 'COMPLETE_WORDS', label: 'Dạng 4: Complete the Words' },
 ];
 
 export const QUESTION_STATUSES = [
