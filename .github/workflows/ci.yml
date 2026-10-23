@@ -21,8 +21,6 @@ jobs:
             package-lock.json
             frontend/package-lock.json
             exam-web/package-lock.json
-      - name: Install audio metadata tools
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: npm ci
       - run: npm ci --prefix frontend
       - run: npm ci --prefix exam-web
