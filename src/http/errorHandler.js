@@ -11,15 +11,23 @@ function errorHandler(error, req, res, next) {
     ? 'Internal Server Error'
     : safeMessage || error.message || 'Internal Server Error';
 
+  res.locals.errorCode = code;
+
   console.error(JSON.stringify({
+    timestamp: new Date().toISOString(),
     level: 'error',
     event: 'request_failed',
+    service: 'iig-admin-api',
+    environment: process.env.APP_ENV || process.env.NODE_ENV || 'development',
     requestId: req.requestId,
     method: req.method,
-    path: req.originalUrl,
+    path: req.path,
     statusCode,
     code,
-    message: error.message
+    errorType: error?.name || 'Error',
+    message: error.message,
+    stack: statusCode >= 500 ? error.stack : undefined,
+    userId: req.auth?.userId
   }));
 
   const body = { success: false, error: message, code, requestId: req.requestId };

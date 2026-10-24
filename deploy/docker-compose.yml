@@ -41,6 +41,11 @@ services:
 
   api:
     <<: *app-defaults
+    logging:
+      driver: journald
+      options:
+        tag: "iig-admin-{{.Name}}"
+        labels: "com.docker.compose.project,com.docker.compose.service"
     image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-admin-api:${IMAGE_TAG:?IMAGE_TAG is required}
     env_file:
       - .env.container
