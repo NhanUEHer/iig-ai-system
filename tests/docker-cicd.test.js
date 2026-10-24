@@ -38,7 +38,8 @@ test('API observability uses structured request logs without sensitive query str
   assert.match(format, /\$uri/);
   assert.doesNotMatch(format, /\$request_uri|\$args/);
   assert.match(include, /X-Request-ID \$request_id/);
-  assert.match(include, /syslog:server=unix:\/dev\/log,tag=iig-nginx-api/);
+  assert.match(include, /syslog:server=unix:\/dev\/log,tag=iig_nginx_api/);
+  assert.doesNotMatch(include, /tag=[^,\s]*-/);
   assert.equal((nginx.match(/iig-api-observability\.conf/g) || []).length, 2);
 });
 
