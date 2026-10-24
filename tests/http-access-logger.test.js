@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const { EventEmitter } = require('node:events');
 
-const { apiAccessLogger, buildApiAccessLog, cleanHeaderValue } = require('../src/http/apiAccessLogger');
+const { apiAccessLogger, buildApiAccessLog, cleanHeaderValue, routeTemplate } = require('../src/http/apiAccessLogger');
 const requestContext = require('../src/http/requestContext');
 
 test('access log has trace fields and excludes query values and secret headers', () => {
@@ -32,6 +32,7 @@ test('access log has trace fields and excludes query values and secret headers',
   const entry = buildApiAccessLog(req, res, 12.34);
   assert.equal(entry.requestId, 'trace-123');
   assert.equal(entry.path, '/api/exams');
+  assert.equal(routeTemplate('/api/public/exams/11111111-1111-4111-8111-111111111111/attempts/42'), '/api/public/exams/:id/attempts/:number');
   assert.deepEqual(entry.queryKeys, ['access_token', 'page']);
   assert.equal(entry.clientIp, '203.0.113.10');
   assert.equal(entry.responseBytes, 42);
@@ -39,6 +40,15 @@ test('access log has trace fields and excludes query values and secret headers',
   assert.equal(entry.requestHeaders.authorization, undefined);
   assert.equal(entry.requestHeaders.cookie, undefined);
   assert.doesNotMatch(JSON.stringify(entry), /must-not-appear/);
+});
+
+test('access log records cache and answer storage outcomes without payload data', () => {
+  const req = { requestId: 'trace-789', method: 'PUT', path: '/api/public/exams/11111111-1111-4111-8111-111111111111/attempts/22222222-2222-4222-8222-222222222222/answers/33333333-3333-4333-8333-333333333333', query: {}, socket: {}, get: () => undefined };
+  const res = { statusCode: 200, locals: { cacheStatus: 'PUBLISHED_HIT', answerStorage: 'REDIS' }, getHeader: () => undefined };
+  const entry = buildApiAccessLog(req, res, 5.25);
+  assert.equal(entry.routeTemplate, '/api/public/exams/:id/attempts/:id/answers/:id');
+  assert.equal(entry.cacheStatus, 'PUBLISHED_HIT');
+  assert.equal(entry.answerStorage, 'REDIS');
 });
 
 test('access middleware logs API responses once and ignores non-API paths', () => {
