@@ -69,12 +69,28 @@ async function start(examId, token, input = {}, options = {}) {
 async function attemptContext(examId, attemptId, token, options = {}) {
   validateId(examId, 'Đề thi'); validateId(attemptId, 'Lượt thi');
   const identity = requireAttempt(token, examId, attemptId);
-  const attempt = await repository.findAttempt(examId, attemptId, identity.sub);
+  const meta = options.requireDatabase === true ? null : await answerStore.readMeta(attemptId).catch(() => null);
+  const cachedAttempt = meta
+    && meta.id === attemptId
+    && meta.examId === examId
+    && meta.candidateId === identity.sub
+    ? {
+      id: meta.id,
+      status: meta.status,
+      started_at: meta.startedAt,
+      expires_at: meta.expiresAt,
+      exam_id: meta.examId,
+      exam_version_id: meta.versionId,
+      candidate_id: meta.candidateId,
+    }
+    : null;
+  const attempt = cachedAttempt || await repository.findAttempt(examId, attemptId, identity.sub);
   if (!attempt) throw new HttpError('Không tìm thấy lượt thi.', 404, 'ATTEMPT_NOT_FOUND');
+  if (!cachedAttempt) await answerStore.writeMeta(attempt).catch(() => false);
   const now = options.now || new Date();
   if (attempt.status !== 'IN_PROGRESS') throw new HttpError('Lượt thi không còn hiệu lực.', 409, 'ATTEMPT_NOT_IN_PROGRESS');
   if (new Date(attempt.expires_at) <= now) throw new HttpError('Lượt thi đã hết thời gian.', 409, 'ATTEMPT_EXPIRED');
-  return { identity, attempt, now };
+  return { identity, attempt, now, contextSource: cachedAttempt ? 'REDIS' : 'POSTGRESQL' };
 }
 
 async function piece(examId, attemptId, token, type, id, options = {}) {
@@ -201,7 +217,10 @@ async function questionGroup(examId, attemptId, parentQuestionId, token, options
 
 async function saveAnswer(examId, attemptId, subQuestionId, token, input = {}, options = {}) {
   validateId(subQuestionId, 'Câu hỏi');
-  const { identity, attempt, now } = await attemptContext(examId, attemptId, token, options);
+  // Writes always re-check PostgreSQL. Redis metadata is safe for immutable
+  // delivery reads, but a failed post-submit cache update must never allow a
+  // late answer to appear accepted after the durable result was finalized.
+  const { identity, attempt, now } = await attemptContext(examId, attemptId, token, { ...options, requireDatabase: true });
   const grading = await deliveryCache.getGradingOrBuild(`attempt:${attemptId}`, async () => {
     const source = await repository.findDelivery(examId, attemptId, identity.sub);
     return source.snapshot;

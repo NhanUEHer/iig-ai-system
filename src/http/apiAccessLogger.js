@@ -25,6 +25,12 @@ function getSafeRequestHeaders(req) {
   }));
 }
 
+function routeTemplate(path) {
+  return String(path || '')
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi, ':id')
+    .replace(/\/(\d+)(?=\/|$)/g, '/:number');
+}
+
 function buildApiAccessLog(req, res, durationMs, outcome = 'finished') {
   const statusCode = Number(res.statusCode) || 0;
   const level = statusCode >= 500 ? 'error' : statusCode >= 400 ? 'warn' : 'info';
@@ -39,6 +45,7 @@ function buildApiAccessLog(req, res, durationMs, outcome = 'finished') {
     requestId: req.requestId,
     method: req.method,
     path: req.path,
+    routeTemplate: routeTemplate(req.path),
     queryKeys,
     statusCode,
     durationMs,
@@ -49,6 +56,8 @@ function buildApiAccessLog(req, res, durationMs, outcome = 'finished') {
     userId: req.auth?.userId,
     role: req.auth?.role,
     errorCode: res.locals?.errorCode,
+    cacheStatus: res.locals?.cacheStatus,
+    answerStorage: res.locals?.answerStorage,
     requestHeaders: getSafeRequestHeaders(req)
   };
 }
@@ -78,4 +87,4 @@ function apiAccessLogger(req, res, next) {
   return next();
 }
 
-module.exports = { apiAccessLogger, buildApiAccessLog, cleanHeaderValue };
+module.exports = { apiAccessLogger, buildApiAccessLog, cleanHeaderValue, routeTemplate };
