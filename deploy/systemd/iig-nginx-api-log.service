@@ -1,0 +1,14 @@
+[Unit]
+Description=Stream IIG Nginx API access logs to journald
+Documentation=file:/var/log/nginx/iig_api_access.json
+After=nginx.service
+Requires=nginx.service
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -o pipefail -c 'exec /usr/bin/tail -n 0 -F /var/log/nginx/iig_api_access.json | /usr/bin/systemd-cat -t iig_nginx_api'
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

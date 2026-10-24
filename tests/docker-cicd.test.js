@@ -33,12 +33,16 @@ test('container topology keeps one shared API and two isolated web applications'
 test('API observability uses structured request logs without sensitive query strings', () => {
   const format = read('deploy/nginx-api-log-format.conf');
   const include = read('deploy/nginx-api-observability.inc');
+  const journalService = read('deploy/systemd/iig-nginx-api-log.service');
   const nginx = read('deploy/nginx-ai-scoring.conf');
   assert.match(format, /log_format iig_api_json escape=json/);
   assert.match(format, /\$uri/);
   assert.doesNotMatch(format, /\$request_uri|\$args/);
   assert.match(include, /X-Request-ID \$request_id/);
-  assert.match(include, /syslog:server=unix:\/dev\/log,tag=iig-nginx-api/);
+  assert.doesNotMatch(include, /syslog:server=/);
+  assert.match(journalService, /tail -n 0 -F \/var\/log\/nginx\/iig_api_access\.json/);
+  assert.match(journalService, /systemd-cat -t iig_nginx_api/);
+  assert.match(journalService, /Restart=always/);
   assert.equal((nginx.match(/iig-api-observability\.conf/g) || []).length, 2);
 });
 
