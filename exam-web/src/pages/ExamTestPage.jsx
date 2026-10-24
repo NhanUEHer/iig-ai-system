@@ -692,6 +692,7 @@ function ExamTestPage({ examId }) {
 
   const chooseOption = (questionId, optionKey) => {
     if (locked) return
+    if (latestAnswersRef.current.get(questionId)?.selectedOptionKey === optionKey) return
     setSaveError('')
     setQuestionGroup(current => ({ ...current, questions: current.questions.map(question => question.id === questionId ? { ...question, selectedOption: optionKey } : question) }))
     setAnsweredIds(current => new Set(current).add(questionId))

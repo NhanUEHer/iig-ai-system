@@ -5,7 +5,6 @@ const MIN_TTL_SECONDS = 3600;
 const MAX_TTL_SECONDS = 7 * 24 * 60 * 60;
 const metaKey = attemptId => `exam:attempt:meta:${SCHEMA}:${attemptId}`;
 const answersKey = attemptId => `exam:attempt:answers:${SCHEMA}:${attemptId}`;
-const metaMemory = new Map();
 
 function ttlFor(expiresAt) {
   const remaining = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 1000) + 86400;
@@ -25,21 +24,15 @@ async function writeMeta(attempt) {
   };
   const ttl = ttlFor(meta.expiresAt);
   await redis.set(metaKey(meta.id), JSON.stringify(meta), { EX: ttl });
-  metaMemory.set(meta.id, { value: meta, expiresAt: Date.now() + ttl * 1000 });
   await redis.expire(answersKey(meta.id), ttl);
   return true;
 }
 
 async function readMeta(attemptId) {
-  const memory = metaMemory.get(attemptId);
-  if (memory?.expiresAt > Date.now()) return memory.value;
-  if (memory) metaMemory.delete(attemptId);
   const raw = await redis.get(metaKey(attemptId));
   if (!raw) return null;
   try {
-    const value = JSON.parse(raw);
-    metaMemory.set(attemptId, { value, expiresAt: Date.now() + ttlFor(value.expiresAt) * 1000 });
-    return value;
+    return JSON.parse(raw);
   } catch { await redis.remove(metaKey(attemptId)); return null; }
 }
 
@@ -86,7 +79,6 @@ async function markSubmitted(attemptId) {
   const meta = await readMeta(attemptId);
   if (meta) {
     const submitted = { ...meta, status: 'SUBMITTED' };
-    metaMemory.set(attemptId, { value: submitted, expiresAt: Date.now() + 86400000 });
     await redis.set(metaKey(attemptId), JSON.stringify(submitted), { EX: 86400 });
   }
   await redis.expire(answersKey(attemptId), 86400);

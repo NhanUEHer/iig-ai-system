@@ -24,6 +24,8 @@ test('LR load test validates durable resume, scoring, and optional idempotency',
   assert.match(source, /score matches submit/);
   assert.match(source, /VERIFY_IDEMPOTENCY/);
   assert.match(source, /POSTGRESQL_FALLBACK/);
+  assert.match(source, /question\.questionType === 'COMPLETE_WORDS'/);
+  assert.match(source, /textAnswer:/);
 });
 
 test('direct LR regression script covers session conflict through persisted result', () => {
