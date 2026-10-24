@@ -8,6 +8,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'direct-attempt-device-lock-t
 const repository = require('../src/modules/public-exams/publicExamAttemptRepository');
 const service = require('../src/modules/public-exams/publicExamAttemptService');
 const answerStore = require('../src/modules/public-exam-events/attemptAnswerStore');
+const deliveryCache = require('../src/modules/public-exam-events/examDeliveryCache');
 const { signCandidateToken, signAttemptToken } = require('../src/modules/public-exam-events/publicCandidateToken');
 
 const examId = '11111111-1111-4111-8111-111111111111';
@@ -35,6 +36,95 @@ test('direct attempt start blocks an active attempt owned by another browser or 
     );
   } finally {
     repository.startAttempt = originalStart;
+  }
+});
+
+test('active attempt context uses scoped Redis metadata without querying PostgreSQL', async () => {
+  const originalReadMeta = answerStore.readMeta;
+  const originalFindAttempt = repository.findAttempt;
+  const originalReadPublished = deliveryCache.readPublished;
+  const attemptId = '44444444-4444-4444-8444-444444444444';
+  let databaseReads = 0;
+  answerStore.readMeta = async () => ({
+    id: attemptId, candidateId, examId, versionId: '66666666-6666-4666-8666-666666666666',
+    status: 'IN_PROGRESS', startedAt: '2026-10-06T01:00:00Z', expiresAt: '2026-10-06T03:00:00Z',
+  });
+  repository.findAttempt = async () => { databaseReads += 1; return null; };
+  deliveryCache.readPublished = async () => ({ payload: { sections: [] } });
+  try {
+    const attemptToken = signAttemptToken({ candidateId, examId, attemptId }, new Date('2030-01-01T00:00:00Z'));
+    const result = await service.structure(examId, attemptId, attemptToken, { now: new Date('2026-10-06T01:10:00Z') });
+    assert.equal(result.attempt.id, attemptId);
+    assert.equal(databaseReads, 0);
+  } finally {
+    answerStore.readMeta = originalReadMeta;
+    repository.findAttempt = originalFindAttempt;
+    deliveryCache.readPublished = originalReadPublished;
+  }
+});
+
+test('attempt context falls back to PostgreSQL when Redis metadata is missing or out of scope', async () => {
+  const originalReadMeta = answerStore.readMeta;
+  const originalWriteMeta = answerStore.writeMeta;
+  const originalFindAttempt = repository.findAttempt;
+  const originalReadPublished = deliveryCache.readPublished;
+  const attemptId = '44444444-4444-4444-8444-444444444444';
+  let databaseReads = 0;
+  let hydrated = false;
+  answerStore.readMeta = async () => ({ id: attemptId, candidateId: '77777777-7777-4777-8777-777777777777', examId, status: 'IN_PROGRESS' });
+  answerStore.writeMeta = async () => { hydrated = true; return true; };
+  repository.findAttempt = async () => {
+    databaseReads += 1;
+    return { id: attemptId, status: 'IN_PROGRESS', started_at: new Date('2026-10-06T01:00:00Z'), expires_at: new Date('2026-10-06T03:00:00Z') };
+  };
+  deliveryCache.readPublished = async () => ({ payload: { sections: [] } });
+  try {
+    const attemptToken = signAttemptToken({ candidateId, examId, attemptId }, new Date('2030-01-01T00:00:00Z'));
+    await service.structure(examId, attemptId, attemptToken, { now: new Date('2026-10-06T01:10:00Z') });
+    assert.equal(databaseReads, 1);
+    assert.equal(hydrated, true);
+  } finally {
+    answerStore.readMeta = originalReadMeta;
+    answerStore.writeMeta = originalWriteMeta;
+    repository.findAttempt = originalFindAttempt;
+    deliveryCache.readPublished = originalReadPublished;
+  }
+});
+
+test('answer save remains durable through PostgreSQL when Redis is unavailable', async () => {
+  const originalReadMeta = answerStore.readMeta;
+  const originalSave = answerStore.save;
+  const originalSaveAnswer = repository.saveAnswer;
+  const originalFindAttempt = repository.findAttempt;
+  const originalGrading = deliveryCache.getGradingOrBuild;
+  const attemptId = '44444444-4444-4444-8444-444444444444';
+  const subQuestionId = '55555555-5555-4555-8555-555555555555';
+  let durableWrite = null;
+  answerStore.readMeta = async () => ({
+    id: attemptId, candidateId, examId, versionId: '66666666-6666-4666-8666-666666666666',
+    status: 'IN_PROGRESS', startedAt: '2026-10-06T01:00:00Z', expiresAt: '2026-10-06T03:00:00Z',
+  });
+  answerStore.save = async () => false;
+  repository.findAttempt = async () => ({
+    id: attemptId, exam_id: examId, candidate_id: candidateId,
+    status: 'IN_PROGRESS', started_at: new Date('2026-10-06T01:00:00Z'), expires_at: new Date('2026-10-06T03:00:00Z'),
+  });
+  deliveryCache.getGradingOrBuild = async () => ({
+    questions: { [subQuestionId]: { parentQuestionId: '77777777-7777-4777-8777-777777777777', questionType: 'MCQ_SINGLE', optionKeys: ['A', 'B'] } },
+  });
+  repository.saveAnswer = async input => { durableWrite = input; return { sub_question_id: subQuestionId }; };
+  try {
+    const attemptToken = signAttemptToken({ candidateId, examId, attemptId }, new Date('2030-01-01T00:00:00Z'));
+    const result = await service.saveAnswer(examId, attemptId, subQuestionId, attemptToken, { selectedOptionKey: 'B' }, { now: new Date('2026-10-06T01:10:00Z') });
+    assert.equal(result.storage, 'POSTGRESQL_FALLBACK');
+    assert.equal(durableWrite.selectedOption, 'B');
+    assert.equal(durableWrite.candidateId, candidateId);
+  } finally {
+    answerStore.readMeta = originalReadMeta;
+    answerStore.save = originalSave;
+    repository.findAttempt = originalFindAttempt;
+    repository.saveAnswer = originalSaveAnswer;
+    deliveryCache.getGradingOrBuild = originalGrading;
   }
 });
 
@@ -127,4 +217,6 @@ test('submit waits for autosave, retries failures, and backend serializes finali
   assert.match(backend, /\['IN_PROGRESS', 'EXPIRED', 'SUBMITTED'\]/);
   assert.match(repositorySource, /FOR UPDATE/);
   assert.match(repositorySource, /result\.alreadySubmitted|alreadySubmitted: true/);
+  assert.match(backend, /requireDatabase: true/);
+  assert.match(frontend, /latestAnswersRef\.current\.get\(questionId\)\?\.selectedOptionKey === optionKey/);
 });

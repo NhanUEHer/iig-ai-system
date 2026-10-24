@@ -144,10 +144,14 @@ function saveAnswers(examPath, attempt, questions) {
   const answerCount = Math.min(questions.length, Math.round(questions.length * ANSWER_PERCENT / 100));
   for (let index = 0; index < answerCount; index += 1) {
     const question = questions[index];
-    if (!question.options?.length) fail(`Question ${question.id} has no selectable options.`);
-    const option = question.options[(index + __VU) % question.options.length];
+    const isCompleteWords = question.questionType === 'COMPLETE_WORDS';
+    if (!isCompleteWords && !question.options?.length) fail(`Question ${question.id} has no selectable options.`);
+    const option = isCompleteWords ? null : question.options[(index + __VU) % question.options.length];
+    const payload = isCompleteWords
+      ? { textAnswer: `load-${String(index + __VU).padStart(3, '0')}`.slice(0, 120) }
+      : { selectedOptionKey: option.key };
     const response = http.put(`${examPath}/attempts/${attempt.attemptId}/answers/${question.id}`,
-      JSON.stringify({ selectedOptionKey: option.key }), {
+      JSON.stringify(payload), {
         headers: jsonHeaders(attempt.attemptToken),
         tags: { endpoint: 'save_answer', name: 'PUT /api/public/exams/:examId/attempts/:attemptId/answers/:subQuestionId' },
       });
