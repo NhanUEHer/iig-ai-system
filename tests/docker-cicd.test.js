@@ -26,6 +26,20 @@ test('container topology keeps one shared API and two isolated web applications'
   assert.doesNotMatch(compose, /^\s+- .*:6379:6379$/m);
   assert.match(compose, /127\.0\.0\.1:\$\{ADMIN_PORT/);
   assert.match(compose, /127\.0\.0\.1:\$\{EXAM_PORT/);
+  assert.match(compose, /driver: journald/);
+  assert.match(compose, /tag: "iig-admin-\{\{\.Name\}\}"/);
+});
+
+test('API observability uses structured request logs without sensitive query strings', () => {
+  const format = read('deploy/nginx-api-log-format.conf');
+  const include = read('deploy/nginx-api-observability.inc');
+  const nginx = read('deploy/nginx-ai-scoring.conf');
+  assert.match(format, /log_format iig_api_json escape=json/);
+  assert.match(format, /\$uri/);
+  assert.doesNotMatch(format, /\$request_uri|\$args/);
+  assert.match(include, /X-Request-ID \$request_id/);
+  assert.match(include, /syslog:server=unix:\/dev\/log,tag=iig-nginx-api/);
+  assert.equal((nginx.match(/iig-api-observability\.conf/g) || []).length, 2);
 });
 
 test('container release uses immutable SHA tags and protected environments', () => {

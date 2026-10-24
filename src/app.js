@@ -11,6 +11,7 @@ const dictionaryRoutes = require('./routes/dictionaryRoutes');
 const learningMaterialRoutes = require('./routes/learningMaterialRoutes');
 const contentSourceRoutes = require('./routes/contentSourceRoutes');
 const requestContext = require('./http/requestContext');
+const { apiAccessLogger } = require('./http/apiAccessLogger');
 const errorHandler = require('./http/errorHandler');
 const HttpError = require('./http/httpError');
 const { authenticate } = require('./middleware/authenticate');
@@ -27,6 +28,7 @@ const app = express();
 // Standard middlewares with increased payload limits for Base64 audio uploads
 app.use(cors());
 app.use(requestContext);
+app.use(apiAccessLogger);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
