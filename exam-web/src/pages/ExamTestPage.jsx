@@ -841,7 +841,7 @@ function ExamTestPage({ examId }) {
         <section className={`listening-content-pane ${mobilePane === 'content' ? 'mobile-active' : ''}`}>
           {questionGroup.content?.title && <h1>{questionGroup.content.title}</h1>}
           {questionGroup.content?.html && <div className="listening-content-html" dangerouslySetInnerHTML={{ __html: safeHtml(questionGroup.content.html) }} />}
-          {questionGroup.content?.imageUrl && <img src={questionGroup.content.imageUrl} alt={questionGroup.content.title || 'Nội dung câu hỏi'} />}
+          {questionGroup.content?.imageUrl && <img className="listening-content-image" src={questionGroup.content.imageUrl} alt={questionGroup.content.title || 'Nội dung câu hỏi'} />}
           {isToeflListening && toeflListeningPhase === 'audio' && <div className={`listening-playback-indicator ${audioState}`} role="status" aria-label={audioState === 'playing' ? 'Đang phát audio' : 'Đang chuẩn bị audio'}>
             <span aria-hidden="true">{Array.from({ length: 39 }, (_, index) => <i key={index} />)}</span>
           </div>}
