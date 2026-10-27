@@ -45,6 +45,9 @@ test('Complete the Words migration and repository preserve the atomic contract',
   assert.match(migration, /uq_qb_sub_question_gap_index/);
   assert.match(repository, /saveCompleteWords/);
   assert.match(repository, /question_type='COMPLETE_WORDS'/);
+  assert.match(repository, /existingByGapIndex/);
+  assert.match(repository, /exam_attempt_answers WHERE sub_question_id=ANY/);
+  assert.match(repository, /SUB_QUESTION_IN_USE/);
   assert.match(constraintMigration, /DROP CONSTRAINT IF EXISTS chk_sub_question_type/);
   assert.match(constraintMigration, /ADD CONSTRAINT chk_sub_question_type CHECK/);
   for (const type of [
@@ -55,6 +58,14 @@ test('Complete the Words migration and repository preserve the atomic contract',
   }
   assert.match(constraintMigration, /NOT VALID/);
   assert.match(constraintMigration, /VALIDATE CONSTRAINT chk_sub_question_type/);
+});
+
+test('Complete the Words edit preserves historical gap IDs and reports structural conflicts clearly', () => {
+  const repository = read('src/modules/question-bank-v3/subQuestionRepository.js');
+  const service = read('src/modules/question-bank-v3/subQuestionService.js');
+  assert.match(repository, /item\.id \? String\(item\.id\) : \(existingByGapIndex\.get\(Number\(item\.gapIndex\)\)/);
+  assert.match(service, /error\.code === 'SUB_QUESTION_IN_USE' \|\| error\.code === '23503'/);
+  assert.match(service, /409,[\s\S]*'SUB_QUESTION_IN_USE'/);
 });
 
 test('MCQ sub-question accepts question_text plus two options with a single correct answer', () => {
