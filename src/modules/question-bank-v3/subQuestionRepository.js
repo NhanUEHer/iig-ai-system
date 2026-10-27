@@ -242,12 +242,19 @@ async function saveCompleteWords(questionId, stemHtml, items) {
 }
 
 async function saveAllWithClient(questionId, items, client) {
-  const existing = await client.query('SELECT id,audio_media_id FROM question_bank_sub_questions WHERE question_id=$1', [questionId]);
+  const existing = await client.query('SELECT id,audio_media_id,gap_index FROM question_bank_sub_questions WHERE question_id=$1', [questionId]);
   const existingIds = new Set(existing.rows.map(r => String(r.id)));
+  const existingByGapIndex = new Map(
+    existing.rows
+      .filter(row => row.gap_index !== null && row.gap_index !== undefined)
+      .map(row => [Number(row.gap_index), String(row.id)]),
+  );
   const keptIds = new Set();
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
-    const id = item.id ? String(item.id) : null;
+    // The editor historically did not send sub-question IDs. Matching by the
+    // stable gap index preserves rows referenced by completed exam attempts.
+    const id = item.id ? String(item.id) : (existingByGapIndex.get(Number(item.gapIndex)) || null);
     if (id && !existingIds.has(id)) {
       const error = new Error('SUB_QUESTION_NOT_IN_QUESTION');
       error.code = 'SUB_QUESTION_NOT_IN_QUESTION';
@@ -261,7 +268,18 @@ async function saveAllWithClient(questionId, items, client) {
     }
   }
   const toDelete = [...existingIds].filter(id => !keptIds.has(id));
-  if (toDelete.length) await client.query('DELETE FROM question_bank_sub_questions WHERE question_id=$1 AND id=ANY($2::uuid[])', [questionId, toDelete]);
+  if (toDelete.length) {
+    const referenced = await client.query(
+      'SELECT sub_question_id FROM exam_attempt_answers WHERE sub_question_id=ANY($1::uuid[]) LIMIT 1',
+      [toDelete],
+    );
+    if (referenced.rows.length) {
+      const error = new Error('SUB_QUESTION_IN_USE');
+      error.code = 'SUB_QUESTION_IN_USE';
+      throw error;
+    }
+    await client.query('DELETE FROM question_bank_sub_questions WHERE question_id=$1 AND id=ANY($2::uuid[])', [questionId, toDelete]);
+  }
   return { items: await list(questionId, client), deletedStorageKeys: [] };
 }
 

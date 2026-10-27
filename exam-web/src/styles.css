@@ -1699,3 +1699,12 @@ body .question-navigator>header>button.question-navigator-collapse{width:34px;he
   .toefl-reading-exam .freestyle-footer-actions button{min-width:96px;height:40px;border-radius:8px}
   .toefl-reading-exam .freestyle-footer-actions button:first-child:disabled{visibility:hidden}
 }
+
+/* Keep uploaded question images inside the visible test pane at every viewport. */
+.listening-content-image,.listening-content-html img{width:100%;height:clamp(240px,46vh,440px);max-width:100%;display:block;object-fit:contain;background:#f3f6f8}
+.toefl-listening-exam .listening-content-image{width:min(50%,430px);height:clamp(220px,42vh,400px);margin:12px auto 0;background:transparent}
+@media(max-width:760px){
+  .listening-content-image,.listening-content-html img{width:100%;height:clamp(180px,34dvh,280px);max-height:34dvh;object-fit:contain}
+  .toefl-listening-exam .listening-content-image{width:min(100%,360px);height:clamp(180px,34dvh,280px);max-height:34dvh}
+  .listening-content-pane video{width:100%;height:auto;max-height:42dvh}
+}

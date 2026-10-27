@@ -176,6 +176,13 @@ async function saveCompleteWords(questionId, data) {
     } };
   } catch (error) {
     if (error.code === 'SUB_QUESTION_NOT_IN_QUESTION') throw new HttpError('Khoảng trống không thuộc câu hỏi này.', 400, 'SUB_QUESTION_NOT_IN_QUESTION');
+    if (error.code === 'SUB_QUESTION_IN_USE' || error.code === '23503') {
+      throw new HttpError(
+        'Không thể thay đổi số lượng khoảng trống vì câu hỏi đã có lịch sử làm bài. Vui lòng tạo một câu hỏi mới.',
+        409,
+        'SUB_QUESTION_IN_USE',
+      );
+    }
     throw error;
   }
 }
