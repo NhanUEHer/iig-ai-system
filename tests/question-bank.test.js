@@ -219,7 +219,8 @@ test('question management frontend uses the new isolated module and the V3 bulk-
   assert.match(app, /features\/question-management\/QuestionCreatePage/);
   assert.match(app, /features\/question-management\/QuestionEditPage/);
   assert.doesNotMatch(listPage, /tagIds|listQuestionTags|bulkActions/);
-  assert.match(listPage, /selectable selectedRowKeys=\{selected\}/);
+  assert.match(listPage, /selected=\{selected\}/);
+  assert.match(listPage, /onSelected=\{setSelected\}/);
   assert.match(listPage, /key: 'stt'/);
   assert.match(editPage, /saveQuestionContents/);
   assert.match(editPage, /saveSubQuestions/);

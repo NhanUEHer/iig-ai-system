@@ -32,3 +32,9 @@ test('Key Vocab and Dictionary history share canonical content passages', () => 
   assert.match(service, /dictionary_generations/);
   assert.match(app, /\/api\/learning-materials/);
 });
+
+test('legacy Key Vocab passage column does not block canonical passage inserts', () => {
+  const migration = read('src/database/migrations/147_key_vocab_legacy_passage_compatibility.sql');
+  assert.match(migration, /column_name = 'passage'/);
+  assert.match(migration, /ALTER COLUMN passage DROP NOT NULL/);
+});

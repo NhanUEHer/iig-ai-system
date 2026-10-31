@@ -65,7 +65,8 @@ main .ui-filter-multiselect__search input:not([type=checkbox]):not([type=radio])
   min-height:var(--ds-control-height)!important;border:1px solid var(--ds-border-strong)!important;border-radius:var(--ds-radius-sm)!important;
   background:var(--ds-surface-raised)!important;color:var(--ds-text)!important;font:600 13px var(--font-body)!important;
 }
-main button{font-size:13px!important}main label{color:var(--ds-text-muted)!important;font-size:12px!important}
+/* Component systems own their typography. Avoid global button/label overrides:
+   they previously flattened table headers, controls and body text to one size. */
 
 /* Modal, dropdown and status surfaces share the same contrast rules. */
 .mapping-modal,.user-modal,.agent-modal,.tts-history-modal,.submission-filter-menu {
