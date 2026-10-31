@@ -36,75 +36,113 @@ function extractKeywords(htmlContent) {
   return match ? cleanHtml(match[1]) : null;
 }
 
+function normalizeMappingItem(item) {
+  const keycode = String(item?.keyCode || '').trim().toUpperCase();
+  const courseScoringId = String(item?.id || '').trim();
+  if (!keycode || !courseScoringId) return null;
+  return {
+    keycode,
+    courseScoringId,
+    studentName: item.webUserName || null,
+    testName: item.mockTestName || item.name || null,
+  };
+}
+
+function mappingListPayload({ page, pageSize, keyword, fromSubmittedDate, toSubmittedDate }) {
+  return {
+    PageNumber: page,
+    PageSize: pageSize,
+    Keyword: keyword || undefined,
+    Statuses: [],
+    SubmittedDateFrom: fromSubmittedDate || undefined,
+    SubmittedDateTo: toSubmittedDate || undefined,
+    ScoringDeadlineFrom: undefined,
+    ScoringDeadlineTo: undefined,
+    MockTestIds: [],
+    CourseIds: [],
+    AssigneeUserIds: [],
+    KeyCodeTypes: [],
+  };
+}
+
+async function persistMappings(database, mappings) {
+  const work = async executor => {
+    for (const mapping of mappings) {
+      await executor.query(
+        `INSERT INTO keycode_mappings (keycode, course_scoring_id, student_name, test_name, updated_at)
+         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+         ON CONFLICT (keycode) DO UPDATE SET
+           course_scoring_id = EXCLUDED.course_scoring_id,
+           student_name = COALESCE(EXCLUDED.student_name, keycode_mappings.student_name),
+           test_name = COALESCE(EXCLUDED.test_name, keycode_mappings.test_name),
+           updated_at = CURRENT_TIMESTAMP`,
+        [mapping.keycode, mapping.courseScoringId, mapping.studentName, mapping.testName]
+      );
+    }
+  };
+  if (typeof database.transaction === 'function') return database.transaction(work);
+  return work(database);
+}
+
 const syncService = {
   /**
-   * Syncs keycode mappings from Elearning API using PageSize: 1000.
-   * Extracts keycode and mapping information, saving/updating in local database.
+   * Synchronizes every matching page from the current Elearning Admin API.
+   * Uses the explicit keyCode and scoring id returned by the upstream service.
    */
-  async syncMappings({ pageSize = 1000, keyword = null, fromSubmittedDate = null, toSubmittedDate = null } = {}) {
-    const token = await tokenManager.ensureFreshToken();
-    console.log(`📥 Fetching ${pageSize} items from IIG API with filters keyword=${keyword}, dates=${fromSubmittedDate} to ${toSubmittedDate}...`);
-    
-    const payload = {
-      Keyword: keyword || null,
-      PageNum: 1,
-      PageSize: pageSize,
-      FromSubmittedDate: fromSubmittedDate || null,
-      ToSubmittedDate: toSubmittedDate || null,
-      FromDeadlineDate: null,
-      ToDeadlineDate: null,
-      StatusesFilter: [], // Pull all statuses so we don't miss mapped keycodes
-      NameFilter: [],
-      UnitOrCourseTestFilter: [],
-      LessonFilter: [],
-      StepFilter: [],
-      ActiveScoringFilter: []
-    };
+  async syncMappings(
+    { pageSize = 1000, keyword = null, fromSubmittedDate = null, toSubmittedDate = null } = {},
+    dependencies = {}
+  ) {
+    const client = dependencies.iigClient || iigClient;
+    const database = dependencies.database || db;
+    const safePageSize = Math.min(5000, Math.max(1, Number.parseInt(pageSize, 10) || 100));
+    console.log(`📥 Fetching IIG mappings with pageSize=${safePageSize}, keyword=${keyword}, dates=${fromSubmittedDate} to ${toSubmittedDate}...`);
 
-    const resData = await iigClient.searchScoringList(payload, token);
-    const items = resData.items || [];
-    console.log(`Fetched ${items.length} pending items from IIG.`);
-
-    let count = 0;
-    for (const item of items) {
-      const name = item.name || '';
-      // Extract 6-character uppercase keycode e.g. [A-Z0-9]{6}-...
-      const match = name.match(/^([A-Z0-9]{6})-(.*)$/);
-      if (match) {
-        const keycode = match[1];
-        const testName = name;
-        const studentName = item.webUserName || 'Unknown';
-        const courseScoringId = item.id;
-        const submittedDate = item.submittedDate || new Date();
-
-        // Upsert into keycode_mappings (including student_name, test_name)
-        await db.query(
-          `INSERT INTO keycode_mappings (keycode, course_scoring_id, student_name, test_name, updated_at)
-           VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
-           ON CONFLICT (keycode) 
-           DO UPDATE SET course_scoring_id = EXCLUDED.course_scoring_id,
-                         student_name      = EXCLUDED.student_name,
-                         test_name         = EXCLUDED.test_name,
-                         updated_at        = CURRENT_TIMESTAMP`,
-          [keycode, courseScoringId, studentName, testName]
-        );
-        count++;
+    const mappingsByKeycode = new Map();
+    let page = 1;
+    let totalPages = 1;
+    do {
+      const response = await client.listMocktestScorings(mappingListPayload({
+        page,
+        pageSize: safePageSize,
+        keyword,
+        fromSubmittedDate,
+        toSubmittedDate,
+      }));
+      const pagedData = response?.pagedData;
+      if (!pagedData || !Array.isArray(pagedData.items)) {
+        throw new Error('IIG admin scoring list returned an invalid pagedData response.');
       }
-    }
-    console.log(`✅ Upserted ${count} keycode mapping entries in DB.`);
-    return count;
+
+      for (const item of pagedData.items) {
+        const mapping = normalizeMappingItem(item);
+        if (mapping && !mappingsByKeycode.has(mapping.keycode)) {
+          mappingsByKeycode.set(mapping.keycode, mapping);
+        }
+      }
+
+      totalPages = Math.max(1, Number(pagedData.totalPages) || 1);
+      if (!pagedData.hasNextPage) break;
+      page += 1;
+    } while (page <= totalPages);
+
+    const mappings = [...mappingsByKeycode.values()];
+    await persistMappings(database, mappings);
+    console.log(`✅ Upserted ${mappings.length} keycode mapping entries from ${page} IIG page(s).`);
+    return mappings.length;
   },
 
   /**
    * Resolves a keycode's courseScoringId by checking the local cache table
    * or searching online using the Elearning API if not found.
    */
-  async resolveCourseScoringId(keycode) {
+  async resolveCourseScoringId(keycode, dependencies = {}) {
+    const client = dependencies.iigClient || iigClient;
+    const database = dependencies.database || db;
     const cleanKeycode = keycode.trim().toUpperCase();
     
     // 1. Check local keycode_mappings
-    // 1. Check local keycode_mappings
-    const cached = await db.query(
+    const cached = await database.query(
       'SELECT course_scoring_id, student_name, test_name FROM keycode_mappings WHERE keycode = $1',
       [cleanKeycode]
     );
@@ -114,55 +152,25 @@ const syncService = {
       return cached.rows[0];
     }
 
-    // 2. Fetch from Elearning API
+    // 2. Fetch from the current Elearning Admin proxy
     console.log(`🔍 Keycode ${cleanKeycode} not found in DB. Performing online lookup...`);
-    const token = await tokenManager.ensureFreshToken();
-    
-    // First retrieve filters to find the full test name containing keycode
-    const payloadFilters = {
-      Keyword: null, PageNum: 1, PageSize: 10,
-      StatusesFilter: [], NameFilter: [], UnitOrCourseTestFilter: [], LessonFilter: [], StepFilter: [], ActiveScoringFilter: []
-    };
-    const filterRes = await iigClient.searchScoringList(payloadFilters, token);
-    const dropDownFilters = filterRes.dropDownFilters || [];
-    let nameFilterValues = [];
-    for (const f of dropDownFilters) {
-      if (f.key === 'NameFilter') {
-        nameFilterValues = f.values || [];
-        break;
-      }
-    }
+    const searchRes = await client.listMocktestScorings(mappingListPayload({
+      page: 1,
+      pageSize: 50,
+      keyword: cleanKeycode,
+    }));
+    const items = searchRes?.pagedData?.items || [];
+    const matchedItem = items.find(item => String(item.keyCode || '').trim().toUpperCase() === cleanKeycode);
+    if (!matchedItem) throw new Error(`KeyCode '${cleanKeycode}' was not found in IIG Elearning.`);
 
-    // Match matched full name
-    const matchedFullName = nameFilterValues.find(val => val.startsWith(cleanKeycode) || val.includes(cleanKeycode));
-    if (!matchedFullName) {
-      throw new Error(`KeyCode '${cleanKeycode}' could not be resolved from IIG dropdown names.`);
-    }
-    console.log(`Match online: '${cleanKeycode}' -> '${matchedFullName}'`);
-
-    // Search ID by matched full name
-    const payloadSearch = {
-      Keyword: null, PageNum: 1, PageSize: 50,
-      StatusesFilter: [],
-      NameFilter: [matchedFullName],
-      UnitOrCourseTestFilter: [], LessonFilter: [], StepFilter: [], ActiveScoringFilter: []
-    };
-    
-    const searchRes = await iigClient.searchScoringList(payloadSearch, token);
-    const items = searchRes.items || [];
-    if (items.length === 0) {
-      throw new Error(`Online lookup failed for full name: '${matchedFullName}'`);
-    }
-
-    const matchedItem = items[0];
     const resolved = {
       course_scoring_id: matchedItem.id,
-      student_name: matchedItem.courseScoringInfo?.webUserName || matchedItem.mocktestKeyCodeFullName || null,
-      test_name: matchedFullName
+      student_name: matchedItem.webUserName || null,
+      test_name: matchedItem.mockTestName || matchedItem.name || null
     };
 
     // Store resolved mapping in DB (including online resolved test name)
-    await db.query(
+    await database.query(
       `INSERT INTO keycode_mappings (keycode, course_scoring_id, student_name, test_name, updated_at)
        VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
        ON CONFLICT (keycode) DO UPDATE SET 
@@ -388,3 +396,5 @@ const syncService = {
 };
 
 module.exports = syncService;
+module.exports.mappingListPayload = mappingListPayload;
+module.exports.normalizeMappingItem = normalizeMappingItem;

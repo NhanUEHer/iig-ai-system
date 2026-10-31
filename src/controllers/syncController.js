@@ -4,8 +4,12 @@ module.exports = {
   async syncMappings(req, res) {
     try {
       const { pageSize, keyword, fromSubmittedDate, toSubmittedDate } = req.body;
+      const parsedPageSize = Number.parseInt(pageSize, 10) || 100;
+      if (parsedPageSize < 1 || parsedPageSize > 5000) {
+        return res.status(400).json({ success: false, error: 'Page size must be between 1 and 5000.' });
+      }
       const count = await syncService.syncMappings({
-        pageSize: Number.parseInt(pageSize, 10) || 100,
+        pageSize: parsedPageSize,
         keyword: keyword || null,
         fromSubmittedDate: fromSubmittedDate || null,
         toSubmittedDate: toSubmittedDate || null
@@ -39,4 +43,3 @@ module.exports = {
     }
   }
 };
-

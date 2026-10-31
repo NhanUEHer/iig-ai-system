@@ -1,5 +1,6 @@
 const mappingRepository = require('../modules/mappings/mappingRepository');
 const syncScheduleRepository = require('../modules/mappings/syncScheduleRepository');
+const { validateMappingInput, normalizeKeycode } = require('../modules/mappings/mappingValidator');
 
 module.exports = {
   async list(req, res) {
@@ -18,21 +19,14 @@ module.exports = {
     const courseScoringId = body.courseScoringId || body.course_scoring_id;
     const studentName = body.studentName ?? body.student_name;
     const testName = body.testName ?? body.test_name;
-    if (!keycode || !courseScoringId) {
-      return res.status(400).json({ success: false, error: 'Keycode and Course Scoring ID are required.' });
-    }
-
-    const normalizedKeycode = keycode.trim().toUpperCase();
+    const validation = validateMappingInput({ keycode, courseScoringId, studentName, testName });
+    if (validation.error) return res.status(400).json({ success: false, error: validation.error });
+    const normalized = validation.value;
     try {
-      const mapping = await mappingRepository.upsert({
-        keycode: normalizedKeycode,
-        courseScoringId: courseScoringId.trim(),
-        studentName: studentName ? studentName.trim() : null,
-        testName: testName ? testName.trim() : null
-      });
+      const mapping = await mappingRepository.upsert(normalized);
       return res.json({
         success: true,
-        message: `Successfully saved mapping for keycode ${normalizedKeycode}`,
+        message: `Successfully saved mapping for keycode ${normalized.keycode}`,
         data: mapping
       });
     } catch (error) {
@@ -42,7 +36,8 @@ module.exports = {
   },
 
   async remove(req, res) {
-    const keycode = req.params.keycode.toUpperCase();
+    const keycode = normalizeKeycode(req.params.keycode);
+    if (!keycode) return res.status(400).json({ success: false, error: 'Keycode không hợp lệ.' });
     try {
       if (!await mappingRepository.delete(keycode)) {
         return res.status(404).json({ success: false, error: 'Mapping not found.' });

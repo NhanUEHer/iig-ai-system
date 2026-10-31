@@ -35,30 +35,33 @@ class MappingRepository {
   }
 
   async upsert({ keycode, courseScoringId, studentName, testName }) {
-    const result = await this.db.query(
-      `INSERT INTO keycode_mappings
-         (keycode, course_scoring_id, student_name, test_name, updated_at)
-       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
-       ON CONFLICT (keycode) DO UPDATE SET
-         course_scoring_id = EXCLUDED.course_scoring_id,
-         student_name = COALESCE(EXCLUDED.student_name, keycode_mappings.student_name),
-         test_name = COALESCE(EXCLUDED.test_name, keycode_mappings.test_name),
-         updated_at = CURRENT_TIMESTAMP
-       RETURNING keycode, course_scoring_id, student_name, test_name`,
-      [keycode, courseScoringId, studentName, testName]
-    );
-
-    if (studentName || testName) {
-      await this.db.query(
-        `UPDATE mocktest_submissions SET
-           student_name = COALESCE($1, student_name),
-           test_name = COALESCE($2, test_name),
+    const work = async database => {
+      const result = await database.query(
+        `INSERT INTO keycode_mappings
+           (keycode, course_scoring_id, student_name, test_name, updated_at)
+         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+         ON CONFLICT (keycode) DO UPDATE SET
+           course_scoring_id = EXCLUDED.course_scoring_id,
+           student_name = COALESCE(EXCLUDED.student_name, keycode_mappings.student_name),
+           test_name = COALESCE(EXCLUDED.test_name, keycode_mappings.test_name),
            updated_at = CURRENT_TIMESTAMP
-         WHERE keycode = $3`,
-        [studentName, testName, keycode]
+         RETURNING keycode, course_scoring_id, student_name, test_name`,
+        [keycode, courseScoringId, studentName, testName]
       );
-    }
-    return result.rows[0];
+
+      if (studentName || testName) {
+        await database.query(
+          `UPDATE mocktest_submissions SET
+             student_name = COALESCE($1, student_name),
+             test_name = COALESCE($2, test_name),
+             updated_at = CURRENT_TIMESTAMP
+           WHERE keycode = $3`,
+          [studentName, testName, keycode]
+        );
+      }
+      return result.rows[0];
+    };
+    return typeof this.db.transaction === 'function' ? this.db.transaction(work) : work(this.db);
   }
 
   async delete(keycode) {
