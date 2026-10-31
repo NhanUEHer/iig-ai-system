@@ -1,0 +1,666 @@
+---
+app:
+  description: Internal aggregation flow for five locked TOEIC Writing Q1-Q5 question
+    results.
+  icon: "\U0001F3AF"
+  icon_background: "#EEF2FF"
+  icon_type: emoji
+  mode: workflow
+  name: IIG Writing Q1-Q5 Group Flow v1
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier:
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.9.10@4979b8843fa46c3c2143d339f5868f04d9d77166616c00dd9f811a4adfce03ab
+    version:
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions: []
+      allowed_file_types: []
+      allowed_file_upload_methods: []
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 20
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods: []
+      number_limits: 0
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: code
+      id: wsp_group_start_source_wsp_group_validate_target
+      source: wsp_group_start
+      sourceHandle: source
+      target: wsp_group_validate
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+      id: wsp_group_validate_source_wsp_group_llm_target
+      source: wsp_group_validate
+      sourceHandle: source
+      target: wsp_group_llm
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: wsp_group_llm_source_wsp_group_finalize_target
+      source: wsp_group_llm
+      sourceHandle: source
+      target: wsp_group_finalize
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: end
+      id: wsp_group_finalize_source_wsp_group_end_target
+      source: wsp_group_finalize
+      sourceHandle: source
+      target: wsp_group_end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: Writing Q1-Q5 Group Score Input
+        type: start
+        variables:
+        - default: write-sentence-group-input-v1
+          hint: Fixed Writing Q1-Q5 group contract version.
+          label: schema_version
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: schema_version
+        - default: ''
+          hint: Scoring job UUID shared by Writing Q1 through Q5.
+          label: job_id
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: job_id
+        - default: ''
+          hint: Candidate attempt keycode.
+          label: keycode
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: keycode
+        - default: WRITE_SENTENCE_PICTURE
+          hint: Fixed internal score group for TOEIC Writing Q1-Q5.
+          label: group_code
+          options:
+          - WRITE_SENTENCE_PICTURE
+          placeholder: ''
+          required: true
+          type: select
+          variable: group_code
+        - default: "[]"
+          hint: Exactly w_q1 through w_q5 with four locked component scores and final_score.
+          label: questions_json
+          options: []
+          placeholder: '[{"question_id":"w_q1",...},{"question_id":"w_q5",...}]'
+          required: true
+          type: paragraph
+          variable: questions_json
+      height: 260
+      id: wsp_group_start
+      position:
+        x: 40
+        y: 260
+      positionAbsolute:
+        x: 40
+        y: 260
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        code: |-
+          import json
+
+          COMPONENTS = [
+              "grammar_score",
+              "picture_relevance_score",
+              "required_word_usage_score",
+              "sentence_quality_score",
+          ]
+          SCORES = COMPONENTS + ["final_score"]
+          ALLOWED = {"question_id", "question_number", *SCORES}
+
+          def integer_score(value, field):
+              if isinstance(value, bool):
+                  raise ValueError(field + " must be an integer from 0 to 3")
+              try:
+                  number = int(value)
+              except (TypeError, ValueError):
+                  raise ValueError(field + " must be an integer from 0 to 3")
+              if number < 0 or number > 3:
+                  raise ValueError(field + " must be an integer from 0 to 3")
+              if str(value).strip() not in {str(number), str(float(number))}:
+                  raise ValueError(field + " must be an integer from 0 to 3")
+              return number
+
+          def main(schema_version, job_id, keycode, group_code, questions_json) -> dict:
+              if schema_version != "write-sentence-group-input-v1":
+                  raise ValueError("schema_version must be write-sentence-group-input-v1")
+              if not str(job_id or "").strip() or not str(keycode or "").strip():
+                  raise ValueError("job_id and keycode are required")
+              if group_code != "WRITE_SENTENCE_PICTURE":
+                  raise ValueError("group_code must be WRITE_SENTENCE_PICTURE")
+
+              try:
+                  raw_questions = json.loads(questions_json)
+              except Exception as error:
+                  raise ValueError("questions_json must be valid JSON") from error
+              if not isinstance(raw_questions, list) or len(raw_questions) != 5:
+                  raise ValueError("questions_json must contain exactly five questions")
+
+              normalized = []
+              for index, raw in enumerate(raw_questions):
+                  number = index + 1
+                  expected_id = f"w_q{number}"
+                  if not isinstance(raw, dict):
+                      raise ValueError("each question must be an object")
+                  unknown = set(raw.keys()) - ALLOWED
+                  missing = ALLOWED - set(raw.keys())
+                  if unknown:
+                      raise ValueError("unknown question fields: " + ", ".join(sorted(unknown)))
+                  if missing:
+                      raise ValueError("missing question fields: " + ", ".join(sorted(missing)))
+                  if str(raw.get("question_id") or "").strip().lower() != expected_id:
+                      raise ValueError("questions must be ordered w_q1 through w_q5")
+                  try:
+                      supplied_number = int(raw.get("question_number"))
+                  except (TypeError, ValueError):
+                      raise ValueError(expected_id + ".question_number is invalid")
+                  if supplied_number != number:
+                      raise ValueError("questions must be ordered w_q1 through w_q5")
+                  item = {"question_id": expected_id, "question_number": number}
+                  for field in SCORES:
+                      item[field] = integer_score(raw.get(field), expected_id + "." + field)
+                  normalized.append(item)
+
+              finals = [question["final_score"] for question in normalized]
+              ordered = sorted(finals)
+              raw_total = sum(finals)
+              average = round(raw_total / 5.0, 3)
+              zero_count = sum(value == 0 for value in finals)
+              score_1_count = sum(value == 1 for value in finals)
+              score_2_count = sum(value == 2 for value in finals)
+              score_3_count = sum(value == 3 for value in finals)
+              low_count = sum(value <= 1 for value in finals)
+              strong_count = sum(value >= 2 for value in finals)
+
+              component_averages = {
+                  field: round(sum(question[field] for question in normalized) / 5.0, 3)
+                  for field in COMPONENTS
+              }
+              component_low_counts = {
+                  field: sum(question[field] <= 1 for question in normalized)
+                  for field in COMPONENTS
+              }
+              facts = {
+                  "question_finals": finals,
+                  "raw_total": raw_total,
+                  "score_max": 15,
+                  "average_final": average,
+                  "median_final": ordered[2],
+                  "zero_count": zero_count,
+                  "score_1_count": score_1_count,
+                  "score_2_count": score_2_count,
+                  "score_3_count": score_3_count,
+                  "low_question_count": low_count,
+                  "strong_question_count": strong_count,
+                  "component_averages": component_averages,
+                  "component_low_counts": component_low_counts,
+                  "all_questions_zero": zero_count == 5,
+                  "low_performance_cap": (
+                      zero_count >= 3
+                      or low_count >= 4
+                      or (average < 1.5 and strong_count <= 2)
+                  ),
+                  "adequate_majority_floor": strong_count >= 3 and zero_count <= 2,
+                  "excellent_eligible": (
+                      average >= 2.6
+                      and score_3_count >= 3
+                      and zero_count == 0
+                      and score_1_count <= 1
+                  ),
+              }
+              return {
+                  "normalized_questions_json": json.dumps(normalized, ensure_ascii=False),
+                  "policy_context_json": json.dumps(facts, ensure_ascii=False),
+              }
+        code_language: python3
+        outputs:
+          normalized_questions_json:
+            children:
+            type: string
+          policy_context_json:
+            children:
+            type: string
+        selected: false
+        title: Validate and Prepare Group Input
+        type: code
+        variables:
+        - value_selector:
+          - wsp_group_start
+          - schema_version
+          value_type: string
+          variable: schema_version
+        - value_selector:
+          - wsp_group_start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - wsp_group_start
+          - keycode
+          value_type: string
+          variable: keycode
+        - value_selector:
+          - wsp_group_start
+          - group_code
+          value_type: string
+          variable: group_code
+        - value_selector:
+          - wsp_group_start
+          - questions_json
+          value_type: string
+          variable: questions_json
+      height: 70
+      id: wsp_group_validate
+      position:
+        x: 380
+        y: 330
+      positionAbsolute:
+        x: 380
+        y: 330
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 300
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","properties":{"group_final_score":{"type":"integer","enum":[0,1,2,3]},"applied_rules":{"type":"array","items":{"type":"string","enum":["ALL_QUESTIONS_ZERO","NONZERO_ATTEMPT_FLOOR","GROUP_LOW_PERFORMANCE","GROUP_ADEQUATE_MIXED","GROUP_CONSISTENTLY_STRONG","REPEATED_GRAMMAR_WEAKNESS","REPEATED_PICTURE_RELEVANCE_WEAKNESS","REPEATED_REQUIRED_WORD_WEAKNESS","REPEATED_SENTENCE_QUALITY_WEAKNESS","CONSERVATIVE_MIXED_PROFILE"]}}},"required":["group_final_score","applied_rules"]}'
+            max_output_tokens: 1000
+            temperature: 0.0
+            thinking_budget: 0
+            thinking_mode: false
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: wsp_group_llm_system
+          role: system
+          text: |-
+            You are the official internal IIG Viet Nam aggregation assistant for TOEIC Writing Questions 1 through 5: Write a Sentence Based on a Picture.
+
+            ### 1. POLICY STATUS & BOUNDARIES
+
+            - ETS scores the five responses individually and does not publish an official Q1-Q5 group-score formula. Never describe this result as an official ETS group score and never calculate a TOEIC Writing 0-200 scaled score.
+            - LOCKED-SCORE BOUNDARY: You receive exactly five locked question results (w_q1 to w_q5). Never rescore, recalculate, or modify any question score. Do not infer pictures, candidate text, or detected errors. Aggregate strictly using the supplied locked scores.
+
+            ### 2. EVIDENCE & GROUP SCORE BANDS
+
+            - Primary Evidence: Use the five locked `final_score` values.
+            - Band 0: Allowed ONLY when ALL five final scores are 0. Any nonzero completed response prevents group score 0.
+            - Band 1 (Low Performance): Strongly indicated if:
+              - At least 3 questions have score 0, OR
+              - At least 4 questions have score 0 or 1, OR
+              - Average final score is below 1.5 with no more than two responses at score 2 or 3.
+            - Band 2 (Adequate / Mixed): Preferred when:
+              - At least 3 responses are at level 2 or 3, OR
+              - The profile contains meaningful successful responses but fails to meet all gates for Band 3.
+            - Band 3 (Consistently Strong): REQUIRES ALL of the following hard gates:
+              1. Average final score >= 2.6
+              2. At least three responses at score 3
+              3. ZERO responses at score 0
+              4. No more than one response at score 1
+              - Meeting these gates permits Band 3, but repeated component weaknesses across questions can lower it to Band 2.
+
+            ### 3. STRICT DECISION PROCEDURE (Execute in Order)
+
+            1. ALL ZERO CHECK: If all 5 final scores are 0 -> return group_final_score = 0, applied_rules = ["ALL_QUESTIONS_ZERO"].
+            2. LOW PERFORMANCE CHECK: If Band 1 conditions are met -> return group_final_score = 1, include "GROUP_LOW_PERFORMANCE" (and "NONZERO_ATTEMPT_FLOOR" if any question is > 0).
+            3. EXCELLENT GATES CHECK: If all Band 3 gates are met, verify consistency across task fulfillment and language control.
+               - If consistently strong without systemic repeated weaknesses -> return group_final_score = 3, include "GROUP_CONSISTENTLY_STRONG".
+               - If repeated component weaknesses show the profile is not consistently strong -> return group_final_score = 2, include "CONSERVATIVE_MIXED_PROFILE" along with the specific repeated weakness rules.
+            4. REMAINING CASES: Choose between 1 and 2 based on full distribution.
+               - Prefer 2 if at least 3 questions are at level 2 or 3 -> include "GROUP_ADEQUATE_MIXED".
+               - Prefer 1 if low performance dominates -> include "GROUP_LOW_PERFORMANCE".
+
+            ### 4. ALLOWED RULE TAGS
+
+            Use ONLY labels from this exact list:
+
+            - ALL_QUESTIONS_ZERO
+            - NONZERO_ATTEMPT_FLOOR
+            - GROUP_LOW_PERFORMANCE
+            - GROUP_ADEQUATE_MIXED
+            - GROUP_CONSISTENTLY_STRONG
+            - REPEATED_GRAMMAR_WEAKNESS
+            - REPEATED_PICTURE_RELEVANCE_WEAKNESS
+            - REPEATED_REQUIRED_WORD_WEAKNESS
+            - REPEATED_SENTENCE_QUALITY_WEAKNESS
+            - CONSERVATIVE_MIXED_PROFILE
+
+            ### 5. OUTPUT CONSTRAINTS
+
+            - Return ONLY valid structured JSON matching the output schema.
+            - Do NOT return rationale, explanations, markdown formatting, or extra fields.
+        - id: wsp_group_llm_user
+          role: user
+          text: |-
+            LOCKED QUESTION RESULTS:
+            {{#wsp_group_validate.normalized_questions_json#}}
+
+            INTERNAL POLICY FACTS:
+            {{#wsp_group_validate.policy_context_json#}}
+
+            Apply the internal policy strictly in sequence and return the structured group decision.
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          schema:
+            type: object
+            properties:
+              group_final_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+              applied_rules:
+                type: array
+                items:
+                  type: string
+                  enum:
+                  - ALL_QUESTIONS_ZERO
+                  - NONZERO_ATTEMPT_FLOOR
+                  - GROUP_LOW_PERFORMANCE
+                  - GROUP_ADEQUATE_MIXED
+                  - GROUP_CONSISTENTLY_STRONG
+                  - REPEATED_GRAMMAR_WEAKNESS
+                  - REPEATED_PICTURE_RELEVANCE_WEAKNESS
+                  - REPEATED_REQUIRED_WORD_WEAKNESS
+                  - REPEATED_SENTENCE_QUALITY_WEAKNESS
+                  - CONSERVATIVE_MIXED_PROFILE
+            required:
+            - group_final_score
+            - applied_rules
+        structured_output_enabled: true
+        title: Adjudicate Writing Q1-Q5 Group Score
+        type: llm
+        vision:
+          enabled: false
+      height: 118
+      id: wsp_group_llm
+      position:
+        x: 750
+        y: 310
+      positionAbsolute:
+        x: 750
+        y: 310
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 300
+      zIndex: 0
+    - data:
+        code: |-
+          import json
+
+          def main(job_id, keycode, group_code, questions_json,
+                   llm_group_final_score, llm_applied_rules) -> dict:
+              questions = json.loads(questions_json)
+              if not isinstance(questions, list) or len(questions) != 5:
+                  raise ValueError("exactly five normalized questions are required")
+
+              try:
+                  proposed = int(llm_group_final_score)
+              except (TypeError, ValueError):
+                  raise ValueError("LLM group score must be an integer from 0 to 3")
+              if proposed < 0 or proposed > 3:
+                  raise ValueError("LLM group score must be an integer from 0 to 3")
+
+              raw_rules = llm_applied_rules or []
+              if not isinstance(raw_rules, list):
+                  raise ValueError("applied_rules must be an array")
+              rules = [str(rule).strip() for rule in raw_rules if str(rule).strip()]
+
+              finals = [int(question["final_score"]) for question in questions]
+              raw_total = sum(finals)
+              average = round(raw_total / 5.0, 3)
+              zero_count = sum(value == 0 for value in finals)
+              score_1_count = sum(value == 1 for value in finals)
+              score_3_count = sum(value == 3 for value in finals)
+              low_count = sum(value <= 1 for value in finals)
+              strong_count = sum(value >= 2 for value in finals)
+
+              if zero_count == 5:
+                  proposed = 0
+                  rules.append("ALL_QUESTIONS_ZERO")
+              else:
+                  if proposed == 0:
+                      proposed = 1
+                      rules.append("NONZERO_ATTEMPT_FLOOR")
+
+                  low_cap = (
+                      zero_count >= 3
+                      or low_count >= 4
+                      or (average < 1.5 and strong_count <= 2)
+                  )
+                  if low_cap and proposed > 1:
+                      proposed = 1
+                      rules.append("GROUP_LOW_PERFORMANCE")
+
+                  adequate_floor = strong_count >= 3 and zero_count <= 2
+                  if adequate_floor and proposed < 2:
+                      proposed = 2
+                      rules.append("GROUP_ADEQUATE_MIXED")
+
+                  excellent_eligible = (
+                      average >= 2.6
+                      and score_3_count >= 3
+                      and zero_count == 0
+                      and score_1_count <= 1
+                  )
+                  if proposed == 3 and not excellent_eligible:
+                      proposed = 2
+                      rules.append("CONSERVATIVE_MIXED_PROFILE")
+
+              result = {
+                  "schema_version": "write-sentence-group-result-v1",
+                  "job_id": job_id,
+                  "keycode": keycode,
+                  "group_code": group_code,
+                  "status": "COMPLETED",
+                  "group_final_score": proposed,
+                  "group_raw_total": raw_total,
+                  "group_score_max": 15,
+                  "group_average": average,
+                  "question_scores": finals,
+                  "applied_rules": list(dict.fromkeys(rules)),
+                  "versions": {
+                      "group_prompt_version": "write-sentence-group-prompt-v1",
+                      "group_policy_version": "write-sentence-group-policy-v1",
+                  },
+              }
+              return {
+                  "group_final_score": proposed,
+                  "group_raw_total": raw_total,
+                  "group_average": average,
+                  "result_json": json.dumps(result, ensure_ascii=False),
+              }
+        code_language: python3
+        outputs:
+          group_final_score:
+            children:
+            type: number
+          group_raw_total:
+            children:
+            type: number
+          group_average:
+            children:
+            type: number
+          result_json:
+            children:
+            type: string
+        selected: false
+        title: Validate Group Decision and Build Result
+        type: code
+        variables:
+        - value_selector:
+          - wsp_group_start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - wsp_group_start
+          - keycode
+          value_type: string
+          variable: keycode
+        - value_selector:
+          - wsp_group_start
+          - group_code
+          value_type: string
+          variable: group_code
+        - value_selector:
+          - wsp_group_validate
+          - normalized_questions_json
+          value_type: string
+          variable: questions_json
+        - value_selector:
+          - wsp_group_llm
+          - structured_output
+          - group_final_score
+          value_type: number
+          variable: llm_group_final_score
+        - value_selector:
+          - wsp_group_llm
+          - structured_output
+          - applied_rules
+          value_type: array[string]
+          variable: llm_applied_rules
+      height: 70
+      id: wsp_group_finalize
+      position:
+        x: 1120
+        y: 330
+      positionAbsolute:
+        x: 1120
+        y: 330
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 320
+      zIndex: 0
+    - data:
+        outputs:
+        - value_selector:
+          - wsp_group_finalize
+          - group_final_score
+          value_type: number
+          variable: group_final_score
+        - value_selector:
+          - wsp_group_finalize
+          - group_raw_total
+          value_type: number
+          variable: group_raw_total
+        - value_selector:
+          - wsp_group_finalize
+          - group_average
+          value_type: number
+          variable: group_average
+        - value_selector:
+          - wsp_group_finalize
+          - result_json
+          value_type: string
+          variable: result_json
+        selected: false
+        title: Writing Q1-Q5 Group Result
+        type: end
+      height: 140
+      id: wsp_group_end
+      position:
+        x: 1510
+        y: 310
+      positionAbsolute:
+        x: 1510
+        y: 310
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.8
+  rag_pipeline_variables: []

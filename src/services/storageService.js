@@ -23,22 +23,56 @@ const LOCAL_MEDIA_ROOT = path.join(__dirname, '../../public/question-bank-media'
 const SIGNED_URL_EXPIRY_SECONDS = 60 * 60 * 24 * 7;
 
 let _client = null;
+let _sourceClient = null;
+
+function resolveDownloadProfile(bucket, env = process.env) {
+  const requestedBucket = String(bucket || env.R2_BUCKET || R2_BUCKET).trim();
+  const sourceBucket = String(env.IIG_SOURCE_R2_BUCKET || '').trim();
+  const useSourceProfile = Boolean(sourceBucket && requestedBucket === sourceBucket);
+  if (!useSourceProfile) {
+    return {
+      profile: 'default',
+      bucket: requestedBucket,
+      endpoint: env.R2_ENDPOINT || R2_ENDPOINT,
+      accessKey: env.R2_ACCESS_KEY || R2_ACCESS_KEY,
+      secretKey: env.R2_SECRET_KEY || R2_SECRET_KEY,
+    };
+  }
+  return {
+    profile: 'iig-source',
+    bucket: requestedBucket,
+    endpoint: env.IIG_SOURCE_R2_ENDPOINT || '',
+    accessKey: env.IIG_SOURCE_R2_ACCESS_KEY || '',
+    secretKey: env.IIG_SOURCE_R2_SECRET_KEY || '',
+  };
+}
+
+function createClient(profile) {
+  if (!profile.endpoint || !profile.accessKey || !profile.secretKey) {
+    const prefix = profile.profile === 'iig-source' ? 'IIG source R2' : 'R2';
+    throw new Error(`${prefix} credentials are not configured.`);
+  }
+  return new S3Client({
+    region: 'auto',
+    endpoint: profile.endpoint,
+    credentials: {
+      accessKeyId: profile.accessKey,
+      secretAccessKey: profile.secretKey,
+    },
+  });
+}
 
 function getClient() {
   if (!_client) {
-    if (!R2_ENDPOINT || !R2_ACCESS_KEY || !R2_SECRET_KEY) {
-      throw new Error('R2 credentials not configured. Set R2_ENDPOINT, R2_ACCESS_KEY, R2_SECRET_KEY in .env');
-    }
-    _client = new S3Client({
-      region: 'auto',
-      endpoint: R2_ENDPOINT,
-      credentials: {
-        accessKeyId: R2_ACCESS_KEY,
-        secretAccessKey: R2_SECRET_KEY,
-      },
-    });
+    _client = createClient(resolveDownloadProfile(R2_BUCKET));
   }
   return _client;
+}
+
+function getDownloadClient(profile) {
+  if (profile.profile === 'default') return getClient();
+  if (!_sourceClient) _sourceClient = createClient(profile);
+  return _sourceClient;
 }
 
 /**
@@ -74,24 +108,18 @@ function objectKey(kind, fileName) {
  * @returns {Promise<string>}    - the R2 key stored (prefix "r2:")
  */
 async function uploadFile(localFilePath, r2Key) {
-  const client = getClient();
   const fileBuffer = fs.readFileSync(localFilePath);
   const ext = path.extname(localFilePath).toLowerCase();
   const contentType = ext === '.wav'  ? 'audio/wav'
                     : ext === '.mp3'  ? 'audio/mpeg'
                     : ext === '.ogg'  ? 'audio/ogg'
+                    : ext === '.png'  ? 'image/png'
+                    : ['.jpg', '.jpeg'].includes(ext) ? 'image/jpeg'
+                    : ext === '.webp' ? 'image/webp'
+                    : ext === '.gif'  ? 'image/gif'
                     : 'application/octet-stream';
 
-  const command = new PutObjectCommand({
-    Bucket: R2_BUCKET,
-    Key: r2Key,
-    Body: fileBuffer,
-    ContentType: contentType,
-  });
-
-  await client.send(command);
-  console.log(`[R2] Uploaded: ${r2Key}`);
-  return `r2:${r2Key}`;
+  return uploadBuffer(fileBuffer, r2Key, contentType);
 }
 
 async function uploadBuffer(buffer, r2Key, contentType = 'application/octet-stream', options = {}) {
@@ -125,17 +153,18 @@ async function uploadBuffer(buffer, r2Key, contentType = 'application/octet-stre
  * @param {string} r2KeyOrStoredUrl - either "r2:<key>" (stored format) or raw "<key>"
  * @returns {Promise<string>}       - temporary HTTPS URL valid for 7 days
  */
-async function getSignedAudioUrl(r2KeyOrStoredUrl) {
+async function getSignedAudioUrl(r2KeyOrStoredUrl, options = {}) {
   const localKey = r2KeyOrStoredUrl.startsWith('local:') ? r2KeyOrStoredUrl.slice(6) : r2KeyOrStoredUrl;
   if (r2KeyOrStoredUrl.startsWith('local:') || fs.existsSync(path.join(LOCAL_MEDIA_ROOT, localKey))) {
     return `/question-bank-media/${localKey.split('/').map(encodeURIComponent).join('/')}`;
   }
-  const client = getClient();
+  const profile = resolveDownloadProfile(options.bucket);
+  const client = getDownloadClient(profile);
   const key = r2KeyOrStoredUrl.startsWith('r2:')
     ? r2KeyOrStoredUrl.slice(3)
     : r2KeyOrStoredUrl;
 
-  const getCommand = { Bucket: R2_BUCKET, Key: key };
+  const getCommand = { Bucket: profile.bucket, Key: key };
   const url = await getSignedUrl(
     client,
     new (require('@aws-sdk/client-s3').GetObjectCommand)(getCommand),
@@ -158,14 +187,19 @@ async function headObject(r2KeyOrStoredUrl) {
   return { size: Number(result.ContentLength || 0), contentType: result.ContentType || null, etag: String(result.ETag || '').replaceAll('"', '') || null };
 }
 
-async function downloadBuffer(r2KeyOrStoredUrl) {
+async function downloadBuffer(r2KeyOrStoredUrl, options = {}) {
   const localKey = r2KeyOrStoredUrl.startsWith('local:') ? r2KeyOrStoredUrl.slice(6) : r2KeyOrStoredUrl;
   if (r2KeyOrStoredUrl.startsWith('local:') || fs.existsSync(path.join(LOCAL_MEDIA_ROOT, localKey))) {
     const safeKey = localKey.replace(/\.\.(?:\/|\\)/g, '');
     return { buffer: fs.readFileSync(path.join(LOCAL_MEDIA_ROOT, safeKey)), contentType: 'application/octet-stream' };
   }
   const key = r2KeyOrStoredUrl.startsWith('r2:') ? r2KeyOrStoredUrl.slice(3) : r2KeyOrStoredUrl;
-  const response = await getClient().send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+  const profile = resolveDownloadProfile(options.bucket);
+  if (!profile.bucket) throw new Error('R2 bucket is required to download an object.');
+  const response = await getDownloadClient(profile).send(new GetObjectCommand({
+    Bucket: profile.bucket,
+    Key: key,
+  }));
   return {
     buffer: Buffer.from(await response.Body.transformToByteArray()),
     contentType: response.ContentType || 'application/octet-stream',
@@ -201,7 +235,8 @@ module.exports = {
   uploadFile, uploadBuffer, downloadBuffer, getSignedAudioUrl,
   getSignedUrl: getSignedAudioUrl, deleteFile, isR2Key, isR2Configured,
   createSignedUploadUrl, headObject,
-  requireR2, requireProductionR2, objectKey,
+  requireR2, requireProductionR2, objectKey, resolveDownloadProfile,
   mediaStorageMode: MEDIA_STORAGE_MODE,
   audioStorageMode: MEDIA_STORAGE_MODE,
+  bucket: R2_BUCKET,
 };

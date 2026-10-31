@@ -1,0 +1,484 @@
+app:
+  description: ''
+  icon: "\U0001F916"
+  icon_background: "#FFEAD5"
+  icon_type: emoji
+  mode: workflow
+  name: IIG Score - Respond to a Written Request
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier:
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.9.10@4979b8843fa46c3c2143d339f5868f04d9d77166616c00dd9f811a4adfce03ab
+    version:
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - ".JPG"
+      - ".JPEG"
+      - ".PNG"
+      - ".GIF"
+      - ".WEBP"
+      - ".SVG"
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 20
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: 1783522199690-source-1783522316354-target
+      source: '1783522199690'
+      sourceHandle: source
+      target: '1783522316354'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id:
+        loop_id:
+        sourceType: llm
+        targetType: code
+      id: 1783522316354-source-calculate-final-score-target
+      source: '1783522316354'
+      sourceHandle: source
+      target: calculate-final-score
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id:
+        loop_id:
+        sourceType: code
+        targetType: end
+      id: calculate-final-score-source-1783522427399-target
+      source: calculate-final-score
+      sourceHandle: source
+      target: '1783522427399'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: true
+        title: User Input
+        type: start
+        variables:
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - image
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          default: ''
+          hide: false
+          hint: ''
+          label: image
+          options: []
+          placeholder: ''
+          required: false
+          type: file
+          variable: image
+        - default: ''
+          hint: ''
+          label: question
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: question
+        - default: ''
+          hint: ''
+          label: student_writing
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: student_writing
+      height: 161
+      id: '1783522199690'
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"quality_variety_score":{"type":"integer","enum":[0,1,2,3,4],"description":"Quality
+              and Variety of Sentences score from 0 to 4."},"vocabulary_score":{"type":"integer","enum":[0,1,2,3,4],"description":"Vocabulary
+              score from 0 to 4."},"organization_score":{"type":"integer","enum":[0,1,2,3,4],"description":"Organization
+              score from 0 to 4."}},"required":["quality_variety_score","vocabulary_score","organization_score"]}'
+            max_output_tokens: 4000
+            media_resolution: Default
+            service_tier: standard
+            temperature: 0.1
+            thinking_budget: 0
+            thinking_mode: false
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: a6bcad21-355e-4991-b0a1-10d23e857940
+          role: system
+          text: |-
+            You are an official IIG Việt Nam examiner grading TOEIC Writing Part 2 (Respond to a Written Request - Questions 6-7).
+            Evaluate the candidate's email response strictly based on the three official evaluation criteria: **Quality and variety of your sentences**, **Vocabulary**, and **Organization**.
+
+            <STRUCTURE_AND_WORD_COUNT_CONSTRAINTS>
+            - Word Count Standard: Recommended length is 80-120 words (~100 words).
+            - Word Count Penalty:
+              * Under 40 words -> Cap final score at a maximum of 1.
+              * 40 to under 60 words -> Cap final score at a maximum of 2.
+              * 60 to under 80 words -> Cap final score at a maximum of 3.
+            - Standard Email Format: Must contain Salutation, Opening, Body, Closing, and Sign-off/Signature.
+            </STRUCTURE_AND_WORD_COUNT_CONSTRAINTS>
+
+            <STEP_1_VALIDITY_SCREENING_GATE>
+            Scan student_writing for baseline disqualifying metrics. If any condition matches, immediately truncate processing, inject 0 into all three criteria scores, and assign 0 to all three criteria scores:
+            1. Blank response or only whitespace/punctuation marks.
+            2. Keyboard mashing/gibberish (e.g., 'asdfghjk', 'qwerty').
+            3. Extremely short single-word responses, conversational filler words, or simple greetings (e.g., 'ok', 'yes', 'hello', 'goodbye', 'ok thanks') that fail to deliver a functional communication message.
+            4. Total length is under 10 valid English words.
+            5. Written in a language other than English (e.g., Vietnamese).
+            6. Copies the incoming email or the prompt directions verbatim without producing original content.
+            </STEP_1_VALIDITY_SCREENING_GATE>
+
+            <STEP_2_TASKS_AND_CONTEXT_SCAN>
+            1. Determine the Directions tasks in text_question (usually 3 requirements, e.g., 'make two suggestions and ask one question').
+            2. Identify the type/purpose of the incoming email (text_passage):
+               - Type 1: Inquiry Response / Customer Care
+               - Type 2: Scheduling & Coordination
+               - Type 3: Problem Resolution / Complaint Response
+               - Type 4: Job Application & Internal HR Requests
+            3. Count the candidate's completed tasks in student_writing.
+            </STEP_2_TASKS_AND_CONTEXT_SCAN>
+
+            <STEP_3_DETAILED_3_CRITERIA_RUBRIC>
+            1. QUALITY AND VARIETY OF YOUR SENTENCES (Chất lượng & Sự đa dạng của câu)
+            - Score 4 (Excellent): Grammatically flawless. Only 1-2 minor isolated errors (e.g., minor article omissions) that do not obscure meaning. Uses a natural mix of simple, compound, and complex sentences (using subordinate clauses or relative clauses) to convey ideas smoothly.
+              * **Strict Capping Rule for Errors:** If there is any obvious grammatical/preposition/article error (e.g., 'in June 20' instead of 'on June 20', or 'It do not' instead of 'It does not'), clamp quality_variety_score at a MAXIMUM of 3.
+              * **Capping Rule:** If grammatically perfect but contains ONLY simple sentences without variety, clamp quality_variety_score at a MAXIMUM of 3.
+            - Score 3 (Good): Good grammar and clear sentence structures. Demonstrates effort to write compound and complex sentences. Noticeable errors may be present, but at most ONE sentence contains errors that obscure or obscure meaning.
+            - Score 2 (Satisfactory): Primarily writes simple, choppy sentences. Frequent grammatical errors (verb tense mismatch, subject-verb agreement issues, preposition errors). More than ONE sentence contains errors that obscure meaning.
+              * **Incomplete Response Capping Rule:** If the response cuts off abruptly at the end in the middle of a word/sentence, clamp quality_variety_score at a MAXIMUM of 2.
+              * **Capping Rule:** If the text contains a Comma Splice (joining two independent clauses with a comma instead of a conjunction), clamp quality_variety_score at a MAXIMUM of 2.
+            - Score 1 (Below Standard): Seriously flawed sentence structures. Errors in grammar and usage obscure meaning most of the time.
+              * **Capping Rule:** If the response contains sentence fragments (incomplete structures missing subject or main verb), clamp quality_variety_score at a MAXIMUM of 1.
+            - Score 0 (Unsatisfactory): Fails validity check, or fails to write any grammatical English sentences.
+
+            2. VOCABULARY (Từ vựng)
+            - Score 4 (Excellent): Precise, natural, and professional vocabulary tailored to business emails. Uses correct word forms, appropriate register, and office collocations. Spelling accuracy is over 95% with zero typos in common vocabulary.
+              * **Strict Capping Rule for Typos:** If there is even ONE clear spelling typo in a standard word (e.g., 'remembrt', 'writingg', 'guilines', 'vouvher', 'T compensate'), clamp vocabulary_score at a MAXIMUM of 3.
+            - Score 3 (Good): Good vocabulary usage that successfully conveys the intended message. May contain minor word choice/class errors.
+              * **Capping Rule:** If the response has 2-3 minor spelling typos in standard words, clamp vocabulary_score at a MAXIMUM of 3.
+            - Score 2 (Satisfactory): Limited vocabulary range, repetitive words, or uses informal vocabulary/slang (though not highly inappropriate).
+              * **All-Caps Capping Rule:** If the email is written in ALL-CAPS (uppercase letters only), clamp vocabulary_score at a MAXIMUM of 2 due to highly unprofessional email register/tone.
+              * **Capping Rule:** If the response has more than 3 spelling typos, or contains capitalization errors (failing to capitalize 'I', first word, or irregular random capitals), clamp vocabulary_score at a MAXIMUM of 2.
+            - Score 1 (Below Standard): Extremely limited vocabulary. Persistent spelling typos and severe word choice errors that block comprehension.
+            - Score 0 (Unsatisfactory): Fails validity check, or vocabulary is completely unintelligible.
+
+            3. ORGANIZATION (Bố cục, Định dạng & Giọng điệu)
+            - Score 4 (Excellent): Solves 100% of Directions requirements with clear details. Contains all 5 standard email parts (Salutation, Opening, Body, Closing, Sign-off/Signature) with proper paragraph spacing. Smooth and logical transitions/connecting words. Tone is highly professional, polite, and appropriate for the recipient (e.g., client, coworker, boss). No informal abbreviations/emoji.
+            - Score 3 (Good): Solves all tasks but 1 task lacks depth. Clear email structure but lacks 1 minor part (e.g., closing line or signature). Uses transition words well though slightly repetitive. Polite tone.
+              * **Capping Rule:** If the candidate misses 1 task of the Directions, clamp organization_score at a MAXIMUM of 3.
+              * **Capping Rule:** If the response lacks transition linkers between major ideas, clamp organization_score at a MAXIMUM of 3.
+              * **Capping Rule:** If the response misses basic email parts (Salutation, Closing, or Sign-off/Signature), clamp organization_score at a MAXIMUM of 3.
+            - Score 2 (Satisfactory): Messy layout, lacks important sections (no salutation or no signature), or written as a single block. Weak transitions causing abrupt shifts.
+              * **Incomplete Response Capping Rule:** If the email is cut off at the end (missing closing and signature due to truncated text), clamp organization_score at a MAXIMUM of 2.
+              * **Capping Rule:** If the candidate misses 2 tasks of the Directions, clamp organization_score at a MAXIMUM of 2.
+              * **Capping Rule:** If register mismatch is detected (using slang, conversational abbreviations like wanna/gonna/LOL, or emojis in a formal context), clamp organization_score at a MAXIMUM of 2.
+            - Score 1 (Below Standard): Extremely brief, lacks standard email formatting (written as a free essay block).
+              * **Capping Rule:** If the candidate misses all 3 tasks of the Directions, clamp organization_score at a MAXIMUM of 1.
+              * **Capping Rule:** If written as a dialogue script (e.g., A: ... B: ...) instead of an email layout, clamp organization_score at a MAXIMUM of 1.
+            - Score 0 (Unsatisfactory): Fails validity check, or response is completely off-topic.
+            </STEP_3_DETAILED_3_CRITERIA_RUBRIC>
+
+            <STEP_4_MANDATORY_OVERWRITE_REGULATIONS>
+            Enforce the following capping constraints during score evaluation:
+            1. Validity screening failure -> Assign 0 to all criteria.
+            2. Directions tasks completion caps on Organization:
+               - Misses 1 task -> clamp organization_score at a MAXIMUM of 3.
+               - Misses 2 tasks -> clamp organization_score at a MAXIMUM of 2.
+               - Misses all 3 tasks -> clamp organization_score at a MAXIMUM of 1.
+            3. Lack of transition words or missing basic email parts -> clamp organization_score at a MAXIMUM of 3.
+            4. Dialogue script format -> clamp organization_score at a MAXIMUM of 1.
+            5. Register/Tone Mismatch (slang, wanna/gonna, emoji, or ALL-CAPS) -> clamp organization_score at a MAXIMUM of 2.
+            6. Grammar/Syntax structural caps on Quality/Variety of sentences:
+               - Comma splice -> clamp quality_variety_score at a MAXIMUM of 2.
+               - Sentence fragments or cut-off text -> clamp quality_variety_score at a MAXIMUM of 1 or 2.
+               - Zero sentence variety (only simple sentences) -> clamp quality_variety_score at a MAXIMUM of 3.
+               - Any obvious grammar/preposition error -> clamp quality_variety_score at a MAXIMUM of 3.
+            7. Spelling & Capitalization caps on Vocabulary:
+               - 1 spelling typo -> clamp vocabulary_score at a MAXIMUM of 3.
+               - 2-3 spelling typos -> clamp vocabulary_score at a MAXIMUM of 3.
+               - More than 3 spelling typos, ALL-CAPS text, or capitalization errors -> clamp vocabulary_score at a MAXIMUM of 2.
+            8. Total Off-Topic deviation -> Automatically override all 3 scores to 0.
+            9. Language Proficiency Capping Rule -> If Quality & Variety <= 2 or Vocabulary <= 2, the Final Score will be capped at a maximum of 2.
+            10. Unified Capping Rule & Score Balancing (RÀO CẢN KHỐNG CHẾ ĐỒNG BỘ ĐIỂM):
+                - First, determine the raw scores for all three criteria (quality_variety_score, vocabulary_score, organization_score) based on the detailed rubrics.
+                - Second, check if any capping rule (Word Count Penalty, Language Proficiency Cap, Dialogue Format, Register Mismatch, Incomplete Response, Spelling Typos, etc.) is triggered. Identify the lowest capping limit N (where N in {0, 1, 2, 3}) across all triggered capping rules.
+                - Third, you MUST clamp ALL THREE criteria scores to be at most N:
+                  * quality_variety_score = min(quality_variety_score, N)
+                  * vocabulary_score = min(vocabulary_score, N)
+                  * organization_score = min(organization_score, N)
+                - This is mandatory to ensure that the final rounded average (average = round((quality_variety_score + vocabulary_score + organization_score) / 3)) will mathematically equal the capping limit N, eliminating any discrepancy between individual criteria and the final score.
+            </STEP_4_MANDATORY_OVERWRITE_REGULATIONS>
+
+            <OUTPUT>
+            - Return exactly three integer scores from 0 to 4 through the required structured output:
+              quality_variety_score, vocabulary_score, organization_score.
+            - Perform all analysis and rubric checks silently.
+            - Do not return rationales, explanations, comments, markdown, or final_score.
+            - The Code node calculates final_score from the arithmetic mean of the three scores.
+            </OUTPUT>
+        - id: 8514ea5b-6466-4f97-8827-b0599271d700
+          role: user
+          text: |-
+            ## RECEIVED EMAIL
+            "{{#1783522199690.image#}}"
+
+            ## DIRECTIONS
+            "{{#1783522199690.question#}}"
+
+            ## CANDIDATE RESPONSE
+            "{{#1783522199690.student_writing#}}"
+
+            Grade Quality and Variety of Sentences, Vocabulary, and Organization. Return scores only through the required structured output.
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              quality_variety_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                - 4
+                description: Quality and Variety of Sentences score from 0 to 4.
+              vocabulary_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                - 4
+                description: Vocabulary score from 0 to 4.
+              organization_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                - 4
+                description: Organization score from 0 to 4.
+            required:
+            - quality_variety_score
+            - vocabulary_score
+            - organization_score
+        structured_output_enabled: true
+        title: Score Three Criteria
+        type: llm
+        vision:
+          configs:
+            detail: low
+            variable_selector:
+            - '1783522199690'
+            - image
+          enabled: true
+        reasoning_format: separated
+      height: 117
+      id: '1783522316354'
+      position:
+        x: 506
+        y: 303
+      positionAbsolute:
+        x: 506
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        outputs:
+        - value_selector:
+          - calculate-final-score
+          - quality_variety_score
+          value_type: number
+          variable: quality_variety_score
+        - value_selector:
+          - calculate-final-score
+          - vocabulary_score
+          value_type: number
+          variable: vocabulary_score
+        - value_selector:
+          - calculate-final-score
+          - organization_score
+          value_type: number
+          variable: organization_score
+        - value_selector:
+          - calculate-final-score
+          - final_score
+          value_type: number
+          variable: final_score
+        selected: false
+        title: Output Scores
+        type: end
+      height: 174
+      id: '1783522427399'
+      position:
+        x: 1130
+        y: 303
+      positionAbsolute:
+        x: 1130
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        code: |-
+          import math
+
+          def main(quality_variety_score, vocabulary_score, organization_score) -> dict:
+              quality_variety = int(quality_variety_score)
+              vocabulary = int(vocabulary_score)
+              organization = int(organization_score)
+
+              scores = [quality_variety, vocabulary, organization]
+              if any(score not in (0, 1, 2, 3, 4) for score in scores):
+                  raise ValueError("Component scores must be integers from 0 to 4")
+
+              average = sum(scores) / 3
+              final_score = math.floor(average + 0.5)
+
+              return {
+                  "quality_variety_score": quality_variety,
+                  "vocabulary_score": vocabulary,
+                  "organization_score": organization,
+                  "final_score": final_score,
+              }
+        code_language: python3
+        outputs:
+          quality_variety_score:
+            children:
+            type: number
+          vocabulary_score:
+            children:
+            type: number
+          organization_score:
+            children:
+            type: number
+          final_score:
+            children:
+            type: number
+        selected: false
+        title: Calculate Final Score
+        type: code
+        variables:
+        - value_selector:
+          - '1783522316354'
+          - structured_output
+          - quality_variety_score
+          value_type: number
+          variable: quality_variety_score
+        - value_selector:
+          - '1783522316354'
+          - structured_output
+          - vocabulary_score
+          value_type: number
+          variable: vocabulary_score
+        - value_selector:
+          - '1783522316354'
+          - structured_output
+          - organization_score
+          value_type: number
+          variable: organization_score
+      height: 54
+      id: calculate-final-score
+      position:
+        x: 800
+        y: 303
+      positionAbsolute:
+        x: 800
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    viewport:
+      x: 248.13790242543143
+      y: 121.30349663055529
+      zoom: 0.7497622371975321
+  rag_pipeline_variables: []

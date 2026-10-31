@@ -21,6 +21,12 @@ const examV3Routes = require('./routes/examV3Routes');
 const scoreScaleRoutes = require('./routes/scoreScaleRoutes');
 const examCandidateRoutes = require('./routes/examCandidateRoutes');
 const publicExamCatalogRoutes = require('./routes/publicExamCatalogRoutes');
+const iigIntegrationRoutes = require('./routes/iigIntegrationRoutes');
+const aiScoringTenantRoutes = require('./routes/aiScoringTenantRoutes');
+const aiScoringCredentialRoutes = require('./routes/aiScoringCredentialRoutes');
+const aiScoringWebhookRoutes = require('./routes/aiScoringWebhookRoutes');
+const aiScoringJobRoutes = require('./routes/aiScoringJobRoutes');
+const aiScoringAuditRoutes = require('./routes/aiScoringAuditRoutes');
 
 const path = require('path');
 const app = express();
@@ -41,6 +47,7 @@ app.use('/question-bank-media', express.static(path.join(__dirname, '../public/q
 
 // Public candidate routes
 app.use('/api/public/exams', publicExamCatalogRoutes);
+app.use('/api/integrations/iig', iigIntegrationRoutes);
 
 // Protected Admin Routes mapping
 app.use('/api/auth', authRoutes);
@@ -57,6 +64,11 @@ app.use('/api/question-bank', authenticate, questionBankV3Routes);
 app.use('/api/exams', authenticate, examV3Routes);
 app.use('/api/score-scales', authenticate, scoreScaleRoutes);
 app.use('/api/exam-candidates', authenticate, examCandidateRoutes);
+app.use('/api/ai-scoring/tenants', authenticate, aiScoringTenantRoutes);
+app.use('/api/ai-scoring', authenticate, aiScoringCredentialRoutes);
+app.use('/api/ai-scoring', authenticate, aiScoringWebhookRoutes);
+app.use('/api/ai-scoring', authenticate, aiScoringJobRoutes);
+app.use('/api/ai-scoring', authenticate, aiScoringAuditRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

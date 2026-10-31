@@ -9,6 +9,9 @@ import SubmissionListPage from './features/submissions/pages/SubmissionListPage'
 import SubmissionDetailPage from './features/submissions/pages/SubmissionDetailPage';
 import MappingKeycodePage from './features/mappings/pages/MappingKeycodePage';
 import AIConfigPage from './features/ai-config/pages/AIConfigPage';
+import TenantManagementPage from './features/ai-scoring-tenants/pages/TenantManagementPage';
+import ScoringJobListPage from './features/ai-scoring-jobs/pages/ScoringJobListPage';
+import ScoringJobDetailPage from './features/ai-scoring-jobs/pages/ScoringJobDetailPage';
 import UserManagementPage from './features/users/pages/UserManagementPage';
 import RoleManagementPage from './features/users/pages/RoleManagementPage';
 import LocalTTSStudio from './components/local-tts/LocalTTSStudio';
@@ -54,6 +57,8 @@ const firstAllowedPath = user => {
   if (has('submissions.view')) return '/submissions';
   if (has('mappings.view')) return '/mappings';
   if (has('agents.view')) return '/ai';
+  if (has('ai_scoring.jobs.view')) return '/ai-scoring/jobs';
+  if (has('ai_scoring.tenants.view')) return '/ai-scoring/tenants';
   if (has('audio.view')) return '/local-tts';
   if (hasAny(['content_sources.view','content_sources.create'])) return '/content-sources';
   if (hasAny(['key_vocab.view','key_vocab.generate','key_vocab.manage'])) return '/key-vocab';
@@ -82,6 +87,8 @@ function App() {
 
   let activeTab = 'submissions';
   if (path.startsWith('/mappings')) activeTab = 'mappings';
+  else if (path.startsWith('/ai-scoring/jobs')) activeTab = 'ai-scoring-jobs';
+  else if (path.startsWith('/ai-scoring/tenants')) activeTab = 'ai-scoring-tenants';
   else if (path.startsWith('/ai')) activeTab = 'ai';
   else if (path.startsWith('/users')) activeTab = 'users';
   else if (path.startsWith('/roles')) activeTab = 'roles';
@@ -493,6 +500,18 @@ function App() {
                 hasPermission('agents.view') ? (
                   <AIConfigPage showMsg={showMsg} />
                 ) : <Navigate to={defaultPath} replace />
+              } />
+
+              <Route path="/ai-scoring/tenants" element={
+                hasPermission('ai_scoring.tenants.view') ? (
+                  <TenantManagementPage currentUser={currentUser} showMsg={showMsg} />
+                ) : <Navigate to={defaultPath} replace />
+              } />
+              <Route path="/ai-scoring/jobs" element={
+                hasPermission('ai_scoring.jobs.view') ? <ScoringJobListPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
+              } />
+              <Route path="/ai-scoring/jobs/:jobId" element={
+                hasPermission('ai_scoring.jobs.view_detail') ? <ScoringJobDetailPage currentUser={currentUser} /> : <Navigate to={defaultPath} replace />
               } />
 
               <Route path="/users" element={

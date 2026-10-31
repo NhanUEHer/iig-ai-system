@@ -1,0 +1,121 @@
+.iig3-application-header {
+  position: relative;
+  z-index: 12;
+  display: flex;
+  min-height: 64px;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 0 clamp(14px, 1.5vw, 24px);
+  border-bottom: 1px solid var(--iig3-border);
+  background: rgb(247 247 244 / 92%);
+  backdrop-filter: blur(12px);
+}
+
+.iig3-application-header > .iig3-command-search {
+  width: clamp(280px, 36vw, 560px);
+}
+
+.iig3-application-header__actions,
+.iig3-application-header__user {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.iig3-application-header__actions {
+  gap: 10px;
+}
+
+.iig3-application-header__notification {
+  position: relative;
+  display: inline-flex;
+}
+
+.iig3-application-header__notification > em {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border: 2px solid var(--iig3-surface-muted);
+  border-radius: 9px;
+  background: var(--iig3-danger);
+  color: #fff;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: var(--iig3-weight-bold);
+  line-height: 13px;
+  text-align: center;
+}
+
+.iig3-application-header__user {
+  gap: 8px;
+  padding: 4px 6px 4px 4px;
+  border: 0;
+  border-radius: var(--iig3-radius-md);
+  background: transparent;
+  color: var(--iig3-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.iig3-application-header__user:hover {
+  background: var(--iig3-surface);
+}
+
+.iig3-application-header__user > strong {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--iig3-text-label);
+}
+
+.iig3-application-header__actions > .iig3-menu .iig3-menu__popup {
+  top: calc(100% + 9px);
+  min-width: 168px;
+}
+
+.iig3-application-header__menu {
+  display: none !important;
+}
+
+@media (max-width: 1180px) {
+  .iig3-application-header__user > strong {
+    display: none;
+  }
+
+  .iig3-application-header > .iig3-command-search {
+    width: clamp(260px, 42vw, 460px);
+  }
+}
+
+@media (max-width: 900px) {
+  .iig3-application-header {
+    gap: 8px;
+    padding-inline: 10px;
+  }
+
+  .iig3-application-header__menu {
+    display: grid !important;
+  }
+
+  .iig3-application-header > .iig3-command-search {
+    width: auto;
+    flex: 1;
+  }
+
+  .iig3-application-header__actions > .iig3-badge {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .iig3-application-header .iig3-command-search kbd,
+  .iig3-application-header__user {
+    display: none;
+  }
+}

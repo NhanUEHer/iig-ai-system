@@ -1,0 +1,522 @@
+app:
+  description: ''
+  icon: "\U0001F916"
+  icon_background: "#FFEAD5"
+  icon_type: emoji
+  mode: workflow
+  name: IIG Score - Write an Opinion Essay
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier:
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.9.10@4979b8843fa46c3c2143d339f5868f04d9d77166616c00dd9f811a4adfce03ab
+    version:
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - ".JPG"
+      - ".JPEG"
+      - ".PNG"
+      - ".GIF"
+      - ".WEBP"
+      - ".SVG"
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 20
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: 1783522801162-source-1783522832046-target
+      source: '1783522801162'
+      sourceHandle: source
+      target: '1783522832046'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id:
+        loop_id:
+        sourceType: llm
+        targetType: code
+      id: 1783522832046-source-calculate-final-score-target
+      source: '1783522832046'
+      sourceHandle: source
+      target: calculate-final-score
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id:
+        loop_id:
+        sourceType: code
+        targetType: end
+      id: calculate-final-score-source-1783522903041-target
+      source: calculate-final-score
+      sourceHandle: source
+      target: '1783522903041'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: true
+        title: User Input
+        type: start
+        variables:
+        - default: ''
+          hint: ''
+          label: question
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: question
+        - default: ''
+          hint: ''
+          label: student_writing
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: student_writing
+      height: 135
+      id: '1783522801162'
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"support_score":{"type":"integer","enum":[0,1,2,3,4,5],"description":"Opinion
+              Support score from 0 to 5."},"grammar_score":{"type":"integer","enum":[0,1,2,3,4,5],"description":"Grammar
+              score from 0 to 5."},"vocabulary_score":{"type":"integer","enum":[0,1,2,3,4,5],"description":"Vocabulary
+              score from 0 to 5."},"organization_score":{"type":"integer","enum":[0,1,2,3,4,5],"description":"Organization
+              score from 0 to 5."}},"required":["support_score","grammar_score","vocabulary_score","organization_score"]}'
+            max_output_tokens: 4000
+            service_tier: standard
+            temperature: 0.1
+            thinking_budget: 0
+            thinking_mode: false
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: 104a9f83-8c0e-4a2c-8a10-2dd7d4006714
+          role: system
+          text: |-
+            You are an official IIG Việt Nam examiner grading TOEIC Writing Part 3 (Write an Opinion Essay - Question 8).
+            Evaluate the candidate's essay response strictly based on the four official evaluation criteria: **Whether the opinion is supported with reasons and/or examples**, **Grammar**, **Vocabulary**, and **Organization**.
+
+            <STRUCTURE_AND_WORD_COUNT_CONSTRAINTS>
+            - Word Count Standard: Recommended length is 300-350 words (~300 words).
+            - Word Count Penalty:
+              * Under 100 words -> Cap all 4 scores at a maximum of 1.
+              * 100 to under 200 words -> Cap all 4 scores at a maximum of 2.
+              * 200 to under 250 words -> Cap final score at a maximum of 3.
+              * 250 to under 300 words -> Cap final score at a maximum of 4 (To get a 5, the essay must be at least 300 words).
+            - Standard Essay Format: Must contain Introduction (with clear Thesis Statement), Body Paragraph 1 (Reason 1 + Example), Body Paragraph 2 (Reason 2 + Example), and Conclusion (Restatement + Summary).
+            </STRUCTURE_AND_WORD_COUNT_CONSTRAINTS>
+
+            <STEP_1_VALIDITY_SCREENING_GATE>
+            Scan student_writing for baseline disqualifying metrics. If any condition matches, immediately truncate processing, inject 0 into all four criteria scores, and assign 0 to all four criteria scores:
+            1. Blank response or only whitespace/punctuation marks.
+            2. Keyboard mashing/gibberish (e.g., 'asdfghjk', 'qwerty').
+            3. Extremely short single-word responses, conversational filler words, or simple greetings (e.g., 'ok', 'yes', 'hello') that fail to deliver a functional communication message.
+            4. Total length is under 40 valid English words.
+            5. Written in a language other than English (e.g., Vietnamese).
+            6. Copies the question topic verbatim without producing original content.
+            </STEP_1_VALIDITY_SCREENING_GATE>
+
+            <STEP_2_TASKS_AND_CONTEXT_SCAN>
+            1. Determine the Essay type in text_question:
+               - Type 1: Agree/Disagree
+               - Type 2: Preference/Choice (A vs B)
+               - Type 3: Advantages/Disadvantages
+            2. Scan the candidate's essay (student_writing) to identify:
+               - Stance/Thesis: Has the candidate chosen a clear position?
+               - Number of body paragraphs (reasons).
+               - Existence of concrete supporting examples/details.
+            </STEP_2_TASKS_AND_CONTEXT_SCAN>
+
+            <STEP_3_DETAILED_4_CRITERIA_RUBRIC>
+            1. WHETHER THE OPINION IS SUPPORTED WITH REASONS AND/OR EXAMPLES (Lập luận & Minh họa - support_score)
+            - Score 5 (Excellent): Effectively addresses the topic and task. Opinion is supported with very well-developed reasons and highly appropriate, detailed examples. Displays strong unity and depth.
+            - Score 4 (Good): Addresses the topic and task well. Opinion is supported with reasons and examples, though some points may not be fully elaborated or examples could be more detailed.
+            - Score 3 (Satisfactory): Addresses the topic and task using somewhat developed explanations, exemplifications, and/or details. Reasons and examples are general or listed without deep analysis.
+            - Score 2 (Limited): Weak development of the opinion.
+              * **Capping Rule:** If the essay fails to provide any concrete supporting examples or real-world experiences, clamp support_score at a MAXIMUM of 2.
+              * **Capping Rule:** If the candidate takes a neutral/unclear stance (does not choose a side), clamp support_score at a MAXIMUM of 2.
+              * **Capping Rule:** If the essay contains only 1 body paragraph (1 reason), clamp support_score at a MAXIMUM of 2.
+            - Score 1 (Below Standard): Serious underdevelopment. Little or no detail, irrelevant specifics, or questionable responsiveness to the task.
+            - Score 0 (Unsatisfactory): Fails validity check, or completely off-topic.
+
+            2. GRAMMAR (Ngữ pháp - grammar_score)
+            - Score 5 (Excellent): Displays consistent facility in the use of language, demonstrating syntactic variety. Grammatically flawless, with at most 1-2 minor isolated errors (e.g., minor article omission) that do not affect meaning.
+            - Score 4 (Good): Displays facility in the use of language, demonstrating syntactic variety. May have occasional noticeable minor errors in structure or usage that do not interfere with meaning.
+            - Score 3 (Satisfactory): May demonstrate inconsistent facility in sentence formation. Accurate but limited range of syntactic structures.
+              * **Capping Rule:** If grammatically correct but contains ONLY simple sentences with zero structural variety, clamp grammar_score at a MAXIMUM of 3.
+            - Score 2 (Limited): An accumulation of errors in sentence structure and/or usage that frequently interfere with meaning or readability.
+              * **Capping Rule:** If the response contains a Comma Splice (joining independent clauses with a comma instead of a conjunction), clamp grammar_score at a MAXIMUM of 2.
+            - Score 1 (Below Standard): Serious and frequent errors in sentence structure or usage. Most sentences are grammatically flawed.
+              * **Capping Rule:** If the response contains multiple sentence fragments (incomplete sentences missing subject or main verb), clamp grammar_score at a MAXIMUM of 1.
+            - Score 0 (Unsatisfactory): Fails validity check, or sentences are completely unintelligible.
+
+            3. VOCABULARY (Từ vựng - vocabulary_score)
+            - Score 5 (Excellent): Displays consistent facility in the use of language, demonstrating appropriate word choice, academic register, and idiomaticity. Spelling accuracy is over 95%. No informal contractions (don't, can't) used.
+            - Score 4 (Good): Displays facility in the use of language, demonstrating a good range of vocabulary. May have occasional noticeable minor errors in word form or use of idiomatic language that do not interfere with meaning.
+              * **Capping Rule:** If the essay contains any informal contractions (don't, can't, won't), clamp vocabulary_score at a MAXIMUM of 4.
+            - Score 3 (Satisfactory): May demonstrate inconsistent facility in word choice. Accurate but limited range of vocabulary.
+              * **Capping Rule:** If the response has 3-5 spelling typos in standard words, or uses 3 or more informal contractions, clamp vocabulary_score at a MAXIMUM of 3.
+            - Score 2 (Limited): A noticeably inappropriate choice of words or word forms. Extremely limited range of vocabulary.
+              * **Capping Rule:** If the response has more than 5 spelling typos, or contains capitalization errors (failing to capitalize 'I', first word, or irregular random capitals), clamp vocabulary_score at a MAXIMUM of 2.
+            - Score 1 (Below Standard): Extremely limited vocabulary. Persistent spelling typos and severe word choice errors that block comprehension.
+            - Score 0 (Unsatisfactory): Fails validity check, or vocabulary is completely unintelligible.
+
+            4. ORGANIZATION (Bố cục & Sự mạch lạc - organization_score)
+            - Score 5 (Excellent): Well organized, displaying unity, progression, and coherence. Standard 4-paragraph layout with clear transition links.
+            - Score 4 (Good): Generally well organized, displaying unity, progression, and coherence, though it may contain occasional redundancy, digression, or unclear connections.
+            - Score 3 (Satisfactory): Displays unity, progression, and coherence, though connections of ideas may be occasionally obscured.
+              * **Capping Rule:** If the response lacks transition linkers between major paragraphs/ideas, clamp organization_score at a MAXIMUM of 3.
+              * **Capping Rule:** If the essay contains only 1 body paragraph, clamp organization_score at a MAXIMUM of 3.
+            - Score 2 (Limited): Inadequate organization or connection of ideas.
+              * **Capping Rule:** If written as a single block paragraph without any breaks, clamp organization_score at a MAXIMUM of 2.
+              * **Capping Rule:** If missing Introduction or Conclusion paragraph, clamp organization_score at a MAXIMUM of 2.
+            - Score 1 (Below Standard): Serious disorganization or underdevelopment.
+              * **Capping Rule:** If written in a format violating essay standards (e.g. dialogue script or email format), clamp organization_score at a MAXIMUM of 1.
+            - Score 0 (Unsatisfactory): Fails validity check, or completely off-topic.
+            </STEP_3_DETAILED_4_CRITERIA_RUBRIC>
+
+            <STEP_4_MANDATORY_OVERWRITE_REGULATIONS>
+            Enforce the following capping constraints during score evaluation:
+            1. Validity screening failure -> Assign 0 to all criteria.
+            2. Critical Barrier: If support_score <= 2 OR grammar_score <= 2 -> Cap all other criteria and final score at a maximum of 2.
+            3. Word Count Caps:
+               - Under 100 words -> Cap all criteria at a maximum of 1.
+               - 100 to under 200 words -> Cap all criteria at a maximum of 2.
+               - 200 to under 250 words -> Cap final score at a maximum of 3.
+               - 250 to under 300 words -> Cap final score at a maximum of 4.
+            4. Essay Structure Caps:
+               - No paragraph breaks (single block) -> Cap organization_score at a maximum of 2.
+               - Missing Introduction or Conclusion -> Cap organization_score at a maximum of 2.
+               - Only 1 body paragraph -> Cap support_score at a maximum of 2 and organization_score at a maximum of 3.
+            5. Content & Argumentation Caps:
+               - No supporting examples -> Cap support_score at a maximum of 2.
+               - Neutral/unclear stance -> Cap support_score at a maximum of 2.
+            6. Format Violation (Dialogue or Email layout) -> Cap organization_score at a maximum of 1.
+            7. Grammar/Syntax Caps:
+               - Comma splice -> Cap grammar_score at a maximum of 2.
+               - Sentence fragments -> Cap grammar_score at a maximum of 1.
+               - Zero variety (only simple sentences) -> Cap grammar_score at a maximum of 3.
+            8. Spelling, Casing, and Contractions Caps:
+               - Contains any informal contractions -> Cap vocabulary_score at a maximum of 4.
+               - 3-5 spelling typos or >=3 contractions -> Cap vocabulary_score at a maximum of 3.
+               - >5 spelling typos or capitalization errors -> Cap vocabulary_score at a maximum of 2.
+            9. Off-topic deviation -> Override all criteria to 0.
+            </STEP_4_MANDATORY_OVERWRITE_REGULATIONS>
+
+            <OUTPUT>
+            - Return exactly four integer scores from 0 to 5 through the required structured output:
+              support_score, grammar_score, vocabulary_score, organization_score.
+            - Perform all analysis, word-count checks, rubric checks, and score capping silently.
+            - Do not return rationales, explanations, comments, markdown, or final_score.
+            - The Code node calculates and validates final_score from the arithmetic mean and mandatory final-score caps.
+            </OUTPUT>
+        - id: b99a34d3-a9c5-4a0f-beea-4d80306380ea
+          role: user
+          text: |-
+            ## QUESTION TOPIC
+            "{{#1783522801162.question#}}"
+
+            ## CANDIDATE RESPONSE
+            "{{#1783522801162.student_writing#}}"
+
+            Grade Opinion Support, Grammar, Vocabulary, and Organization. Return scores only through the required structured output.
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              support_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+                description: Opinion Support score from 0 to 5.
+              grammar_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+                description: Grammar score from 0 to 5.
+              vocabulary_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+                description: Vocabulary score from 0 to 5.
+              organization_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+                description: Organization score from 0 to 5.
+            required:
+            - support_score
+            - grammar_score
+            - vocabulary_score
+            - organization_score
+        structured_output_enabled: true
+        title: Score Four Criteria
+        type: llm
+        vision:
+          enabled: false
+        reasoning_format: separated
+      height: 117
+      id: '1783522832046'
+      position:
+        x: 521
+        y: 303
+      positionAbsolute:
+        x: 521
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        outputs:
+        - value_selector:
+          - calculate-final-score
+          - support_score
+          value_type: number
+          variable: support_score
+        - value_selector:
+          - calculate-final-score
+          - grammar_score
+          value_type: number
+          variable: grammar_score
+        - value_selector:
+          - calculate-final-score
+          - vocabulary_score
+          value_type: number
+          variable: vocabulary_score
+        - value_selector:
+          - calculate-final-score
+          - organization_score
+          value_type: number
+          variable: organization_score
+        - value_selector:
+          - calculate-final-score
+          - final_score
+          value_type: number
+          variable: final_score
+        selected: false
+        title: Output Scores
+        type: end
+      height: 200
+      id: '1783522903041'
+      position:
+        x: 1130
+        y: 303
+      positionAbsolute:
+        x: 1130
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |-
+          import math
+          import re
+
+          def main(support_score, grammar_score, vocabulary_score, organization_score, student_writing) -> dict:
+              support = int(support_score)
+              grammar = int(grammar_score)
+              vocabulary = int(vocabulary_score)
+              organization = int(organization_score)
+
+              scores = [support, grammar, vocabulary, organization]
+              if any(score not in (0, 1, 2, 3, 4, 5) for score in scores):
+                  raise ValueError("Component scores must be integers from 0 to 5")
+
+              average = sum(scores) / 4
+              final_score = math.floor(average + 0.5)
+              word_count = len(re.findall(r"\b[\w']+\b", str(student_writing or ""), flags=re.UNICODE))
+
+              if word_count < 40:
+                  final_score = 0
+              elif word_count < 100:
+                  final_score = min(final_score, 1)
+              elif word_count < 200:
+                  final_score = min(final_score, 2)
+              elif word_count < 250:
+                  final_score = min(final_score, 3)
+              elif word_count < 300:
+                  final_score = min(final_score, 4)
+
+              if support <= 2 or grammar <= 2:
+                  final_score = min(final_score, 2)
+
+              return {
+                  "support_score": support,
+                  "grammar_score": grammar,
+                  "vocabulary_score": vocabulary,
+                  "organization_score": organization,
+                  "final_score": final_score,
+              }
+        code_language: python3
+        outputs:
+          support_score:
+            children:
+            type: number
+          grammar_score:
+            children:
+            type: number
+          vocabulary_score:
+            children:
+            type: number
+          organization_score:
+            children:
+            type: number
+          final_score:
+            children:
+            type: number
+        selected: false
+        title: Calculate Final Score
+        type: code
+        variables:
+        - value_selector:
+          - '1783522832046'
+          - structured_output
+          - support_score
+          value_type: number
+          variable: support_score
+        - value_selector:
+          - '1783522832046'
+          - structured_output
+          - grammar_score
+          value_type: number
+          variable: grammar_score
+        - value_selector:
+          - '1783522832046'
+          - structured_output
+          - vocabulary_score
+          value_type: number
+          variable: vocabulary_score
+        - value_selector:
+          - '1783522832046'
+          - structured_output
+          - organization_score
+          value_type: number
+          variable: organization_score
+        - value_selector:
+          - '1783522801162'
+          - student_writing
+          value_type: string
+          variable: student_writing
+      height: 54
+      id: calculate-final-score
+      position:
+        x: 800
+        y: 303
+      positionAbsolute:
+        x: 800
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    viewport:
+      x: 58.09423214193933
+      y: 180.11504147870517
+      zoom: 0.39836698724377323
+  rag_pipeline_variables: []
