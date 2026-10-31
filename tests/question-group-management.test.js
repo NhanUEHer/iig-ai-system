@@ -39,13 +39,19 @@ test('question group service validates input and prevents deletion while questio
   assert.match(source, /QUESTION_GROUP_HAS_ACTIVE_QUESTIONS/);
 });
 
-test('question group management page provides listing, status filtering, and create/edit modal', () => {
+test('question group management page uses the shared list system with filtering and create/edit modal', () => {
   const source = read('frontend/src/features/question-bank/pages/QuestionGroupManagementPage.jsx');
-  assert.match(source, /Quản lý nhóm câu hỏi/);
-  assert.match(source, /Tìm kiếm theo tên nhóm/);
-  assert.match(source, /Thêm nhóm câu hỏi/);
+  assert.match(source, /ListPage/);
+  assert.match(source, /DataTable/);
+  assert.match(source, /Pagination/);
+  assert.match(source, /MultiSelectFilter/);
+  assert.match(source, /Danh sách nhóm câu hỏi/);
+  assert.match(source, /Tìm tên hoặc mã nhóm/);
+  assert.match(source, /Thêm nhóm câu hỏi|Thêm mới/);
   assert.match(source, /Cập nhật nhóm câu hỏi/);
   assert.match(source, /deleteManagedQuestionGroup/);
+  assert.doesNotMatch(source, /QuestionGroupManagementFilterOverrides/);
+  assert.doesNotMatch(source, /QuestionGroupManagementModal/);
 });
 
 test('question group create form no longer previews or shows a code field', () => {

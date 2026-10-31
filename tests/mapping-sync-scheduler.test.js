@@ -47,3 +47,20 @@ test('mapping scheduler skips disabled, early, and already-run schedules', async
   }
   assert.equal(syncCount, 0);
 });
+
+test('mapping scheduler asks the repository to retry a failed run', async () => {
+  let claimed = false;
+  const repository = {
+    get: async () => ({
+      enabled: true,
+      run_time: '01:00:00',
+      timezone: 'Asia/Ho_Chi_Minh',
+      last_run_date: '2026-08-08',
+      last_status: 'error',
+    }),
+    claim: async () => { claimed = true; return null; },
+  };
+
+  assert.equal(await scheduler.check(new Date('2026-08-08T02:00:00.000Z'), { repository }), null);
+  assert.equal(claimed, true);
+});

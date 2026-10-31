@@ -1,0 +1,21 @@
+.user-management-page .iig3-data-table table {
+  min-width: 980px;
+}
+
+.user-list__identity {
+  display: flex;
+  align-items: center;
+  gap: var(--iig3-space-2);
+}
+
+.user-list__roles {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--iig3-space-1);
+}
+
+.user-list__roles > span:not(.iig3-badge),
+.user-list__muted {
+  color: var(--iig3-text-muted);
+}

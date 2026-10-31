@@ -197,15 +197,85 @@ module.exports = {
     const comByCode=new Map(rows.map(row=>[row.code,row]));
     return enrichKpiHistory(result.rows.map(row=>row.team_code==='COM'?comByCode.get(row.code):row),await getKpiHistory(year,month));
   },
-  async getTrendRows({ year, teamCode }) {
-    const params=[year]; let teamFilter='';
-    if (teamCode) { params.push(teamCode); teamFilter=`AND t.code=$${params.length}`; }
-    const result = await db.query(`SELECT p.month,t.code AS team_code,t.name AS team_name,COALESCE(k.kpi_code,d.code) code,
+  async getTrendRows({ teamCode, periodId, startPeriod, endPeriod, kpiCode }) {
+    const params=[startPeriod,endPeriod];
+    let versionJoin='JOIN report_data_versions v ON v.id=p.current_version_id';
+    if(periodId){
+      params.push(periodId);
+      versionJoin=`JOIN report_data_versions v ON v.id=CASE WHEN p.id=$3 THEN
+        COALESCE((SELECT id FROM report_data_versions WHERE period_id=p.id AND status='draft' ORDER BY version_no DESC LIMIT 1),p.current_version_id)
+        ELSE p.current_version_id END`;
+    }
+    let filters=`make_date(p.year,p.month,1) BETWEEN $1::date AND $2::date`;
+    if(teamCode){params.push(teamCode);filters+=` AND t.code=$${params.length}`;}
+    if(kpiCode){params.push(kpiCode);filters+=` AND COALESCE(k.kpi_code,d.code)=$${params.length}`;}
+    const result = await db.query(`SELECT p.year,p.month,t.code AS team_code,t.name AS team_name,COALESCE(k.kpi_code,d.code) code,
+      COALESCE(k.kpi_name,d.name) name,COALESCE(k.unit_snapshot,d.unit) unit,
       COALESCE(k.evaluation_direction_snapshot,d.evaluation_direction) evaluation_direction,k.target_value,k.actual_value
-      FROM report_periods p JOIN report_data_versions v ON v.id=p.current_version_id
+      FROM report_periods p ${versionJoin}
       JOIN report_kpi_values k ON k.version_id=v.id JOIN report_kpi_definitions d ON d.id=k.kpi_definition_id
-      JOIN report_teams t ON t.id=d.team_id WHERE p.year=$1 ${teamFilter} ORDER BY p.month,t.display_order,d.display_order`,params);
+      JOIN report_teams t ON t.id=d.team_id WHERE ${filters} ORDER BY p.year,p.month,t.display_order,d.display_order`,params);
     return result.rows;
+  },
+  async getSocialTrendRows(year) {
+    const result=await db.query(`SELECT p.year,p.month,COALESCE(SUM(d.followers_current),0) followers,COALESCE(SUM(d.reach_current),0) reach
+      FROM report_periods p JOIN report_data_versions v ON v.id=p.current_version_id
+      JOIN report_social_details d ON d.version_id=v.id
+      WHERE p.year=$1 GROUP BY p.year,p.month ORDER BY p.month`,[year]);
+    return result.rows;
+  },
+  async getTrainingTrendRows(year) {
+    const result=await db.query(`SELECT p.year,p.month,COALESCE(SUM(d.active_student_count),0) active_students,COALESCE(SUM(d.class_count),0) active_classes
+      FROM report_periods p JOIN report_data_versions v ON v.id=p.current_version_id
+      JOIN report_training_details d ON d.version_id=v.id
+      WHERE p.year=$1 GROUP BY p.year,p.month ORDER BY p.month`,[year]);
+    return result.rows;
+  },
+  async getOverviewFinancialTrend(year) {
+    const result=await db.query(`SELECT p.year,p.month,
+      COALESCE((SELECT SUM(d.revenue) FROM report_revenue_details d WHERE d.version_id=v.id),0) revenue,
+      COALESCE((SELECT SUM(d.budget_actual) FROM report_ads_channel_details d WHERE d.version_id=v.id),0)
+        + COALESCE((SELECT SUM(d.budget) FROM report_social_details d WHERE d.version_id=v.id),0)
+        + COALESCE((SELECT SUM(d.budget) FROM report_trade_details d WHERE d.version_id=v.id),0) recorded_cost
+      FROM report_periods p JOIN report_data_versions v ON v.id=p.current_version_id
+      WHERE p.year=$1 ORDER BY p.month`,[year]);
+    return result.rows;
+  },
+  async getDashboardDataQuality({year,month,teamCode=null}) {
+    const values=[year,month];
+    const teamFilter=teamCode?(values.push(teamCode),`AND t.code=$${values.length}`):'';
+    const result=await db.query(`SELECT p.id period_id,p.year,p.month,p.status period_status,p.submission_deadline,p.updated_at period_updated_at,
+      v.id version_id,v.status version_status,v.published_at,t.code team_code,t.name team_name,
+      s.status submission_status,s.assigned_user_id,s.updated_at submission_updated_at,
+      COUNT(k.id)::int total_kpis,
+      COUNT(k.id) FILTER(WHERE k.actual_value IS NOT NULL AND (COALESCE(k.evaluation_direction_snapshot,d.evaluation_direction)='monitor' OR k.target_value IS NOT NULL))::int completed_kpis,
+      COUNT(k.id) FILTER(WHERE k.actual_value IS NULL OR (COALESCE(k.evaluation_direction_snapshot,d.evaluation_direction)<>'monitor' AND k.target_value IS NULL))::int missing_kpis,
+      COUNT(*) FILTER(WHERE NULLIF(TRIM(n.highlights),'') IS NOT NULL)::int highlights_completed,
+      COUNT(*) FILTER(WHERE NULLIF(TRIM(n.issues),'') IS NOT NULL)::int issues_completed,
+      COUNT(*) FILTER(WHERE NULLIF(TRIM(n.risks),'') IS NOT NULL)::int risks_completed,
+      COUNT(*) FILTER(WHERE NULLIF(TRIM(n.proposals),'') IS NOT NULL)::int proposals_completed,
+      MAX(k.updated_at) kpi_updated_at
+      FROM report_periods p
+      JOIN LATERAL(SELECT candidate.* FROM report_data_versions candidate WHERE candidate.period_id=p.id ORDER BY CASE WHEN candidate.id=p.current_version_id THEN 0 ELSE 1 END,candidate.version_no DESC LIMIT 1)v ON TRUE
+      JOIN report_teams t ON t.is_active=TRUE
+      LEFT JOIN report_kpi_definitions d ON d.team_id=t.id AND d.is_active=TRUE
+      LEFT JOIN report_kpi_values k ON k.version_id=v.id AND k.kpi_definition_id=d.id
+      LEFT JOIN report_manual_submissions s ON s.version_id=v.id AND s.team_id=t.id
+      LEFT JOIN report_notes n ON n.version_id=v.id AND n.team_id=t.id
+      WHERE p.year=$1 AND p.month=$2 ${teamFilter}
+      GROUP BY p.id,v.id,v.status,v.published_at,t.id,s.id ORDER BY t.display_order`,values);
+    if(!result.rows.length)return null;
+    const versionId=result.rows[0].version_id;
+    const details=await db.query(`SELECT team_code,detail_rows FROM (
+      SELECT 'REV' team_code,COUNT(*)::int detail_rows FROM report_revenue_details WHERE version_id=$1
+      UNION ALL SELECT 'ADS',COUNT(*)::int FROM report_ads_channel_details WHERE version_id=$1
+      UNION ALL SELECT 'COM',COUNT(*)::int FROM report_social_details WHERE version_id=$1
+      UNION ALL SELECT 'TRADE',COUNT(*)::int FROM report_trade_details WHERE version_id=$1
+      UNION ALL SELECT 'TRAIN',COUNT(*)::int FROM report_training_details WHERE version_id=$1
+      UNION ALL SELECT 'PROD',COUNT(*)::int FROM report_product_details WHERE version_id=$1
+    ) detail_counts`,[versionId]);
+    const detailByTeam=new Map(details.rows.map(row=>[row.team_code,Number(row.detail_rows)]));
+    return result.rows.map(row=>({...row,detail_rows:detailByTeam.get(row.team_code)||0}));
   },
   async listImports(limit = 20) {
     const result = await db.query(`SELECT i.id,i.original_file_name,i.file_size_bytes,i.status,i.warnings,i.created_at,i.committed_at,p.year,p.month,u.name AS uploaded_by

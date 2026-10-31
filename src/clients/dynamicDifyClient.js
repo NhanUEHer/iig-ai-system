@@ -1,5 +1,21 @@
 const axios = require('axios');
 
+function describeRequestError(error) {
+  const data = error?.response?.data;
+  if (typeof data === 'string' && data.trim()) return data.trim();
+  if (data && typeof data === 'object') {
+    const detail = data.message || data.detail || data.error;
+    if (typeof detail === 'string' && detail.trim()) return detail.trim();
+    try {
+      const serialized = JSON.stringify(data);
+      if (serialized && serialized !== '{}') return serialized;
+    } catch (_) {}
+  }
+  if (typeof error?.message === 'string' && error.message.trim()) return error.message.trim();
+  const status = error?.response?.status;
+  return status ? `Dify request failed with HTTP ${status}` : 'Dify request failed without an error message';
+}
+
 const dynamicDifyClient = {
   /**
    * Sends audio evaluation request to a dynamically configured Dify workflow
@@ -10,8 +26,8 @@ const dynamicDifyClient = {
    */
   async evaluateSpeech(endpoint, apiKey, audioUrl, promptText, transcribeText = '', imageUrl = '', contextText = '', questionName = '') {
     // Standardize URL: Dify workflows endpoint is typically /workflows/run
-    const targetUrl = endpoint.endsWith('/workflows/run') 
-      ? endpoint 
+    const targetUrl = endpoint.endsWith('/workflows/run')
+      ? endpoint
       : `${endpoint.replace(/\/$/, '')}/workflows/run`;
 
     const headers = {
@@ -46,7 +62,7 @@ const dynamicDifyClient = {
       const response = await axios.post(targetUrl, payload, { headers });
       return response.data;
     } catch (error) {
-      console.error('❌ Dynamic Dify evaluateSpeech failed:', error.response?.data || error.message);
+      console.error('❌ Dynamic Dify evaluateSpeech failed:', describeRequestError(error));
       throw error;
     }
   },
@@ -55,8 +71,8 @@ const dynamicDifyClient = {
    * Dedicated speech transcription helper with dynamic input parameter key
    */
   async transcribeSpeech(endpoint, apiKey, audioUrl, fileParamKey = 'student_audio', promptText = '') {
-    const targetUrl = endpoint.endsWith('/workflows/run') 
-      ? endpoint 
+    const targetUrl = endpoint.endsWith('/workflows/run')
+      ? endpoint
       : `${endpoint.replace(/\/$/, '')}/workflows/run`;
 
     const headers = {
@@ -82,7 +98,7 @@ const dynamicDifyClient = {
       const response = await axios.post(targetUrl, payload, { headers });
       return response.data;
     } catch (error) {
-      console.error(`❌ Dynamic Dify transcribeSpeech [${fileParamKey}] failed:`, error.response?.data || error.message);
+      console.error(`❌ Dynamic Dify transcribeSpeech [${fileParamKey}] failed:`, describeRequestError(error));
       throw error;
     }
   },
@@ -91,8 +107,8 @@ const dynamicDifyClient = {
    * Sends writing evaluation request to a dynamically configured Dify workflow
    */
   async evaluateWriting(endpoint, apiKey, studentWriting, promptText, questionName, imageUrl = '', keyword = '') {
-    const targetUrl = endpoint.endsWith('/workflows/run') 
-      ? endpoint 
+    const targetUrl = endpoint.endsWith('/workflows/run')
+      ? endpoint
       : `${endpoint.replace(/\/$/, '')}/workflows/run`;
 
     const headers = {
@@ -122,10 +138,11 @@ const dynamicDifyClient = {
       const response = await axios.post(targetUrl, payload, { headers });
       return response.data;
     } catch (error) {
-      console.error('❌ Dynamic Dify evaluateWriting failed:', error.response?.data || error.message);
+      console.error('❌ Dynamic Dify evaluateWriting failed:', describeRequestError(error));
       throw error;
     }
   }
 };
 
 module.exports = dynamicDifyClient;
+module.exports.describeRequestError = describeRequestError;

@@ -23,6 +23,8 @@ const groups = [
   ] },
   { id: 'ai-scoring', label: 'AI Scoring & Khảo thí', icon: Monitor, items: [
     { id: 'submissions', label: 'Quản lý bài chấm', path: '/submissions', permission: 'submissions.view' },
+    { id: 'ai-scoring-jobs', label: 'Scoring jobs', path: '/ai-scoring/jobs', permission: 'ai_scoring.jobs.view' },
+    { id: 'ai-scoring-tenants', label: 'Tenant tích hợp', path: '/ai-scoring/tenants', permission: 'ai_scoring.tenants.view' },
     { id: 'mappings', label: 'Đồng bộ Keycode', path: '/mappings', permission: 'mappings.view' },
     { id: 'ai', label: 'Cấu hình AI Agents', path: '/ai', permission: 'agents.view' },
   ] },

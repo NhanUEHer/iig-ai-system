@@ -1,0 +1,1860 @@
+---
+app:
+  description: Scores one TOEIC Speaking Describe a Picture question (Q3 or Q4) after
+    upstream STT, then emits progressive score, error and three-sentence feedback
+    payloads.
+  icon: "\U0001F5BC️"
+  icon_background: "#E8F5FF"
+  icon_type: emoji
+  mode: workflow
+  name: IIG Describe Picture Question Flow v2
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier:
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.9.10@4979b8843fa46c3c2143d339f5868f04d9d77166616c00dd9f811a4adfce03ab
+    version:
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - ".JPG"
+      - ".JPEG"
+      - ".PNG"
+      - ".GIF"
+      - ".WEBP"
+      allowed_file_types:
+      - audio
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: true
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 20
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: true
+        number_limits: 1
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 2
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: code
+      id: dap-v2-start-source-dap-v2-validate-target
+      source: dap-v2-start
+      sourceHandle: source
+      target: dap-v2-validate
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: dap-v2-validate-source-dap-v2-route-target
+      source: dap-v2-validate
+      sourceHandle: source
+      target: dap-v2-route
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: dap-v2-route-upstream-zero-dap-v2-upstream-zero-target
+      source: dap-v2-route
+      sourceHandle: upstream-zero
+      target: dap-v2-upstream-zero
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: dap-v2-route-normal-dap-v2-score-target
+      source: dap-v2-route
+      sourceHandle: normal
+      target: dap-v2-score
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: dap-v2-route-false-dap-v2-invalid-target
+      source: dap-v2-route
+      sourceHandle: 'false'
+      target: dap-v2-invalid
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: dap-v2-upstream-zero-source-dap-v2-result-aggregator-target
+      source: dap-v2-upstream-zero
+      sourceHandle: source
+      target: dap-v2-result-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: dap-v2-invalid-source-dap-v2-result-aggregator-target
+      source: dap-v2-invalid
+      sourceHandle: source
+      target: dap-v2-result-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: dap-v2-score-source-dap-v2-normalize-score-target
+      source: dap-v2-score
+      sourceHandle: source
+      target: dap-v2-normalize-score
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: dap-v2-normalize-score-source-dap-v2-zero-gate-target
+      source: dap-v2-normalize-score
+      sourceHandle: source
+      target: dap-v2-zero-gate
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: dap-v2-zero-gate-true-dap-v2-scored-zero-target
+      source: dap-v2-zero-gate
+      sourceHandle: 'true'
+      target: dap-v2-scored-zero
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: dap-v2-zero-gate-false-dap-v2-errors-target
+      source: dap-v2-zero-gate
+      sourceHandle: 'false'
+      target: dap-v2-errors
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: dap-v2-scored-zero-source-dap-v2-result-aggregator-target
+      source: dap-v2-scored-zero
+      sourceHandle: source
+      target: dap-v2-result-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: dap-v2-errors-source-dap-v2-normalize-errors-target
+      source: dap-v2-errors
+      sourceHandle: source
+      target: dap-v2-normalize-errors
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+      id: dap-v2-normalize-errors-source-dap-v2-comment-target
+      source: dap-v2-normalize-errors
+      sourceHandle: source
+      target: dap-v2-comment
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: dap-v2-comment-source-dap-v2-assemble-target
+      source: dap-v2-comment
+      sourceHandle: source
+      target: dap-v2-assemble
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: dap-v2-assemble-source-dap-v2-result-aggregator-target
+      source: dap-v2-assemble
+      sourceHandle: source
+      target: dap-v2-result-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: variable-aggregator
+        targetType: end
+      id: dap-v2-result-aggregator-source-dap-v2-end-target
+      source: dap-v2-result-aggregator
+      sourceHandle: source
+      target: dap-v2-end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: Describe Picture Question Input v1
+        type: start
+        variables:
+        - default: describe-picture-question-input-v1
+          hint: Fixed contract version.
+          label: schema_version
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: schema_version
+        - default: ''
+          hint: Backend scoring job UUID.
+          label: job_id
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: job_id
+        - default: ''
+          hint: Candidate attempt keycode.
+          label: keycode
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: keycode
+        - default: s_q3
+          hint: One question per workflow run.
+          label: question_id
+          options:
+          - s_q3
+          - s_q4
+          placeholder: ''
+          required: true
+          type: select
+          variable: question_id
+        - default: DESCRIBE_PICTURE
+          hint: Fixed group for Q3-Q4.
+          label: group_code
+          options:
+          - DESCRIBE_PICTURE
+          placeholder: ''
+          required: true
+          type: select
+          variable: group_code
+        - default: READY_FOR_AI
+          hint: Normal scoring requires READY_FOR_AI.
+          label: ai_status
+          options:
+          - READY_FOR_AI
+          - ZERO_SCORE
+          placeholder: ''
+          required: true
+          type: select
+          variable: ai_status
+        - default: NONE
+          hint: Set only for an upstream business zero.
+          label: upstream_zero_reason
+          options:
+          - NONE
+          - NO_SPEECH
+          - WRONG_LANGUAGE_VI
+          - WRONG_LANGUAGE_OTHER
+          placeholder: ''
+          required: true
+          type: select
+          variable: upstream_zero_reason
+        - default: ''
+          hint: Optional text shown with the picture.
+          label: prompt_text
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: prompt_text
+        - default: ''
+          hint: Transcript already produced upstream; this flow never runs STT.
+          label: transcript
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: transcript
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - audio
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          default: ''
+          hide: false
+          hint: Canonical candidate audio; optional only for upstream-zero.
+          label: student_audio
+          options: []
+          placeholder: ''
+          required: false
+          type: file
+          variable: student_audio
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - image
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          default: ''
+          hide: false
+          hint: Official picture shown to the candidate; optional only for upstream-zero.
+          label: prompt_image
+          options: []
+          placeholder: ''
+          required: false
+          type: file
+          variable: prompt_image
+      height: 450
+      id: dap-v2-start
+      position:
+        x: 40
+        y: 320
+      positionAbsolute:
+        x: 40
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        code: |
+          def main(schema_version, job_id, keycode, question_id, group_code,
+                   ai_status, upstream_zero_reason, transcript) -> dict:
+              errors = []
+              reason = (upstream_zero_reason or "NONE").strip().upper()
+              valid_reasons = {"NONE", "NO_SPEECH", "WRONG_LANGUAGE_VI", "WRONG_LANGUAGE_OTHER"}
+              if schema_version != "describe-picture-question-input-v1": errors.append("schema_version must be describe-picture-question-input-v1")
+              if not (job_id or "").strip(): errors.append("job_id is required")
+              if not (keycode or "").strip(): errors.append("keycode is required")
+              if question_id not in {"s_q3", "s_q4"}: errors.append("question_id must be s_q3 or s_q4")
+              if group_code != "DESCRIBE_PICTURE": errors.append("group_code must be DESCRIBE_PICTURE")
+              if reason not in valid_reasons: errors.append("invalid upstream_zero_reason")
+              if errors:
+                  route = "INVALID"
+              elif reason != "NONE":
+                  if ai_status != "ZERO_SCORE":
+                      errors.append("upstream zero requires ai_status ZERO_SCORE")
+                      route = "INVALID"
+                  else: route = "UPSTREAM_ZERO"
+              else:
+                  if ai_status != "READY_FOR_AI": errors.append("normal scoring requires READY_FOR_AI")
+                  if not (transcript or "").strip(): errors.append("transcript is required for normal scoring")
+                  route = "NORMAL" if not errors else "INVALID"
+              return {
+                  "route": route, "validation_ok": route != "INVALID",
+                  "validation_errors_json": __import__("json").dumps(errors, ensure_ascii=False),
+                  "normalized_zero_reason": reason,
+              }
+        code_language: python3
+        outputs:
+          route:
+            children:
+            type: string
+          validation_ok:
+            children:
+            type: boolean
+          validation_errors_json:
+            children:
+            type: string
+          normalized_zero_reason:
+            children:
+            type: string
+        selected: false
+        title: Validate and Route Input
+        type: code
+        variables:
+        - value_selector:
+          - dap-v2-start
+          - schema_version
+          value_type: string
+          variable: schema_version
+        - value_selector:
+          - dap-v2-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - dap-v2-start
+          - keycode
+          value_type: string
+          variable: keycode
+        - value_selector:
+          - dap-v2-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - dap-v2-start
+          - group_code
+          value_type: string
+          variable: group_code
+        - value_selector:
+          - dap-v2-start
+          - ai_status
+          value_type: string
+          variable: ai_status
+        - value_selector:
+          - dap-v2-start
+          - upstream_zero_reason
+          value_type: string
+          variable: upstream_zero_reason
+        - value_selector:
+          - dap-v2-start
+          - transcript
+          value_type: string
+          variable: transcript
+      height: 54
+      id: dap-v2-validate
+      position:
+        x: 380
+        y: 320
+      positionAbsolute:
+        x: 380
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 260
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: upstream-zero
+          conditions:
+          - comparison_operator: is
+            id: route-upstream-zero-condition
+            value: UPSTREAM_ZERO
+            varType: string
+            variable_selector:
+            - dap-v2-validate
+            - route
+          id: upstream-zero
+          logical_operator: and
+        - case_id: normal
+          conditions:
+          - comparison_operator: is
+            id: route-normal-condition
+            value: NORMAL
+            varType: string
+            variable_selector:
+            - dap-v2-validate
+            - route
+          id: normal
+          logical_operator: and
+        selected: false
+        title: Input Route
+        type: if-else
+      height: 190
+      id: dap-v2-route
+      position:
+        x: 700
+        y: 320
+      positionAbsolute:
+        x: 700
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 250
+      zIndex: 0
+    - data:
+        code: |
+          import json
+          COMMENTS = {
+              "NO_SPEECH": ("Không phát hiện phần trả lời có giọng nói trong bài làm của bạn.", "Vì không có dữ liệu lời nói để đánh giá, năm tiêu chí của câu này đều là 0.", "Bạn cần kiểm tra micro và mô tả các đối tượng, hành động và bối cảnh chính trong tranh."),
+              "WRONG_LANGUAGE_VI": ("Bạn đã sử dụng tiếng Việt thay vì trả lời bằng tiếng Anh.", "Do câu trả lời không đáp ứng ngôn ngữ của bài thi, năm tiêu chí của câu này đều là 0.", "Bạn cần mô tả bức tranh hoàn toàn bằng tiếng Anh trong lần tiếp theo."),
+              "WRONG_LANGUAGE_OTHER": ("Câu trả lời không sử dụng tiếng Anh theo yêu cầu của bài thi.", "Do không đủ dữ liệu tiếng Anh để đánh giá, năm tiêu chí của câu này đều là 0.", "Bạn cần mô tả bức tranh hoàn toàn bằng tiếng Anh trong lần tiếp theo."),
+              "WRONG_PICTURE": ("Nội dung trả lời không mô tả bức tranh được cung cấp.", "Do câu trả lời không khớp với tranh, năm tiêu chí của câu này đều là 0.", "Bạn nên xác định chủ thể, hành động và bối cảnh nổi bật trước khi bắt đầu nói."),
+          }
+          def main(job_id, keycode, question_id, group_code, zero_reason, score_event_json=None) -> dict:
+              reason = zero_reason if zero_reason in COMMENTS else "NO_SPEECH"
+              s1, s2, s3 = COMMENTS[reason]
+              errors = [{"error_type": "PICTURE_CONTENT", "severity": "HIGH", "count": 1, "evidence": reason, "message_vi": s1}]
+              scores = {"pronunciation_score": 0, "intonation_fluency_score": 0, "grammar_score": 0, "vocabulary_score": 0, "cohesion_score": 0, "question_score_raw": 0.0, "question_score_rounded": 0, "zero_reason": reason}
+              comment = {"strength": s1, "improvement": s2, "action": s3, "text": " ".join([s1, s2, s3])}
+              result = {"schema_version": "describe-picture-question-result-v1", "job_id": job_id, "keycode": keycode, "question_id": question_id, "group_code": group_code, "status": "COMPLETED", **scores, "rule_signals": {}, "applied_rules": ["BUSINESS_ZERO_" + reason], "errors": errors, "comment": comment, "versions": {"rubric_version": "describe-picture-q3-q4-rubric-v1", "score_prompt_version": "deterministic-zero-v1", "error_prompt_version": "deterministic-zero-v1", "comment_prompt_version": "deterministic-zero-v1"}}
+              envelope = lambda event_type, sequence, data: json.dumps({"schema_version": "describe-picture-progress-event-v1", "event_type": event_type, "job_id": job_id, "question_id": question_id, "sequence": sequence, "data": data}, ensure_ascii=False)
+              return {**scores, "errors_json": json.dumps(errors, ensure_ascii=False), "comment_strength": s1, "comment_improvement": s2, "comment_action": s3, "comment_text": comment["text"], "score_event_json": score_event_json or envelope("SCORE_READY", 1, scores), "errors_event_json": envelope("ERRORS_READY", 2, {"errors": errors}), "comment_event_json": envelope("COMMENT_READY", 3, comment), "completed_event_json": envelope("QUESTION_COMPLETED", 4, result), "result_json": json.dumps(result, ensure_ascii=False)}
+        code_language: python3
+        outputs:
+          pronunciation_score:
+            children:
+            type: number
+          intonation_fluency_score:
+            children:
+            type: number
+          grammar_score:
+            children:
+            type: number
+          vocabulary_score:
+            children:
+            type: number
+          cohesion_score:
+            children:
+            type: number
+          question_score_raw:
+            children:
+            type: number
+          question_score_rounded:
+            children:
+            type: number
+          zero_reason:
+            children:
+            type: string
+          errors_json:
+            children:
+            type: string
+          comment_strength:
+            children:
+            type: string
+          comment_improvement:
+            children:
+            type: string
+          comment_action:
+            children:
+            type: string
+          comment_text:
+            children:
+            type: string
+          score_event_json:
+            children:
+            type: string
+          errors_event_json:
+            children:
+            type: string
+          comment_event_json:
+            children:
+            type: string
+          completed_event_json:
+            children:
+            type: string
+          result_json:
+            children:
+            type: string
+        selected: false
+        title: Build Upstream Zero Result
+        type: code
+        variables:
+        - value_selector:
+          - dap-v2-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - dap-v2-start
+          - keycode
+          value_type: string
+          variable: keycode
+        - value_selector:
+          - dap-v2-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - dap-v2-start
+          - group_code
+          value_type: string
+          variable: group_code
+        - value_selector:
+          - dap-v2-validate
+          - normalized_zero_reason
+          value_type: string
+          variable: zero_reason
+      height: 54
+      id: dap-v2-upstream-zero
+      position:
+        x: 1020
+        y: 80
+      positionAbsolute:
+        x: 1020
+        y: 80
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        code: |-
+          import json
+
+          def main(job_id, question_id, validation_errors_json) -> dict:
+              try:
+                  errors = json.loads(validation_errors_json or "[]")
+              except Exception:
+                  errors = ["invalid input"]
+              result = {
+                  "schema_version": "describe-picture-question-result-v1",
+                  "job_id": job_id,
+                  "question_id": question_id,
+                  "status": "FAILED",
+                  "failure_code": "INVALID_INPUT",
+                  "failure_details": errors,
+              }
+              return {
+                  "status": "FAILED",
+                  "failure_code": "INVALID_INPUT",
+                  "failure_details_json": json.dumps(errors, ensure_ascii=False),
+                  "result_json": json.dumps(result, ensure_ascii=False),
+              }
+        code_language: python3
+        outputs:
+          failure_code:
+            children:
+            type: string
+          failure_details_json:
+            children:
+            type: string
+          result_json:
+            children:
+            type: string
+          status:
+            children:
+            type: string
+        selected: false
+        title: Build Invalid Input Result
+        type: code
+        variables:
+        - value_selector:
+          - dap-v2-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - dap-v2-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - dap-v2-validate
+          - validation_errors_json
+          value_type: string
+          variable: validation_errors_json
+      height: 54
+      id: dap-v2-invalid
+      position:
+        x: 1020
+        y: 700
+      positionAbsolute:
+        x: 1020
+        y: 700
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"pronunciation_score":{"type":"integer","enum":[0,1,2,3]},"intonation_fluency_score":{"type":"integer","enum":[0,1,2,3]},"grammar_score":{"type":"integer","enum":[0,1,2,3]},"vocabulary_score":{"type":"integer","enum":[0,1,2,3]},"cohesion_score":{"type":"integer","enum":[0,1,2,3]},"scene_alignment_ratio":{"type":"number","minimum":0,"maximum":1},"content_coverage_ratio":{"type":"number","minimum":0,"maximum":1},"response_word_count":{"type":"integer","minimum":0},"effective_speaking_seconds":{"type":"number","minimum":0},"subject_count_band":{"type":"string","enum":["ZERO","ONE","TWO","THREE_PLUS"]},"central_subject_covered":{"type":"boolean"},"secondary_subjects_covered":{"type":"boolean"},"main_action_covered":{"type":"boolean"},"cut_off":{"type":"boolean"},"excessive_fillers":{"type":"boolean"},"wrong_picture":{"type":"boolean"},"inanimate_action_error":{"type":"boolean"}},"required":["pronunciation_score","intonation_fluency_score","grammar_score","vocabulary_score","cohesion_score","scene_alignment_ratio","content_coverage_ratio","response_word_count","effective_speaking_seconds","subject_count_band","central_subject_covered","secondary_subjects_covered","main_action_covered","cut_off","excessive_fillers","wrong_picture","inanimate_action_error"]}'
+            max_output_tokens: 2000
+            temperature: 0.1
+            thinking_budget: 0
+            thinking_mode: false
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: dap-v2-score-system
+          role: system
+          text: |
+            You are an official IIG Viet Nam examiner grading TOEIC Speaking Part 2: Describe a Picture, questions 3 and 4.
+
+            UPSTREAM CONTRACT
+            Speech-to-text and technical routing are already complete. Do not transcribe again. Use the attached official picture as the only source of truth for visual content, the upstream transcript for language/content evidence, and the attached candidate audio for pronunciation, intelligibility, rhythm, pausing and fluency. Return only the structured fields. Do not return rationale, prose feedback, errors, markdown, transcript, or a final combined score.
+
+            SCORE EACH INDEPENDENTLY FROM 0 TO 3
+            pronunciation_score: clarity and intelligibility of sounds, endings and word stress.
+            intonation_fluency_score: continuity, pace, phrasing, pauses, fillers, rhythm and pitch.
+            grammar_score: range and control of sentence structures and grammatical forms.
+            vocabulary_score: range, precision and appropriateness of words used to describe visible people, objects, actions and setting.
+            cohesion_score: logical organization from overview to details and clear connections among ideas.
+
+            3 = consistently effective and clear with only minor lapses; 2 = generally understandable/adequate with noticeable limitations; 1 = limited, fragmented, repetitive, or only partly effective; 0 = only when the response clearly describes a different picture. An assessable attempt at the correct picture must not receive 0 in any component.
+
+            CONTENT SIGNALS
+            scene_alignment_ratio measures whether claims match the visible scene. content_coverage_ratio measures coverage of the central subject, main action and useful supporting details; fluent invented details do not increase it. subject_count_band is the count of salient human/animal subjects. central_subject_covered and main_action_covered refer to the most important visible content. secondary_subjects_covered matters especially when two or more salient subjects are present. wrong_picture is true only when key visual alignment is below 0.50 and the candidate clearly describes another picture. inanimate_action_error is true only when the response assigns an impossible human action to an inanimate object.
+
+            Keep preliminary scores faithful to performance. A deterministic rule node will apply hard caps and rounding. Never inflate language scores merely because the transcript is long, and never penalize a correct concise description for not naming every minor object.
+        - id: dap-v2-score-user
+          role: user
+          text: |
+            QUESTION: {{#dap-v2-start.question_id#}}
+            OPTIONAL PROMPT TEXT: {{#dap-v2-start.prompt_text#}}
+            OFFICIAL PICTURE: {{#dap-v2-start.prompt_image#}}
+            UPSTREAM TRANSCRIPT:
+            {{#dap-v2-start.transcript#}}
+            CANDIDATE AUDIO: {{#dap-v2-start.student_audio#}}
+
+            Return preliminary component scores and rule signals only.
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              pronunciation_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+              intonation_fluency_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+              grammar_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+              vocabulary_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+              cohesion_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+              scene_alignment_ratio:
+                type: number
+                minimum: 0
+                maximum: 1
+              content_coverage_ratio:
+                type: number
+                minimum: 0
+                maximum: 1
+              response_word_count:
+                type: integer
+                minimum: 0
+              effective_speaking_seconds:
+                type: number
+                minimum: 0
+              subject_count_band:
+                type: string
+                enum:
+                - ZERO
+                - ONE
+                - TWO
+                - THREE_PLUS
+              central_subject_covered:
+                type: boolean
+              secondary_subjects_covered:
+                type: boolean
+              main_action_covered:
+                type: boolean
+              cut_off:
+                type: boolean
+              excessive_fillers:
+                type: boolean
+              wrong_picture:
+                type: boolean
+              inanimate_action_error:
+                type: boolean
+            required:
+            - pronunciation_score
+            - intonation_fluency_score
+            - grammar_score
+            - vocabulary_score
+            - cohesion_score
+            - scene_alignment_ratio
+            - content_coverage_ratio
+            - response_word_count
+            - effective_speaking_seconds
+            - subject_count_band
+            - central_subject_covered
+            - secondary_subjects_covered
+            - main_action_covered
+            - cut_off
+            - excessive_fillers
+            - wrong_picture
+            - inanimate_action_error
+        structured_output_enabled: true
+        title: Score Traits and Rule Signals
+        type: llm
+        vision:
+          configs:
+            detail: high
+            variable_selector:
+            - dap-v2-start
+            - prompt_image
+          enabled: true
+      height: 118
+      id: dap-v2-score
+      position:
+        x: 1020
+        y: 360
+      positionAbsolute:
+        x: 1020
+        y: 360
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        code: |
+          import json, math
+          def clamp(value): return max(0, min(3, int(value)))
+          def main(job_id, question_id, pronunciation_score, intonation_fluency_score,
+                   grammar_score, vocabulary_score, cohesion_score, scene_alignment_ratio,
+                   content_coverage_ratio, response_word_count, effective_speaking_seconds,
+                   subject_count_band, central_subject_covered, secondary_subjects_covered,
+                   main_action_covered, cut_off, excessive_fillers, wrong_picture,
+                   inanimate_action_error) -> dict:
+              scores = {
+                  "pronunciation_score": clamp(pronunciation_score),
+                  "intonation_fluency_score": clamp(intonation_fluency_score),
+                  "grammar_score": clamp(grammar_score), "vocabulary_score": clamp(vocabulary_score),
+                  "cohesion_score": clamp(cohesion_score),
+              }
+              alignment = max(0.0, min(1.0, float(scene_alignment_ratio)))
+              coverage = max(0.0, min(1.0, float(content_coverage_ratio)))
+              applied = []
+              zero_reason = "WRONG_PICTURE" if bool(wrong_picture) and alignment < 0.50 else "NONE"
+              if zero_reason != "NONE":
+                  for key in scores: scores[key] = 0
+                  applied.append("WRONG_PICTURE_ZERO")
+              else:
+                  for key in scores: scores[key] = max(1, scores[key])
+                  words, seconds = int(response_word_count), float(effective_speaking_seconds)
+                  if words < 8 or seconds < 6:
+                      scores["pronunciation_score"] = min(scores["pronunciation_score"], 2)
+                      scores["intonation_fluency_score"] = min(scores["intonation_fluency_score"], 2)
+                      for key in ("grammar_score", "vocabulary_score", "cohesion_score"): scores[key] = min(scores[key], 1)
+                      applied.append("SEVERELY_SHORT_RESPONSE_CAP")
+                  elif words < 15 or seconds < 10:
+                      scores["intonation_fluency_score"] = min(scores["intonation_fluency_score"], 2)
+                      scores["vocabulary_score"] = min(scores["vocabulary_score"], 2)
+                      scores["cohesion_score"] = min(scores["cohesion_score"], 2)
+                      applied.append("SHORT_RESPONSE_CAP")
+                  if coverage < 0.35:
+                      scores["vocabulary_score"] = min(scores["vocabulary_score"], 1); scores["cohesion_score"] = min(scores["cohesion_score"], 1); applied.append("LOW_CONTENT_COVERAGE_CAP")
+                  elif coverage < 0.60:
+                      scores["vocabulary_score"] = min(scores["vocabulary_score"], 2); scores["cohesion_score"] = min(scores["cohesion_score"], 2); applied.append("PARTIAL_CONTENT_COVERAGE_CAP")
+                  band = str(subject_count_band)
+                  if band == "ONE" and (not central_subject_covered or not main_action_covered):
+                      scores["vocabulary_score"] = min(scores["vocabulary_score"], 1); scores["cohesion_score"] = min(scores["cohesion_score"], 1); applied.append("CENTRAL_SUBJECT_OR_ACTION_MISSING")
+                  elif band in {"TWO", "THREE_PLUS"} and not secondary_subjects_covered:
+                      scores["vocabulary_score"] = min(scores["vocabulary_score"], 2); scores["cohesion_score"] = min(scores["cohesion_score"], 2); applied.append("SECONDARY_SUBJECTS_MISSING")
+                  if bool(cut_off): scores["cohesion_score"] = max(1, scores["cohesion_score"] - 1); applied.append("CUT_OFF_PENALTY")
+                  if bool(excessive_fillers): scores["intonation_fluency_score"] = max(1, scores["intonation_fluency_score"] - 1); applied.append("EXCESSIVE_FILLERS_PENALTY")
+                  if bool(inanimate_action_error):
+                      scores["grammar_score"] = max(1, scores["grammar_score"] - 1); scores["vocabulary_score"] = max(1, scores["vocabulary_score"] - 1); applied.append("INANIMATE_ACTION_PENALTY")
+                  # Score 3 means strong performance across all five dimensions, not one isolated strength.
+                  if sum(scores.values()) >= 13 and (min(scores.values()) < 2 or alignment < 0.75 or coverage < 0.70):
+                      while sum(scores.values()) > 12:
+                          key = max(scores, key=scores.get); scores[key] = max(1, scores[key] - 1)
+                      applied.append("EXCELLENT_ELIGIBILITY_CAP")
+              raw = sum(scores.values()) / 5.0
+              rounded = math.floor(raw + 0.5)
+              signals = {"scene_alignment_ratio": round(alignment, 4), "content_coverage_ratio": round(coverage, 4), "response_word_count": int(response_word_count), "effective_speaking_seconds": float(effective_speaking_seconds), "subject_count_band": str(subject_count_band), "central_subject_covered": bool(central_subject_covered), "secondary_subjects_covered": bool(secondary_subjects_covered), "main_action_covered": bool(main_action_covered), "cut_off": bool(cut_off), "excessive_fillers": bool(excessive_fillers), "wrong_picture": zero_reason == "WRONG_PICTURE", "inanimate_action_error": bool(inanimate_action_error)}
+              data = {**scores, "question_score_raw": raw, "question_score_rounded": rounded, "zero_reason": zero_reason, "rule_signals": signals, "applied_rules": applied}
+              event = {"schema_version": "describe-picture-progress-event-v1", "event_type": "SCORE_READY", "job_id": job_id, "question_id": question_id, "sequence": 1, "data": data}
+              return {**scores, "question_score_raw": raw, "question_score_rounded": rounded, "zero_reason": zero_reason, "scene_alignment_ratio": alignment, "content_coverage_ratio": coverage, "rule_signals_json": json.dumps(signals, ensure_ascii=False), "applied_rules_json": json.dumps(applied, ensure_ascii=False), "score_event_json": json.dumps(event, ensure_ascii=False)}
+        code_language: python3
+        outputs:
+          pronunciation_score:
+            children:
+            type: number
+          intonation_fluency_score:
+            children:
+            type: number
+          grammar_score:
+            children:
+            type: number
+          vocabulary_score:
+            children:
+            type: number
+          cohesion_score:
+            children:
+            type: number
+          question_score_raw:
+            children:
+            type: number
+          question_score_rounded:
+            children:
+            type: number
+          zero_reason:
+            children:
+            type: string
+          scene_alignment_ratio:
+            children:
+            type: number
+          content_coverage_ratio:
+            children:
+            type: number
+          rule_signals_json:
+            children:
+            type: string
+          applied_rules_json:
+            children:
+            type: string
+          score_event_json:
+            children:
+            type: string
+        selected: false
+        title: Apply Rules and Normalize Score
+        type: code
+        variables:
+        - value_selector:
+          - dap-v2-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - dap-v2-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - dap-v2-score
+          - structured_output
+          - pronunciation_score
+          value_type: number
+          variable: pronunciation_score
+        - value_selector:
+          - dap-v2-score
+          - structured_output
+          - intonation_fluency_score
+          value_type: number
+          variable: intonation_fluency_score
+        - value_selector:
+          - dap-v2-score
+          - structured_output
+          - grammar_score
+          value_type: number
+          variable: grammar_score
+        - value_selector:
+          - dap-v2-score
+          - structured_output
+          - vocabulary_score
+          value_type: number
+          variable: vocabulary_score
+        - value_selector:
+          - dap-v2-score
+          - structured_output
+          - cohesion_score
+          value_type: number
+          variable: cohesion_score
+        - value_selector:
+          - dap-v2-score
+          - structured_output
+          - scene_alignment_ratio
+          value_type: number
+          variable: scene_alignment_ratio
+        - value_selector:
+          - dap-v2-score
+          - structured_output
+          - content_coverage_ratio
+          value_type: number
+          variable: content_coverage_ratio
+        - value_selector:
+          - dap-v2-score
+          - structured_output
+          - response_word_count
+          value_type: number
+          variable: response_word_count
+        - value_selector:
+          - dap-v2-score
+          - structured_output
+          - effective_speaking_seconds
+          value_type: number
+          variable: effective_speaking_seconds
+        - value_selector:
+          - dap-v2-score
+          - structured_output
+          - subject_count_band
+          value_type: string
+          variable: subject_count_band
+        - value_selector:
+          - dap-v2-score
+          - structured_output
+          - central_subject_covered
+          value_type: boolean
+          variable: central_subject_covered
+        - value_selector:
+          - dap-v2-score
+          - structured_output
+          - secondary_subjects_covered
+          value_type: boolean
+          variable: secondary_subjects_covered
+        - value_selector:
+          - dap-v2-score
+          - structured_output
+          - main_action_covered
+          value_type: boolean
+          variable: main_action_covered
+        - value_selector:
+          - dap-v2-score
+          - structured_output
+          - cut_off
+          value_type: boolean
+          variable: cut_off
+        - value_selector:
+          - dap-v2-score
+          - structured_output
+          - excessive_fillers
+          value_type: boolean
+          variable: excessive_fillers
+        - value_selector:
+          - dap-v2-score
+          - structured_output
+          - wrong_picture
+          value_type: boolean
+          variable: wrong_picture
+        - value_selector:
+          - dap-v2-score
+          - structured_output
+          - inanimate_action_error
+          value_type: boolean
+          variable: inanimate_action_error
+      height: 54
+      id: dap-v2-normalize-score
+      position:
+        x: 1360
+        y: 360
+      positionAbsolute:
+        x: 1360
+        y: 360
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: score-zero-condition
+            value: WRONG_PICTURE
+            varType: string
+            variable_selector:
+            - dap-v2-normalize-score
+            - zero_reason
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: Zero Score?
+        type: if-else
+      height: 126
+      id: dap-v2-zero-gate
+      position:
+        x: 1710
+        y: 360
+      positionAbsolute:
+        x: 1710
+        y: 360
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 250
+      zIndex: 0
+    - data:
+        code: |
+          import json
+          COMMENTS = {
+              "NO_SPEECH": ("Không phát hiện phần trả lời có giọng nói trong bài làm của bạn.", "Vì không có dữ liệu lời nói để đánh giá, năm tiêu chí của câu này đều là 0.", "Bạn cần kiểm tra micro và mô tả các đối tượng, hành động và bối cảnh chính trong tranh."),
+              "WRONG_LANGUAGE_VI": ("Bạn đã sử dụng tiếng Việt thay vì trả lời bằng tiếng Anh.", "Do câu trả lời không đáp ứng ngôn ngữ của bài thi, năm tiêu chí của câu này đều là 0.", "Bạn cần mô tả bức tranh hoàn toàn bằng tiếng Anh trong lần tiếp theo."),
+              "WRONG_LANGUAGE_OTHER": ("Câu trả lời không sử dụng tiếng Anh theo yêu cầu của bài thi.", "Do không đủ dữ liệu tiếng Anh để đánh giá, năm tiêu chí của câu này đều là 0.", "Bạn cần mô tả bức tranh hoàn toàn bằng tiếng Anh trong lần tiếp theo."),
+              "WRONG_PICTURE": ("Nội dung trả lời không mô tả bức tranh được cung cấp.", "Do câu trả lời không khớp với tranh, năm tiêu chí của câu này đều là 0.", "Bạn nên xác định chủ thể, hành động và bối cảnh nổi bật trước khi bắt đầu nói."),
+          }
+          def main(job_id, keycode, question_id, group_code, zero_reason, score_event_json=None) -> dict:
+              reason = zero_reason if zero_reason in COMMENTS else "NO_SPEECH"
+              s1, s2, s3 = COMMENTS[reason]
+              errors = [{"error_type": "PICTURE_CONTENT", "severity": "HIGH", "count": 1, "evidence": reason, "message_vi": s1}]
+              scores = {"pronunciation_score": 0, "intonation_fluency_score": 0, "grammar_score": 0, "vocabulary_score": 0, "cohesion_score": 0, "question_score_raw": 0.0, "question_score_rounded": 0, "zero_reason": reason}
+              comment = {"strength": s1, "improvement": s2, "action": s3, "text": " ".join([s1, s2, s3])}
+              result = {"schema_version": "describe-picture-question-result-v1", "job_id": job_id, "keycode": keycode, "question_id": question_id, "group_code": group_code, "status": "COMPLETED", **scores, "rule_signals": {}, "applied_rules": ["BUSINESS_ZERO_" + reason], "errors": errors, "comment": comment, "versions": {"rubric_version": "describe-picture-q3-q4-rubric-v1", "score_prompt_version": "deterministic-zero-v1", "error_prompt_version": "deterministic-zero-v1", "comment_prompt_version": "deterministic-zero-v1"}}
+              envelope = lambda event_type, sequence, data: json.dumps({"schema_version": "describe-picture-progress-event-v1", "event_type": event_type, "job_id": job_id, "question_id": question_id, "sequence": sequence, "data": data}, ensure_ascii=False)
+              return {**scores, "errors_json": json.dumps(errors, ensure_ascii=False), "comment_strength": s1, "comment_improvement": s2, "comment_action": s3, "comment_text": comment["text"], "score_event_json": score_event_json or envelope("SCORE_READY", 1, scores), "errors_event_json": envelope("ERRORS_READY", 2, {"errors": errors}), "comment_event_json": envelope("COMMENT_READY", 3, comment), "completed_event_json": envelope("QUESTION_COMPLETED", 4, result), "result_json": json.dumps(result, ensure_ascii=False)}
+        code_language: python3
+        outputs:
+          pronunciation_score:
+            children:
+            type: number
+          intonation_fluency_score:
+            children:
+            type: number
+          grammar_score:
+            children:
+            type: number
+          vocabulary_score:
+            children:
+            type: number
+          cohesion_score:
+            children:
+            type: number
+          question_score_raw:
+            children:
+            type: number
+          question_score_rounded:
+            children:
+            type: number
+          zero_reason:
+            children:
+            type: string
+          errors_json:
+            children:
+            type: string
+          comment_strength:
+            children:
+            type: string
+          comment_improvement:
+            children:
+            type: string
+          comment_action:
+            children:
+            type: string
+          comment_text:
+            children:
+            type: string
+          score_event_json:
+            children:
+            type: string
+          errors_event_json:
+            children:
+            type: string
+          comment_event_json:
+            children:
+            type: string
+          completed_event_json:
+            children:
+            type: string
+          result_json:
+            children:
+            type: string
+        selected: false
+        title: Build Scored Zero Result
+        type: code
+        variables:
+        - value_selector:
+          - dap-v2-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - dap-v2-start
+          - keycode
+          value_type: string
+          variable: keycode
+        - value_selector:
+          - dap-v2-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - dap-v2-start
+          - group_code
+          value_type: string
+          variable: group_code
+        - value_selector:
+          - dap-v2-normalize-score
+          - zero_reason
+          value_type: string
+          variable: zero_reason
+        - value_selector:
+          - dap-v2-normalize-score
+          - score_event_json
+          value_type: string
+          variable: score_event_json
+      height: 54
+      id: dap-v2-scored-zero
+      position:
+        x: 2050
+        y: 180
+      positionAbsolute:
+        x: 2050
+        y: 180
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"errors":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"error_type":{"type":"string","enum":["PRONUNCIATION","INTONATION_FLUENCY","GRAMMAR","VOCABULARY","COHESION","PICTURE_CONTENT"]},"severity":{"type":"string","enum":["LOW","MEDIUM","HIGH"]},"count":{"type":"integer","minimum":1},"evidence":{"type":"string"},"message_vi":{"type":"string"}},"required":["error_type","severity","count","evidence","message_vi"]}}},"required":["errors"]}'
+            max_output_tokens: 2500
+            temperature: 0.1
+            thinking_budget: 0
+            thinking_mode: false
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: dap-v2-errors-system
+          role: system
+          text: |
+            Analyze errors for one TOEIC Speaking Describe a Picture response. Scores are locked; never rescore.
+            Use the official picture as the only source of truth for visible content, transcript for linguistic evidence, and audio for pronunciation/delivery. Do not invent objects, actions, locations, or word-level evidence.
+
+            Use only: PRONUNCIATION, INTONATION_FLUENCY, GRAMMAR, VOCABULARY, COHESION, PICTURE_CONTENT.
+            Return every distinct, clearly supported error occurrence, including multiple records with the same error_type when their evidence or issue differs. Each record must describe one concrete issue with its own short evidence and Vietnamese message; normally use count=1. Use count>1 only for one repeated delivery pattern that cannot be represented as separate grounded occurrences. PICTURE_CONTENT covers missing central/secondary subjects, wrong actions, invented details, or weak scene coverage. Do not duplicate the exact same issue across categories or repeat an identical error_type + evidence + message record. Do not emit HIGH for a category whose locked score is 3. Return {"errors": []} if nothing is clearly supported. Vietnamese messages must be concise and factual. Return no feedback, score changes, rationale, markdown, or extra fields.
+        - id: dap-v2-errors-user
+          role: user
+          text: |
+            OFFICIAL PICTURE: {{#dap-v2-start.prompt_image#}}
+            TRANSCRIPT: {{#dap-v2-start.transcript#}}
+            CANDIDATE AUDIO: {{#dap-v2-start.student_audio#}}
+            LOCKED SCORES: pronunciation={{#dap-v2-normalize-score.pronunciation_score#}}, intonation_fluency={{#dap-v2-normalize-score.intonation_fluency_score#}}, grammar={{#dap-v2-normalize-score.grammar_score#}}, vocabulary={{#dap-v2-normalize-score.vocabulary_score#}}, cohesion={{#dap-v2-normalize-score.cohesion_score#}}
+            RULE SIGNALS: {{#dap-v2-normalize-score.rule_signals_json#}}
+            Return compact normalized error candidates only.
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    error_type:
+                      type: string
+                      enum:
+                      - PRONUNCIATION
+                      - INTONATION_FLUENCY
+                      - GRAMMAR
+                      - VOCABULARY
+                      - COHESION
+                      - PICTURE_CONTENT
+                    severity:
+                      type: string
+                      enum:
+                      - LOW
+                      - MEDIUM
+                      - HIGH
+                    count:
+                      type: integer
+                      minimum: 1
+                    evidence:
+                      type: string
+                    message_vi:
+                      type: string
+                  required:
+                  - error_type
+                  - severity
+                  - count
+                  - evidence
+                  - message_vi
+            required:
+            - errors
+        structured_output_enabled: true
+        title: Detect Compact Error List
+        type: llm
+        vision:
+          configs:
+            detail: high
+            variable_selector:
+            - dap-v2-start
+            - prompt_image
+          enabled: true
+      height: 118
+      id: dap-v2-errors
+      position:
+        x: 2050
+        y: 500
+      positionAbsolute:
+        x: 2050
+        y: 500
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        code: |
+          import json
+          ALLOWED = ["PRONUNCIATION", "INTONATION_FLUENCY", "GRAMMAR", "VOCABULARY", "COHESION", "PICTURE_CONTENT"]
+          RANK = {"LOW": 1, "MEDIUM": 2, "HIGH": 3}
+          PRIORITY = {"PICTURE_CONTENT": 6, "COHESION": 5, "GRAMMAR": 4, "VOCABULARY": 3, "INTONATION_FLUENCY": 2, "PRONUNCIATION": 1}
+          def clean(value, limit): return " ".join(str(value or "").split())[:limit]
+          def main(job_id, question_id, error_output, pronunciation_score, intonation_fluency_score, grammar_score, vocabulary_score, cohesion_score, rule_signals_json, applied_rules_json) -> dict:
+              raw = (error_output or {}).get("errors", []) if isinstance(error_output, dict) else []
+              scores = {"PRONUNCIATION": int(pronunciation_score), "INTONATION_FLUENCY": int(intonation_fluency_score), "GRAMMAR": int(grammar_score), "VOCABULARY": int(vocabulary_score), "COHESION": int(cohesion_score)}
+              try: signals = json.loads(rule_signals_json or "{}")
+              except Exception: signals = {}
+              try: rules = set(json.loads(applied_rules_json or "[]"))
+              except Exception: rules = set()
+              normalized = []
+              by_exact_key = {}
+              def append_unique(candidate):
+                  key = (candidate["error_type"], clean(candidate["evidence"], 120).lower(), clean(candidate["message_vi"], 280).lower())
+                  existing = by_exact_key.get(key)
+                  if existing:
+                      existing["count"] = max(existing["count"], candidate["count"])
+                      if RANK[candidate["severity"]] > RANK[existing["severity"]]: existing["severity"] = candidate["severity"]
+                      return
+                  by_exact_key[key] = candidate
+                  normalized.append(candidate)
+              for item in raw:
+                  if not isinstance(item, dict): continue
+                  kind, severity = str(item.get("error_type", "")).upper(), str(item.get("severity", "")).upper()
+                  if kind not in ALLOWED or severity not in RANK: continue
+                  if scores.get(kind) == 3 and severity == "HIGH": severity = "MEDIUM"
+                  candidate = {"error_type": kind, "severity": severity, "count": max(1, min(99, int(item.get("count", 1)))), "evidence": clean(item.get("evidence"), 120), "message_vi": clean(item.get("message_vi"), 280)}
+                  if not candidate["message_vi"]: continue
+                  append_unique(candidate)
+              def ensure(kind, severity, evidence, message):
+                  append_unique({"error_type": kind, "severity": severity, "count": 1, "evidence": evidence, "message_vi": message})
+              if "EXCESSIVE_FILLERS_PENALTY" in rules or signals.get("excessive_fillers"):
+                  ensure("INTONATION_FLUENCY", "MEDIUM", "Có nhiều từ đệm hoặc nhịp nói bị gián đoạn", "Bài nói có nhiều từ đệm hoặc khoảng ngắt làm giảm độ trôi chảy.")
+              if "CUT_OFF_PENALTY" in rules or signals.get("cut_off"):
+                  ensure("COHESION", "MEDIUM", "Phần kết thúc bị ngắt", "Bài mô tả kết thúc chưa trọn ý nên mạch nội dung chưa hoàn chỉnh.")
+              if "INANIMATE_ACTION_PENALTY" in rules or signals.get("inanimate_action_error"):
+                  ensure("PICTURE_CONTENT", "MEDIUM", "Hành động không phù hợp với chủ thể hoặc vật thể", "Bài mô tả gán một hành động không phù hợp cho chủ thể hoặc vật thể trong tranh.")
+              if rules.intersection({"LOW_CONTENT_COVERAGE_CAP", "PARTIAL_CONTENT_COVERAGE_CAP", "CENTRAL_SUBJECT_OR_ACTION_MISSING", "SECONDARY_SUBJECTS_MISSING"}):
+                  ensure("PICTURE_CONTENT", "MEDIUM", "Nội dung chính hoặc chi tiết hỗ trợ chưa được bao quát", "Bài nói chưa bao quát đầy đủ chủ thể, hành động hoặc chi tiết quan trọng trong tranh.")
+              if rules.intersection({"SEVERELY_SHORT_RESPONSE_CAP", "SHORT_RESPONSE_CAP"}):
+                  ensure("COHESION", "MEDIUM", "Phần mô tả quá ngắn để phát triển đầy đủ", "Bài nói quá ngắn nên nội dung và bố cục chưa được phát triển đầy đủ.")
+              normalized = sorted(normalized, key=lambda item: (-RANK[item["severity"]], -PRIORITY[item["error_type"]]))
+              counts, highest = {}, {}
+              for item in normalized:
+                  kind = item["error_type"]
+                  counts[kind] = counts.get(kind, 0) + item["count"]
+                  if kind not in highest or RANK[item["severity"]] > RANK[highest[kind]]: highest[kind] = item["severity"]
+              summary = "; ".join([f'{kind}:{highest[kind]}({counts[kind]})' for kind in ALLOWED if kind in counts]) or "NONE"
+              data = {"errors": normalized, "error_counts": counts, "summary": summary}
+              event = {"schema_version": "describe-picture-progress-event-v1", "event_type": "ERRORS_READY", "job_id": job_id, "question_id": question_id, "sequence": 2, "data": data}
+              return {"errors_json": json.dumps(normalized, ensure_ascii=False), "error_counts_json": json.dumps(counts, ensure_ascii=False), "error_summary": summary, "errors_event_json": json.dumps(event, ensure_ascii=False)}
+        code_language: python3
+        outputs:
+          errors_json:
+            children:
+            type: string
+          error_counts_json:
+            children:
+            type: string
+          error_summary:
+            children:
+            type: string
+          errors_event_json:
+            children:
+            type: string
+        selected: false
+        title: Normalize and Summarize Errors
+        type: code
+        variables:
+        - value_selector:
+          - dap-v2-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - dap-v2-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - dap-v2-errors
+          - structured_output
+          value_type: object
+          variable: error_output
+        - value_selector:
+          - dap-v2-normalize-score
+          - pronunciation_score
+          value_type: number
+          variable: pronunciation_score
+        - value_selector:
+          - dap-v2-normalize-score
+          - intonation_fluency_score
+          value_type: number
+          variable: intonation_fluency_score
+        - value_selector:
+          - dap-v2-normalize-score
+          - grammar_score
+          value_type: number
+          variable: grammar_score
+        - value_selector:
+          - dap-v2-normalize-score
+          - vocabulary_score
+          value_type: number
+          variable: vocabulary_score
+        - value_selector:
+          - dap-v2-normalize-score
+          - cohesion_score
+          value_type: number
+          variable: cohesion_score
+        - value_selector:
+          - dap-v2-normalize-score
+          - rule_signals_json
+          value_type: string
+          variable: rule_signals_json
+        - value_selector:
+          - dap-v2-normalize-score
+          - applied_rules_json
+          value_type: string
+          variable: applied_rules_json
+      height: 54
+      id: dap-v2-normalize-errors
+      position:
+        x: 2390
+        y: 500
+      positionAbsolute:
+        x: 2390
+        y: 500
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"strength":{"type":"string"},"improvement":{"type":"string"},"action":{"type":"string"}},"required":["strength","improvement","action"]}'
+            max_output_tokens: 1500
+            temperature: 0.2
+            thinking_budget: 0
+            thinking_mode: false
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: dap-v2-comment-system
+          role: system
+          text: |
+            Write concise Vietnamese feedback for one TOEIC Speaking Describe a Picture response. Return exactly three structured fields, each exactly one complete sentence.
+            strength: a specific positive observation supported by the strongest locked score and content coverage.
+            improvement: the single most important weakness supported by the highest-severity normalized error or lowest score.
+            action: one concrete picture-description practice action for the next attempt.
+            Make the advice specific to describing a picture: overview, central subject, actions, setting, supporting details, grammar/vocabulary, or spoken delivery as supported. Use only supplied scores, signals and normalized errors. Never invent visual or word-level details. Do not mention AI, JSON, internal error types or change scores. Keep the total near three short sentences.
+        - id: dap-v2-comment-user
+          role: user
+          text: |
+            question={{#dap-v2-start.question_id#}}
+            pronunciation={{#dap-v2-normalize-score.pronunciation_score#}}
+            intonation_fluency={{#dap-v2-normalize-score.intonation_fluency_score#}}
+            grammar={{#dap-v2-normalize-score.grammar_score#}}
+            vocabulary={{#dap-v2-normalize-score.vocabulary_score#}}
+            cohesion={{#dap-v2-normalize-score.cohesion_score#}}
+            question_score={{#dap-v2-normalize-score.question_score_rounded#}}
+            rule_signals={{#dap-v2-normalize-score.rule_signals_json#}}
+            error_summary={{#dap-v2-normalize-errors.error_summary#}}
+            errors={{#dap-v2-normalize-errors.errors_json#}}
+            Return the three Vietnamese feedback fields only.
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              strength:
+                type: string
+              improvement:
+                type: string
+              action:
+                type: string
+            required:
+            - strength
+            - improvement
+            - action
+        structured_output_enabled: true
+        title: Write Three-Sentence Comment
+        type: llm
+        vision:
+          enabled: false
+      height: 118
+      id: dap-v2-comment
+      position:
+        x: 2730
+        y: 500
+      positionAbsolute:
+        x: 2730
+        y: 500
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    - data:
+        code: |
+          import json, re
+          def one_sentence(value, fallback):
+              text = " ".join(str(value or "").split()).strip() or fallback
+              chunks = [part.strip() for part in re.split(r"(?<=[.!?])\s+", text) if part.strip()]
+              text = chunks[0] if chunks else fallback
+              if text[-1:] not in ".!?”": text += "."
+              return text[:360]
+          def main(job_id, keycode, question_id, group_code, pronunciation_score,
+                   intonation_fluency_score, grammar_score, vocabulary_score, cohesion_score,
+                   question_score_raw, question_score_rounded, rule_signals_json,
+                   applied_rules_json, score_event_json, errors_json, errors_event_json,
+                   comment_output) -> dict:
+              output = comment_output if isinstance(comment_output, dict) else {}
+              strength = one_sentence(output.get("strength"), "Bạn đã tạo được phần mô tả có thể đánh giá cho bức tranh.")
+              improvement = one_sentence(output.get("improvement"), "Bạn cần làm rõ hơn nội dung trung tâm và cách tổ chức phần mô tả.")
+              action = one_sentence(output.get("action"), "Hãy luyện theo thứ tự tổng quan, chủ thể chính, hành động và chi tiết hỗ trợ.")
+              comment = {"strength": strength, "improvement": improvement, "action": action, "text": " ".join([strength, improvement, action])}
+              try: errors = json.loads(errors_json or "[]")
+              except Exception: errors = []
+              try: signals = json.loads(rule_signals_json or "{}")
+              except Exception: signals = {}
+              try: rules = json.loads(applied_rules_json or "[]")
+              except Exception: rules = []
+              result = {"schema_version": "describe-picture-question-result-v1", "job_id": job_id, "keycode": keycode, "question_id": question_id, "group_code": group_code, "status": "COMPLETED", "pronunciation_score": int(pronunciation_score), "intonation_fluency_score": int(intonation_fluency_score), "grammar_score": int(grammar_score), "vocabulary_score": int(vocabulary_score), "cohesion_score": int(cohesion_score), "question_score_raw": float(question_score_raw), "question_score_rounded": int(question_score_rounded), "zero_reason": None, "rule_signals": signals, "applied_rules": rules, "errors": errors, "comment": comment, "versions": {"rubric_version": "describe-picture-q3-q4-rubric-v1", "score_prompt_version": "describe-picture-score-v1", "error_prompt_version": "describe-picture-error-v3", "comment_prompt_version": "describe-picture-comment-v1"}}
+              envelope = lambda event_type, sequence, data: json.dumps({"schema_version": "describe-picture-progress-event-v1", "event_type": event_type, "job_id": job_id, "question_id": question_id, "sequence": sequence, "data": data}, ensure_ascii=False)
+              return {"pronunciation_score": int(pronunciation_score), "intonation_fluency_score": int(intonation_fluency_score), "grammar_score": int(grammar_score), "vocabulary_score": int(vocabulary_score), "cohesion_score": int(cohesion_score), "question_score_raw": float(question_score_raw), "question_score_rounded": int(question_score_rounded), "zero_reason": "NONE", "errors_json": json.dumps(errors, ensure_ascii=False), "comment_strength": strength, "comment_improvement": improvement, "comment_action": action, "comment_text": comment["text"], "score_event_json": score_event_json, "errors_event_json": errors_event_json, "comment_event_json": envelope("COMMENT_READY", 3, comment), "completed_event_json": envelope("QUESTION_COMPLETED", 4, result), "result_json": json.dumps(result, ensure_ascii=False)}
+        code_language: python3
+        outputs:
+          pronunciation_score:
+            children:
+            type: number
+          intonation_fluency_score:
+            children:
+            type: number
+          grammar_score:
+            children:
+            type: number
+          vocabulary_score:
+            children:
+            type: number
+          cohesion_score:
+            children:
+            type: number
+          question_score_raw:
+            children:
+            type: number
+          question_score_rounded:
+            children:
+            type: number
+          zero_reason:
+            children:
+            type: string
+          errors_json:
+            children:
+            type: string
+          comment_strength:
+            children:
+            type: string
+          comment_improvement:
+            children:
+            type: string
+          comment_action:
+            children:
+            type: string
+          comment_text:
+            children:
+            type: string
+          score_event_json:
+            children:
+            type: string
+          errors_event_json:
+            children:
+            type: string
+          comment_event_json:
+            children:
+            type: string
+          completed_event_json:
+            children:
+            type: string
+          result_json:
+            children:
+            type: string
+        selected: false
+        title: Validate Comment and Assemble Result
+        type: code
+        variables:
+        - value_selector:
+          - dap-v2-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - dap-v2-start
+          - keycode
+          value_type: string
+          variable: keycode
+        - value_selector:
+          - dap-v2-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - dap-v2-start
+          - group_code
+          value_type: string
+          variable: group_code
+        - value_selector:
+          - dap-v2-normalize-score
+          - pronunciation_score
+          value_type: number
+          variable: pronunciation_score
+        - value_selector:
+          - dap-v2-normalize-score
+          - intonation_fluency_score
+          value_type: number
+          variable: intonation_fluency_score
+        - value_selector:
+          - dap-v2-normalize-score
+          - grammar_score
+          value_type: number
+          variable: grammar_score
+        - value_selector:
+          - dap-v2-normalize-score
+          - vocabulary_score
+          value_type: number
+          variable: vocabulary_score
+        - value_selector:
+          - dap-v2-normalize-score
+          - cohesion_score
+          value_type: number
+          variable: cohesion_score
+        - value_selector:
+          - dap-v2-normalize-score
+          - question_score_raw
+          value_type: number
+          variable: question_score_raw
+        - value_selector:
+          - dap-v2-normalize-score
+          - question_score_rounded
+          value_type: number
+          variable: question_score_rounded
+        - value_selector:
+          - dap-v2-normalize-score
+          - rule_signals_json
+          value_type: string
+          variable: rule_signals_json
+        - value_selector:
+          - dap-v2-normalize-score
+          - applied_rules_json
+          value_type: string
+          variable: applied_rules_json
+        - value_selector:
+          - dap-v2-normalize-score
+          - score_event_json
+          value_type: string
+          variable: score_event_json
+        - value_selector:
+          - dap-v2-normalize-errors
+          - errors_json
+          value_type: string
+          variable: errors_json
+        - value_selector:
+          - dap-v2-normalize-errors
+          - errors_event_json
+          value_type: string
+          variable: errors_event_json
+        - value_selector:
+          - dap-v2-comment
+          - structured_output
+          value_type: object
+          variable: comment_output
+      height: 54
+      id: dap-v2-assemble
+      position:
+        x: 3070
+        y: 500
+      positionAbsolute:
+        x: 3070
+        y: 500
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 300
+      zIndex: 0
+    - data:
+        advanced_settings:
+          group_enabled: false
+          groups:
+          - groupId: dap-v2-result-group
+            group_name: Question Result
+            output_type: string
+            variables:
+            - - dap-v2-upstream-zero
+              - result_json
+            - - dap-v2-invalid
+              - result_json
+            - - dap-v2-scored-zero
+              - result_json
+            - - dap-v2-assemble
+              - result_json
+        output_type: string
+        selected: false
+        title: Merge Question Result
+        type: variable-aggregator
+        variables:
+        - - dap-v2-upstream-zero
+          - result_json
+        - - dap-v2-invalid
+          - result_json
+        - - dap-v2-scored-zero
+          - result_json
+        - - dap-v2-assemble
+          - result_json
+      height: 180
+      id: dap-v2-result-aggregator
+      position:
+        x: 3430
+        y: 380
+      positionAbsolute:
+        x: 3430
+        y: 380
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    - data:
+        outputs:
+        - value_selector:
+          - dap-v2-result-aggregator
+          - output
+          value_type: string
+          variable: result_json
+        selected: false
+        title: Describe Picture Question Result
+        type: end
+      height: 110
+      id: dap-v2-end
+      position:
+        x: 3800
+        y: 410
+      positionAbsolute:
+        x: 3800
+        y: 410
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.7

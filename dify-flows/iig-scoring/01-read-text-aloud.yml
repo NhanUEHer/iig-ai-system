@@ -1,0 +1,435 @@
+app:
+  description: ''
+  icon: "\U0001F916"
+  icon_background: "#FFEAD5"
+  icon_type: emoji
+  mode: workflow
+  name: IIG Score - Read Text Aloud
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier:
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.9.10@4979b8843fa46c3c2143d339f5868f04d9d77166616c00dd9f811a4adfce03ab
+    version:
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - ".JPG"
+      - ".JPEG"
+      - ".PNG"
+      - ".GIF"
+      - ".WEBP"
+      - ".SVG"
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 20
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id:
+        loop_id:
+        sourceType: start
+        targetType: llm
+      id: 1783438576825-source-1783438804703-target
+      source: '1783438576825'
+      sourceHandle: source
+      target: '1783438804703'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id:
+        loop_id:
+        sourceType: llm
+        targetType: code
+      id: 1783438804703-source-calculate-final-score-target
+      source: '1783438804703'
+      sourceHandle: source
+      target: calculate-final-score
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id:
+        loop_id:
+        sourceType: code
+        targetType: end
+      id: calculate-final-score-source-1783439423268-target
+      source: calculate-final-score
+      sourceHandle: source
+      target: '1783439423268'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: User Input
+        type: start
+        variables:
+        - default: ''
+          hint: ''
+          label: text_passage
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: text_passage
+        - default: ''
+          hint: ''
+          label: transcribe
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: transcribe
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - audio
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          default: ''
+          hide: false
+          hint: ''
+          label: student_audio
+          options: []
+          placeholder: ''
+          required: false
+          type: file
+          variable: student_audio
+      height: 161
+      id: '1783438576825'
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"pronunciation_score":{"type":"integer","enum":[0,1,2,3],"description":"Pronunciation
+              score from 0 to 3."},"intonation_score":{"type":"integer","enum":[0,1,2,3],"description":"Intonation
+              score from 0 to 3."}},"required":["pronunciation_score","intonation_score"]}'
+            max_output_tokens: 4000
+            temperature: 0.1
+            thinking_budget: 0
+            thinking_mode: false
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: 83f9b711-94c2-47e0-bbe9-5e8f56812cc2
+          role: system
+          text: "You are an official IIG Việt Nam examiner grading TOEIC Speaking
+            Part 1 (Read a Text Aloud). \nCRITICAL CONTEXT: Audio technical errors
+            (silence, pure physical noise, or Vietnamese speech) have ALREADY been
+            filtered out by previous workflow nodes. The input audio you receive is
+            GUARANTEED to contain audible English speech. You must evaluate the candidate's
+            active performance strictly based on text alignment and delivery.\n\n<STEP_1_TEXT_ALIGNMENT>\n-
+            Compare stt_transcript against the original text to systematically check
+            for alignment:\n  - Omissions: Skipping words, key keywords, or final
+            phrases.\n  - Insertions: Accidentally adding extra or random words.\n
+            \ - Substitutions: Misreading and replacing the original word with a completely
+            different one.\n- CRITICAL AUDIO SILENCE BYPASS RULE: If the stt_transcript
+            contains more than 5 valid English words, you must grade the performance
+            normally based on the transcript and audio. You are STRICTLY FORBIDDEN
+            from asserting \"no audio response\" or \"technical error\" to assign
+            0 points. A score of 0 for silence is ONLY allowed if BOTH the audio is
+            completely silent/noise-only AND the stt_transcript is empty or contains
+            an error message (like \"Audio không có giọng nói của bạn\").\n- CRITICAL
+            RELEVANCY CHECK (WRONG PASSAGE GATE): If the candidate reads a completely
+            different text (e.g. reading Q1 text during the Q2 slot, matching key
+            content words under 50%), immediately assign Score 0 to both criteria.\n</STEP_1_TEXT_ALIGNMENT>\n\n<STEP_2_PRONUNCIATION_CRITERIA
+            (SCORE RANGE: 0 - 3)>\n* SCORING MANDATE: Evaluate the pronunciation of
+            vowels, consonants, blends, and ending sounds (/s/, /z/, /t/, /d/, /k/,
+            /g/). \n* CONSTRAINT: If they read the correct text but mispronounce heavily,
+            the minimum score is 1. Score 0 is strictly forbidden unless the speech
+            is completely irrelevant to the prompt.\n* CRITICAL INCOMPLETE SPEECH
+            OVERRIDE: \n  - If the candidate completes reading less than 2/3 (67%)
+            of the original text passage, this score MUST be capped at a MAXIMUM ceiling
+            of 1.\n  - If the candidate completes reading between 2/3 (67%) and 90%
+            of the passage, this score MUST be capped at a MAXIMUM ceiling of 2.\n
+            \ - If the candidate completes reading more than 90% of the passage (only
+            missing 1-2 final words due to recording cut-off), no capping applies.\n*
+            CRITICAL PROPER NOUN & CONTENT WORD OVERRIDES:\n  - If the candidate completely
+            skips or heavily misreads at least 1 proper noun or brand name (e.g.,
+            'Ama Tours', 'Lombok', 'Emily Jones'), this score MUST be capped at a
+            MAXIMUM ceiling of 2.\n  - If the candidate omits or substitutes 4 or
+            more content words (nouns, verbs, adjectives), this score MUST be capped
+            at a MAXIMUM ceiling of 2.\n\n- Score 3: Pronunciation is highly intelligible.
+            Pronunciation is clear and accurate for over 90% of the words. Suffix
+            grammatical errors (e.g., omitting final -s, -ed, -d in under 3 words
+            like 'wondered' -> 'wonder') must be treated with leniency and allowed
+            Score 3 if the overall delivery is smooth.\n- Score 2: Pronunciation is
+            generally intelligible. Mắc lỗi phát âm ở 2 - 4 từ chính, hoặc thường
+            xuyên nuốt phụ âm cuối ở những từ quan trọng. (Subject to proper noun
+            and content word capping of maximum 2 points).\n- Score 1: Pronunciation
+            may be intelligible at times, but significant other language influence
+            interferes with appropriate delivery of the text. (This also applies if
+            the speech is incomplete/cut off under 2/3 of the passage).- Score 0:
+            No response OR no English in the response OR response is completely unrelated
+            to the test (Wrong Passage).\n</STEP_2_PRONUNCIATION_CRITERIA>\n\n<STEP_3_INTONATION_STRESS_CRITERIA
+            (SCORE RANGE: 0 - 3)>\n* SCORING MANDATE: Evaluate rhythm, phrasing, word
+            stress, sentence stress, and pitch variation from the audio file.\n* CRITICAL
+            INCOMPLETE SPEECH OVERRIDE:\n  - If the candidate completes reading less
+            than 2/3 (67%) of the original text passage, this score MUST be capped
+            at a MAXIMUM ceiling of 1.\n  - If the candidate completes reading between
+            2/3 (67%) and 90% of the passage, this score MUST be capped at a MAXIMUM
+            ceiling of 2.\n  - If the candidate completes reading more than 90% of
+            the passage, no capping applies.\n\n- Score 3: Use of emphases, pauses,
+            and rising and falling pitch is appropriate to the text. Pauses occur
+            at logical points (commas, periods). Emphasizes content words and reduces
+            function words.\n- Score 2: Use of emphases, pauses, and rising and falling
+            pitch is generally appropriate to the text, though the response includes
+            some lapses and/or moderate other language influence. \n  * Initial Hesitation
+            Leniency: If the candidate hesitates or stutters slightly at the beginning
+            of the passage (under 3 seconds) but recovers and reads the rest smoothly
+            -> Keep Score 2.\n  * Sentence Intonation Leniency: Minor slips in rising/falling
+            intonation at the end of specific sentences do not lower this score below
+            2.\n  * Self-Correction Leniency: If the candidate repeats a word or the
+            final sentence to self-correct (Speech Repairs) under 2 times -> Keep
+            Score 2 or 3.\n- Score 1: Use of emphases, pauses, and rising and falling
+            pitch is not appropriate, and the response includes significant other
+            language influence. (This also applies if the speech is incomplete/cut
+            off under 2/3 of the passage).- Score 0: No response OR no English in
+            the response OR the response is completely unrelated to the test.\n</STEP_3_INTONATION_STRESS_CRITERIA>\n\n<STEP_4_IIG_EXAMINER_RULES>\n-
+            Leniency Principles:\n  1. Score 3/3 does not mean flawless perfection.
+            Maintain score 3 if the overall delivery is smooth despite a few minor
+            slips.\n  2. Self-Correction: If the candidate mispronounces a word or
+            messes up a rhythm but instantly corrects it, DO NOT penalize.\n  3. Under
+            3 suffix grammatical slips (-s, -ed) or local initial stutters (<3s) must
+            be allowed Score 2 or 3 if the rest of the text is clear.\n- Penalty &
+            Override Rules:\n  - Deduct 1 point from Intonation if the candidate constantly
+            stutters, mutters fillers (uh, um, ờ, à), or repeats words.\n  - Deduct
+            1 point from Pronunciation if the candidate completely skips key keywords
+            or major phrases.\n  - UNIFIED CAPPING FOR LOW SCORES: If pronunciation_score
+            = 1, then intonation_score MUST be capped at a MAXIMUM of 1 (to ensure
+            the final score is capped at 1.0). If either score is 0, both scores MUST
+            be 0.\n  - INCOMPLETE SPEECH OVERRIDE: If the candidate completes reading
+            less than 2/3 of the passage, both scores are capped at a maximum of 1.
+            If between 2/3 and 90%, both scores are capped at a maximum of 2.\n  *
+            Note: Penalties only apply to scores 1-3. If the test is graded 0 due
+            to irrelevancy, it stays at 0.\n</STEP_4_IIG_EXAMINER_RULES>\n\n<OUTPUT>\n-
+            Return exactly two integer scores from 0 to 3 through the required structured
+            output:\n  pronunciation_score, intonation_score.\n- Perform all alignment,
+            rubric, and score-capping analysis silently.\n- Do not return rationales,
+            explanations, comments, transcript, markdown, or final_score.\n- The Code
+            node calculates final_score from the arithmetic mean of the two scores.\n</OUTPUT>"
+        - id: f7f57d9c-7368-404d-816e-aa0f21b8ec77
+          role: user
+          text: |-
+            ## ORIGINAL TEXT
+            "{{#1783438576825.text_passage#}}"
+
+            ## STT TRANSCRIPT
+            "{{#1783438576825.transcribe#}}"
+
+            ## STUDENT AUDIO FILE
+            "{{#1783438576825.student_audio#}}"
+
+            Grade both criteria and return scores only through the required structured output.
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: true
+        structured_output:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              pronunciation_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                description: Pronunciation score from 0 to 3.
+              intonation_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                description: Intonation score from 0 to 3.
+            required:
+            - pronunciation_score
+            - intonation_score
+        structured_output_enabled: true
+        title: Score 2 Criteria
+        type: llm
+        vision:
+          enabled: false
+      height: 118
+      id: '1783438804703'
+      position:
+        x: 504.6890970545936
+        y: 303
+      positionAbsolute:
+        x: 504.6890970545936
+        y: 303
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        outputs:
+        - value_selector:
+          - calculate-final-score
+          - pronunciation_score
+          value_type: number
+          variable: pronunciation_score
+        - value_selector:
+          - calculate-final-score
+          - intonation_score
+          value_type: number
+          variable: intonation_score
+        - value_selector:
+          - calculate-final-score
+          - final_score
+          value_type: number
+          variable: final_score
+        selected: false
+        title: Output Scores
+        type: end
+      height: 166
+      id: '1783439423268'
+      position:
+        x: 1130
+        y: 303
+      positionAbsolute:
+        x: 1130
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |-
+          import math
+
+          def main(pronunciation_score, intonation_score) -> dict:
+              pronunciation = int(pronunciation_score)
+              intonation = int(intonation_score)
+
+              scores = [pronunciation, intonation]
+              if any(score < 0 or score > 3 for score in scores):
+                  raise ValueError("Component scores must be integers from 0 to 3")
+
+              average = sum(scores) / len(scores)
+              final_score = math.floor(average + 0.5)
+
+              return {
+                  "pronunciation_score": pronunciation,
+                  "intonation_score": intonation,
+                  "final_score": final_score,
+              }
+        code_language: python3
+        outputs:
+          pronunciation_score:
+            children:
+            type: number
+          intonation_score:
+            children:
+            type: number
+          final_score:
+            children:
+            type: number
+        selected: false
+        title: Calculate Final Score
+        type: code
+        variables:
+        - value_selector:
+          - '1783438804703'
+          - structured_output
+          - pronunciation_score
+          value_type: number
+          variable: pronunciation_score
+        - value_selector:
+          - '1783438804703'
+          - structured_output
+          - intonation_score
+          value_type: number
+          variable: intonation_score
+      height: 54
+      id: calculate-final-score
+      position:
+        x: 800
+        y: 303
+      positionAbsolute:
+        x: 800
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    viewport:
+      x: 22.67179462085079
+      y: 30.76295176090332
+      zoom: 0.9139683868504412
+  rag_pipeline_variables: []

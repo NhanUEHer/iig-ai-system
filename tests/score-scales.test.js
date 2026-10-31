@@ -71,3 +71,12 @@ test('admin routes separate score-scale viewing from management', () => {
   assert.match(source, /ScoreScaleListPage[^\n]+canManage=\{hasPermission\('exams\.manage'\)\}/);
   assert.match(source, /path\.startsWith\('\/score-scales'\).*activeTab = 'score-scales'/);
 });
+
+test('score scale list uses the shared design-system list contract and API filters', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../frontend/src/features/score-scales/pages/ScoreScaleListPage.jsx'), 'utf8');
+  ['ListPage', 'TableToolbar', 'FilterBar', 'MultiSelectFilter', 'DataTable', 'Pagination', 'ColumnVisibilityMenu', 'ConfirmDialog'].forEach(component => assert.match(source, new RegExp(component)));
+  ['search', 'scaleType', 'status', 'page', 'limit'].forEach(parameter => assert.match(source, new RegExp(parameter)));
+  assert.match(source, /className="iig3-list-screen score-scale-list-page"/);
+  assert.doesNotMatch(source, /components\/ui/);
+  assert.doesNotMatch(source, /QuestionBankRowActions/);
+});

@@ -1,0 +1,7 @@
+.question-list__name{display:block;max-width:100%;overflow:hidden;color:var(--iig3-text);font-size:var(--iig3-text-label);text-overflow:ellipsis;white-space:nowrap}
+.question-list-page .iig3-data-table table{min-width:1160px}
+.question-list-page .iig3-data-table td.is-center,.question-list-page .iig3-data-table th.is-center{text-align:center}
+.question-list-page .iig3-data-table th.is-center button{justify-content:center}
+.question-list-page .iig3-data-table .is-actions{position:sticky;right:0;background:var(--iig3-surface)}
+.question-list-page .iig3-data-table th.is-actions{z-index:1;background:var(--iig3-surface-muted)}
+.question-list-page .iig3-data-table tr:hover td.is-actions{background:#faf6f2}

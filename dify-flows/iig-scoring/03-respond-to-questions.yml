@@ -1,0 +1,574 @@
+app:
+  description: ''
+  icon: "\U0001F916"
+  icon_background: "#FFEAD5"
+  icon_type: emoji
+  mode: workflow
+  name: IIG Score - Respond to Questions
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier:
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.9.10@4979b8843fa46c3c2143d339f5868f04d9d77166616c00dd9f811a4adfce03ab
+    version:
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - ".JPG"
+      - ".JPEG"
+      - ".PNG"
+      - ".GIF"
+      - ".WEBP"
+      - ".SVG"
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 20
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: 1783438576825-source-1783438804703-target
+      source: '1783438576825'
+      sourceHandle: source
+      target: '1783438804703'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: 1783438804703-source-calculate-final-score-target
+      source: '1783438804703'
+      sourceHandle: source
+      target: calculate-final-score
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id:
+        loop_id:
+        sourceType: code
+        targetType: end
+      id: calculate-final-score-source-1783439423268-target
+      source: calculate-final-score
+      sourceHandle: source
+      target: '1783439423268'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: User Input
+        type: start
+        variables:
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - image
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          default: ''
+          hide: false
+          hint: ''
+          label: context
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: context
+        - default: ''
+          hint: ''
+          label: question
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: question
+        - default: ''
+          hint: ''
+          label: transcribe
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: transcribe
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - audio
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          default: ''
+          hide: false
+          hint: ''
+          label: student_audio
+          options: []
+          placeholder: ''
+          required: false
+          type: file
+          variable: student_audio
+      height: 187
+      id: '1783438576825'
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"pronunciation_score":{"type":"integer","enum":[0,1,2,3],"description":"Pronunciation
+              score from 0 to 3."},"intonation_score":{"type":"integer","enum":[0,1,2,3],"description":"Intonation
+              score from 0 to 3."},"grammar_score":{"type":"integer","enum":[0,1,2,3],"description":"Grammar
+              score from 0 to 3."},"vocabulary_score":{"type":"integer","enum":[0,1,2,3],"description":"Vocabulary
+              score from 0 to 3."},"cohesion_score":{"type":"integer","enum":[0,1,2,3],"description":"Cohesion
+              score from 0 to 3."},"relevance_score":{"type":"integer","enum":[0,1,2,3],"description":"Relevance
+              score from 0 to 3."},"completeness_score":{"type":"integer","enum":[0,1,2,3],"description":"Completeness
+              score from 0 to 3."}},"required":["pronunciation_score","intonation_score","grammar_score","vocabulary_score","cohesion_score","relevance_score","completeness_score"]}'
+            max_output_tokens: 4000
+            temperature: 0.1
+            thinking_mode: false
+            thinking_budget: 0
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: 83f9b711-94c2-47e0-bbe9-5e8f56812cc2
+          role: system
+          text: |-
+            You are an official IIG Việt Nam examiner grading TOEIC Speaking Part 3 (Respond to Questions - Market Survey). Your task is to evaluate the candidate's active verbal performance strictly based on prompt alignment, content relevance, delivery, and structure.
+
+            <STEP_1_VALIDITY_CHECK>
+            - Cross-reference student_audio_file and stt_transcript immediately:
+              1. IF stt_transcript contains 'Audio không có giọng nói của bạn' AND audio is completely silent/pure noise: return ALL scores = 0.
+              2. IF stt_transcript contains 'Phát hiện thí sinh nói Tiếng Việt' AND the response contains no meaningful English: return ALL scores = 0.
+              3. INTERFERENCE RULE: If stt_transcript contains valid English words but the audio is noisy or static, DO NOT give 0. You MUST use stt_transcript as the primary reference and grade the visible English words fairly.
+              4. LENIENT RELEVANCY CHECK: Only assign Relevance = 0 if the response is 100% unrelated to the market survey topic (e.g., candidate talks about playing football when asked about traveling abroad, or reads random text). If the candidate attempts to answer and stays within the general topic (e.g. explaining reasons to visit a country without explicitly naming the country in Q6), DO NOT assign Relevance = 0. Grade the response normally with Relevance = 1 or 2.
+              - If relevance_score = 0, automatically overwrite ALL other criteria scores to 0.
+            </STEP_1_VALIDITY_CHECK>
+
+            <STEP_2_CONTENT_ALIGNMENT_AND_SUB_QUESTIONS>
+            - Analyze the prompt question to determine the exact number of sub-questions asked (e.g., 'Do you like traveling abroad? Why or why not?' has 2 sub-questions: 1. Yes/No preference, 2. Reasons).
+            - Evaluate how many sub-questions are answered in the stt_transcript to determine the baseline Completeness.
+            - Apply Leniency Rule for Q5 and Q6 (15-second questions): A concise answer (1-2 sentences) directly answering the sub-questions is considered fully complete. Do not expect paragraph-level development or complex structures for Q5/Q6.
+            </STEP_2_CONTENT_ALIGNMENT_AND_SUB_QUESTIONS>
+
+            <STEP_3_DETAILED_7_CRITERIA_RUBRIC (SCORE RANGE: 0 - 3)>
+            * CRITICAL MINIMUM CONSTRAINT: If the candidate spoke English words and attempted to answer (even if highly fragmented or filled with errors), the MINIMUM score is 1 for each criterion. Score 0 is strictly forbidden unless relevance_score = 0.
+
+            1. PRONUNCIATION
+            - Score 3: Mispronunciations or omitted ending sounds account for <10% of the words. Clear consonants, blends, and word endings. Natural Vietnamese accent is fully acceptable if easily understood with zero listener effort.
+            - Score 2: Clear pronunciation mistakes or dropped word endings on 2-3 core keywords. Listener must occasionally strain to understand.
+            - Score 1: Severe pronunciation deformation (>50% of words). Heavily vietnamized reading. Listener must exert massive effort to guess the meaning.
+            - Score 0: Silent or Relevance = 0.
+
+            2. INTONATION AND STRESS
+            - Score 3: Natural conversational rhythm and good pacing control. Correct sentence stress on content words. No long, awkward hesitations. Note: 1-2 minor, natural pauses for thought or brief fillers (uh, um) are fully acceptable for Score 3.
+            - Score 2: Relatively stable rhythm but inconsistent. 1-2 unexpected/unnatural pauses inside clauses due to word-searching. Flat/monotone delivery that does not alter meaning.
+            - Score 1: Choppy, fragmented rhythm (pausing after every 1-2 words). Features long silences (>3s for Q5/Q6 or >5s for Q7) or excessive filler words that disrupt flow.
+            - Score 0: Silent or Relevance = 0.
+
+            3. GRAMMAR
+            - Score 3: Highly accurate grammar. Appropriate verb tenses. For Q5/Q6, simple sentences are fully acceptable if correct. For Q7, combines clauses using conjunctions. Note: Do not hallucinate errors (e.g., claiming 'it's' is missing subject/verb or 'near' is incorrect).
+            - Score 2: Solid control of basic sentences. Basic errors that do not block meaning: singular/plural noun slips, minor subject-verb agreement slips, or slight preposition slips.
+            - Score 1: Commits >= 3 major grammar errors in basic structures. Speaks only in isolated words or fragments. Fails core verb tenses.
+            - Score 0: Silent or Relevance = 0.
+
+            4. VOCABULARY
+            - Score 3: Appropriate and precise vocabulary. For Q7, demonstrates successful paraphrasing of prompt words. For Q5/Q6, simple, natural words (like 'near my country') are fully acceptable.
+            - Score 2: Vocabulary is basic and repetitive. Overuses words from prompt question or selects slightly unnatural phrasing.
+            - Score 1: Vocabulary is extremely limited. Almost entirely echoes the prompt words without offering any new vocabulary to formulate an answer.
+            - Score 0: Silent or Relevance = 0.
+
+            5. COHESION
+            - Score 3: Sentences are logically connected. For Q7, uses simple transitions (because, also, and, but) to form a clear structure (Choice -> Reason -> Conclusion). For Q5/Q6, simple coordinate clauses are fully acceptable.
+            - Score 2: Sentences are linked but transitions are clumsy or repetitive. Lacks chronological or logical connectors, making the explanation feel slightly disjointed.
+            - Score 1: Totally unstructured and fragmented. Statements are entirely independent.
+            - Score 0: Silent or Relevance = 0.
+
+            6. RELEVANCE OF CONTENT
+            - Score 3: Directly and accurately answers the core target of the prompt question.
+            - Score 2: Generally related to the topic, but containing slight domestic/foreign contradictions (e.g. mentioning 'around the country' when asked about traveling 'abroad') or omitting the specific target noun (e.g. omitting country name in Q6 but explaining other context).
+            - Score 1: Severe topic drift or major contradictions that make the response mostly off-topic.
+            - Score 0: Completely unrelated response or silence.
+
+            7. COMPLETENESS OF CONTENT
+            - Score 3: Answers all sub-questions of the prompt. For Q5/Q6, a simple direct answer + 1 basic reason is considered complete. For Q7, answers preference and provides at least 2 simple reasons or 1 fully developed reason.
+            - Score 2: Misses one sub-question or provides an extremely vague, superficial explanation.
+            - Score 1: Extremely brief response (1-3 words), failing to fulfill prompt requirements.
+            - Score 0: Silent or Relevance = 0.
+            </STEP_3_DETAILED_7_CRITERIA_RUBRIC>
+
+            <STEP_4_IIG_EXAMINER_RULES>
+            - CRITICAL SHORT RESPONSE OVERRIDE:
+              - For Q5/Q6: If stt_transcript has < 15 words or speech duration is < 10 seconds -> You MUST cap all 7 criteria scores and the final average score at a MAXIMUM ceiling of 1.
+              - For Q7: If stt_transcript has < 20 words or speech duration is < 15 seconds -> You MUST cap all 7 criteria scores and the final average score at a MAXIMUM ceiling of 1.
+            - UNIFIED CAPPING RULE FOR LOW PERFORMANCE:
+              - If pronunciation_score = 1 or intonation_score = 1 -> Clamp all other criteria scores (grammar, vocabulary, cohesion, relevance, completeness) at a MAXIMUM ceiling of 1.
+              - If relevance_score = 1 or completeness_score = 1 -> You MUST adjust individual scores so that the final average score does not exceed 1.0.
+              - If >= 3 language/delivery criteria are scored 1, clamp the final average score at a MAXIMUM of 1.0.
+            - UNIFIED CAPPING RULE FOR EXCELLENT CEILING:
+              - To receive a final rounded score of 3.0 (Excellent), the candidate must have at most one criterion at score 2, and no criterion at score 1.
+              - If Grammar score = 2 AND Vocabulary score = 2, or if Grammar = 2 AND Intonation = 2, or if there are >= 2 criteria scored 2, or if relevance/completeness = 2, you MUST adjust the individual scores so that the final average score does not exceed 2.0 (preventing it from rounding up to 3.0).
+            - Penalty Rules:
+              - Deduct 1 point from Cohesion if response is cut off by the timer (indicated by trailing hyphen, e.g. 'trave-').
+              - Deduct 1 point from Intonation if candidate exhibits constant stuttering, stammering, or a single long silence (>3s for Q5/Q6, >5s for Q7).
+              - Deduct 1 point from Completeness (Pacing Penalty) if speaking duration is under 5 seconds (for Q5/Q6) or under 12 seconds (for Q7). (Constraint caps Completeness score at a maximum of 2).
+              * Note: Penalties only apply to scores 1-3. If the test is graded 0 due to Validity Check, it stays at 0.
+            </STEP_4_IIG_EXAMINER_RULES>
+
+            <OUTPUT>
+            - Return exactly seven integer scores from 0 to 3 through the required structured output:
+              pronunciation_score, intonation_score, grammar_score, vocabulary_score,
+              cohesion_score, relevance_score, completeness_score.
+            - Perform all prompt-alignment, rubric, and score-capping analysis silently.
+            - Do not return rationales, explanations, comments, transcript, markdown, or final_score.
+            - The Code node calculates final_score from the arithmetic mean of the seven scores.
+            </OUTPUT>
+        - id: f7f57d9c-7368-404d-816e-aa0f21b8ec77
+          role: user
+          text: |-
+            ## SURVEY CONTEXT
+            "{{#1783438576825.context#}}"
+
+            ## PROMPT QUESTION
+            "{{#1783438576825.question#}}"
+
+            ## STT TRANSCRIPT
+            "{{#1783438576825.transcribe#}}"
+
+            ## STUDENT AUDIO FILE
+            "{{#1783438576825.student_audio#}}"
+
+            Grade all seven criteria and return scores only through the required structured output.
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: true
+        structured_output:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              pronunciation_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                description: Pronunciation score from 0 to 3.
+              intonation_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                description: Intonation score from 0 to 3.
+              grammar_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                description: Grammar score from 0 to 3.
+              vocabulary_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                description: Vocabulary score from 0 to 3.
+              cohesion_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                description: Cohesion score from 0 to 3.
+              relevance_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                description: Relevance score from 0 to 3.
+              completeness_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                description: Completeness score from 0 to 3.
+            required:
+            - pronunciation_score
+            - intonation_score
+            - grammar_score
+            - vocabulary_score
+            - cohesion_score
+            - relevance_score
+            - completeness_score
+        structured_output_enabled: true
+        title: Score 7 Criteria
+        type: llm
+        vision:
+          enabled: false
+      height: 117
+      id: '1783438804703'
+      position:
+        x: 504.6890970545936
+        y: 303
+      positionAbsolute:
+        x: 504.6890970545936
+        y: 303
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        outputs:
+        - value_selector:
+          - calculate-final-score
+          - pronunciation_score
+          value_type: number
+          variable: pronunciation_score
+        - value_selector:
+          - calculate-final-score
+          - intonation_score
+          value_type: number
+          variable: intonation_score
+        - value_selector:
+          - calculate-final-score
+          - grammar_score
+          value_type: number
+          variable: grammar_score
+        - value_selector:
+          - calculate-final-score
+          - vocabulary_score
+          value_type: number
+          variable: vocabulary_score
+        - value_selector:
+          - calculate-final-score
+          - cohesion_score
+          value_type: number
+          variable: cohesion_score
+        - value_selector:
+          - calculate-final-score
+          - relevance_score
+          value_type: number
+          variable: relevance_score
+        - value_selector:
+          - calculate-final-score
+          - completeness_score
+          value_type: number
+          variable: completeness_score
+        - value_selector:
+          - calculate-final-score
+          - final_score
+          value_type: number
+          variable: final_score
+        selected: false
+        title: Output Scores
+        type: end
+      height: 426
+      id: '1783439423268'
+      position:
+        x: 1130
+        y: 303
+      positionAbsolute:
+        x: 1130
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |-
+          import math
+
+          def main(pronunciation_score, intonation_score, grammar_score, vocabulary_score, cohesion_score, relevance_score, completeness_score) -> dict:
+              pronunciation = int(pronunciation_score)
+              intonation = int(intonation_score)
+              grammar = int(grammar_score)
+              vocabulary = int(vocabulary_score)
+              cohesion = int(cohesion_score)
+              relevance = int(relevance_score)
+              completeness = int(completeness_score)
+
+              scores = [pronunciation, intonation, grammar, vocabulary, cohesion, relevance, completeness]
+              if any(score < 0 or score > 3 for score in scores):
+                  raise ValueError("Component scores must be integers from 0 to 3")
+
+              average = sum(scores) / len(scores)
+              final_score = math.floor(average + 0.5)
+
+              return {
+                  "pronunciation_score": pronunciation,
+                  "intonation_score": intonation,
+                  "grammar_score": grammar,
+                  "vocabulary_score": vocabulary,
+                  "cohesion_score": cohesion,
+                  "relevance_score": relevance,
+                  "completeness_score": completeness,
+                  "final_score": final_score,
+              }
+        code_language: python3
+        outputs:
+          pronunciation_score:
+            children:
+            type: number
+          intonation_score:
+            children:
+            type: number
+          grammar_score:
+            children:
+            type: number
+          vocabulary_score:
+            children:
+            type: number
+          cohesion_score:
+            children:
+            type: number
+          relevance_score:
+            children:
+            type: number
+          completeness_score:
+            children:
+            type: number
+          final_score:
+            children:
+            type: number
+        selected: false
+        title: Calculate Final Score
+        type: code
+        variables:
+        - value_selector:
+          - '1783438804703'
+          - structured_output
+          - pronunciation_score
+          value_type: number
+          variable: pronunciation_score
+        - value_selector:
+          - '1783438804703'
+          - structured_output
+          - intonation_score
+          value_type: number
+          variable: intonation_score
+        - value_selector:
+          - '1783438804703'
+          - structured_output
+          - grammar_score
+          value_type: number
+          variable: grammar_score
+        - value_selector:
+          - '1783438804703'
+          - structured_output
+          - vocabulary_score
+          value_type: number
+          variable: vocabulary_score
+        - value_selector:
+          - '1783438804703'
+          - structured_output
+          - cohesion_score
+          value_type: number
+          variable: cohesion_score
+        - value_selector:
+          - '1783438804703'
+          - structured_output
+          - relevance_score
+          value_type: number
+          variable: relevance_score
+        - value_selector:
+          - '1783438804703'
+          - structured_output
+          - completeness_score
+          value_type: number
+          variable: completeness_score
+      height: 54
+      id: calculate-final-score
+      position:
+        x: 800
+        y: 303
+      positionAbsolute:
+        x: 800
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    viewport:
+      x: 131.54494883087767
+      y: 84.6089536856002
+      zoom: 0.707781147934765
+  rag_pipeline_variables: []

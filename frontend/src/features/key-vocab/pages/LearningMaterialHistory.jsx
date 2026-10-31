@@ -1,18 +1,110 @@
-import {ArrowLeft,ArrowRight,BookOpenText,Clock3,Eye,LibraryBig,RefreshCw,Search} from 'lucide-react';
-import {useCallback,useEffect,useState} from 'react';
-import {getLearningMaterialHistory} from '../../../services/learningMaterialService';
+import { BookOpenText, Clock3, Eye, LibraryBig, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Badge, Button, DataView, EmptyState, FilterBar, IconButton, Pagination, StatusBadge, TableToolbar } from '../../../design-system-v2';
+import { getLearningMaterialHistory } from '../../../services/learningMaterialService';
 import './LearningMaterialHistory.css';
 
-const modeLabels={balanced:'Cân bằng',phrase_focused:'Ưu tiên cụm từ',single_word_focused:'Ưu tiên từ đơn'};
-const statusLabel=status=>status==='completed'?'Hoàn tất':status==='generating'?'Đang gen':status==='partial'?'Một phần':status==='failed'?'Lỗi':'Bản nháp';
+const PAGE_SIZE = 10;
+const modeLabels = { balanced: 'Cân bằng', phrase_focused: 'Ưu tiên cụm từ', single_word_focused: 'Ưu tiên từ đơn' };
+const dictionaryStatuses = {
+  completed: { status: 'completed', label: 'Hoàn tất' },
+  generating: { status: 'processing', label: 'Đang tạo' },
+  partial: { status: 'warning', label: 'Một phần' },
+  failed: { status: 'failed', label: 'Lỗi' },
+  draft: { status: 'draft', label: 'Bản nháp' },
+};
 
-export default function LearningMaterialHistory({onOpenKeyVocab,onOpenDictionary,showMsg}){
-  const [items,setItems]=useState([]),[loading,setLoading]=useState(false),[search,setSearch]=useState(''),[page,setPage]=useState(1),[meta,setMeta]=useState({page:1,total:0,totalPages:1});
-  const load=useCallback(async()=>{setLoading(true);try{const result=await getLearningMaterialHistory({page,limit:10,search:search.trim()||undefined});setItems(result.data);setMeta(result.meta);}catch(error){showMsg?.(error.response?.data?.error||'Không thể tải lịch sử học liệu.','error');}finally{setLoading(false)}},[page,search,showMsg]);
-  useEffect(()=>{const timer=setTimeout(load,250);return()=>clearTimeout(timer)},[load]);
-  return <section className="learning-material-history"><header><div><h2>Lịch sử học liệu</h2><p>{meta.total||0} nội dung nguồn · Key Vocab và Dictionary dùng chung đoạn văn</p></div><label><Search/><input value={search} onChange={event=>{setSearch(event.target.value);setPage(1)}} placeholder="Tìm nội dung nguồn…"/></label></header>
-    {loading?<div className="learning-material-history-empty"><RefreshCw className="spin"/>Đang tải…</div>:!items.length?<div className="learning-material-history-empty"><Clock3/>Chưa có học liệu phù hợp.</div>:<div className="learning-material-history-list">{items.map(item=><article key={item.passageId}><div className="learning-material-history-source"><strong>{item.passage}</strong><time>{new Date(item.updatedAt).toLocaleString('vi-VN')}</time></div><div className="learning-material-history-artifacts"><section className={item.keyVocabId?'available':'empty'}><span><BookOpenText/></span><div><b>Key Vocab</b><small>{item.keyVocabId?`${item.keyVocabCount} từ · TOEIC ${item.targetScore}+ · ${modeLabels[item.selectionMode]||item.selectionMode}`:'Chưa tạo'}</small></div>{item.keyVocabId&&<button onClick={()=>onOpenKeyVocab(item.keyVocabId)}><Eye/>Mở</button>}</section><section className={item.dictionaryId?'available':'empty'}><span><LibraryBig/></span><div><b>Dictionary</b><small>{item.dictionaryId?`${item.dictionaryCompletedCount}/${item.dictionaryCount} từ · ${statusLabel(item.dictionaryStatus)}${item.dictionaryFailedCount?` · ${item.dictionaryFailedCount} lỗi`:''}`:'Chưa tạo'}</small></div>{item.dictionaryId&&<button onClick={()=>onOpenDictionary(item.dictionaryId)}><Eye/>Mở</button>}</section></div></article>)}</div>}
-    <footer><span>Trang {meta.page}/{meta.totalPages}</span><div><button disabled={page<=1} onClick={()=>setPage(value=>value-1)}><ArrowLeft/></button><button disabled={page>=meta.totalPages} onClick={()=>setPage(value=>value+1)}><ArrowRight/></button></div></footer>
-  </section>;
+function formatUpdatedAt(value) {
+  if (!value) return 'Chưa cập nhật';
+  return new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  }).format(new Date(value));
 }
 
+function ArtifactSummary({ icon, title, children, available, onOpen }) {
+  return <div className={`learning-history-artifact ${available ? 'is-available' : 'is-empty'}`}>
+    <span className="learning-history-artifact__icon">{icon}</span>
+    <div className="learning-history-artifact__body">
+      <strong>{title}</strong>
+      <div className="learning-history-artifact__meta">{children}</div>
+    </div>
+    {available && <IconButton size="sm" label={`Mở ${title}`} title={`Mở ${title}`} onClick={onOpen}><Eye /></IconButton>}
+  </div>;
+}
+
+export default function LearningMaterialHistory({ onOpenMaterial, showMsg }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState({ page: 1, total: 0, totalPages: 1, limit: PAGE_SIZE });
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const result = await getLearningMaterialHistory({ page, limit: PAGE_SIZE, search: search.trim() || undefined });
+      setItems(result.data || []);
+      setMeta(result.meta || { page, total: 0, totalPages: 1, limit: PAGE_SIZE });
+    } catch (requestError) {
+      const message = requestError.response?.data?.error || 'Không thể tải lịch sử học liệu.';
+      setError(message);
+      showMsg?.(message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search, showMsg]);
+
+  useEffect(() => {
+    const timer = setTimeout(load, 250);
+    return () => clearTimeout(timer);
+  }, [load]);
+
+  return <DataView
+    toolbar={<>
+      <TableToolbar title="Lịch sử học liệu" count={meta.total || 0} loading={loading} />
+      <FilterBar search={search} onSearch={event => { setSearch(event.target.value); setPage(1); }} placeholder="Tìm trong nội dung nguồn…" loading={loading} />
+    </>}
+    pagination={<Pagination
+      page={meta.page || page}
+      pageCount={meta.totalPages || 1}
+      pageSize={meta.limit || PAGE_SIZE}
+      total={meta.total || 0}
+      loading={loading}
+      showPageSize={false}
+      onPage={setPage}
+      rangeLabel={({ from, to, total }) => `Hiển thị ${from}–${to} / ${total} nội dung`}
+    />}
+  >
+    <div className="learning-history-list" aria-busy={loading}>
+      {loading && !items.length && <div className="learning-history-state"><RefreshCw className="spin" />Đang tải lịch sử…</div>}
+      {!loading && error && <EmptyState icon={<Clock3 />} title="Không thể tải lịch sử" description={error} action={<Button variant="outline" size="sm" icon={<RefreshCw />} onClick={load}>Thử lại</Button>} />}
+      {!loading && !error && !items.length && <EmptyState
+        icon={<Clock3 />}
+        title={search ? 'Không tìm thấy học liệu' : 'Chưa có lịch sử học liệu'}
+        description={search ? 'Thử thay đổi từ khóa tìm kiếm.' : 'Các bộ Key Vocab và Dictionary đã tạo sẽ xuất hiện tại đây.'}
+      />}
+      {items.map(item => {
+        const dictionaryStatus = dictionaryStatuses[item.dictionaryStatus] || dictionaryStatuses.draft;
+        return <article className="learning-history-row" key={item.passageId}>
+          <div className="learning-history-source">
+            <span className="learning-history-source__icon"><BookOpenText /></span>
+            <div>
+              <strong>{item.passage}</strong>
+              <time><Clock3 />{formatUpdatedAt(item.updatedAt)}</time>
+            </div>
+          </div>
+          <div className="learning-history-artifacts">
+            <ArtifactSummary icon={<BookOpenText />} title="Key Vocab" available={Boolean(item.keyVocabId)} onOpen={() => onOpenMaterial(item, 'key-vocab')}>
+              {item.keyVocabId ? <><Badge tone="success">{item.keyVocabCount || 0} từ</Badge><span>TOEIC {item.targetScore}+</span><span>{modeLabels[item.selectionMode] || item.selectionMode}</span></> : <Badge>Chưa tạo</Badge>}
+            </ArtifactSummary>
+            <ArtifactSummary icon={<LibraryBig />} title="Dictionary" available={Boolean(item.dictionaryId)} onOpen={() => onOpenMaterial(item, 'dictionary')}>
+              {item.dictionaryId ? <><StatusBadge status={dictionaryStatus.status} label={dictionaryStatus.label} /><span>{item.dictionaryCompletedCount || 0}/{item.dictionaryCount || 0} từ</span>{item.dictionaryFailedCount > 0 && <Badge tone="danger">{item.dictionaryFailedCount} lỗi</Badge>}</> : <Badge>Chưa tạo</Badge>}
+            </ArtifactSummary>
+          </div>
+        </article>;
+      })}
+    </div>
+  </DataView>;
+}
