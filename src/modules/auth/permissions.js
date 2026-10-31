@@ -14,6 +14,24 @@ const PERMISSION_GROUPS = [
   { key: 'agents', label: 'AI Agents', permissions: [
     ['agents.view', 'Xem cấu hình Agent'], ['agents.manage', 'Tạo, sửa và xóa Agent']
   ] },
+  { key: 'ai_scoring_admin', label: 'Quản trị AI Scoring', permissions: [
+    ['ai_scoring.tenants.view', 'Xem tenant tích hợp'],
+    ['ai_scoring.tenants.manage', 'Tạo, sửa, khóa và kích hoạt tenant'],
+    ['ai_scoring.credentials.view', 'Xem API credential'],
+    ['ai_scoring.credentials.manage', 'Tạo, sửa, rotate và thu hồi API credential'],
+    ['ai_scoring.webhooks.view', 'Xem cấu hình và delivery webhook'],
+    ['ai_scoring.webhooks.manage', 'Tạo, sửa, rotate và kiểm tra webhook'],
+    ['ai_scoring.webhooks.replay', 'Gửi lại webhook delivery'],
+    ['ai_scoring.jobs.view', 'Xem danh sách scoring job'],
+    ['ai_scoring.jobs.view_detail', 'Xem chi tiết, điểm và timeline scoring job'],
+    ['ai_scoring.jobs.view_model_lineage', 'Xem model lineage đã ẩn dữ liệu nhạy cảm'],
+    ['ai_scoring.jobs.export', 'Xuất danh sách scoring job'],
+    ['ai_scoring.audit.view', 'Xem audit log quản trị AI Scoring'],
+    ['ai_scoring.operations.retry', 'Retry scoring job thất bại'],
+    ['ai_scoring.operations.cancel', 'Hủy scoring job đang xử lý'],
+    ['ai_scoring.operations.rescore', 'Chấm lại scoring job đã kết thúc'],
+    ['ai_scoring.operations.reconcile', 'Đối soát trạng thái scoring job từ dữ liệu đã lưu']
+  ] },
   { key: 'audio', label: 'Audio Studio', permissions: [
     ['audio.view', 'Xem Audio Studio'], ['audio.manage', 'Tạo và quản lý audio/voice']
   ] },

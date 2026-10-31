@@ -1,0 +1,1716 @@
+app:
+  description: >-
+    Scores one TOEIC Speaking Read Text Aloud question (Q1 or Q2) after upstream
+    STT. Produces component scores, normalized errors, a three-sentence Vietnamese
+    comment, and progressive event payloads for Dify streaming consumers.
+  icon: "U0001F5E3️"
+  icon_background: '#E4FBCC'
+  icon_type: emoji
+  mode: workflow
+  name: IIG RTA Question Flow v2
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.9.10@4979b8843fa46c3c2143d339f5868f04d9d77166616c00dd9f811a4adfce03ab
+    version: null
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions: []
+      allowed_file_types:
+      - audio
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: true
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 20
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 1
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: code
+      id: rta-v2-start-source-rta-v2-validate-target
+      source: rta-v2-start
+      sourceHandle: source
+      target: rta-v2-validate
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: rta-v2-validate-source-rta-v2-route-target
+      source: rta-v2-validate
+      sourceHandle: source
+      target: rta-v2-route
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: rta-v2-route-upstream-zero-rta-v2-upstream-zero-target
+      source: rta-v2-route
+      sourceHandle: upstream-zero
+      target: rta-v2-upstream-zero
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: rta-v2-route-normal-rta-v2-score-target
+      source: rta-v2-route
+      sourceHandle: normal
+      target: rta-v2-score
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: rta-v2-route-false-rta-v2-invalid-target
+      source: rta-v2-route
+      sourceHandle: 'false'
+      target: rta-v2-invalid
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: rta-v2-upstream-zero-source-rta-v2-result-aggregator-target
+      source: rta-v2-upstream-zero
+      sourceHandle: source
+      target: rta-v2-result-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: rta-v2-invalid-source-rta-v2-result-aggregator-target
+      source: rta-v2-invalid
+      sourceHandle: source
+      target: rta-v2-result-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: rta-v2-score-source-rta-v2-normalize-score-target
+      source: rta-v2-score
+      sourceHandle: source
+      target: rta-v2-normalize-score
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: rta-v2-normalize-score-source-rta-v2-zero-gate-target
+      source: rta-v2-normalize-score
+      sourceHandle: source
+      target: rta-v2-zero-gate
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: rta-v2-zero-gate-true-rta-v2-scored-zero-target
+      source: rta-v2-zero-gate
+      sourceHandle: 'true'
+      target: rta-v2-scored-zero
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: rta-v2-zero-gate-false-rta-v2-errors-target
+      source: rta-v2-zero-gate
+      sourceHandle: 'false'
+      target: rta-v2-errors
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: rta-v2-scored-zero-source-rta-v2-result-aggregator-target
+      source: rta-v2-scored-zero
+      sourceHandle: source
+      target: rta-v2-result-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: rta-v2-errors-source-rta-v2-normalize-errors-target
+      source: rta-v2-errors
+      sourceHandle: source
+      target: rta-v2-normalize-errors
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+      id: rta-v2-normalize-errors-source-rta-v2-comment-target
+      source: rta-v2-normalize-errors
+      sourceHandle: source
+      target: rta-v2-comment
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: rta-v2-comment-source-rta-v2-assemble-target
+      source: rta-v2-comment
+      sourceHandle: source
+      target: rta-v2-assemble
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: rta-v2-assemble-source-rta-v2-result-aggregator-target
+      source: rta-v2-assemble
+      sourceHandle: source
+      target: rta-v2-result-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: variable-aggregator
+        targetType: end
+      id: rta-v2-result-aggregator-source-rta-v2-end-target
+      source: rta-v2-result-aggregator
+      sourceHandle: source
+      target: rta-v2-end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: RTA Question Input v1
+        type: start
+        variables:
+        - default: rta-question-input-v1
+          hint: Fixed contract version.
+          label: schema_version
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: schema_version
+        - default: ''
+          hint: Backend scoring job UUID.
+          label: job_id
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: job_id
+        - default: ''
+          hint: Candidate attempt keycode.
+          label: keycode
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: keycode
+        - default: s_q1
+          hint: One question per workflow run.
+          label: question_id
+          options:
+          - s_q1
+          - s_q2
+          placeholder: ''
+          required: true
+          type: select
+          variable: question_id
+        - default: READ_TEXT_ALOUD
+          hint: Fixed group for Q1-Q2.
+          label: group_code
+          options:
+          - READ_TEXT_ALOUD
+          placeholder: ''
+          required: true
+          type: select
+          variable: group_code
+        - default: READY_FOR_AI
+          hint: Normal scoring requires READY_FOR_AI.
+          label: ai_status
+          options:
+          - READY_FOR_AI
+          - ZERO_SCORE
+          placeholder: ''
+          required: true
+          type: select
+          variable: ai_status
+        - default: NONE
+          hint: Set only when upstream already established a business zero.
+          label: upstream_zero_reason
+          options:
+          - NONE
+          - NO_SPEECH
+          - WRONG_LANGUAGE_VI
+          - WRONG_LANGUAGE_OTHER
+          placeholder: ''
+          required: true
+          type: select
+          variable: upstream_zero_reason
+        - default: ''
+          hint: Official passage shown to the candidate.
+          label: text_passage
+          options: []
+          placeholder: ''
+          required: true
+          type: paragraph
+          variable: text_passage
+        - default: ''
+          hint: Transcript already produced upstream; this flow never runs STT.
+          label: transcript
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: transcript
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - audio
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          default: ''
+          hide: false
+          hint: Canonical candidate audio; optional only for an upstream-zero run.
+          label: student_audio
+          options: []
+          placeholder: ''
+          required: false
+          type: file
+          variable: student_audio
+      height: 450
+      id: rta-v2-start
+      position:
+        x: 40
+        y: 320
+      positionAbsolute:
+        x: 40
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        code: |-
+          def main(schema_version, job_id, keycode, question_id, group_code,
+                   ai_status, upstream_zero_reason, text_passage, transcript) -> dict:
+              errors = []
+              reason = (upstream_zero_reason or "NONE").strip().upper()
+              valid_reasons = {
+                  "NONE", "NO_SPEECH", "WRONG_LANGUAGE_VI",
+                  "WRONG_LANGUAGE_OTHER"
+              }
+
+              if schema_version != "rta-question-input-v1":
+                  errors.append("schema_version must be rta-question-input-v1")
+              if not (job_id or "").strip():
+                  errors.append("job_id is required")
+              if not (keycode or "").strip():
+                  errors.append("keycode is required")
+              if question_id not in {"s_q1", "s_q2"}:
+                  errors.append("question_id must be s_q1 or s_q2")
+              if group_code != "READ_TEXT_ALOUD":
+                  errors.append("group_code must be READ_TEXT_ALOUD")
+              if not (text_passage or "").strip():
+                  errors.append("text_passage is required")
+              if reason not in valid_reasons:
+                  errors.append("invalid upstream_zero_reason")
+
+              if errors:
+                  route = "INVALID"
+              elif reason != "NONE":
+                  if ai_status != "ZERO_SCORE":
+                      errors.append("upstream zero requires ai_status ZERO_SCORE")
+                      route = "INVALID"
+                  else:
+                      route = "UPSTREAM_ZERO"
+              else:
+                  if ai_status != "READY_FOR_AI":
+                      errors.append("normal scoring requires READY_FOR_AI")
+                  if not (transcript or "").strip():
+                      errors.append("transcript is required for normal scoring")
+                  route = "NORMAL" if not errors else "INVALID"
+
+              return {
+                  "route": route,
+                  "validation_ok": route != "INVALID",
+                  "validation_errors_json": __import__("json").dumps(errors, ensure_ascii=False),
+                  "normalized_zero_reason": reason,
+              }
+        code_language: python3
+        outputs:
+          normalized_zero_reason:
+            children: null
+            type: string
+          route:
+            children: null
+            type: string
+          validation_errors_json:
+            children: null
+            type: string
+          validation_ok:
+            children: null
+            type: boolean
+        selected: false
+        title: Validate and Route Input
+        type: code
+        variables:
+        - value_selector: [rta-v2-start, schema_version]
+          value_type: string
+          variable: schema_version
+        - value_selector: [rta-v2-start, job_id]
+          value_type: string
+          variable: job_id
+        - value_selector: [rta-v2-start, keycode]
+          value_type: string
+          variable: keycode
+        - value_selector: [rta-v2-start, question_id]
+          value_type: string
+          variable: question_id
+        - value_selector: [rta-v2-start, group_code]
+          value_type: string
+          variable: group_code
+        - value_selector: [rta-v2-start, ai_status]
+          value_type: string
+          variable: ai_status
+        - value_selector: [rta-v2-start, upstream_zero_reason]
+          value_type: string
+          variable: upstream_zero_reason
+        - value_selector: [rta-v2-start, text_passage]
+          value_type: string
+          variable: text_passage
+        - value_selector: [rta-v2-start, transcript]
+          value_type: string
+          variable: transcript
+      height: 54
+      id: rta-v2-validate
+      position: {x: 380, y: 320}
+      positionAbsolute: {x: 380, y: 320}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 260
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: upstream-zero
+          conditions:
+          - comparison_operator: is
+            id: route-upstream-zero-condition
+            value: UPSTREAM_ZERO
+            varType: string
+            variable_selector: [rta-v2-validate, route]
+          id: upstream-zero
+          logical_operator: and
+        - case_id: normal
+          conditions:
+          - comparison_operator: is
+            id: route-normal-condition
+            value: NORMAL
+            varType: string
+            variable_selector: [rta-v2-validate, route]
+          id: normal
+          logical_operator: and
+        selected: false
+        title: Input Route
+        type: if-else
+      height: 190
+      id: rta-v2-route
+      position: {x: 700, y: 320}
+      positionAbsolute: {x: 700, y: 320}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 250
+      zIndex: 0
+    - data:
+        code: |-
+          import json
+
+          COMMENTS = {
+              "NO_SPEECH": (
+                  "Không phát hiện phần trả lời có giọng nói trong bài làm của bạn.",
+                  "Vì không có dữ liệu lời nói để đánh giá, điểm Phát âm và Ngữ điệu của câu này đều là 0.",
+                  "Bạn cần kiểm tra micro và đọc thành tiếng toàn bộ đoạn văn trước khi hết thời gian."
+              ),
+              "WRONG_LANGUAGE_VI": (
+                  "Bạn đã sử dụng tiếng Việt thay vì đọc đoạn văn tiếng Anh được yêu cầu.",
+                  "Do câu trả lời không đáp ứng ngôn ngữ của bài thi, điểm Phát âm và Ngữ điệu của câu này đều là 0.",
+                  "Bạn cần trả lời hoàn toàn bằng tiếng Anh và đọc đúng nội dung được cung cấp."
+              ),
+              "WRONG_LANGUAGE_OTHER": (
+                  "Câu trả lời không sử dụng tiếng Anh theo yêu cầu của bài thi.",
+                  "Do không đủ dữ liệu tiếng Anh để đánh giá, điểm Phát âm và Ngữ điệu của câu này đều là 0.",
+                  "Bạn cần trả lời hoàn toàn bằng tiếng Anh và đọc đúng nội dung được cung cấp."
+              ),
+              "WRONG_PASSAGE": (
+                  "Bạn đã đọc một đoạn văn khác với nội dung được yêu cầu ở câu hỏi này.",
+                  "Do bài đọc không khớp với đoạn văn gốc, điểm Phát âm và Ngữ điệu của câu này đều là 0.",
+                  "Bạn nên kiểm tra đúng số câu và đọc chính xác đoạn văn đang hiển thị trước khi bắt đầu."
+              ),
+          }
+
+          def main(job_id, keycode, question_id, group_code, zero_reason) -> dict:
+              reason = zero_reason if zero_reason in COMMENTS else "NO_SPEECH"
+              s1, s2, s3 = COMMENTS[reason]
+              error_type = "TEXT_ACCURACY" if reason == "WRONG_PASSAGE" else "TASK_COMPLETION"
+              errors = [{
+                  "error_type": error_type,
+                  "severity": "HIGH",
+                  "count": 1,
+                  "evidence": reason,
+                  "message_vi": s1,
+              }]
+              score_data = {
+                  "pronunciation_score": 0,
+                  "intonation_stress_score": 0,
+                  "question_score_raw": 0.0,
+                  "question_score_rounded": 0,
+                  "zero_reason": reason,
+              }
+              result = {
+                  "schema_version": "rta-question-result-v1",
+                  "job_id": job_id,
+                  "keycode": keycode,
+                  "question_id": question_id,
+                  "group_code": group_code,
+                  "status": "COMPLETED",
+                  **score_data,
+                  "errors": errors,
+                  "comment": {
+                      "strength": s1,
+                      "improvement": s2,
+                      "action": s3,
+                      "text": " ".join([s1, s2, s3]),
+                  },
+                  "versions": {
+                      "rubric_version": "rta-q1-q2-rubric-v2",
+                      "score_prompt_version": "rta-score-v3",
+                      "error_prompt_version": "deterministic-zero-v1",
+                      "comment_prompt_version": "deterministic-zero-v1",
+                  },
+              }
+              envelope = lambda event_type, sequence, data: json.dumps({
+                  "schema_version": "rta-progress-event-v1",
+                  "event_type": event_type,
+                  "job_id": job_id,
+                  "question_id": question_id,
+                  "sequence": sequence,
+                  "data": data,
+              }, ensure_ascii=False)
+              return {
+                  **score_data,
+                  "errors_json": json.dumps(errors, ensure_ascii=False),
+                  "comment_strength": s1,
+                  "comment_improvement": s2,
+                  "comment_action": s3,
+                  "comment_text": " ".join([s1, s2, s3]),
+                  "score_event_json": envelope("SCORE_READY", 1, score_data),
+                  "errors_event_json": envelope("ERRORS_READY", 2, {"errors": errors}),
+                  "comment_event_json": envelope("COMMENT_READY", 3, result["comment"]),
+                  "completed_event_json": envelope("QUESTION_COMPLETED", 4, result),
+                  "result_json": json.dumps(result, ensure_ascii=False),
+              }
+        code_language: python3
+        outputs:
+          comment_action: {children: null, type: string}
+          comment_event_json: {children: null, type: string}
+          comment_improvement: {children: null, type: string}
+          comment_strength: {children: null, type: string}
+          comment_text: {children: null, type: string}
+          completed_event_json: {children: null, type: string}
+          errors_event_json: {children: null, type: string}
+          errors_json: {children: null, type: string}
+          intonation_stress_score: {children: null, type: number}
+          pronunciation_score: {children: null, type: number}
+          question_score_raw: {children: null, type: number}
+          question_score_rounded: {children: null, type: number}
+          result_json: {children: null, type: string}
+          score_event_json: {children: null, type: string}
+          zero_reason: {children: null, type: string}
+        selected: false
+        title: Build Upstream Zero Result
+        type: code
+        variables:
+        - value_selector: [rta-v2-start, job_id]
+          value_type: string
+          variable: job_id
+        - value_selector: [rta-v2-start, keycode]
+          value_type: string
+          variable: keycode
+        - value_selector: [rta-v2-start, question_id]
+          value_type: string
+          variable: question_id
+        - value_selector: [rta-v2-start, group_code]
+          value_type: string
+          variable: group_code
+        - value_selector: [rta-v2-validate, normalized_zero_reason]
+          value_type: string
+          variable: zero_reason
+      height: 54
+      id: rta-v2-upstream-zero
+      position: {x: 1020, y: 80}
+      positionAbsolute: {x: 1020, y: 80}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        code: |-
+          import json
+
+          def main(job_id, question_id, validation_errors_json) -> dict:
+              try:
+                  errors = json.loads(validation_errors_json or "[]")
+              except Exception:
+                  errors = ["invalid input"]
+              result = {
+                  "schema_version": "rta-question-result-v1",
+                  "job_id": job_id,
+                  "question_id": question_id,
+                  "status": "FAILED",
+                  "failure_code": "INVALID_INPUT",
+                  "failure_details": errors,
+              }
+              return {
+                  "status": "FAILED",
+                  "failure_code": "INVALID_INPUT",
+                  "failure_details_json": json.dumps(errors, ensure_ascii=False),
+                  "result_json": json.dumps(result, ensure_ascii=False),
+              }
+        code_language: python3
+        outputs:
+          failure_code: {children: null, type: string}
+          failure_details_json: {children: null, type: string}
+          result_json: {children: null, type: string}
+          status: {children: null, type: string}
+        selected: false
+        title: Build Invalid Input Result
+        type: code
+        variables:
+        - value_selector: [rta-v2-start, job_id]
+          value_type: string
+          variable: job_id
+        - value_selector: [rta-v2-start, question_id]
+          value_type: string
+          variable: question_id
+        - value_selector: [rta-v2-validate, validation_errors_json]
+          value_type: string
+          variable: validation_errors_json
+      height: 54
+      id: rta-v2-invalid
+      position: {x: 1020, y: 700}
+      positionAbsolute: {x: 1020, y: 700}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"pronunciation_score":{"type":"integer","enum":[0,1,2,3]},"intonation_stress_score":{"type":"integer","enum":[0,1,2,3]},"alignment_ratio":{"type":"number","minimum":0,"maximum":1},"completion_ratio":{"type":"number","minimum":0,"maximum":1},"proper_noun_error_count":{"type":"integer","minimum":0},"content_word_error_count":{"type":"integer","minimum":0},"suffix_slip_count":{"type":"integer","minimum":0},"wrong_passage":{"type":"boolean"}},"required":["pronunciation_score","intonation_stress_score","alignment_ratio","completion_ratio","proper_noun_error_count","content_word_error_count","suffix_slip_count","wrong_passage"]}'
+            max_output_tokens: 2000
+            temperature: 0.1
+            thinking_budget: 0
+            thinking_mode: false
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: rta-v2-score-system
+          role: system
+          text: |-
+            You are an official IIG Viet Nam examiner grading TOEIC Speaking Part 1: Read a Text Aloud.
+
+            UPSTREAM CONTRACT
+            The upstream pipeline has already completed speech-to-text and technical audio routing. The response reaching this node is READY_FOR_AI and contains assessable English speech.
+
+            Do not transcribe the audio again. Do not classify the response as silence, noise, missing audio, Vietnamese speech, or a technical failure. Do not return rationales, feedback, evidence, markdown, transcript, or a final combined score. Return only the required structured fields.
+
+            SOURCE PRIORITY
+            1. The OFFICIAL PASSAGE is the only source of truth for the expected content.
+            2. Use the UPSTREAM TRANSCRIPT to estimate textual alignment, completion, omissions, substitutions, and insertions.
+            3. Use the attached audio to assess actual pronunciation, intelligibility, rhythm, stress, pauses, phrasing, and pitch.
+            4. The transcript may contain STT normalization or recognition errors. Treat equivalent forms such as "50%" and "fifty percent" as matching content. Ignore harmless punctuation, capitalization, article, and formatting differences.
+            5. Do not infer an expected word, number, name, or phrase that is absent from the OFFICIAL PASSAGE.
+
+            TEXT ALIGNMENT SIGNALS
+            alignment_ratio is 0..1 and represents how closely the candidate's key content follows the official passage. Equivalent spoken and written forms count as matches.
+            completion_ratio is 0..1 and represents the proportion of the official passage actually attempted. Repetitions and inserted words must not increase completion. Missing only one or two final words may still be near-complete.
+            Set wrong_passage true only when key-content alignment is below 0.50 and the candidate clearly reads a different passage. A heavily accented, incomplete, or poorly pronounced attempt at the correct passage is not a wrong passage.
+
+            PRONUNCIATION (0-3)
+            Assess vowels, consonants, blends, important ending sounds, word stress, and overall intelligibility.
+            3: Highly intelligible and accurate overall. A few minor slips are allowed. Fewer than three minor suffix slips such as omitted -s, -es, -ed, or -d may still receive 3 when delivery remains clear and smooth.
+            2: Generally intelligible with several noticeable sound, stress, or ending errors, but the listener can follow without substantial effort. A serious proper-noun error or several important content-word errors normally prevents 3.
+            1: Intelligible only at times; strong other-language influence, frequent errors, or severe incompleteness requires substantial listener effort. This is the minimum for an assessable attempt at the correct passage.
+            0: Only when wrong_passage is true.
+
+            INTONATION_AND_STRESS (0-3)
+            Assess rhythm, phrasing, word stress, sentence stress, logical pauses, pitch movement, and continuity.
+            3: Phrasing, stress, pauses, rhythm, and pitch are appropriate overall; minor local lapses are allowed.
+            2: Generally appropriate with noticeable lapses. A brief initial hesitation under three seconds, up to two immediate self-corrections, or minor sentence-ending intonation slips are lenient when the candidate recovers.
+            1: Mostly inappropriate or heavily disrupted; delivery may be word-by-word, monotone, excessively hesitant, fragmented, or affected by frequent fillers or repetitions.
+            0: Only when wrong_passage is true.
+
+            CONSISTENCY GUIDANCE
+            The component scores are preliminary. A downstream deterministic Code node is authoritative for all hard caps and final rounding. Use these thresholds consistently when estimating the preliminary scores and signals, but do not calculate a final score:
+            - completion below 0.67 indicates severe incompleteness;
+            - completion from 0.67 to below 0.90 indicates meaningful incompleteness;
+            - completion at or above 0.90 has no completion cap;
+            - if pronunciation is 1, intonation_and_stress must not exceed 1;
+            - if wrong_passage is false, neither component may be 0.
+
+            ERROR COUNTING SIGNALS
+            proper_noun_error_count: count only serious omissions or clearly incorrect readings of names, places, organizations, or brands. Do not count a minor accent difference when the name remains identifiable.
+            content_word_error_count: count clear omissions or substitutions of meaning-bearing nouns, main verbs, adjectives, adverbs, numbers, dates, or prices. Exclude proper nouns and suffix slips already counted separately. Equivalent forms such as "50%" and "fifty percent" are not errors.
+            suffix_slip_count: count only minor grammatical ending slips such as missing or incorrect -s, -es, -ed, or -d when the base word remains recognizable.
+            Count each occurrence in only one category. An immediately corrected slip must not be counted twice.
+
+            OUTPUT CONTRACT
+            Return only pronunciation_score, intonation_stress_score, alignment_ratio, completion_ratio, proper_noun_error_count, content_word_error_count, suffix_slip_count, and wrong_passage. Do not return any additional field.
+        - id: rta-v2-score-user
+          role: user
+          text: |-
+            OFFICIAL PASSAGE:
+            {{#rta-v2-start.text_passage#}}
+
+            UPSTREAM TRANSCRIPT:
+            {{#rta-v2-start.transcript#}}
+
+            QUESTION: {{#rta-v2-start.question_id#}}
+            The candidate audio is attached. Return structured scores and rule signals only.
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              pronunciation_score: {type: integer, enum: [0, 1, 2, 3]}
+              intonation_stress_score: {type: integer, enum: [0, 1, 2, 3]}
+              alignment_ratio: {type: number, minimum: 0, maximum: 1}
+              completion_ratio: {type: number, minimum: 0, maximum: 1}
+              proper_noun_error_count: {type: integer, minimum: 0}
+              content_word_error_count: {type: integer, minimum: 0}
+              suffix_slip_count: {type: integer, minimum: 0}
+              wrong_passage: {type: boolean}
+            required:
+            - pronunciation_score
+            - intonation_stress_score
+            - alignment_ratio
+            - completion_ratio
+            - proper_noun_error_count
+            - content_word_error_count
+            - suffix_slip_count
+            - wrong_passage
+        structured_output_enabled: true
+        title: Score Traits and Rule Signals
+        type: llm
+        vision:
+          configs:
+            detail: high
+            variable_selector: [rta-v2-start, student_audio]
+          enabled: true
+      height: 118
+      id: rta-v2-score
+      position: {x: 1020, y: 360}
+      positionAbsolute: {x: 1020, y: 360}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        code: |-
+          import json
+          import math
+          import re
+          from difflib import SequenceMatcher
+
+          def tokens(value):
+              return re.findall(r"[a-z0-9']+", (value or "").lower())
+
+          def main(job_id, question_id, text_passage, transcript,
+                   pronunciation_score, intonation_stress_score,
+                   alignment_ratio, completion_ratio, proper_noun_error_count,
+                   content_word_error_count, suffix_slip_count,
+                   wrong_passage) -> dict:
+              reference = tokens(text_passage)
+              response = tokens(transcript)
+              matcher = SequenceMatcher(a=reference, b=response, autojunk=False)
+              matched = sum(block.size for block in matcher.get_matching_blocks())
+              deterministic_coverage = matched / max(len(reference), 1)
+              transcript_length_ratio = min(len(response) / max(len(reference), 1), 1.0)
+
+              alignment = max(0.0, min(1.0, max(float(alignment_ratio), deterministic_coverage)))
+              completion = max(0.0, min(1.0, max(float(completion_ratio), deterministic_coverage)))
+              pronunciation = max(0, min(3, int(pronunciation_score)))
+              intonation = max(0, min(3, int(intonation_stress_score)))
+
+              is_wrong_passage = bool(wrong_passage) and alignment < 0.50
+              zero_reason = "WRONG_PASSAGE" if is_wrong_passage else "NONE"
+
+              if zero_reason != "NONE":
+                  pronunciation = 0
+                  intonation = 0
+              else:
+                  # An assessable attempt at the correct passage cannot receive 0.
+                  pronunciation = max(1, pronunciation)
+                  intonation = max(1, intonation)
+                  if completion < 0.67:
+                      pronunciation = min(pronunciation, 1)
+                      intonation = min(intonation, 1)
+                  elif completion < 0.90:
+                      pronunciation = min(pronunciation, 2)
+                      intonation = min(intonation, 2)
+                  if int(proper_noun_error_count) >= 1:
+                      pronunciation = min(pronunciation, 2)
+                  if int(content_word_error_count) >= 4:
+                      pronunciation = min(pronunciation, 2)
+                  if pronunciation == 1:
+                      intonation = min(intonation, 1)
+
+              raw = (pronunciation + intonation) / 2.0
+              rounded = math.floor(raw + 0.5)
+              rule_signals = {
+                  "alignment_ratio": round(alignment, 4),
+                  "completion_ratio": round(completion, 4),
+                  "transcript_length_ratio": round(transcript_length_ratio, 4),
+                  "proper_noun_error_count": int(proper_noun_error_count),
+                  "content_word_error_count": int(content_word_error_count),
+                  "suffix_slip_count": int(suffix_slip_count),
+                  "wrong_passage": zero_reason == "WRONG_PASSAGE",
+              }
+              score_data = {
+                  "pronunciation_score": pronunciation,
+                  "intonation_stress_score": intonation,
+                  "question_score_raw": raw,
+                  "question_score_rounded": rounded,
+                  "zero_reason": zero_reason,
+                  "rule_signals": rule_signals,
+              }
+              event = {
+                  "schema_version": "rta-progress-event-v1",
+                  "event_type": "SCORE_READY",
+                  "job_id": job_id,
+                  "question_id": question_id,
+                  "sequence": 1,
+                  "data": score_data,
+              }
+              return {
+                  "pronunciation_score": pronunciation,
+                  "intonation_stress_score": intonation,
+                  "question_score_raw": raw,
+                  "question_score_rounded": rounded,
+                  "zero_reason": zero_reason,
+                  "alignment_ratio": alignment,
+                  "completion_ratio": completion,
+                  "rule_signals_json": json.dumps(rule_signals, ensure_ascii=False),
+                  "score_event_json": json.dumps(event, ensure_ascii=False),
+              }
+        code_language: python3
+        outputs:
+          alignment_ratio: {children: null, type: number}
+          completion_ratio: {children: null, type: number}
+          intonation_stress_score: {children: null, type: number}
+          pronunciation_score: {children: null, type: number}
+          question_score_raw: {children: null, type: number}
+          question_score_rounded: {children: null, type: number}
+          rule_signals_json: {children: null, type: string}
+          score_event_json: {children: null, type: string}
+          zero_reason: {children: null, type: string}
+        selected: false
+        title: Apply Rules and Normalize Score
+        type: code
+        variables:
+        - {value_selector: [rta-v2-start, job_id], value_type: string, variable: job_id}
+        - {value_selector: [rta-v2-start, question_id], value_type: string, variable: question_id}
+        - {value_selector: [rta-v2-start, text_passage], value_type: string, variable: text_passage}
+        - {value_selector: [rta-v2-start, transcript], value_type: string, variable: transcript}
+        - {value_selector: [rta-v2-score, structured_output, pronunciation_score], value_type: number, variable: pronunciation_score}
+        - {value_selector: [rta-v2-score, structured_output, intonation_stress_score], value_type: number, variable: intonation_stress_score}
+        - {value_selector: [rta-v2-score, structured_output, alignment_ratio], value_type: number, variable: alignment_ratio}
+        - {value_selector: [rta-v2-score, structured_output, completion_ratio], value_type: number, variable: completion_ratio}
+        - {value_selector: [rta-v2-score, structured_output, proper_noun_error_count], value_type: number, variable: proper_noun_error_count}
+        - {value_selector: [rta-v2-score, structured_output, content_word_error_count], value_type: number, variable: content_word_error_count}
+        - {value_selector: [rta-v2-score, structured_output, suffix_slip_count], value_type: number, variable: suffix_slip_count}
+        - {value_selector: [rta-v2-score, structured_output, wrong_passage], value_type: boolean, variable: wrong_passage}
+      height: 54
+      id: rta-v2-normalize-score
+      position: {x: 1360, y: 360}
+      positionAbsolute: {x: 1360, y: 360}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: score-zero-condition
+            value: WRONG_PASSAGE
+            varType: string
+            variable_selector: [rta-v2-normalize-score, zero_reason]
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: Zero Score?
+        type: if-else
+      height: 126
+      id: rta-v2-zero-gate
+      position: {x: 1710, y: 360}
+      positionAbsolute: {x: 1710, y: 360}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 250
+      zIndex: 0
+    - data:
+        code: |-
+          import json
+
+          def main(job_id, keycode, question_id, group_code, zero_reason,
+                   score_event_json) -> dict:
+              reason = "WRONG_PASSAGE"
+              s1 = "Bạn đã đọc một đoạn văn khác với nội dung được yêu cầu ở câu hỏi này."
+              s2 = "Do bài đọc không khớp với đoạn văn gốc, điểm Phát âm và Ngữ điệu của câu này đều là 0."
+              s3 = "Bạn nên kiểm tra đúng số câu và đọc chính xác đoạn văn đang hiển thị trước khi bắt đầu."
+              errors = [{
+                  "error_type": "TEXT_ACCURACY",
+                  "severity": "HIGH",
+                  "count": 1,
+                  "evidence": reason,
+                  "message_vi": s1,
+              }]
+              result = {
+                  "schema_version": "rta-question-result-v1",
+                  "job_id": job_id,
+                  "keycode": keycode,
+                  "question_id": question_id,
+                  "group_code": group_code,
+                  "status": "COMPLETED",
+                  "pronunciation_score": 0,
+                  "intonation_stress_score": 0,
+                  "question_score_raw": 0.0,
+                  "question_score_rounded": 0,
+                  "zero_reason": reason,
+                  "errors": errors,
+                  "comment": {"strength": s1, "improvement": s2, "action": s3, "text": " ".join([s1, s2, s3])},
+                  "versions": {
+                      "rubric_version": "rta-q1-q2-rubric-v2",
+                      "score_prompt_version": "rta-score-v3",
+                      "error_prompt_version": "deterministic-zero-v1",
+                      "comment_prompt_version": "deterministic-zero-v1",
+                  },
+              }
+              envelope = lambda event_type, sequence, data: json.dumps({
+                  "schema_version": "rta-progress-event-v1", "event_type": event_type,
+                  "job_id": job_id, "question_id": question_id,
+                  "sequence": sequence, "data": data,
+              }, ensure_ascii=False)
+              return {
+                  "pronunciation_score": 0,
+                  "intonation_stress_score": 0,
+                  "question_score_raw": 0.0,
+                  "question_score_rounded": 0,
+                  "zero_reason": reason,
+                  "errors_json": json.dumps(errors, ensure_ascii=False),
+                  "comment_strength": s1,
+                  "comment_improvement": s2,
+                  "comment_action": s3,
+                  "comment_text": " ".join([s1, s2, s3]),
+                  "score_event_json": score_event_json,
+                  "errors_event_json": envelope("ERRORS_READY", 2, {"errors": errors}),
+                  "comment_event_json": envelope("COMMENT_READY", 3, result["comment"]),
+                  "completed_event_json": envelope("QUESTION_COMPLETED", 4, result),
+                  "result_json": json.dumps(result, ensure_ascii=False),
+              }
+        code_language: python3
+        outputs:
+          comment_action: {children: null, type: string}
+          comment_event_json: {children: null, type: string}
+          comment_improvement: {children: null, type: string}
+          comment_strength: {children: null, type: string}
+          comment_text: {children: null, type: string}
+          completed_event_json: {children: null, type: string}
+          errors_event_json: {children: null, type: string}
+          errors_json: {children: null, type: string}
+          intonation_stress_score: {children: null, type: number}
+          pronunciation_score: {children: null, type: number}
+          question_score_raw: {children: null, type: number}
+          question_score_rounded: {children: null, type: number}
+          result_json: {children: null, type: string}
+          score_event_json: {children: null, type: string}
+          zero_reason: {children: null, type: string}
+        selected: false
+        title: Build Scored Zero Result
+        type: code
+        variables:
+        - {value_selector: [rta-v2-start, job_id], value_type: string, variable: job_id}
+        - {value_selector: [rta-v2-start, keycode], value_type: string, variable: keycode}
+        - {value_selector: [rta-v2-start, question_id], value_type: string, variable: question_id}
+        - {value_selector: [rta-v2-start, group_code], value_type: string, variable: group_code}
+        - {value_selector: [rta-v2-normalize-score, zero_reason], value_type: string, variable: zero_reason}
+        - {value_selector: [rta-v2-normalize-score, score_event_json], value_type: string, variable: score_event_json}
+      height: 54
+      id: rta-v2-scored-zero
+      position: {x: 2050, y: 180}
+      positionAbsolute: {x: 2050, y: 180}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"errors":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"error_type":{"type":"string","enum":["PRONUNCIATION","TEXT_ACCURACY","PAUSING","INTONATION_STRESS","FLUENCY","TASK_COMPLETION"]},"severity":{"type":"string","enum":["LOW","MEDIUM","HIGH"]},"count":{"type":"integer","minimum":1},"evidence":{"type":"string"},"message_vi":{"type":"string"}},"required":["error_type","severity","count","evidence","message_vi"]}}},"required":["errors"]}'
+            max_output_tokens: 2500
+            temperature: 0.1
+            thinking_budget: 0
+            thinking_mode: false
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: rta-v2-errors-system
+          role: system
+          text: |-
+            Analyze errors for one TOEIC Speaking Read Text Aloud response. The score is already final for this question; never rescore it.
+
+            SOURCE AND GROUNDING RULES
+            - The OFFICIAL PASSAGE is the only source of truth for expected content.
+            - Use the UPSTREAM TRANSCRIPT for text alignment and the attached audio for pronunciation and delivery.
+            - The transcript may contain STT normalization errors. Treat equivalent forms such as "50%" and "fifty percent" as matching. Ignore harmless punctuation, capitalization, article, and formatting differences.
+            - Never invent an expected word, number, name, or phrase that is absent from the OFFICIAL PASSAGE.
+            - Report a text error only when the passage and transcript genuinely differ. Report an audio error only when it is clearly supported by the audio.
+            - For an audio-only pronunciation issue, evidence must be a short word or phrase that actually appears in the OFFICIAL PASSAGE. If the affected word is uncertain, omit the error.
+            - For every TEXT_ACCURACY substitution, keep the direction exact: OFFICIAL PASSAGE is the expected form and UPSTREAM TRANSCRIPT is what the candidate produced. Never reverse them.
+            - For a TEXT_ACCURACY substitution, evidence must contain the candidate-produced form from the transcript. message_vi must follow this meaning: `Bài chuẩn là "<expected>" nhưng thí sinh đọc thành "<actual>".` For example, official `50%` and transcript `15%` means expected `50%`, actual `15%`.
+            - When the official passage and transcript contain one clearly mismatched numeric value, you must include it as a TEXT_ACCURACY substitution.
+            - For an omission, state that the candidate omitted the expected passage word. For an insertion, state that the candidate added the transcript word. Do not describe either case as a reversed substitution.
+
+            Return every clearly supported error category, including LOW-severity issues, using only these types:
+            PRONUNCIATION: inaccurate sounds, endings, or intelligibility.
+            TEXT_ACCURACY: omission, insertion, substitution, or wrong word.
+            PAUSING: pause at an illogical location or missing boundary pause.
+            INTONATION_STRESS: flat/incorrect pitch, stress, or phrasing.
+            FLUENCY: stutter, repetition, filler, or disrupted flow.
+            TASK_COMPLETION: incomplete passage.
+
+            CONSISTENCY RULES
+            - The supplied component scores and rule signals are final and authoritative for this question.
+            - Do not emit a HIGH PRONUNCIATION error when pronunciation_score is 3.
+            - Do not emit a HIGH PAUSING, INTONATION_STRESS, or FLUENCY error when intonation_stress_score is 3.
+            - Do not emit TASK_COMPLETION when completion_ratio is at least 0.98.
+            - Do not duplicate the exact same real-world issue under multiple types, but preserve independently supported issues even when they share an error_type.
+            - Return every distinct, clearly supported error occurrence. Multiple objects may use the same error_type when their evidence or issue differs. Each object must describe one concrete occurrence with its own short evidence and normally count=1. Use count>1 only for one repeated delivery pattern that cannot be represented as separate grounded occurrences.
+            - Repetition, stuttering, fillers, and false starts are FLUENCY, not PRONUNCIATION. Use PRONUNCIATION only for clearly inaccurate sounds, endings, or reduced intelligibility supported by the audio.
+            - Do not combine two dimensions in one error message. If one word has both a sound error and repetition, classify the dominant clearly supported issue only unless both independently have material impact.
+            - If content_word_error_count is greater than 0, include each clearly grounded TEXT_ACCURACY omission or substitution as its own object.
+            - If suffix_slip_count is greater than 0, include each clearly grounded ending problem as its own PRONUNCIATION object.
+            - If proper_noun_error_count is greater than 0, include the issue once under PRONUNCIATION or TEXT_ACCURACY according to what the audio and transcript support.
+            - Do not create an error merely to fill the list. Return {"errors": []} when there is no clearly supported notable error.
+
+            Remove only an exact duplicate record with the same error_type, evidence, and message. evidence must be a short word or phrase, never a long quotation. message_vi must be concise, factual Vietnamese and must not add unsupported details. Do not return feedback, score changes, markdown, or extra fields.
+        - id: rta-v2-errors-user
+          role: user
+          text: |-
+            OFFICIAL PASSAGE:
+            {{#rta-v2-start.text_passage#}}
+
+            UPSTREAM TRANSCRIPT:
+            {{#rta-v2-start.transcript#}}
+
+            FINAL COMPONENT SCORES:
+            pronunciation={{#rta-v2-normalize-score.pronunciation_score#}}
+            intonation_stress={{#rta-v2-normalize-score.intonation_stress_score#}}
+            alignment_ratio={{#rta-v2-normalize-score.alignment_ratio#}}
+            completion_ratio={{#rta-v2-normalize-score.completion_ratio#}}
+            proper_noun_error_count={{#rta-v2-score.structured_output.proper_noun_error_count#}}
+            content_word_error_count={{#rta-v2-score.structured_output.content_word_error_count#}}
+            suffix_slip_count={{#rta-v2-score.structured_output.suffix_slip_count#}}
+
+            The candidate audio is attached. Return normalized error candidates only.
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    error_type:
+                      type: string
+                      enum: [PRONUNCIATION, TEXT_ACCURACY, PAUSING, INTONATION_STRESS, FLUENCY, TASK_COMPLETION]
+                    severity:
+                      type: string
+                      enum: [LOW, MEDIUM, HIGH]
+                    count: {type: integer, minimum: 1}
+                    evidence: {type: string}
+                    message_vi: {type: string}
+                  required: [error_type, severity, count, evidence, message_vi]
+            required: [errors]
+        structured_output_enabled: true
+        title: Detect Compact Error List
+        type: llm
+        vision:
+          configs:
+            detail: high
+            variable_selector: [rta-v2-start, student_audio]
+          enabled: true
+      height: 118
+      id: rta-v2-errors
+      position: {x: 2050, y: 500}
+      positionAbsolute: {x: 2050, y: 500}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        code: |-
+          import json
+          import re
+          from difflib import SequenceMatcher
+
+          ALLOWED = {"PRONUNCIATION", "TEXT_ACCURACY", "PAUSING", "INTONATION_STRESS", "FLUENCY", "TASK_COMPLETION"}
+          SEVERITIES = {"LOW", "MEDIUM", "HIGH"}
+          SEVERITY_RANK = {"LOW": 1, "MEDIUM": 2, "HIGH": 3}
+          TYPE_PRIORITY = {
+              "TASK_COMPLETION": 6,
+              "TEXT_ACCURACY": 5,
+              "PRONUNCIATION": 4,
+              "FLUENCY": 3,
+              "PAUSING": 2,
+              "INTONATION_STRESS": 1,
+          }
+
+          def clean_text(value, limit):
+              return " ".join(str(value or "").split())[:limit]
+
+          def normalized_phrase(value):
+              return " ".join(re.findall(r"[a-z0-9']+", str(value or "").lower()))
+
+          def numeric_forms(value):
+              return re.findall(r"(?<!\w)\d+(?:[.,]\d+)?%?(?!\w)", str(value or ""))
+
+          def numeric_key(value):
+              return str(value or "").replace(",", ".").rstrip("%").strip()
+
+          def unique_numeric_mismatch(text_passage, transcript):
+              expected = numeric_forms(text_passage)
+              actual = numeric_forms(transcript)
+              expected_keys = {numeric_key(item) for item in expected}
+              actual_keys = {numeric_key(item) for item in actual}
+              expected_only = [item for item in expected if numeric_key(item) not in actual_keys]
+              actual_only = [item for item in actual if numeric_key(item) not in expected_keys]
+              if len(expected_only) == 1 and len(actual_only) == 1:
+                  return expected_only[0], actual_only[0]
+              return None
+
+          def first_text_difference(text_passage, transcript):
+              expected = re.findall(r"[a-z0-9']+", str(text_passage or "").lower())
+              actual = re.findall(r"[a-z0-9']+", str(transcript or "").lower())
+              matcher = SequenceMatcher(a=expected, b=actual, autojunk=False)
+              for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+                  if tag == "equal":
+                      continue
+                  expected_form = " ".join(expected[i1:i2])[:100]
+                  actual_form = " ".join(actual[j1:j2])[:100]
+                  if tag == "delete" and expected_form:
+                      return expected_form, f'Thí sinh bỏ cụm "{expected_form}" trong bài chuẩn.'
+                  if tag == "insert" and actual_form:
+                      return actual_form, f'Thí sinh đọc thêm cụm "{actual_form}" không có trong bài chuẩn.'
+                  if expected_form and actual_form:
+                      return actual_form, f'Bài chuẩn là "{expected_form}" nhưng thí sinh đọc thành "{actual_form}".'
+              return None
+
+          def main(job_id, question_id, text_passage, transcript, error_output,
+                   pronunciation_score, intonation_stress_score,
+                   completion_ratio, content_word_error_count) -> dict:
+              raw = (error_output or {}).get("errors", []) if isinstance(error_output, dict) else []
+              numeric_mismatch = unique_numeric_mismatch(text_passage, transcript)
+              normalized = []
+              by_exact_key = {}
+
+              def append_unique(candidate):
+                  key = (
+                      candidate["error_type"],
+                      clean_text(candidate["evidence"], 100).lower(),
+                      clean_text(candidate["message_vi"], 240).lower(),
+                  )
+                  existing = by_exact_key.get(key)
+                  if existing:
+                      existing["count"] = max(existing["count"], candidate["count"])
+                      if SEVERITY_RANK[candidate["severity"]] > SEVERITY_RANK[existing["severity"]]:
+                          existing["severity"] = candidate["severity"]
+                      return
+                  by_exact_key[key] = candidate
+                  normalized.append(candidate)
+
+              for item in raw:
+                  if not isinstance(item, dict):
+                      continue
+                  error_type = str(item.get("error_type", "")).upper()
+                  severity = str(item.get("severity", "")).upper()
+                  if error_type not in ALLOWED or severity not in SEVERITIES:
+                      continue
+                  evidence = clean_text(item.get("evidence"), 100)
+                  message = clean_text(item.get("message_vi"), 240)
+                  if error_type == "TASK_COMPLETION" and float(completion_ratio) >= 0.98:
+                      continue
+                  if error_type == "TEXT_ACCURACY":
+                      normalized_evidence = normalized_phrase(evidence)
+                      omission = "bỏ" in message.lower() or "thiếu" in message.lower()
+                      grounded_source = text_passage if omission else transcript
+                      if not normalized_evidence or normalized_evidence not in normalized_phrase(grounded_source):
+                          continue
+                  if error_type == "PRONUNCIATION" and int(pronunciation_score) >= 3 and severity == "HIGH":
+                      severity = "MEDIUM"
+                  if error_type in {"PAUSING", "INTONATION_STRESS", "FLUENCY"} and int(intonation_stress_score) >= 3 and severity == "HIGH":
+                      severity = "MEDIUM"
+                  if error_type in {"PRONUNCIATION", "TEXT_ACCURACY"} and not evidence:
+                      continue
+                  candidate = {
+                      "error_type": error_type,
+                      "severity": severity,
+                      "count": max(1, min(99, int(item.get("count", 1)))),
+                      "evidence": evidence,
+                      "message_vi": message,
+                      "_deterministic_priority": 0,
+                  }
+                  append_unique(candidate)
+
+              if numeric_mismatch:
+                  expected_form, actual_form = numeric_mismatch
+                  append_unique({
+                      "error_type": "TEXT_ACCURACY",
+                      "severity": "MEDIUM",
+                      "count": 1,
+                      "evidence": actual_form,
+                      "message_vi": f'Bài chuẩn là "{expected_form}" nhưng thí sinh đọc thành "{actual_form}".',
+                      "_deterministic_priority": 1,
+                  })
+
+              if int(content_word_error_count) > 0 and not any(
+                  item["error_type"] == "TEXT_ACCURACY" for item in normalized
+              ):
+                  text_difference = first_text_difference(text_passage, transcript)
+                  if text_difference:
+                      evidence, message = text_difference
+                      append_unique({
+                          "error_type": "TEXT_ACCURACY",
+                          "severity": "LOW",
+                          "count": max(1, min(99, int(content_word_error_count))),
+                          "evidence": evidence,
+                          "message_vi": message,
+                          "_deterministic_priority": 0,
+                      })
+
+              selected = sorted(
+                  normalized,
+                  key=lambda item: (
+                      -item.get("_deterministic_priority", 0),
+                      -SEVERITY_RANK[item["severity"]],
+                      -TYPE_PRIORITY[item["error_type"]],
+                      -item["count"],
+                  ),
+              )
+              normalized = []
+              for item in selected:
+                  item.pop("_deterministic_priority", None)
+                  normalized.append(item)
+
+              counts = {}
+              for item in normalized:
+                  counts[item["error_type"]] = counts.get(item["error_type"], 0) + item["count"]
+              ordered = sorted(counts.items(), key=lambda pair: (-pair[1], pair[0]))
+              summary = "; ".join(f"{name}: {count}" for name, count in ordered) or "Không phát hiện lỗi nổi bật"
+              data = {"errors": normalized, "error_counts": counts, "summary": summary}
+              event = {
+                  "schema_version": "rta-progress-event-v1",
+                  "event_type": "ERRORS_READY",
+                  "job_id": job_id,
+                  "question_id": question_id,
+                  "sequence": 2,
+                  "data": data,
+              }
+              return {
+                  "errors_json": json.dumps(normalized, ensure_ascii=False),
+                  "error_counts_json": json.dumps(counts, ensure_ascii=False),
+                  "error_summary": summary,
+                  "errors_event_json": json.dumps(event, ensure_ascii=False),
+              }
+        code_language: python3
+        outputs:
+          error_counts_json: {children: null, type: string}
+          error_summary: {children: null, type: string}
+          errors_event_json: {children: null, type: string}
+          errors_json: {children: null, type: string}
+        selected: false
+        title: Normalize and Summarize Errors
+        type: code
+        variables:
+        - {value_selector: [rta-v2-start, job_id], value_type: string, variable: job_id}
+        - {value_selector: [rta-v2-start, question_id], value_type: string, variable: question_id}
+        - {value_selector: [rta-v2-start, text_passage], value_type: string, variable: text_passage}
+        - {value_selector: [rta-v2-start, transcript], value_type: string, variable: transcript}
+        - {value_selector: [rta-v2-errors, structured_output], value_type: object, variable: error_output}
+        - {value_selector: [rta-v2-normalize-score, pronunciation_score], value_type: number, variable: pronunciation_score}
+        - {value_selector: [rta-v2-normalize-score, intonation_stress_score], value_type: number, variable: intonation_stress_score}
+        - {value_selector: [rta-v2-normalize-score, completion_ratio], value_type: number, variable: completion_ratio}
+        - {value_selector: [rta-v2-score, structured_output, content_word_error_count], value_type: number, variable: content_word_error_count}
+      height: 54
+      id: rta-v2-normalize-errors
+      position: {x: 2390, y: 500}
+      positionAbsolute: {x: 2390, y: 500}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"strength":{"type":"string"},"improvement":{"type":"string"},"action":{"type":"string"}},"required":["strength","improvement","action"]}'
+            max_output_tokens: 1500
+            temperature: 0.2
+            thinking_budget: 0
+            thinking_mode: false
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: rta-v2-comment-system
+          role: system
+          text: |-
+            Write concise Vietnamese feedback for one TOEIC Speaking Read Text Aloud response.
+
+            Return exactly three structured fields, each containing exactly one complete sentence:
+            strength: one specific positive observation supported by the stronger component score and the actual amount completed.
+            improvement: the single most important weakness supported by the highest-severity supplied error.
+            action: one concrete practice action directly addressing that weakness for the next attempt.
+
+            Use only the supplied scores, alignment/completion ratios, and normalized errors. Do not invent a word-level error, cause, or strength that is absent from those inputs. When errors is empty, acknowledge stable completion and recommend maintaining clarity, rhythm, or stress based on the lower component score.
+
+            COMPLETION SAFETY
+            - If completion_ratio is below 0.98 or TASK_COMPLETION is present, never say the candidate completed, finished, or read the entire passage.
+            - If completion_ratio is 0.80 to 0.97, strength may acknowledge that most of the attempted portion remained understandable or that the candidate read most of the passage.
+            - If completion_ratio is below 0.80, strength must neutrally acknowledge only the portion actually attempted.
+            - When TASK_COMPLETION is HIGH, improvement must mention the incomplete ending unless another HIGH error is clearly more consequential.
+
+            ERROR PRIORITY
+            - Base improvement on the highest-severity error; for equal severity prioritize TASK_COMPLETION, TEXT_ACCURACY, PRONUNCIATION, FLUENCY, PAUSING, then INTONATION_STRESS.
+            - Make action directly address that selected weakness and fit this particular response.
+
+            Keep the total near three short sentences. Do not mention AI, model, rubric, JSON, internal error types, or unsupported details. Do not change or recalculate scores. Avoid generic praise such as "Bạn làm rất tốt" without a specific basis. Do not quote more than one short evidence word or phrase. If the score is low, strength may neutrally acknowledge the portion that was completed.
+        - id: rta-v2-comment-user
+          role: user
+          text: |-
+            question={{#rta-v2-start.question_id#}}
+            pronunciation_score={{#rta-v2-normalize-score.pronunciation_score#}}
+            intonation_stress_score={{#rta-v2-normalize-score.intonation_stress_score#}}
+            question_score={{#rta-v2-normalize-score.question_score_rounded#}}
+            alignment_ratio={{#rta-v2-normalize-score.alignment_ratio#}}
+            completion_ratio={{#rta-v2-normalize-score.completion_ratio#}}
+            error_summary={{#rta-v2-normalize-errors.error_summary#}}
+            errors={{#rta-v2-normalize-errors.errors_json#}}
+
+            Return the three Vietnamese feedback fields only.
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              strength: {type: string}
+              improvement: {type: string}
+              action: {type: string}
+            required: [strength, improvement, action]
+        structured_output_enabled: true
+        title: Write Three-Sentence Comment
+        type: llm
+        vision:
+          enabled: false
+      height: 118
+      id: rta-v2-comment
+      position: {x: 2730, y: 500}
+      positionAbsolute: {x: 2730, y: 500}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    - data:
+        code: |-
+          import json
+          import re
+
+          def one_sentence(value, fallback):
+              text = " ".join(str(value or "").split()).strip()
+              if not text:
+                  text = fallback
+              chunks = [part.strip() for part in re.split(r"(?<=[.!?])\s+", text) if part.strip()]
+              text = chunks[0] if chunks else fallback
+              if text[-1:] not in ".!?":
+                  text += "."
+              return text[:360]
+
+          def main(job_id, keycode, question_id, group_code,
+                   pronunciation_score, intonation_stress_score,
+                   question_score_raw, question_score_rounded,
+                   completion_ratio,
+                   rule_signals_json, score_event_json, errors_json,
+                   errors_event_json, comment_output) -> dict:
+              output = comment_output if isinstance(comment_output, dict) else {}
+              strength = one_sentence(output.get("strength"), "Bạn đã hoàn thành phần đọc và tạo được dữ liệu để đánh giá.")
+              improvement = one_sentence(output.get("improvement"), "Bạn cần cải thiện độ rõ của phát âm và nhịp đọc.")
+              action = one_sentence(output.get("action"), "Hãy luyện đọc chậm theo cụm nghĩa và ghi âm lại để tự kiểm tra.")
+              comment = {
+                  "strength": strength,
+                  "improvement": improvement,
+                  "action": action,
+                  "text": " ".join([strength, improvement, action]),
+              }
+              try:
+                  errors = json.loads(errors_json or "[]")
+              except Exception:
+                  errors = []
+              if not errors:
+                  if int(pronunciation_score) >= 3 and int(intonation_stress_score) >= 3 and float(completion_ratio) >= 0.98:
+                      strength = "Bạn phát âm rõ ràng, hoàn thành đầy đủ đoạn văn và duy trì ngữ điệu, trọng âm phù hợp."
+                      improvement = "Bài đọc chưa có lỗi nổi bật cần ưu tiên khắc phục ở lần này."
+                      action = "Hãy tiếp tục duy trì tốc độ, cách ngắt cụm và độ rõ hiện tại trong những bài tiếp theo."
+                  else:
+                      strength = "Phần bài đọc đã thực hiện nhìn chung vẫn có thể theo dõi được."
+                      improvement = "Chưa có một lỗi riêng lẻ nổi bật, nhưng độ ổn định của phần thể hiện vẫn có thể được cải thiện."
+                      action = "Hãy tiếp tục luyện đọc theo cụm nghĩa và nghe lại bản ghi để tăng độ ổn định."
+                  comment = {
+                      "strength": strength,
+                      "improvement": improvement,
+                      "action": action,
+                      "text": " ".join([strength, improvement, action]),
+                  }
+              else:
+                  primary = errors[0] if isinstance(errors[0], dict) else {}
+                  primary_type = str(primary.get("error_type", ""))
+                  evidence = " ".join(str(primary.get("evidence", "")).split())[:100]
+                  source_message = " ".join(str(primary.get("message_vi", "")).split()).strip(" .")
+                  learner_message = source_message.replace("Thí sinh", "Bạn").replace("thí sinh", "bạn")
+                  improvement_templates = {
+                      "PRONUNCIATION": f'Bạn cần ưu tiên cải thiện phát âm ở “{evidence}”.',
+                      "TEXT_ACCURACY": learner_message + "." if learner_message else "Bạn cần ưu tiên cải thiện độ chính xác của nội dung đọc.",
+                      "PAUSING": f'Bạn cần điều chỉnh cách ngắt nghỉ ở “{evidence}” để câu đọc tự nhiên hơn.',
+                      "INTONATION_STRESS": f'Bạn cần thể hiện ngữ điệu và trọng âm rõ hơn ở “{evidence}”.',
+                      "FLUENCY": learner_message + "." if learner_message else "Bạn cần giảm lặp từ và ngập ngừng để bài đọc trôi chảy hơn.",
+                      "TASK_COMPLETION": "Bạn chưa hoàn thành đầy đủ đoạn văn trong thời gian của bài đọc.",
+                  }
+                  action_templates = {
+                      "PRONUNCIATION": f'Hãy nghe mẫu, tách âm và luyện lặp lại cụm “{evidence}” trước khi đọc lại toàn câu.',
+                      "TEXT_ACCURACY": f'Hãy đánh dấu cụm “{evidence}” trong bài chuẩn và luyện đọc đối chiếu để tránh bỏ hoặc thay sai từ.',
+                      "PAUSING": "Hãy chia câu theo cụm nghĩa, đánh dấu vị trí ngắt và luyện đọc liền mạch từng cụm.",
+                      "INTONATION_STRESS": "Hãy gạch chân từ khóa, nhấn rõ trọng âm và mô phỏng lại đường lên xuống giọng của câu mẫu.",
+                      "FLUENCY": f'Hãy luyện đọc cụm “{evidence}” chậm và liền mạch trước khi tăng dần tốc độ.',
+                      "TASK_COMPLETION": "Hãy bấm giờ khi luyện tập và điều chỉnh tốc độ để đọc hết đoạn văn mà vẫn giữ độ rõ.",
+                  }
+                  improvement = one_sentence(improvement_templates.get(primary_type), improvement)
+                  action = one_sentence(action_templates.get(primary_type), action)
+                  comment["improvement"] = improvement
+                  comment["action"] = action
+                  comment["text"] = " ".join([strength, improvement, action])
+              incomplete = float(completion_ratio) < 0.98 or any(
+                  item.get("error_type") == "TASK_COMPLETION" for item in errors if isinstance(item, dict)
+              )
+              forbidden_completion_claims = (
+                  "hoàn thành toàn bộ", "hoàn thành bài đọc", "đọc hết", "đọc toàn bộ", "hoàn thành đoạn văn"
+              )
+              if incomplete and any(phrase in strength.lower() for phrase in forbidden_completion_claims):
+                  if float(completion_ratio) >= 0.8:
+                      strength = "Bạn đã đọc được phần lớn đoạn văn và phần đã thể hiện nhìn chung vẫn có thể theo dõi được."
+                  else:
+                      strength = "Bạn đã thực hiện được một phần bài đọc và tạo đủ nội dung để xác định điểm cần cải thiện."
+                  comment["strength"] = strength
+                  comment["text"] = " ".join([strength, improvement, action])
+              try:
+                  rule_signals = json.loads(rule_signals_json or "{}")
+              except Exception:
+                  rule_signals = {}
+              result = {
+                  "schema_version": "rta-question-result-v1",
+                  "job_id": job_id,
+                  "keycode": keycode,
+                  "question_id": question_id,
+                  "group_code": group_code,
+                  "status": "COMPLETED",
+                  "pronunciation_score": int(pronunciation_score),
+                  "intonation_stress_score": int(intonation_stress_score),
+                  "question_score_raw": float(question_score_raw),
+                  "question_score_rounded": int(question_score_rounded),
+                  "zero_reason": None,
+                  "rule_signals": rule_signals,
+                  "errors": errors,
+                  "comment": comment,
+                  "versions": {
+                      "rubric_version": "rta-q1-q2-rubric-v2",
+                      "score_prompt_version": "rta-score-v3",
+                      "error_prompt_version": "rta-error-v10",
+                      "comment_prompt_version": "rta-comment-v7",
+                  },
+              }
+              envelope = lambda event_type, sequence, data: json.dumps({
+                  "schema_version": "rta-progress-event-v1",
+                  "event_type": event_type,
+                  "job_id": job_id,
+                  "question_id": question_id,
+                  "sequence": sequence,
+                  "data": data,
+              }, ensure_ascii=False)
+              return {
+                  "pronunciation_score": int(pronunciation_score),
+                  "intonation_stress_score": int(intonation_stress_score),
+                  "question_score_raw": float(question_score_raw),
+                  "question_score_rounded": int(question_score_rounded),
+                  "zero_reason": "NONE",
+                  "errors_json": json.dumps(errors, ensure_ascii=False),
+                  "comment_strength": strength,
+                  "comment_improvement": improvement,
+                  "comment_action": action,
+                  "comment_text": comment["text"],
+                  "score_event_json": score_event_json,
+                  "errors_event_json": errors_event_json,
+                  "comment_event_json": envelope("COMMENT_READY", 3, comment),
+                  "completed_event_json": envelope("QUESTION_COMPLETED", 4, result),
+                  "result_json": json.dumps(result, ensure_ascii=False),
+              }
+        code_language: python3
+        outputs:
+          comment_action: {children: null, type: string}
+          comment_event_json: {children: null, type: string}
+          comment_improvement: {children: null, type: string}
+          comment_strength: {children: null, type: string}
+          comment_text: {children: null, type: string}
+          completed_event_json: {children: null, type: string}
+          errors_event_json: {children: null, type: string}
+          errors_json: {children: null, type: string}
+          intonation_stress_score: {children: null, type: number}
+          pronunciation_score: {children: null, type: number}
+          question_score_raw: {children: null, type: number}
+          question_score_rounded: {children: null, type: number}
+          result_json: {children: null, type: string}
+          score_event_json: {children: null, type: string}
+          zero_reason: {children: null, type: string}
+        selected: false
+        title: Validate Comment and Assemble Result
+        type: code
+        variables:
+        - {value_selector: [rta-v2-start, job_id], value_type: string, variable: job_id}
+        - {value_selector: [rta-v2-start, keycode], value_type: string, variable: keycode}
+        - {value_selector: [rta-v2-start, question_id], value_type: string, variable: question_id}
+        - {value_selector: [rta-v2-start, group_code], value_type: string, variable: group_code}
+        - {value_selector: [rta-v2-normalize-score, pronunciation_score], value_type: number, variable: pronunciation_score}
+        - {value_selector: [rta-v2-normalize-score, intonation_stress_score], value_type: number, variable: intonation_stress_score}
+        - {value_selector: [rta-v2-normalize-score, question_score_raw], value_type: number, variable: question_score_raw}
+        - {value_selector: [rta-v2-normalize-score, question_score_rounded], value_type: number, variable: question_score_rounded}
+        - {value_selector: [rta-v2-normalize-score, completion_ratio], value_type: number, variable: completion_ratio}
+        - {value_selector: [rta-v2-normalize-score, rule_signals_json], value_type: string, variable: rule_signals_json}
+        - {value_selector: [rta-v2-normalize-score, score_event_json], value_type: string, variable: score_event_json}
+        - {value_selector: [rta-v2-normalize-errors, errors_json], value_type: string, variable: errors_json}
+        - {value_selector: [rta-v2-normalize-errors, errors_event_json], value_type: string, variable: errors_event_json}
+        - {value_selector: [rta-v2-comment, structured_output], value_type: object, variable: comment_output}
+      height: 54
+      id: rta-v2-assemble
+      position: {x: 3070, y: 500}
+      positionAbsolute: {x: 3070, y: 500}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 300
+      zIndex: 0
+    - data:
+        advanced_settings:
+          group_enabled: false
+          groups:
+          - groupId: rta-v2-result-group
+            group_name: Question Result
+            output_type: string
+            variables:
+            - [rta-v2-upstream-zero, result_json]
+            - [rta-v2-invalid, result_json]
+            - [rta-v2-scored-zero, result_json]
+            - [rta-v2-assemble, result_json]
+        output_type: string
+        selected: false
+        title: Merge Question Result
+        type: variable-aggregator
+        variables:
+        - [rta-v2-upstream-zero, result_json]
+        - [rta-v2-invalid, result_json]
+        - [rta-v2-scored-zero, result_json]
+        - [rta-v2-assemble, result_json]
+      height: 180
+      id: rta-v2-result-aggregator
+      position: {x: 3430, y: 380}
+      positionAbsolute: {x: 3430, y: 380}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    - data:
+        outputs:
+        - value_selector: [rta-v2-result-aggregator, output]
+          value_type: string
+          variable: result_json
+        selected: false
+        title: RTA Question Result
+        type: end
+      height: 110
+      id: rta-v2-end
+      position: {x: 3800, y: 410}
+      positionAbsolute: {x: 3800, y: 410}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.7

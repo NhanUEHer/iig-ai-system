@@ -1,0 +1,6 @@
+.scoring-job-list-page .iig3-data-table table{min-width:1480px}
+.job-identity,.job-tenant{display:flex;min-width:0;flex-direction:column;gap:4px}
+.job-identity strong,.job-tenant strong{overflow:hidden;color:var(--iig3-text);text-overflow:ellipsis;white-space:nowrap}
+.job-identity code,.job-tenant small{color:var(--iig3-text-muted);font-size:var(--iig3-text-caption)}
+.scoring-job-list-page .iig3-progress{min-width:120px}
+.scoring-job-list-page .iig3-filter-bar>aside{position:relative}

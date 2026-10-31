@@ -1,0 +1,485 @@
+---
+app:
+  description: Combines locked Q3 and Q4 Describe a Picture scores with an explicit,
+    deterministic internal aggregation policy.
+  icon: "\U0001F5BC️"
+  icon_background: "#E8F5FF"
+  icon_type: emoji
+  mode: workflow
+  name: IIG Describe Picture Group Flow v2
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier:
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.9.10@4979b8843fa46c3c2143d339f5868f04d9d77166616c00dd9f811a4adfce03ab
+    version:
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions: []
+      allowed_file_types: []
+      allowed_file_upload_methods: []
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 20
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods: []
+      number_limits: 0
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: code
+      id: dap-group-start-source-dap-group-validate-target
+      source: dap-group-start
+      sourceHandle: source
+      target: dap-group-validate
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+      id: dap-group-validate-source-dap-group-llm-target
+      source: dap-group-validate
+      sourceHandle: source
+      target: dap-group-llm
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: dap-group-llm-source-dap-group-finalize-target
+      source: dap-group-llm
+      sourceHandle: source
+      target: dap-group-finalize
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: end
+      id: dap-group-finalize-source-dap-group-end-target
+      source: dap-group-finalize
+      sourceHandle: source
+      target: dap-group-end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: Group Score Input
+        type: start
+        variables:
+        - default: describe-picture-group-input-v1
+          hint: Fixed Describe Picture group contract version.
+          label: schema_version
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: schema_version
+        - default: ''
+          hint: Scoring job UUID shared by Q3 and Q4.
+          label: job_id
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: job_id
+        - default: ''
+          hint: Candidate attempt keycode.
+          label: keycode
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: keycode
+        - default: DESCRIBE_PICTURE
+          hint: Fixed score group for TOEIC Speaking Q3-Q4.
+          label: group_code
+          options:
+          - DESCRIBE_PICTURE
+          placeholder: ''
+          required: true
+          type: select
+          variable: group_code
+        - default: "[]"
+          hint: JSON array with exactly s_q3 and s_q4 and five locked component scores
+            plus final_score.
+          label: questions_json
+          options: []
+          placeholder: '[{"question_id":"s_q3",...},{"question_id":"s_q4",...}]'
+          required: true
+          type: paragraph
+          variable: questions_json
+      height: 260
+      id: dap-group-start
+      position:
+        x: 40
+        y: 260
+      positionAbsolute:
+        x: 40
+        y: 260
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        code: |
+          import json
+          FIELDS = {"question_id", "pronunciation_score", "intonation_fluency_score", "grammar_score", "vocabulary_score", "cohesion_score", "final_score"}
+          def score(value, field):
+              number = int(value)
+              if isinstance(value, bool) or number < 0 or number > 3: raise ValueError(f"{field} must be 0..3")
+              return number
+          def main(schema_version, job_id, keycode, group_code, questions_json) -> dict:
+              if schema_version != "describe-picture-group-input-v1": raise ValueError("invalid schema_version")
+              if not (job_id or "").strip() or not (keycode or "").strip(): raise ValueError("job_id and keycode are required")
+              if group_code != "DESCRIBE_PICTURE": raise ValueError("group_code must be DESCRIBE_PICTURE")
+              questions = json.loads(questions_json)
+              if not isinstance(questions, list) or len(questions) != 2: raise ValueError("exactly two questions are required")
+              normalized = {}
+              for raw in questions:
+                  if not isinstance(raw, dict) or set(raw.keys()) != FIELDS: raise ValueError("question fields do not match contract")
+                  qid = str(raw["question_id"]).lower()
+                  if qid not in {"s_q3", "s_q4"} or qid in normalized: raise ValueError("questions must be unique s_q3 and s_q4")
+                  normalized[qid] = {name: (qid if name == "question_id" else score(raw[name], name)) for name in FIELDS}
+              if set(normalized) != {"s_q3", "s_q4"}: raise ValueError("questions must contain s_q3 and s_q4")
+              ordered = [normalized["s_q3"], normalized["s_q4"]]
+              q3, q4 = ordered
+              lower, higher = sorted([q3["final_score"], q4["final_score"]])
+              score_matrix = {
+                  (0, 0): 0, (0, 1): 0, (0, 2): 1, (0, 3): 1,
+                  (1, 1): 1, (1, 2): 1, (1, 3): 2,
+                  (2, 2): 2, (2, 3): 2, (3, 3): 3,
+              }
+              component_names = ["pronunciation_score", "intonation_fluency_score", "grammar_score", "vocabulary_score", "cohesion_score"]
+              component_averages = {
+                  name: (q3[name] + q4[name]) / 2.0 for name in component_names
+              }
+              facts = {
+                  "questions": ordered,
+                  "question_final_pair": [q3["final_score"], q4["final_score"]],
+                  "average_question_final": (q3["final_score"] + q4["final_score"]) / 2.0,
+                  "score_gap": abs(q3["final_score"] - q4["final_score"]),
+                  "component_averages": component_averages,
+                  "repeated_weak_components": [
+                      name for name in component_names if q3[name] <= 1 and q4[name] <= 1
+                  ],
+                  "deterministic_group_score": score_matrix[(lower, higher)],
+              }
+              return {
+                  "normalized_questions_json": json.dumps(ordered, ensure_ascii=False),
+                  "policy_context_json": json.dumps(facts, ensure_ascii=False),
+                  "deterministic_group_score": score_matrix[(lower, higher)],
+              }
+        code_language: python3
+        outputs:
+          normalized_questions_json:
+            children:
+            type: string
+          policy_context_json:
+            children:
+            type: string
+          deterministic_group_score:
+            children:
+            type: number
+        selected: false
+        title: Validate and Prepare Group Input
+        type: code
+        variables:
+        - value_selector:
+          - dap-group-start
+          - schema_version
+          value_type: string
+          variable: schema_version
+        - value_selector:
+          - dap-group-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - dap-group-start
+          - keycode
+          value_type: string
+          variable: keycode
+        - value_selector:
+          - dap-group-start
+          - group_code
+          value_type: string
+          variable: group_code
+        - value_selector:
+          - dap-group-start
+          - questions_json
+          value_type: string
+          variable: questions_json
+      height: 70
+      id: dap-group-validate
+      position:
+        x: 380
+        y: 330
+      positionAbsolute:
+        x: 380
+        y: 330
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 300
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"group_final_score":{"type":"integer","enum":[0,1,2,3]}},"required":["group_final_score"]}'
+            max_output_tokens: 500
+            temperature: 0.1
+            thinking_budget: 0
+            thinking_mode: false
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: dap-group-llm-system
+          role: system
+          text: |
+            You are the internal IIG Viet Nam aggregation assistant for TOEIC Speaking Part 2: Describe a Picture, questions 3 and 4.
+
+            POLICY STATUS
+            This is an internal application policy for combining two already-scored questions. Do not represent it as an official ETS formula. The authoritative result is determined by the matrix below and is verified by a deterministic Code node.
+
+            INPUT CONTRACT
+            You receive exactly two completed and locked results: s_q3 and s_q4. Each result contains integer scores from 0 to 3 for pronunciation_score, intonation_fluency_score, grammar_score, vocabulary_score, cohesion_score, and final_score.
+
+            LOCKED-SCORE BOUNDARY
+            Do not rescore either question. Do not alter, average, round, repair, or infer a missing question score. Do not request or infer the picture, audio, transcript, detected errors, comments, or zero reason. The two final_score values are the sole inputs to the authoritative group matrix. Component scores are context for consistency checking only and must never override the matrix.
+
+            COMPONENT MEANING
+            - pronunciation_score: sound clarity, intelligibility, endings, and word stress.
+            - intonation_fluency_score: continuity, pace, phrasing, pausing, fillers, rhythm, and pitch.
+            - grammar_score: range and control of sentence structures and grammatical forms.
+            - vocabulary_score: range, precision, and appropriateness of words used to describe visible content.
+            - cohesion_score: organization from scene overview to details and clear connections among ideas.
+
+            AUTHORITATIVE GROUP MATRIX
+            Treat the pair symmetrically; Q3 and Q4 have equal weight.
+            - 0 + 0 => 0
+            - 0 + 1 => 0
+            - 0 + 2 => 1
+            - 0 + 3 => 1
+            - 1 + 1 => 1
+            - 1 + 2 => 1
+            - 1 + 3 => 2
+            - 2 + 2 => 2
+            - 2 + 3 => 2
+            - 3 + 3 => 3
+
+            REQUIRED DECISION PROCEDURE
+            1. Read final_score for s_q3 and s_q4.
+            2. Sort the pair from lower to higher only for matrix lookup.
+            3. Select exactly the matrix value. Do not use ordinary arithmetic rounding.
+            4. Check component scores only to understand the supplied policy facts; do not change the selected value.
+            5. Return exactly one structured integer field named group_final_score.
+
+            INTERPRETATION
+            - A group score of 0 means both responses are at the bottom boundary or the pair is 0 and 1.
+            - A single strong response cannot erase a zero response; 0 with 2 or 3 remains group score 1.
+            - A 1 and 3 pair resolves to 2 because performance spans the lower and upper bands.
+            - Group score 3 requires both locked question final scores to be 3.
+
+            OUTPUT CONTRACT
+            Return only group_final_score. Do not return rationale, confidence, comments, markdown, question scores, component scores, or extra fields.
+        - id: dap-group-llm-user
+          role: user
+          text: |-
+            LOCKED QUESTION RESULTS:
+            {{#dap-group-validate.normalized_questions_json#}}
+
+            POLICY FACTS:
+            {{#dap-group-validate.policy_context_json#}}
+
+            Return the structured group score only.
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              group_final_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+            required:
+            - group_final_score
+        structured_output_enabled: true
+        title: Adjudicate Q3-Q4 Group Score
+        type: llm
+        vision:
+          enabled: false
+      height: 118
+      id: dap-group-llm
+      position:
+        x: 750
+        y: 310
+      positionAbsolute:
+        x: 750
+        y: 310
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 300
+      zIndex: 0
+    - data:
+        code: |
+          import json
+          def main(job_id, keycode, group_code, questions_json, deterministic_group_score, llm_group_final_score) -> dict:
+              proposed = int(llm_group_final_score)
+              if proposed < 0 or proposed > 3: raise ValueError("LLM group score is invalid")
+              authoritative = int(deterministic_group_score)
+              if authoritative < 0 or authoritative > 3: raise ValueError("deterministic group score is invalid")
+              result = {"schema_version": "describe-picture-group-result-v1", "group_code": group_code, "group_final_score": authoritative, "versions": {"group_prompt": "describe-picture-group-prompt-v2"}}
+              return {"group_final_score": authoritative, "result_json": json.dumps(result, ensure_ascii=False)}
+        code_language: python3
+        outputs:
+          group_final_score:
+            children:
+            type: number
+          result_json:
+            children:
+            type: string
+        selected: false
+        title: Validate Group Decision and Build Result
+        type: code
+        variables:
+        - value_selector:
+          - dap-group-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - dap-group-start
+          - keycode
+          value_type: string
+          variable: keycode
+        - value_selector:
+          - dap-group-start
+          - group_code
+          value_type: string
+          variable: group_code
+        - value_selector:
+          - dap-group-validate
+          - normalized_questions_json
+          value_type: string
+          variable: questions_json
+        - value_selector:
+          - dap-group-validate
+          - deterministic_group_score
+          value_type: number
+          variable: deterministic_group_score
+        - value_selector:
+          - dap-group-llm
+          - structured_output
+          - group_final_score
+          value_type: number
+          variable: llm_group_final_score
+      height: 70
+      id: dap-group-finalize
+      position:
+        x: 1120
+        y: 330
+      positionAbsolute:
+        x: 1120
+        y: 330
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 320
+      zIndex: 0
+    - data:
+        outputs:
+        - value_selector:
+          - dap-group-finalize
+          - group_final_score
+          value_type: number
+          variable: group_final_score
+        - value_selector:
+          - dap-group-finalize
+          - result_json
+          value_type: string
+          variable: result_json
+        selected: false
+        title: Describe Picture Group Result
+        type: end
+      height: 140
+      id: dap-group-end
+      position:
+        x: 1510
+        y: 310
+      positionAbsolute:
+        x: 1510
+        y: 310
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.8
+  rag_pipeline_variables: []

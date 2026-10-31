@@ -1,0 +1,30 @@
+/* Semantic type contract. Choose the correct HTML element; component styles
+   may change weight or tone but must not invent a new font size. */
+.iig3-theme{font-family:var(--iig3-font-sans);font-size:var(--iig3-text-body);line-height:var(--iig3-leading-body);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.iig3-theme h1,.iig3-theme h2,.iig3-theme h3,.iig3-theme h4,.iig3-theme p{margin-block-start:0}
+.iig3-theme h1{font-size:var(--iig3-text-h1);font-weight:var(--iig3-weight-semibold);letter-spacing:-.035em;line-height:var(--iig3-leading-heading)}
+.iig3-theme h2{font-size:var(--iig3-text-h2);font-weight:var(--iig3-weight-semibold);letter-spacing:-.025em;line-height:var(--iig3-leading-heading)}
+.iig3-theme h3{font-size:var(--iig3-text-h3);font-weight:var(--iig3-weight-semibold);line-height:var(--iig3-leading-heading)}
+.iig3-theme h4{font-size:var(--iig3-text-body);font-weight:var(--iig3-weight-semibold);line-height:var(--iig3-leading-heading)}
+.iig3-theme p{font-size:var(--iig3-text-body);line-height:var(--iig3-leading-body)}
+.iig3-theme label,.iig3-theme legend{font-size:var(--iig3-text-label);line-height:1.4}
+.iig3-theme small,.iig3-theme figcaption,.iig3-theme caption{font-size:var(--iig3-text-caption);line-height:1.45}
+.iig3-theme code,.iig3-theme pre,.iig3-theme kbd{font-family:var(--iig3-font-mono)}
+.iig3-theme button,.iig3-theme input,.iig3-theme select,.iig3-theme textarea{font-family:inherit}
+.iig3-theme .iig3-button{font-size:var(--iig3-text-label)}.iig3-theme .iig3-button.is-sm{font-size:var(--iig3-text-caption)}
+.iig3-theme .iig3-badge{font-size:var(--iig3-text-caption)}
+.iig3-theme .iig3-tabs button,.iig3-theme .iig3-breadcrumb button,.iig3-theme .iig3-sidebar-nav button{font-size:var(--iig3-text-label)}
+.iig3-theme .iig3-field__label{font-size:var(--iig3-text-label)}.iig3-theme .iig3-field__description,.iig3-theme .iig3-field__error{font-size:var(--iig3-text-caption)}
+.iig3-theme .iig3-control input,.iig3-theme .iig3-select select,.iig3-theme .iig3-number input,.iig3-theme .iig3-tag-input input,.iig3-theme .iig3-textarea{font-size:var(--iig3-text-body-sm)}
+.iig3-theme .iig3-alert strong{font-size:var(--iig3-text-label)}.iig3-theme .iig3-alert p{font-size:var(--iig3-text-body-sm)}
+.iig3-theme .iig3-page-header h1{font-size:var(--iig3-text-h1)}.iig3-theme .iig3-page-header p{font-size:var(--iig3-text-body-sm)}
+.iig3-theme .iig3-stat-card header,.iig3-theme .iig3-stat-card footer small{font-size:var(--iig3-text-caption)}
+/* Keep semantic table type stable while legacy application styles are phased out. */
+.iig3-theme .iig3-data-table th button{font-size:var(--iig3-text-caption)!important}.iig3-theme .iig3-data-table td{font-size:var(--iig3-text-label)}
+.iig3-theme .iig3-user-cell strong{font-size:var(--iig3-text-label)}.iig3-theme .iig3-user-cell small{font-size:var(--iig3-text-caption)}
+.iig3-theme .iig3-pagination{font-size:var(--iig3-text-caption)}
+.iig3-theme .iig3-code-input header,.iig3-theme .iig3-code-block header{font-size:var(--iig3-text-caption)}
+.iig3-theme .iig3-code-input textarea,.iig3-theme .iig3-code-block pre{font-size:var(--iig3-text-caption);line-height:1.65}
+.iig3-theme .iig3-scoring-plan strong,.iig3-theme .iig3-operation-panel strong,.iig3-theme .iig3-credential-card strong,.iig3-theme .iig3-webhook-card strong,.iig3-theme .iig3-tenant-summary strong,.iig3-theme .iig3-incident-card strong{font-size:var(--iig3-text-label)}
+.iig3-theme .iig3-scoring-plan small,.iig3-theme .iig3-operation-panel small,.iig3-theme .iig3-credential-card code,.iig3-theme .iig3-webhook-card code,.iig3-theme .iig3-tenant-summary code{font-size:var(--iig3-text-caption)}
+.iig3-sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}

@@ -1,0 +1,1905 @@
+---
+app:
+  description: Scores TOEIC Speaking Q11 on the holistic 0-5 scale with canonical
+    score contracts and emits progressive score, error, comment, and completed payloads.
+  icon: "\U0001F399️"
+  icon_background: "#EEF2FF"
+  icon_type: emoji
+  mode: workflow
+  name: IIG Express an Opinion Q11 Flow v3
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier:
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.9.10@4979b8843fa46c3c2143d339f5868f04d9d77166616c00dd9f811a4adfce03ab
+    version:
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - ".JPG"
+      - ".JPEG"
+      - ".PNG"
+      - ".GIF"
+      - ".WEBP"
+      allowed_file_types:
+      - audio
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: true
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 20
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 1
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 1
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: code
+      id: opn-v2-start-source-opn-v2-validate-target
+      source: opn-v2-start
+      sourceHandle: source
+      target: opn-v2-validate
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: opn-v2-validate-source-opn-v2-route-target
+      source: opn-v2-validate
+      sourceHandle: source
+      target: opn-v2-route
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: opn-v2-route-upstream-zero-opn-v2-upstream-zero-target
+      source: opn-v2-route
+      sourceHandle: upstream-zero
+      target: opn-v2-upstream-zero
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: opn-v2-route-false-opn-v2-invalid-target
+      source: opn-v2-route
+      sourceHandle: 'false'
+      target: opn-v2-invalid
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: opn-v2-upstream-zero-source-opn-v2-result-aggregator-target
+      source: opn-v2-upstream-zero
+      sourceHandle: source
+      target: opn-v2-result-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: opn-v2-invalid-source-opn-v2-result-aggregator-target
+      source: opn-v2-invalid
+      sourceHandle: source
+      target: opn-v2-result-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: opn-v2-normalize-score-source-opn-v2-zero-gate-target
+      source: opn-v2-normalize-score
+      sourceHandle: source
+      target: opn-v2-zero-gate
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: opn-v2-zero-gate-true-opn-v2-scored-zero-target
+      source: opn-v2-zero-gate
+      sourceHandle: 'true'
+      target: opn-v2-scored-zero
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: opn-v2-zero-gate-false-opn-v2-errors-target
+      source: opn-v2-zero-gate
+      sourceHandle: 'false'
+      target: opn-v2-errors
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: opn-v2-scored-zero-source-opn-v2-result-aggregator-target
+      source: opn-v2-scored-zero
+      sourceHandle: source
+      target: opn-v2-result-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: opn-v2-errors-source-opn-v2-normalize-errors-target
+      source: opn-v2-errors
+      sourceHandle: source
+      target: opn-v2-normalize-errors
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+      id: opn-v2-normalize-errors-source-opn-v2-comment-target
+      source: opn-v2-normalize-errors
+      sourceHandle: source
+      target: opn-v2-comment
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: opn-v2-comment-source-opn-v2-assemble-target
+      source: opn-v2-comment
+      sourceHandle: source
+      target: opn-v2-assemble
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: opn-v2-assemble-source-opn-v2-result-aggregator-target
+      source: opn-v2-assemble
+      sourceHandle: source
+      target: opn-v2-result-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: variable-aggregator
+        targetType: end
+      id: opn-v2-result-aggregator-source-opn-v2-end-target
+      source: opn-v2-result-aggregator
+      sourceHandle: source
+      target: opn-v2-end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: opn-v2-route-normal-opn-v2-score-extended-target
+      source: opn-v2-route
+      sourceHandle: normal
+      target: opn-v2-score-extended
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: opn-v2-score-extended-source-opn-v2-normalize-score-target
+      source: opn-v2-score-extended
+      sourceHandle: source
+      target: opn-v2-normalize-score
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: EXPRESS_AN_OPINION Q11 Input v1
+        type: start
+        variables:
+        - default: express-opinion-question-input-v1
+          hint: ''
+          label: schema_version
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: schema_version
+        - default: ''
+          hint: ''
+          label: job_id
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: job_id
+        - default: ''
+          hint: ''
+          label: keycode
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: keycode
+        - default: s_q11
+          hint: ''
+          label: question_id
+          options:
+          - s_q11
+          placeholder: ''
+          required: true
+          type: select
+          variable: question_id
+        - default: 11
+          hint: ''
+          label: question_number
+          options: []
+          placeholder: ''
+          required: true
+          type: number
+          variable: question_number
+        - default: EXPRESS_AN_OPINION
+          hint: ''
+          label: group_code
+          options:
+          - EXPRESS_AN_OPINION
+          placeholder: ''
+          required: true
+          type: select
+          variable: group_code
+        - default: EXPRESS_AN_OPINION
+          hint: ''
+          label: scorer_type
+          options:
+          - EXPRESS_AN_OPINION
+          placeholder: ''
+          required: true
+          type: select
+          variable: scorer_type
+        - default: EXTENDED_OPINION
+          hint: ''
+          label: response_profile
+          options:
+          - EXTENDED_OPINION
+          placeholder: ''
+          required: true
+          type: select
+          variable: response_profile
+        - default: READY_FOR_AI
+          hint: ''
+          label: ai_status
+          options:
+          - READY_FOR_AI
+          - ZERO_SCORE
+          placeholder: ''
+          required: true
+          type: select
+          variable: ai_status
+        - default: NONE
+          hint: ''
+          label: upstream_zero_reason
+          options:
+          - NONE
+          - NO_SPEECH
+          - WRONG_LANGUAGE_VI
+          - WRONG_LANGUAGE_OTHER
+          placeholder: ''
+          required: true
+          type: select
+          variable: upstream_zero_reason
+        - default: ''
+          hint: ''
+          label: prompt_text
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: prompt_text
+        - default: ''
+          hint: ''
+          label: question
+          options: []
+          placeholder: ''
+          required: true
+          type: paragraph
+          variable: question
+        - default: ''
+          hint: ''
+          label: transcript
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: transcript
+        - default: 0
+          hint: ''
+          label: audio_duration_seconds
+          options: []
+          placeholder: ''
+          required: false
+          type: number
+          variable: audio_duration_seconds
+        - default: 0
+          hint: ''
+          label: response_word_count
+          options: []
+          placeholder: ''
+          required: false
+          type: number
+          variable: response_word_count
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - audio
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          default: ''
+          hide: false
+          hint: ''
+          label: student_audio
+          options: []
+          placeholder: ''
+          required: false
+          type: file
+          variable: student_audio
+      height: 450
+      id: opn-v2-start
+      position:
+        x: 40
+        y: 360
+      positionAbsolute:
+        x: 40
+        y: 360
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        code: |
+          def main(schema_version,job_id,keycode,question_id,question_number,group_code,scorer_type,response_profile,ai_status,upstream_zero_reason,question,transcript)->dict:
+              import json
+              errors=[]; reason=(upstream_zero_reason or "NONE").strip().upper()
+              if schema_version!="express-opinion-question-input-v1": errors.append("invalid schema_version")
+              if not (job_id or "").strip() or not (keycode or "").strip(): errors.append("job_id and keycode are required")
+              if question_id!="s_q11" or int(question_number)!=11: errors.append("question identity mismatch")
+              if group_code!="EXPRESS_AN_OPINION" or scorer_type!="EXPRESS_AN_OPINION": errors.append("scorer identity mismatch")
+              if response_profile!="EXTENDED_OPINION": errors.append("response_profile mismatch")
+              if not (question or "").strip(): errors.append("question is required")
+              if reason not in {"NONE","NO_SPEECH","WRONG_LANGUAGE_VI","WRONG_LANGUAGE_OTHER"}: errors.append("invalid zero reason")
+              if reason!="NONE": route="UPSTREAM_ZERO" if ai_status=="ZERO_SCORE" else "INVALID"
+              else: route="NORMAL" if ai_status=="READY_FOR_AI" and (transcript or "").strip() else "INVALID"
+              if errors: route="INVALID"
+              return {"route":route,"validation_ok":route!="INVALID","validation_errors_json":json.dumps(errors,ensure_ascii=False),"normalized_zero_reason":reason}
+        code_language: python3
+        outputs:
+          route:
+            children:
+            type: string
+          validation_ok:
+            children:
+            type: boolean
+          validation_errors_json:
+            children:
+            type: string
+          normalized_zero_reason:
+            children:
+            type: string
+        selected: false
+        title: Validate and Route Input
+        type: code
+        variables:
+        - value_selector:
+          - opn-v2-start
+          - schema_version
+          value_type: string
+          variable: schema_version
+        - value_selector:
+          - opn-v2-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - opn-v2-start
+          - keycode
+          value_type: string
+          variable: keycode
+        - value_selector:
+          - opn-v2-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - opn-v2-start
+          - question_number
+          value_type: number
+          variable: question_number
+        - value_selector:
+          - opn-v2-start
+          - group_code
+          value_type: string
+          variable: group_code
+        - value_selector:
+          - opn-v2-start
+          - scorer_type
+          value_type: string
+          variable: scorer_type
+        - value_selector:
+          - opn-v2-start
+          - response_profile
+          value_type: string
+          variable: response_profile
+        - value_selector:
+          - opn-v2-start
+          - ai_status
+          value_type: string
+          variable: ai_status
+        - value_selector:
+          - opn-v2-start
+          - upstream_zero_reason
+          value_type: string
+          variable: upstream_zero_reason
+        - value_selector:
+          - opn-v2-start
+          - question
+          value_type: string
+          variable: question
+        - value_selector:
+          - opn-v2-start
+          - transcript
+          value_type: string
+          variable: transcript
+      height: 54
+      id: opn-v2-validate
+      position:
+        x: 380
+        y: 360
+      positionAbsolute:
+        x: 380
+        y: 360
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 260
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: upstream-zero
+          conditions:
+          - comparison_operator: is
+            id: route-upstream-zero-condition
+            value: UPSTREAM_ZERO
+            varType: string
+            variable_selector:
+            - opn-v2-validate
+            - route
+          id: upstream-zero
+          logical_operator: and
+        - case_id: normal
+          conditions:
+          - comparison_operator: is
+            id: route-normal-condition
+            value: NORMAL
+            varType: string
+            variable_selector:
+            - opn-v2-validate
+            - route
+          id: normal
+          logical_operator: and
+        selected: false
+        title: Input Route
+        type: if-else
+      height: 190
+      id: opn-v2-route
+      position:
+        x: 700
+        y: 360
+      positionAbsolute:
+        x: 700
+        y: 360
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 250
+      zIndex: 0
+    - data:
+        code: |
+          import json
+          def main(job_id,keycode,question_id,group_code,response_profile,zero_reason,score_event_json=None)->dict:
+              reason=zero_reason if zero_reason in {"NO_SPEECH","WRONG_LANGUAGE_VI","WRONG_LANGUAGE_OTHER","COMPLETELY_UNRELATED"} else "NO_SPEECH"
+              comments={
+                "NO_SPEECH":("Không phát hiện phần trả lời có giọng nói.","Câu này chưa có nội dung tiếng Anh để đánh giá.","Hãy kiểm tra micro và bắt đầu trả lời ngay sau tín hiệu ghi âm."),
+                "WRONG_LANGUAGE_VI":("Hệ thống đã nhận được phần trả lời nhưng nội dung được trình bày bằng tiếng Việt.","Câu trả lời chưa đáp ứng yêu cầu sử dụng tiếng Anh của bài thi.","Hãy chuẩn bị một câu mở đầu tiếng Anh và duy trì tiếng Anh trong toàn bộ phần trả lời."),
+                "WRONG_LANGUAGE_OTHER":("Hệ thống đã nhận được phần trả lời nhưng không xác định được nội dung tiếng Anh phù hợp.","Câu trả lời chưa đáp ứng yêu cầu về ngôn ngữ của bài thi.","Hãy trả lời rõ ràng hoàn toàn bằng tiếng Anh trong lần tiếp theo."),
+                "COMPLETELY_UNRELATED":("Bạn đã tạo được một phần trả lời có thể nhận diện.","Nội dung trả lời không đúng trọng tâm của câu hỏi.","Hãy xác định từ khóa và yêu cầu chính của câu hỏi trước khi trả lời trực tiếp.")
+              }
+              first,second,third=comments[reason]
+              scores={k:0 for k in ["pronunciation_score", "intonation_fluency_score", "grammar_score", "vocabulary_score", "cohesion_score", "relevance_score", "completeness_score"]}; comment={"strength":first,"improvement":second,"action":third}; comment["text"]=" ".join(comment.values())
+              errors=[{"error_type":"TASK_RELEVANCE","severity":"HIGH","count":1,"evidence":[reason],"message_vi":first}]
+              result={"schema_version":"express-opinion-question-result-v1","job_id":job_id,"keycode":keycode,"question_id":question_id,"group_code":group_code,"response_profile":response_profile,"status":"COMPLETED",**scores,"holistic_score_preliminary":0,"question_score_final":0,"zero_reason":reason,"rule_signals":{"stance_status":"MISSING","prompt_alignment_ratio":0.0,"reason_count":0,"developed_reason_count":0,"example_count":0,"support_development":"MISSING","copied_prompt_only":False,"completely_unrelated":reason=="COMPLETELY_UNRELATED","cut_off":False,"excessive_fillers":False},"applied_rules":["BUSINESS_ZERO_"+reason],"errors":errors,"comment":comment,"versions":{"score_prompt_version":"deterministic-zero-v1"}}
+              env=lambda t,s,d:json.dumps({"schema_version":"express-opinion-progress-event-v1","event_type":t,"job_id":job_id,"question_id":question_id,"sequence":s,"data":d},ensure_ascii=False)
+              return {**scores,"holistic_score_preliminary":0,"question_score_final":0,"zero_reason":reason,"errors_json":json.dumps(errors,ensure_ascii=False),"comment_strength":comment["strength"],"comment_improvement":comment["improvement"],"comment_action":comment["action"],"comment_text":comment["text"],"score_event_json":score_event_json or env("SCORE_READY",1,scores),"errors_event_json":env("ERRORS_READY",2,{"errors":errors}),"comment_event_json":env("COMMENT_READY",3,comment),"completed_event_json":env("QUESTION_COMPLETED",4,result),"result_json":json.dumps(result,ensure_ascii=False)}
+        code_language: python3
+        outputs:
+          pronunciation_score:
+            children:
+            type: number
+          intonation_fluency_score:
+            children:
+            type: number
+          grammar_score:
+            children:
+            type: number
+          vocabulary_score:
+            children:
+            type: number
+          cohesion_score:
+            children:
+            type: number
+          relevance_score:
+            children:
+            type: number
+          completeness_score:
+            children:
+            type: number
+          holistic_score_preliminary:
+            children:
+            type: number
+          question_score_final:
+            children:
+            type: number
+          zero_reason:
+            children:
+            type: string
+          errors_json:
+            children:
+            type: string
+          comment_strength:
+            children:
+            type: string
+          comment_improvement:
+            children:
+            type: string
+          comment_action:
+            children:
+            type: string
+          comment_text:
+            children:
+            type: string
+          score_event_json:
+            children:
+            type: string
+          errors_event_json:
+            children:
+            type: string
+          comment_event_json:
+            children:
+            type: string
+          completed_event_json:
+            children:
+            type: string
+          result_json:
+            children:
+            type: string
+        selected: false
+        title: Build Upstream Zero Result
+        type: code
+        variables:
+        - value_selector:
+          - opn-v2-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - opn-v2-start
+          - keycode
+          value_type: string
+          variable: keycode
+        - value_selector:
+          - opn-v2-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - opn-v2-start
+          - group_code
+          value_type: string
+          variable: group_code
+        - value_selector:
+          - opn-v2-start
+          - response_profile
+          value_type: string
+          variable: response_profile
+        - value_selector:
+          - opn-v2-validate
+          - normalized_zero_reason
+          value_type: string
+          variable: zero_reason
+      height: 54
+      id: opn-v2-upstream-zero
+      position:
+        x: 1360
+        y: 80
+      positionAbsolute:
+        x: 1360
+        y: 80
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        code: |
+          import json
+          def main(job_id, question_id, validation_errors_json) -> dict:
+              try: errors = json.loads(validation_errors_json or "[]")
+              except Exception: errors = ["invalid input"]
+              result = {"schema_version":"express-opinion-question-result-v1","job_id":job_id,"question_id":question_id,"status":"FAILED","failure_code":"INVALID_INPUT","failure_details":errors}
+              return {"status":"FAILED","failure_code":"INVALID_INPUT","failure_details_json":json.dumps(errors,ensure_ascii=False),"result_json":json.dumps(result,ensure_ascii=False)}
+        code_language: python3
+        outputs:
+          status:
+            children:
+            type: string
+          failure_code:
+            children:
+            type: string
+          failure_details_json:
+            children:
+            type: string
+          result_json:
+            children:
+            type: string
+        selected: false
+        title: Build Invalid Input Result
+        type: code
+        variables:
+        - value_selector:
+          - opn-v2-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - opn-v2-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - opn-v2-validate
+          - validation_errors_json
+          value_type: string
+          variable: validation_errors_json
+      height: 54
+      id: opn-v2-invalid
+      position:
+        x: 1360
+        y: 760
+      positionAbsolute:
+        x: 1360
+        y: 760
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        code: |
+          import json
+          SCORE_KEYS=["pronunciation_score","intonation_fluency_score","grammar_score","vocabulary_score","cohesion_score","relevance_score","completeness_score"]
+          def integer(value,label,low=0,high=5):
+              if value is None or value=="": raise ValueError(label+" is required")
+              try: parsed=int(value)
+              except Exception: raise ValueError(label+" must be an integer")
+              if parsed<low or parsed>high: raise ValueError(label+" is outside the accepted range")
+              return parsed
+          def as_bool(value):
+              if isinstance(value,bool): return value
+              return str(value or "").strip().lower() in {"true","1","yes","on"}
+          def main(job_id,question_id,response_word_count,audio_duration_seconds,score_output)->dict:
+              raw=score_output if isinstance(score_output,dict) else json.loads(score_output or "{}")
+              scores={key:integer(raw.get(key),key) for key in SCORE_KEYS}
+              preliminary=integer(raw.get("holistic_score_preliminary"),"holistic_score_preliminary")
+              stance=str(raw.get("stance_status") or "MISSING").upper()
+              support=str(raw.get("support_development") or "MISSING").upper()
+              if stance not in {"CLEAR","AMBIGUOUS","MISSING"}: raise ValueError("invalid stance_status")
+              if support not in {"STRONG","ADEQUATE","LIMITED","MISSING"}: raise ValueError("invalid support_development")
+              alignment=max(0.0,min(1.0,float(raw.get("prompt_alignment_ratio") or 0)))
+              words=max(0,int(response_word_count or 0)); seconds=max(0.0,float(audio_duration_seconds or 0))
+              signals={"stance_status":stance,"prompt_alignment_ratio":round(alignment,4),"reason_count":max(0,int(raw.get("reason_count") or 0)),"developed_reason_count":max(0,int(raw.get("developed_reason_count") or 0)),"example_count":max(0,int(raw.get("example_count") or 0)),"support_development":support,"copied_prompt_only":as_bool(raw.get("copied_prompt_only")),"completely_unrelated":as_bool(raw.get("completely_unrelated")),"cut_off":as_bool(raw.get("cut_off")),"excessive_fillers":as_bool(raw.get("excessive_fillers")),"response_word_count":words,"effective_speaking_seconds":seconds}
+              rules=[]; unrelated=signals["completely_unrelated"] and alignment<0.50
+              if signals["completely_unrelated"] and not unrelated:
+                  signals["completely_unrelated"]=False; rules.append("UNRELATED_SIGNAL_OVERRIDDEN")
+              if unrelated:
+                  scores={key:0 for key in SCORE_KEYS}; preliminary=0; final=0; reason="COMPLETELY_UNRELATED"; rules.append("COMPLETELY_UNRELATED_ZERO")
+              else:
+                  scores={key:max(1,value) for key,value in scores.items()}; final=max(1,preliminary); reason="NONE"
+                  caps=[]
+                  if words<30: caps.append((1,"UNDER_30_WORDS_CAP"))
+                  elif words<50: caps.append((2,"UNDER_50_WORDS_CAP"))
+                  if signals["copied_prompt_only"]: caps.append((1,"COPIED_PROMPT_ONLY_CAP"))
+                  if stance=="MISSING": caps.append((2,"MISSING_STANCE_CAP"))
+                  elif stance=="AMBIGUOUS": caps.append((3,"AMBIGUOUS_STANCE_CAP"))
+                  if support=="MISSING": caps.append((2,"MISSING_SUPPORT_CAP"))
+                  elif support=="LIMITED": caps.append((3,"LIMITED_SUPPORT_CAP"))
+                  if signals["excessive_fillers"]:
+                      scores["intonation_fluency_score"]=max(1,scores["intonation_fluency_score"]-1); rules.append("EXCESSIVE_FILLERS_PENALTY")
+                  if signals["cut_off"] and signals["developed_reason_count"]<2:
+                      scores["completeness_score"]=max(1,scores["completeness_score"]-1); rules.append("UNFINISHED_ESSENTIAL_IDEA")
+                  if min(scores["grammar_score"],scores["vocabulary_score"])<=1: caps.append((2,"SEVERE_LANGUAGE_CONTROL_CAP"))
+                  if caps:
+                      cap=min(item[0] for item in caps); final=min(final,cap); rules.extend(item[1] for item in caps)
+              data={**scores,"holistic_score_preliminary":preliminary,"question_score_final":final,"zero_reason":reason,"rule_signals":signals,"applied_rules":list(dict.fromkeys(rules))}
+              event={"schema_version":"express-opinion-progress-event-v1","event_type":"SCORE_READY","job_id":job_id,"question_id":question_id,"sequence":1,"data":data}
+              return {**scores,"holistic_score_preliminary":preliminary,"question_score_final":final,"zero_reason":reason,"rule_signals_json":json.dumps(signals,ensure_ascii=False),"applied_rules_json":json.dumps(data["applied_rules"],ensure_ascii=False),"score_event_json":json.dumps(event,ensure_ascii=False)}
+        code_language: python3
+        outputs:
+          pronunciation_score:
+            children:
+            type: number
+          intonation_fluency_score:
+            children:
+            type: number
+          grammar_score:
+            children:
+            type: number
+          vocabulary_score:
+            children:
+            type: number
+          cohesion_score:
+            children:
+            type: number
+          relevance_score:
+            children:
+            type: number
+          completeness_score:
+            children:
+            type: number
+          holistic_score_preliminary:
+            children:
+            type: number
+          question_score_final:
+            children:
+            type: number
+          zero_reason:
+            children:
+            type: string
+          rule_signals_json:
+            children:
+            type: string
+          applied_rules_json:
+            children:
+            type: string
+          score_event_json:
+            children:
+            type: string
+        selected: false
+        title: Apply Rules and Normalize Score
+        type: code
+        variables:
+        - value_selector:
+          - opn-v2-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - opn-v2-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - opn-v2-start
+          - response_word_count
+          value_type: number
+          variable: response_word_count
+        - value_selector:
+          - opn-v2-start
+          - audio_duration_seconds
+          value_type: number
+          variable: audio_duration_seconds
+        - value_selector:
+          - opn-v2-score-extended
+          - structured_output
+          value_type: object
+          variable: score_output
+      height: 54
+      id: opn-v2-normalize-score
+      position:
+        x: 2050
+        y: 400
+      positionAbsolute:
+        x: 2050
+        y: 400
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: score-zero-condition
+            value: COMPLETELY_UNRELATED
+            varType: string
+            variable_selector:
+            - opn-v2-normalize-score
+            - zero_reason
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: Zero Score?
+        type: if-else
+      height: 126
+      id: opn-v2-zero-gate
+      position:
+        x: 2390
+        y: 400
+      positionAbsolute:
+        x: 2390
+        y: 400
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 250
+      zIndex: 0
+    - data:
+        code: |
+          import json
+          def main(job_id,keycode,question_id,group_code,response_profile,zero_reason,score_event_json=None)->dict:
+              reason=zero_reason if zero_reason in {"NO_SPEECH","WRONG_LANGUAGE_VI","WRONG_LANGUAGE_OTHER","COMPLETELY_UNRELATED"} else "NO_SPEECH"
+              comments={
+                "NO_SPEECH":("Không phát hiện phần trả lời có giọng nói.","Câu này chưa có nội dung tiếng Anh để đánh giá.","Hãy kiểm tra micro và bắt đầu trả lời ngay sau tín hiệu ghi âm."),
+                "WRONG_LANGUAGE_VI":("Hệ thống đã nhận được phần trả lời nhưng nội dung được trình bày bằng tiếng Việt.","Câu trả lời chưa đáp ứng yêu cầu sử dụng tiếng Anh của bài thi.","Hãy chuẩn bị một câu mở đầu tiếng Anh và duy trì tiếng Anh trong toàn bộ phần trả lời."),
+                "WRONG_LANGUAGE_OTHER":("Hệ thống đã nhận được phần trả lời nhưng không xác định được nội dung tiếng Anh phù hợp.","Câu trả lời chưa đáp ứng yêu cầu về ngôn ngữ của bài thi.","Hãy trả lời rõ ràng hoàn toàn bằng tiếng Anh trong lần tiếp theo."),
+                "COMPLETELY_UNRELATED":("Bạn đã tạo được một phần trả lời có thể nhận diện.","Nội dung trả lời không đúng trọng tâm của câu hỏi.","Hãy xác định từ khóa và yêu cầu chính của câu hỏi trước khi trả lời trực tiếp.")
+              }
+              first,second,third=comments[reason]
+              scores={k:0 for k in ["pronunciation_score", "intonation_fluency_score", "grammar_score", "vocabulary_score", "cohesion_score", "relevance_score", "completeness_score"]}; comment={"strength":first,"improvement":second,"action":third}; comment["text"]=" ".join(comment.values())
+              errors=[{"error_type":"TASK_RELEVANCE","severity":"HIGH","count":1,"evidence":[reason],"message_vi":first}]
+              result={"schema_version":"express-opinion-question-result-v1","job_id":job_id,"keycode":keycode,"question_id":question_id,"group_code":group_code,"response_profile":response_profile,"status":"COMPLETED",**scores,"holistic_score_preliminary":0,"question_score_final":0,"zero_reason":reason,"rule_signals":{"stance_status":"MISSING","prompt_alignment_ratio":0.0,"reason_count":0,"developed_reason_count":0,"example_count":0,"support_development":"MISSING","copied_prompt_only":False,"completely_unrelated":reason=="COMPLETELY_UNRELATED","cut_off":False,"excessive_fillers":False},"applied_rules":["BUSINESS_ZERO_"+reason],"errors":errors,"comment":comment,"versions":{"score_prompt_version":"deterministic-zero-v1"}}
+              env=lambda t,s,d:json.dumps({"schema_version":"express-opinion-progress-event-v1","event_type":t,"job_id":job_id,"question_id":question_id,"sequence":s,"data":d},ensure_ascii=False)
+              return {**scores,"holistic_score_preliminary":0,"question_score_final":0,"zero_reason":reason,"errors_json":json.dumps(errors,ensure_ascii=False),"comment_strength":comment["strength"],"comment_improvement":comment["improvement"],"comment_action":comment["action"],"comment_text":comment["text"],"score_event_json":score_event_json or env("SCORE_READY",1,scores),"errors_event_json":env("ERRORS_READY",2,{"errors":errors}),"comment_event_json":env("COMMENT_READY",3,comment),"completed_event_json":env("QUESTION_COMPLETED",4,result),"result_json":json.dumps(result,ensure_ascii=False)}
+        code_language: python3
+        outputs:
+          pronunciation_score:
+            children:
+            type: number
+          intonation_fluency_score:
+            children:
+            type: number
+          grammar_score:
+            children:
+            type: number
+          vocabulary_score:
+            children:
+            type: number
+          cohesion_score:
+            children:
+            type: number
+          relevance_score:
+            children:
+            type: number
+          completeness_score:
+            children:
+            type: number
+          holistic_score_preliminary:
+            children:
+            type: number
+          question_score_final:
+            children:
+            type: number
+          zero_reason:
+            children:
+            type: string
+          errors_json:
+            children:
+            type: string
+          comment_strength:
+            children:
+            type: string
+          comment_improvement:
+            children:
+            type: string
+          comment_action:
+            children:
+            type: string
+          comment_text:
+            children:
+            type: string
+          score_event_json:
+            children:
+            type: string
+          errors_event_json:
+            children:
+            type: string
+          comment_event_json:
+            children:
+            type: string
+          completed_event_json:
+            children:
+            type: string
+          result_json:
+            children:
+            type: string
+        selected: false
+        title: Build Scored Zero Result
+        type: code
+        variables:
+        - value_selector:
+          - opn-v2-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - opn-v2-start
+          - keycode
+          value_type: string
+          variable: keycode
+        - value_selector:
+          - opn-v2-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - opn-v2-start
+          - group_code
+          value_type: string
+          variable: group_code
+        - value_selector:
+          - opn-v2-start
+          - response_profile
+          value_type: string
+          variable: response_profile
+        - value_selector:
+          - opn-v2-normalize-score
+          - zero_reason
+          value_type: string
+          variable: zero_reason
+        - value_selector:
+          - opn-v2-normalize-score
+          - score_event_json
+          value_type: string
+          variable: score_event_json
+      height: 54
+      id: opn-v2-scored-zero
+      position:
+        x: 2730
+        y: 180
+      positionAbsolute:
+        x: 2730
+        y: 180
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"errors":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"error_type":{"type":"string","enum":["STANCE_TASK_FULFILLMENT","SUPPORT_DEVELOPMENT","TASK_RELEVANCE","COHESION","GRAMMAR","VOCABULARY","PRONUNCIATION","INTONATION_FLUENCY"]},"severity":{"type":"string","enum":["LOW","MEDIUM","HIGH"]},"count":{"type":"integer","minimum":1},"evidence":{"type":"array","items":{"type":"string"}},"message_vi":{"type":"string"}},"required":["error_type","severity","count","evidence","message_vi"]}}},"required":["errors"]}'
+            max_output_tokens: 2500
+            temperature: 0.1
+            thinking_budget: 0
+            thinking_mode: false
+            thinking_level: Low
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: opn-v2-errors-system
+          role: system
+          text: |
+            You are an official IIG Viet Nam examiner diagnosing one TOEIC Speaking Question 11: Express an Opinion response.
+
+            LOCKED CONTRACT
+            The scores and rule signals are already locked. Never rescore, change a score, or introduce a new cap. Use QUESTION to understand the task, TRANSCRIPT for content/language evidence, CANDIDATE AUDIO for delivery evidence, and LOCKED SCORE AND RULE SIGNALS for consistency. Return all clearly supported errors, including LOW issues. Return exactly one object per error_type, combine distinct occurrences of that type, remove duplicate evidence, and set count equal to the number of unique evidence items. Never invent a phrase, audible problem, stance, reason, or example.
+
+            Use only these types:
+            STANCE_TASK_FULFILLMENT: missing, materially ambiguous, or inconsistent position that fails the opinion/preference/agreement requirement.
+            SUPPORT_DEVELOPMENT: reasons are absent, thin, repetitive, asserted without explanation, or unsupported by a relevant example/detail.
+            TASK_RELEVANCE: content substantially drifts from the exact question or contains major unrelated development. Do not use merely for weak grammar or short support.
+            COHESION: stance, reasons, examples, or conclusion are ordered/connected unclearly; identify the broken transition or argumentative link.
+            GRAMMAR: concrete tense, agreement, article, preposition, word-form, clause, or sentence-structure error. Evidence must quote the shortest exact transcript phrase and message_vi should provide a concise correction.
+            VOCABULARY: concrete inaccurate, unnatural, vague, or excessively repeated wording. Evidence must quote the exact phrase and message_vi should suggest a better expression when possible.
+            PRONUNCIATION: audible inaccurate sound, ending, or word stress that reduces intelligibility. Use audio evidence; never infer pronunciation from transcript alone and never invent IPA.
+            INTONATION_FLUENCY: audible excessive hesitation, filler, repetition, unnatural pause, disrupted pace, monotone rhythm, stress, pitch, or phrasing. Do not duplicate pronunciation.
+
+            Severity: LOW=isolated minor issue; MEDIUM=noticeable/repeated weakness; HIGH=dominant issue that substantially blocks understanding or task fulfillment.
+            DIAGNOSIS RULES
+            Do not duplicate one real issue under multiple types. Self-corrected slips that do not disrupt meaning are not errors. A component score of 4 alone does not force an error when no concrete issue can be grounded. When a component is 3 or below, or a deterministic cap signal is present, include at least one supported error for the relevant weakness. A clean response may return an empty errors array. Return errors only—no score, general feedback, markdown, or full transcript.
+        - id: opn-v2-errors-user
+          role: user
+          text: |
+            QUESTION {{#opn-v2-start.question#}}
+            TRANSCRIPT {{#opn-v2-start.transcript#}}
+            CANDIDATE AUDIO {{#opn-v2-start.student_audio#}}
+            LOCKED SCORE AND RULE SIGNALS {{#opn-v2-normalize-score.score_event_json#}}
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    error_type:
+                      type: string
+                      enum:
+                      - STANCE_TASK_FULFILLMENT
+                      - SUPPORT_DEVELOPMENT
+                      - TASK_RELEVANCE
+                      - COHESION
+                      - GRAMMAR
+                      - VOCABULARY
+                      - PRONUNCIATION
+                      - INTONATION_FLUENCY
+                    severity:
+                      type: string
+                      enum:
+                      - LOW
+                      - MEDIUM
+                      - HIGH
+                    count:
+                      type: integer
+                      minimum: 1
+                    evidence:
+                      type: array
+                      items:
+                        type: string
+                    message_vi:
+                      type: string
+                  required:
+                  - error_type
+                  - severity
+                  - count
+                  - evidence
+                  - message_vi
+            required:
+            - errors
+        structured_output_enabled: true
+        title: Detect Q11 Error List
+        type: llm
+        vision:
+          configs:
+            detail: high
+            variable_selector:
+            - opn-v2-start
+            - student_audio
+          enabled: true
+      height: 118
+      id: opn-v2-errors
+      position:
+        x: 2730
+        y: 520
+      positionAbsolute:
+        x: 2730
+        y: 520
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        code: |
+          import json
+          ALLOWED=["STANCE_TASK_FULFILLMENT", "SUPPORT_DEVELOPMENT", "TASK_RELEVANCE", "COHESION", "GRAMMAR", "VOCABULARY", "PRONUNCIATION", "INTONATION_FLUENCY"]; RANK={"LOW":1,"MEDIUM":2,"HIGH":3}
+          def main(job_id,question_id,error_output,rule_signals_json,pronunciation_score,intonation_fluency_score,grammar_score,vocabulary_score,cohesion_score,relevance_score,completeness_score)->dict:
+              scores={"pronunciation_score":int(pronunciation_score),"intonation_fluency_score":int(intonation_fluency_score),"grammar_score":int(grammar_score),"vocabulary_score":int(vocabulary_score),"cohesion_score":int(cohesion_score),"relevance_score":int(relevance_score),"completeness_score":int(completeness_score)}
+              try: signals=json.loads(rule_signals_json or "{}")
+              except Exception: signals={}
+              try: raw=error_output if isinstance(error_output,dict) else json.loads(error_output or "{}")
+              except Exception: raw={}
+              grouped={}
+              for item in raw.get("errors",[]) if isinstance(raw,dict) else []:
+                  if not isinstance(item,dict): continue
+                  kind=str(item.get("error_type") or "").upper(); severity=str(item.get("severity") or "MEDIUM").upper()
+                  if kind not in ALLOWED: continue
+                  if severity not in RANK: severity="MEDIUM"
+                  evidence=item.get("evidence") if isinstance(item.get("evidence"),list) else [item.get("evidence")]
+                  evidence=list(dict.fromkeys([" ".join(str(x or "").split()) for x in evidence if str(x or "").strip()]))
+                  if not evidence: continue
+                  current=grouped.get(kind,{"error_type":kind,"severity":severity,"count":0,"evidence":[],"message_vi":""})
+                  if RANK[severity]>RANK[current["severity"]]: current["severity"]=severity
+                  current["evidence"]=list(dict.fromkeys(current["evidence"]+evidence))[:99]; current["count"]=len(current["evidence"])
+                  message=" ".join(str(item.get("message_vi") or "").split())
+                  if len(message)>len(current["message_vi"]): current["message_vi"]=message
+                  grouped[kind]=current
+              errors=list(grouped.values())
+              if not errors:
+                  if signals.get("stance_status") in {"MISSING","AMBIGUOUS"}:
+                      errors=[{"error_type":"STANCE_TASK_FULFILLMENT","severity":"HIGH" if signals.get("stance_status")=="MISSING" else "MEDIUM","count":1,"evidence":["stance_status="+str(signals.get("stance_status"))],"message_vi":"Quan điểm trả lời chưa được nêu rõ và duy trì nhất quán theo yêu cầu câu hỏi."}]
+                  elif signals.get("support_development") in {"MISSING","LIMITED"}:
+                      errors=[{"error_type":"SUPPORT_DEVELOPMENT","severity":"HIGH" if signals.get("support_development")=="MISSING" else "MEDIUM","count":1,"evidence":["support_development="+str(signals.get("support_development"))],"message_vi":"Các lý do hỗ trợ còn thiếu phần giải thích, chi tiết hoặc ví dụ liên quan."}]
+                  elif float(signals.get("prompt_alignment_ratio") or 0)<0.75:
+                      errors=[{"error_type":"TASK_RELEVANCE","severity":"MEDIUM","count":1,"evidence":["prompt_alignment_ratio="+str(signals.get("prompt_alignment_ratio"))],"message_vi":"Một phần nội dung chưa tập trung trực tiếp vào yêu cầu của câu hỏi."}]
+                  elif signals.get("excessive_fillers"):
+                      errors=[{"error_type":"INTONATION_FLUENCY","severity":"MEDIUM","count":1,"evidence":["excessive_fillers=true"],"message_vi":"Từ đệm hoặc lần bắt đầu lại xuất hiện nhiều và làm gián đoạn mạch nói."}]
+                  elif min(scores.values())<=3:
+                      weakest=min(scores,key=scores.get); mapping={"pronunciation_score":"PRONUNCIATION","intonation_fluency_score":"INTONATION_FLUENCY","grammar_score":"GRAMMAR","vocabulary_score":"VOCABULARY","cohesion_score":"COHESION","relevance_score":"TASK_RELEVANCE","completeness_score":"SUPPORT_DEVELOPMENT"}; kind=mapping[weakest]
+                      errors=[{"error_type":kind,"severity":"MEDIUM","count":1,"evidence":[weakest+"="+str(scores[weakest])],"message_vi":"Tiêu chí này còn hạn chế rõ rệt và cần được ưu tiên cải thiện trong lần trả lời tiếp theo."}]
+              summary="; ".join([f'{item["error_type"]}:{item["severity"]}({item["count"]})' for item in errors]) or "NONE"
+              data={"errors":errors,"summary":summary}; event={"schema_version":"express-opinion-progress-event-v1","event_type":"ERRORS_READY","job_id":job_id,"question_id":question_id,"sequence":2,"data":data}
+              return {"errors_json":json.dumps(errors,ensure_ascii=False),"error_counts_json":json.dumps({item["error_type"]:item["count"] for item in errors}),"error_summary":summary,"errors_event_json":json.dumps(event,ensure_ascii=False)}
+        code_language: python3
+        outputs:
+          errors_json:
+            children:
+            type: string
+          error_counts_json:
+            children:
+            type: string
+          error_summary:
+            children:
+            type: string
+          errors_event_json:
+            children:
+            type: string
+        selected: false
+        title: Normalize and Summarize Errors
+        type: code
+        variables:
+        - value_selector:
+          - opn-v2-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - opn-v2-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - opn-v2-errors
+          - structured_output
+          value_type: object
+          variable: error_output
+        - value_selector:
+          - opn-v2-normalize-score
+          - rule_signals_json
+          value_type: string
+          variable: rule_signals_json
+        - value_selector:
+          - opn-v2-normalize-score
+          - pronunciation_score
+          value_type: number
+          variable: pronunciation_score
+        - value_selector:
+          - opn-v2-normalize-score
+          - intonation_fluency_score
+          value_type: number
+          variable: intonation_fluency_score
+        - value_selector:
+          - opn-v2-normalize-score
+          - grammar_score
+          value_type: number
+          variable: grammar_score
+        - value_selector:
+          - opn-v2-normalize-score
+          - vocabulary_score
+          value_type: number
+          variable: vocabulary_score
+        - value_selector:
+          - opn-v2-normalize-score
+          - cohesion_score
+          value_type: number
+          variable: cohesion_score
+        - value_selector:
+          - opn-v2-normalize-score
+          - relevance_score
+          value_type: number
+          variable: relevance_score
+        - value_selector:
+          - opn-v2-normalize-score
+          - completeness_score
+          value_type: number
+          variable: completeness_score
+      height: 54
+      id: opn-v2-normalize-errors
+      position:
+        x: 3070
+        y: 520
+      positionAbsolute:
+        x: 3070
+        y: 520
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"strength":{"type":"string"},"improvement":{"type":"string"},"action":{"type":"string"}},"required":["strength","improvement","action"]}'
+            max_output_tokens: 1500
+            temperature: 0.1
+            thinking_budget: 0
+            thinking_mode: false
+            thinking_level: Low
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: opn-v2-comment-system
+          role: system
+          text: |
+            You are an expert TOEIC Speaking instructor writing concise Vietnamese feedback for one Question 11: Express an Opinion response. Scores and normalized errors are locked; never rescore and never diagnose a new error.
+
+            Return exactly three structured fields, each containing exactly one complete sentence:
+            strength: one specific positive observation supported by the strongest locked score, rule signal, or error-free area; prefer clear stance, direct relevance, developed support, intelligibility, or logical organization.
+            improvement: the single highest-priority weakness supported by the highest-severity normalized error or the weakest locked criterion; prioritize task fulfillment, relevance, and support development before cohesion, language accuracy, and delivery polish.
+            action: one concrete next-attempt practice action that directly addresses improvement and is realistic for preparing and delivering a 60-second opinion response.
+
+            Never invent a stance, reason, example, spoken phrase, error, or strength absent from the inputs. Do not praise clear stance when stance_status is not CLEAR, development when support is LIMITED/MISSING, or relevance when TASK_RELEVANCE exists. Do not contradict normalized errors. When all components are 1, acknowledge only that an assessable attempt was produced. Do not mention numbers, AI, model, rubric, JSON, internal labels, or rule names. Address the learner as "Bạn". Keep each sentence concise, normally 12–30 Vietnamese words, and avoid generic encouragement that could fit any response.
+        - id: opn-v2-comment-user
+          role: user
+          text: |
+            question={{#opn-v2-start.question#}}
+            pronunciation={{#opn-v2-normalize-score.pronunciation_score#}}
+            intonation_fluency={{#opn-v2-normalize-score.intonation_fluency_score#}}
+            grammar={{#opn-v2-normalize-score.grammar_score#}}
+            vocabulary={{#opn-v2-normalize-score.vocabulary_score#}}
+            cohesion={{#opn-v2-normalize-score.cohesion_score#}}
+            relevance={{#opn-v2-normalize-score.relevance_score#}}
+            completeness={{#opn-v2-normalize-score.completeness_score#}}
+            holistic_preliminary={{#opn-v2-normalize-score.holistic_score_preliminary#}}
+            final_score={{#opn-v2-normalize-score.question_score_final#}}
+            rule_signals={{#opn-v2-normalize-score.rule_signals_json#}}
+            error_summary={{#opn-v2-normalize-errors.error_summary#}}
+            errors={{#opn-v2-normalize-errors.errors_json#}}
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              strength:
+                type: string
+              improvement:
+                type: string
+              action:
+                type: string
+            required:
+            - strength
+            - improvement
+            - action
+        structured_output_enabled: true
+        title: Write Q11 Three-Sentence Comment
+        type: llm
+        vision:
+          enabled: false
+      height: 118
+      id: opn-v2-comment
+      position:
+        x: 3410
+        y: 520
+      positionAbsolute:
+        x: 3410
+        y: 520
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    - data:
+        code: |
+          import json, re
+          def one_sentence(value, fallback):
+              text=" ".join(str(value or "").split()).strip() or fallback
+              chunks=[part.strip() for part in re.split(r"(?<=[.!?])\s+",text) if part.strip()]
+              text=chunks[0] if chunks else fallback
+              if text[-1:] not in ".!?”": text += "."
+              return text[:360]
+          def main(job_id,keycode,question_id,group_code,response_profile,pronunciation_score,
+                   intonation_fluency_score,grammar_score,vocabulary_score,cohesion_score,
+                   relevance_score,completeness_score,holistic_score_preliminary,question_score_final,
+                   rule_signals_json,applied_rules_json,score_event_json,errors_json,
+                   errors_event_json,comment_output)->dict:
+              output=comment_output if isinstance(comment_output,dict) else {}
+              strength=one_sentence(output.get("strength"),"Bạn đã tạo được phần trả lời có thể đánh giá cho câu hỏi.")
+              improvement=one_sentence(output.get("improvement"),"Bạn cần trả lời trực tiếp và đầy đủ hơn theo yêu cầu của câu hỏi.")
+              action=one_sentence(output.get("action"),"Hãy xác định trọng tâm, trả lời trực tiếp và bổ sung lý do phù hợp với dạng câu hỏi.")
+              comment={"strength":strength,"improvement":improvement,"action":action,"text":" ".join([strength,improvement,action])}
+              try: errors=json.loads(errors_json or "[]")
+              except Exception: errors=[]
+              try: signals=json.loads(rule_signals_json or "{}")
+              except Exception: signals={}
+              try: rules=json.loads(applied_rules_json or "[]")
+              except Exception: rules=[]
+              scores={"pronunciation_score":int(pronunciation_score),"intonation_fluency_score":int(intonation_fluency_score),"grammar_score":int(grammar_score),"vocabulary_score":int(vocabulary_score),"cohesion_score":int(cohesion_score),"relevance_score":int(relevance_score),"completeness_score":int(completeness_score)}
+              result={"schema_version":"express-opinion-question-result-v1","job_id":job_id,"keycode":keycode,"question_id":question_id,"group_code":group_code,"response_profile":response_profile,"status":"COMPLETED",**scores,"holistic_score_preliminary":int(holistic_score_preliminary),"question_score_final":int(question_score_final),"zero_reason":None,"rule_signals":signals,"applied_rules":rules,"errors":errors,"comment":comment,"versions":{"rubric_version":"express-opinion-q11-rubric-v1","score_prompt_version":"express-opinion-score-v3","error_prompt_version":"express-opinion-error-v3","comment_prompt_version":"express-opinion-comment-v3"}}
+              envelope=lambda event_type,sequence,data:json.dumps({"schema_version":"express-opinion-progress-event-v1","event_type":event_type,"job_id":job_id,"question_id":question_id,"sequence":sequence,"data":data},ensure_ascii=False)
+              return {**scores,"holistic_score_preliminary":int(holistic_score_preliminary),"question_score_final":int(question_score_final),"zero_reason":"NONE","errors_json":json.dumps(errors,ensure_ascii=False),"comment_strength":strength,"comment_improvement":improvement,"comment_action":action,"comment_text":comment["text"],"score_event_json":score_event_json,"errors_event_json":errors_event_json,"comment_event_json":envelope("COMMENT_READY",3,comment),"completed_event_json":envelope("QUESTION_COMPLETED",4,result),"result_json":json.dumps(result,ensure_ascii=False)}
+        code_language: python3
+        outputs:
+          pronunciation_score:
+            children:
+            type: number
+          intonation_fluency_score:
+            children:
+            type: number
+          grammar_score:
+            children:
+            type: number
+          vocabulary_score:
+            children:
+            type: number
+          cohesion_score:
+            children:
+            type: number
+          relevance_score:
+            children:
+            type: number
+          completeness_score:
+            children:
+            type: number
+          holistic_score_preliminary:
+            children:
+            type: number
+          question_score_final:
+            children:
+            type: number
+          zero_reason:
+            children:
+            type: string
+          errors_json:
+            children:
+            type: string
+          comment_strength:
+            children:
+            type: string
+          comment_improvement:
+            children:
+            type: string
+          comment_action:
+            children:
+            type: string
+          comment_text:
+            children:
+            type: string
+          score_event_json:
+            children:
+            type: string
+          errors_event_json:
+            children:
+            type: string
+          comment_event_json:
+            children:
+            type: string
+          completed_event_json:
+            children:
+            type: string
+          result_json:
+            children:
+            type: string
+        selected: false
+        title: Validate Comment and Assemble Result
+        type: code
+        variables:
+        - value_selector:
+          - opn-v2-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - opn-v2-start
+          - keycode
+          value_type: string
+          variable: keycode
+        - value_selector:
+          - opn-v2-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - opn-v2-start
+          - group_code
+          value_type: string
+          variable: group_code
+        - value_selector:
+          - opn-v2-start
+          - response_profile
+          value_type: string
+          variable: response_profile
+        - value_selector:
+          - opn-v2-normalize-score
+          - pronunciation_score
+          value_type: number
+          variable: pronunciation_score
+        - value_selector:
+          - opn-v2-normalize-score
+          - intonation_fluency_score
+          value_type: number
+          variable: intonation_fluency_score
+        - value_selector:
+          - opn-v2-normalize-score
+          - grammar_score
+          value_type: number
+          variable: grammar_score
+        - value_selector:
+          - opn-v2-normalize-score
+          - vocabulary_score
+          value_type: number
+          variable: vocabulary_score
+        - value_selector:
+          - opn-v2-normalize-score
+          - cohesion_score
+          value_type: number
+          variable: cohesion_score
+        - value_selector:
+          - opn-v2-normalize-score
+          - relevance_score
+          value_type: number
+          variable: relevance_score
+        - value_selector:
+          - opn-v2-normalize-score
+          - completeness_score
+          value_type: number
+          variable: completeness_score
+        - value_selector:
+          - opn-v2-normalize-score
+          - holistic_score_preliminary
+          value_type: number
+          variable: holistic_score_preliminary
+        - value_selector:
+          - opn-v2-normalize-score
+          - question_score_final
+          value_type: number
+          variable: question_score_final
+        - value_selector:
+          - opn-v2-normalize-score
+          - rule_signals_json
+          value_type: string
+          variable: rule_signals_json
+        - value_selector:
+          - opn-v2-normalize-score
+          - applied_rules_json
+          value_type: string
+          variable: applied_rules_json
+        - value_selector:
+          - opn-v2-normalize-score
+          - score_event_json
+          value_type: string
+          variable: score_event_json
+        - value_selector:
+          - opn-v2-normalize-errors
+          - errors_json
+          value_type: string
+          variable: errors_json
+        - value_selector:
+          - opn-v2-normalize-errors
+          - errors_event_json
+          value_type: string
+          variable: errors_event_json
+        - value_selector:
+          - opn-v2-comment
+          - structured_output
+          value_type: object
+          variable: comment_output
+      height: 54
+      id: opn-v2-assemble
+      position:
+        x: 3750
+        y: 520
+      positionAbsolute:
+        x: 3750
+        y: 520
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 300
+      zIndex: 0
+    - data:
+        advanced_settings:
+          group_enabled: false
+          groups:
+          - groupId: opn-v2-result-group
+            group_name: Question Result
+            output_type: string
+            variables:
+            - - opn-v2-upstream-zero
+              - result_json
+            - - opn-v2-invalid
+              - result_json
+            - - opn-v2-scored-zero
+              - result_json
+            - - opn-v2-assemble
+              - result_json
+        output_type: string
+        selected: false
+        title: Merge Question Result
+        type: variable-aggregator
+        variables:
+        - - opn-v2-upstream-zero
+          - result_json
+        - - opn-v2-invalid
+          - result_json
+        - - opn-v2-scored-zero
+          - result_json
+        - - opn-v2-assemble
+          - result_json
+      height: 180
+      id: opn-v2-result-aggregator
+      position:
+        x: 4110
+        y: 400
+      positionAbsolute:
+        x: 4110
+        y: 400
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    - data:
+        outputs:
+        - value_selector:
+          - opn-v2-result-aggregator
+          - output
+          value_type: string
+          variable: result_json
+        selected: false
+        title: EXPRESS_AN_OPINION Q11 Result
+        type: end
+      height: 110
+      id: opn-v2-end
+      position:
+        x: 4480
+        y: 430
+      positionAbsolute:
+        x: 4480
+        y: 430
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"pronunciation_score":{"type":"integer","enum":[0,1,2,3,4,5]},"intonation_fluency_score":{"type":"integer","enum":[0,1,2,3,4,5]},"grammar_score":{"type":"integer","enum":[0,1,2,3,4,5]},"vocabulary_score":{"type":"integer","enum":[0,1,2,3,4,5]},"cohesion_score":{"type":"integer","enum":[0,1,2,3,4,5]},"relevance_score":{"type":"integer","enum":[0,1,2,3,4,5]},"completeness_score":{"type":"integer","enum":[0,1,2,3,4,5]},"holistic_score_preliminary":{"type":"integer","enum":[0,1,2,3,4,5]},"stance_status":{"type":"string","enum":["CLEAR","AMBIGUOUS","MISSING"]},"prompt_alignment_ratio":{"type":"number","minimum":0,"maximum":1},"reason_count":{"type":"integer","minimum":0},"developed_reason_count":{"type":"integer","minimum":0},"example_count":{"type":"integer","minimum":0},"support_development":{"type":"string","enum":["STRONG","ADEQUATE","LIMITED","MISSING"]},"copied_prompt_only":{"type":"boolean"},"completely_unrelated":{"type":"boolean"},"cut_off":{"type":"boolean"},"excessive_fillers":{"type":"boolean"}},"required":["pronunciation_score","intonation_fluency_score","grammar_score","vocabulary_score","cohesion_score","relevance_score","completeness_score","holistic_score_preliminary","stance_status","prompt_alignment_ratio","reason_count","developed_reason_count","example_count","support_development","copied_prompt_only","completely_unrelated","cut_off","excessive_fillers"]}'
+            max_output_tokens: 2000
+            temperature: 0.1
+            thinking_budget: 0
+            thinking_mode: false
+            thinking_level: Low
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: opn-v2-score-extended-system
+          role: system
+          text: |
+            You are an official IIG Viet Nam examiner grading TOEIC Speaking Question 11: Express an Opinion.
+
+            UPSTREAM CONTRACT
+            Speech-to-text and technical routing are already complete. Do not transcribe again. Produce preliminary assessment fields and rule signals only. A deterministic Code node applies caps and creates question_score_final after this node. Never apply hidden arithmetic averaging and never return errors, feedback, rationale, markdown, or transcript text.
+
+            SOURCE PRIORITY
+            1. Use QUESTION and PROMPT TEXT to determine the exact opinion, preference, or agreement task.
+            2. Use TRANSCRIPT to judge stance, relevance, reasons, development, grammar, vocabulary, and cohesion.
+            3. Use CANDIDATE AUDIO only for pronunciation, intelligibility, pace, pausing, fillers, rhythm, stress, pitch, fluency, and whether an essential idea is audibly cut off.
+            4. Do not infer pronunciation from spelling or transcript text. Do not reward unsupported claims merely because the response is long.
+
+            OFFICIAL HOLISTIC SCALE
+            holistic_score_preliminary is a direct holistic judgment, not an arithmetic mean.
+            5: sustained, well-developed response with a clear opinion, coherent reasons/details, effective language, and highly intelligible connected delivery; minor lapses do not interfere.
+            4: clear opinion and generally developed support; connected discourse and effective language/delivery with some noticeable but non-disruptive weaknesses.
+            3: opinion is present and relevant, but development is uneven, generic, repetitive, or limited; language/delivery are generally understandable with recurring limitations.
+            2: weak or ambiguous position, little support, loosely connected ideas, and/or frequent language or delivery problems; meaning is only partly developed.
+            1: minimal assessable attempt with isolated phrases, copied prompt language, or almost no relevant support.
+            0: only when completely_unrelated is true. Silence and wrong-language cases are handled upstream.
+
+            SCORE THESE SEVEN DIAGNOSTIC CRITERIA INDEPENDENTLY FROM 0 TO 5
+            pronunciation_score: 5 is consistently clear with natural word stress and little listener effort; 3 is generally intelligible with recurring sound, ending, or stress problems; 1 is only intermittently intelligible. Judge audio only.
+            intonation_fluency_score: 5 is sustained connected delivery with effective pace, phrasing, pauses, rhythm, stress, and pitch; 3 has noticeable hesitation or uneven delivery but remains understandable; 1 is mostly fragmented or heavily disrupted. Judge audio only.
+            grammar_score: 5 uses varied and well-controlled clauses and forms; 3 communicates the argument despite recurring tense, agreement, article, preposition, word-form, or sentence-control errors; 1 is dominated by fragments or errors that seriously obscure relationships.
+            vocabulary_score: 5 uses precise, varied, natural words and collocations; 3 is adequate but repetitive, vague, or occasionally inaccurate; 1 is extremely limited or frequently inappropriate.
+            cohesion_score: 5 develops a logical stance-to-reason-to-example progression with effective links; 3 has an identifiable structure but uneven transitions, repetition, or weak idea connections; 1 is isolated or disordered language with almost no progression.
+            relevance_score: 5 directly and consistently answers the exact question; 3 is broadly on topic but partly generic, indirect, or drifting; 1 contains only a minimal connection to the task.
+            completeness_score: 5 sufficiently develops the position with relevant reasons plus explanations, examples, or experience; 3 gives some support but development is uneven or thin; 1 offers almost no usable support.
+            Scores 4 and 2 are the intermediate levels between the adjacent anchors. Score 0 is reserved for a validated business-zero case. Any assessable on-topic English attempt must receive at least 1 in every component.
+
+            CONSISTENCY GUIDANCE
+            holistic_score_preliminary is the official-style direct holistic judgment and is not the mean, minimum, or maximum of the seven diagnostics. The diagnostics explain different aspects of the same performance, so they should be plausible alongside the holistic judgment without being mechanically identical. A long answer with weak relevance or unsupported repetition is not well developed. A concise answer can score well when its stance and support are sufficiently clear and developed.
+
+            SIGNALS
+            stance_status: CLEAR when a consistent position is expressed; AMBIGUOUS when it oscillates or remains materially unclear; MISSING when no position can be identified.
+            prompt_alignment_ratio measures semantic alignment from 0 to 1.
+            reason_count counts distinct supporting reasons; developed_reason_count counts reasons that include explanation/detail; example_count counts concrete examples or experiences.
+            support_development: STRONG for multiple well-developed supports, ADEQUATE for enough relevant support, LIMITED for thin/repetitive support, MISSING for no real support.
+            copied_prompt_only is true only when the response mostly repeats the question without adding a position or support.
+            completely_unrelated is true only when prompt_alignment_ratio < 0.50 and the response clearly answers another topic/question. A short, weak, awkward, or partly relevant response is not completely unrelated.
+            cut_off is true only when audio ends during an unfinished essential idea. Do not penalize a cut-off after a clear stance and at least two developed reasons.
+            excessive_fillers is true only when repeated fillers/false starts noticeably disrupt delivery.
+
+            OUTPUT CONTRACT
+            Return every required structured field exactly once. Keep scores as integers. Keep ratios in the range 0..1 and counts as non-negative integers. Do not include any field outside the schema.
+        - id: opn-v2-score-extended-user
+          role: user
+          text: |
+            QUESTION {{#opn-v2-start.question#}}
+            PROMPT TEXT {{#opn-v2-start.prompt_text#}}
+            TRANSCRIPT {{#opn-v2-start.transcript#}}
+            RESPONSE WORD COUNT {{#opn-v2-start.response_word_count#}}
+            AUDIO DURATION {{#opn-v2-start.audio_duration_seconds#}}
+            CANDIDATE AUDIO {{#opn-v2-start.student_audio#}}
+            Return every required field exactly once.
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              pronunciation_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+              intonation_fluency_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+              grammar_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+              vocabulary_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+              cohesion_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+              relevance_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+              completeness_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+              holistic_score_preliminary:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+              stance_status:
+                type: string
+                enum:
+                - CLEAR
+                - AMBIGUOUS
+                - MISSING
+              prompt_alignment_ratio:
+                type: number
+                minimum: 0
+                maximum: 1
+              reason_count:
+                type: integer
+                minimum: 0
+              developed_reason_count:
+                type: integer
+                minimum: 0
+              example_count:
+                type: integer
+                minimum: 0
+              support_development:
+                type: string
+                enum:
+                - STRONG
+                - ADEQUATE
+                - LIMITED
+                - MISSING
+              copied_prompt_only:
+                type: boolean
+              completely_unrelated:
+                type: boolean
+              cut_off:
+                type: boolean
+              excessive_fillers:
+                type: boolean
+            required:
+            - pronunciation_score
+            - intonation_fluency_score
+            - grammar_score
+            - vocabulary_score
+            - cohesion_score
+            - relevance_score
+            - completeness_score
+            - holistic_score_preliminary
+            - stance_status
+            - prompt_alignment_ratio
+            - reason_count
+            - developed_reason_count
+            - example_count
+            - support_development
+            - copied_prompt_only
+            - completely_unrelated
+            - cut_off
+            - excessive_fillers
+        structured_output_enabled: true
+        title: Score Q11 Holistically
+        type: llm
+        vision:
+          configs:
+            detail: high
+            variable_selector:
+            - opn-v2-start
+            - student_audio
+          enabled: true
+      height: 118
+      id: opn-v2-score-extended
+      position:
+        x: 1360
+        y: 520
+      positionAbsolute:
+        x: 1360
+        y: 520
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.7

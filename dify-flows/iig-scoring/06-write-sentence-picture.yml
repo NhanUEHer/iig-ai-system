@@ -1,0 +1,525 @@
+app:
+  description: ''
+  icon: "\U0001F916"
+  icon_background: "#FFEAD5"
+  icon_type: emoji
+  mode: workflow
+  name: IIG Score - Write a Sentence Based on a Picture
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier:
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.9.10@4979b8843fa46c3c2143d339f5868f04d9d77166616c00dd9f811a4adfce03ab
+    version:
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - ".JPG"
+      - ".JPEG"
+      - ".PNG"
+      - ".GIF"
+      - ".WEBP"
+      - ".SVG"
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 20
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: 1783491037672-source-1783491136808-target
+      source: '1783491037672'
+      sourceHandle: source
+      target: '1783491136808'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id:
+        loop_id:
+        sourceType: llm
+        targetType: code
+      id: 1783491136808-source-calculate-final-score-target
+      source: '1783491136808'
+      sourceHandle: source
+      target: calculate-final-score
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        iteration_id:
+        loop_id:
+        sourceType: code
+        targetType: end
+      id: calculate-final-score-source-1783491287424-target
+      source: calculate-final-score
+      sourceHandle: source
+      target: '1783491287424'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: User Input
+        type: start
+        variables:
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - image
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          default: ''
+          hide: false
+          hint: ''
+          label: image
+          options: []
+          placeholder: ''
+          required: false
+          type: file
+          variable: image
+        - default: ''
+          hint: ''
+          label: keyword
+          options: []
+          placeholder: ''
+          required: false
+          type: text-input
+          variable: keyword
+        - default: ''
+          hint: ''
+          label: student_writing
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: student_writing
+      height: 161
+      id: '1783491037672'
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"relevance_score":{"type":"integer","enum":[0,1,2,3],"description":"Relevance
+              score from 0 to 3."},"grammar_score":{"type":"integer","enum":[0,1,2,3],"description":"Grammar
+              score from 0 to 3."},"keyword_score":{"type":"integer","enum":[0,1,2,3],"description":"Keyword
+              score from 0 to 3."}},"required":["relevance_score","grammar_score","keyword_score"]}'
+            max_output_tokens: 4000
+            media_resolution: Default
+            service_tier: standard
+            temperature: 0.1
+            thinking_budget: 0
+            thinking_mode: false
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: d2a1d449-64e1-4de1-9503-6669bc570b21
+          role: system
+          text: "You are an official IIG Việt Nam examiner grading TOEIC Writing Part
+            1 (Write a Sentence Based on a Picture - Questions 1-5).\nEvaluate the
+            candidate's active performance strictly based on the three official evaluation
+            criteria: **Relevance**, **Grammar**, and **Keyword**.\n\n<STRUCTURE_AND_OVERRIDE_CONSTRAINTS>\n-
+            Task Requirement: The candidate must write exactly ONE description sentence
+            based on a picture using a specified pair of keywords.\n- Punctuation
+            & Sentence Count Boundary: \n  * Only terminal punctuation marks (Periods
+            '.', Question marks '?', Exclamation marks '!') denote the boundary of
+            a sentence.\n  * Commas (',') MUST NEVER be interpreted as sentence splitters.
+            A clause separated by a comma within a single overall run is still part
+            of ONE single sentence.\n</STRUCTURE_AND_OVERRIDE_CONSTRAINTS>\n\n<STEP_1_VALIDITY_SCREENING_GATE>\n-
+            Scan student_writing for baseline disqualifying metrics. If any condition
+            matches, immediately truncate processing, inject 0 into all three criteria
+            scores, and assign the corresponding scores:\n  1. Contains fewer than
+            3 valid English words, consists entirely of keyboard mashing (e.g., 'asdfghjk'),
+            or writes simple greeting words (e.g., 'ok', 'yes', 'hello').\n  2. Total
+            topic deviation: Response is completely disconnected and unrelated to
+            the picture.\n</STEP_1_VALIDITY_SCREENING_GATE>\n\n<STEP_2_DETAILED_3_CRITERIA_RUBRIC>\n1.
+            RELEVANCE OF THE SENTENCES TO THE PICTURE (Mức độ liên quan)\n- Score
+            3 (Excellent): The textual content aligns perfectly, logically, and is
+            fully consistent with the actual physical actions, objects, or background
+            context depicted in the picture. It describes the main action, characters,
+            or central objects properly according to the picture type (e.g., interaction
+            of both people in 2-people pictures, main action of the person in 1-person
+            pictures).\n- Score 2 (Satisfactory): The response is consistent with
+            the picture, but commits minor detail discrepancies or describes partial
+            elements (e.g., describing only 1 person in a 2-people picture, describing
+            objects but ignoring the person, focusing on only one minor object in
+            a complex scene, or using generic patterns like 'This is a picture of...'
+            where the elements remain physically relevant, capped at 2).\n- Score
+            1 (Below Standard): The response is inconsistent with the picture, severely
+            misrepresents the primary action performed by the main subjects, describes
+            core focal objects completely contrary to reality, or describes the bối
+            cảnh in an extremely generic way. Or if the sentence is grammatically
+            complete but off-topic/completely irrelevant to the picture (e.g., writing
+            about personal hobbies, sharing personal emotions with no connection to
+            the picture's actual context). Also includes cases with severe lexical
+            mismatch (e.g., using a non-living object 'receipt' instead of 'waiter'
+            in 'brought the wine', rendering the statement physically absurd).\n-
+            Score 0 (Unsatisfactory): The response does not contain any valid English
+            sentence (e.g., falls under Step 1 validity screening).\n\n2. GRAMMAR
+            (Ngữ pháp)\n- Score 3 (Excellent): The response consists of ONE sentence
+            that has no grammatical errors, punctuation mistakes, or casing errors
+            of any kind (specifically, meaning is correct). Note: A compound or complex
+            sentence containing multiple clauses connected by coordinating/subordinating
+            conjunctions and commas (e.g., ', and', ', but', ', or', ', because',
+            ', while') is evaluated as ONE single sentence and does NOT count as a
+            punctuation error or multiple sentences. (Note: spelling is evaluated
+            under spelling rules, but if spelling changes meaning, it is penalized
+            as below).\n- Score 2 (Satisfactory): The response consists of ONE sentence
+            (including compound/complex sentences with coordinating/subordinating
+            conjunctions and commas, which are evaluated as ONE sentence) that has
+            1 or more minor grammatical errors that do not obscure or distort meaning
+            (e.g., minor article omissions, S-V agreement mismatch, minor preposition
+            errors, minor word form errors, compound noun ordering/possession errors
+            like 'screen camera' instead of 'camera screen'), OR consists of more
+            than one separate sentence (but sentences are grammatically correct, capped
+            at 2). (Note: spelling is NOT evaluated here).\n- Score 1 (Below Standard):
+            The response has grammar errors that directly affect communication / sentence
+            meaning (e.g., sentence fragments missing a core subject or main verb,
+            severe run-on structures, or severe grammatical errors / multiple accumulated
+            minor grammatical and spelling errors that interfere with or obscure meaning).\n-
+            Score 0 (Unsatisfactory): Totally unintelligible syntax structure, complete
+            failure to form grammatical relations, or falls under Step 1.\n\n3. KEYWORD
+            (Sử dụng từ khóa)\n- Score 3 (Excellent): Uses both keywords in the sentence
+            with 100% correct spelling, correct word forms (or grammatically acceptable
+            parts of speech), and correct syntactic integration. Keyword swapping/reordering
+            is permitted.\n- Score 2 (Satisfactory): Uses both keywords but:\n  *
+            Mutates the grammatical part of speech incorrectly (e.g., using a noun
+            form when a verb is required by the sentence structure), although the
+            overall sentence meaning is communicated.\n  * Or splits the two keywords
+            into separate sentences (Keyword 1 in sentence 1, Keyword 2 in sentence
+            2).\n  * Or integrates the keywords but uses them ineffectively, unnaturally,
+            or awkwardly in context (e.g. using 'before' as a preposition before a
+            noun phrase like 'before the waiter' recommendation' which makes the semantic
+            connection weak or confusing).\n- Score 1 (Below Standard): Uses only
+            1 of the 2 keywords (omits one keyword), OR uses both keywords but writes
+            a spelling typo in one or both keywords (regardless of whether it's minor
+            or severe, e.g., wrong character order, incorrect vowels, or wrong letters).\n-
+            Score 0 (Unsatisfactory): Omits both keywords, or falls under Step 1.\n</STEP_2_DETAILED_3_CRITERIA_RUBRIC>\n\n<STEP_3_MANDATORY_OVERWRITE_REGULATIONS>\nYou
+            must strictly enforce the following overwrite constraints during calculations:\n1.
+            Step 1 Failure -> Instantly assign 0 to all three criteria scores.\n2.
+            Multi-Sentence Constraint: If the candidate writes 2 or more separate
+            sentences, clamp grammar_score at a MAXIMUM ceiling of 2. If the sentences
+            contain grammatical errors that affect meaning, continue to drop grammar_score
+            to 1 or 0. If the two keywords are split between the sentences, clamp
+            keyword_score at a MAXIMUM ceiling of 2. (Note: A compound or complex
+            sentence with multiple clauses joined by coordinate/subordinate conjunctions
+            and commas (e.g., ', and', ', but', ', or', ', because', ', while') is
+            considered ONE single sentence. Never treat a comma and coordinating conjunction
+            as a sentence separator or count it as 2 sentences).\n3. Sentence Fragment
+            Constraint: If the text is an incomplete structural fragment, clamp grammar_score
+            at a MAXIMUM ceiling of 1.\n4. Capitalization & Punctuation Penalty: If
+            the sentence lacks capitalization of the first word, lacks a final terminal
+            punctuation mark, or fails to capitalize proper nouns, clamp grammar_score
+            at a MAXIMUM ceiling of 2. (Note: Proper punctuation like a comma preceding
+            a coordinating conjunction ', and' is correct and does NOT trigger this
+            penalty).\n5. Spelling Penalty (Non-Keywords): If the response has a spelling
+            typo in regular words (non-keywords) that does not alter meaning, clamp
+            grammar_score at a MAXIMUM ceiling of 2. If a spelling typo in regular
+            words (non-keywords) alters meaning, causes misunderstanding, or if multiple
+            minor spelling/grammar errors accumulate to obscure meaning, clamp grammar_score
+            at a MAXIMUM ceiling of 1. If the sentence is grammatically flawless and
+            has no spelling typos but is off-topic, grammar_score can still reach
+            3 (since relevance is clamped at 1 separate from grammar, and relevance_score
+            = 0 is not triggered).\n6. Keyword Spelling Penalty: If a keyword is misspelled
+            (wrong character order, incorrect vowels, or wrong letters), clamp keyword_score
+            at a MAXIMUM ceiling of 1.\n7. Total Misalignment Overwrite: If relevance_score
+            = 0, you MUST automatically override and set grammar_score = 0 and keyword_score
+            = 0.\n8. Cliche & Off-topic Sentence Constraint: Cliche sentences ('This
+            is a picture of...') are capped at 2 points for Relevance if they are
+            relevant. If a grammatically complete sentence is off-topic or irrelevant
+            to the picture, clamp relevance_score at a MAXIMUM ceiling of 1.\n9. Grammar/Spelling/Punctuation
+            Error Overwrite: If the response contains ANY grammatical errors, spelling
+            typos, capitalization/casing issues, or terminal punctuation omissions
+            (no matter how minor or severe), you MUST automatically override and clamp
+            all three criteria scores (relevance_score, grammar_score, keyword_score)
+            to a MAXIMUM ceiling of 2. This includes preposition errors (e.g. 'by
+            the waiter', 'at the road'), noun number/article errors (e.g. 'direction'
+            instead of 'directions'), spelling errors (e.g. 'loking', 'holding map'),
+            and missing clause connectors (e.g. 'looking... holding...' without 'while'
+            or 'and'). This is to guarantee the final overall score remains capped
+            at 2 under any calculation method.\n10. Severe Lexical / Semantic Mismatch:
+            If the student uses a severely incorrect vocabulary word that introduces
+            a physical or logical absurdity in the context of the picture (e.g. using
+            a non-living entity like 'receipt' as an agent performing a human action
+            'brought the wine' -> 'receipt brought the wine'), you MUST clamp relevance_score
+            at a MAXIMUM ceiling of 1, and clamp grammar_score at a MAXIMUM ceiling
+            of 1 (if other errors accumulate).\n11. Ambiguous Pronoun Constraint:
+            If the student uses a pronoun (e.g. 'they', 'he', 'she', 'it') that causes
+            semantic ambiguity or confusion because there are multiple subjects/objects
+            in the picture and it is not clear who/what the pronoun refers to (e.g.
+            using 'they' when it could refer to either the couple or the server),
+            you MUST clamp relevance_score at a MAXIMUM ceiling of 2.\n12. Speculative
+            Description Constraint: If the candidate describes actions or details
+            that are highly speculative, non-obvious, or cannot be clearly verified
+            by the physical evidence in the picture (e.g. 'checking the color of the
+            wine' when they are simply looking at the bottle), you MUST clamp relevance_score
+            at a MAXIMUM ceiling of 2.\n13. Gender / Pronoun Mismatch Constraint:
+            If a grammatical or lexical error (such as a wrong pronoun or possessive
+            adjective like 'he and her wife') directly conflicts with the physical
+            gender or relationships of the people in the picture, you MUST clamp both
+            relevance_score and grammar_score at a MAXIMUM ceiling of 2.\n14. Ineffective
+            Keyword Constraint: If the candidate integrates both keywords but uses
+            them in an awkward, unnatural, or semantically ineffective structure (e.g.,
+            'before the waiter' recommendation'), you MUST clamp keyword_score at
+            a MAXIMUM ceiling of 2.\n</STEP_3_MANDATORY_OVERWRITE_REGULATIONS>\n\n<OUTPUT>\n-
+            Return exactly three integer scores from 0 to 3 through the required structured
+            output:\n  relevance_score, grammar_score, keyword_score.\n- Perform all
+            analysis silently.\n- Do not return rationales, explanations, comments,
+            markdown, or final_score.\n- The Code node calculates final_score from
+            the arithmetic mean of the three scores.\n</OUTPUT>"
+        - id: 8edbca1a-73df-4c41-825a-4da3e94eacb9
+          role: user
+          text: |-
+            ## PROMPT KEYWORDS
+            "{{#1783491037672.keyword#}}"
+
+            ## PROMPT IMAGE
+            "{{#1783491037672.image#}}"
+
+            ## CANDIDATE RESPONSE
+            "{{#1783491037672.student_writing#}}"
+
+            Grade Relevance, Grammar, and Keyword. Return scores only through the required structured output.
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: true
+        structured_output:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              relevance_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                description: Relevance score from 0 to 3.
+              grammar_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                description: Grammar score from 0 to 3.
+              keyword_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                description: Keyword score from 0 to 3.
+            required:
+            - relevance_score
+            - grammar_score
+            - keyword_score
+        structured_output_enabled: true
+        title: Score Three Criteria
+        type: llm
+        vision:
+          configs:
+            detail: high
+            variable_selector:
+            - '1783491037672'
+            - image
+          enabled: true
+        reasoning_format: separated
+      height: 117
+      id: '1783491136808'
+      position:
+        x: 473
+        y: 303
+      positionAbsolute:
+        x: 473
+        y: 303
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        outputs:
+        - value_selector:
+          - calculate-final-score
+          - relevance_score
+          value_type: number
+          variable: relevance_score
+        - value_selector:
+          - calculate-final-score
+          - grammar_score
+          value_type: number
+          variable: grammar_score
+        - value_selector:
+          - calculate-final-score
+          - keyword_score
+          value_type: number
+          variable: keyword_score
+        - value_selector:
+          - calculate-final-score
+          - final_score
+          value_type: number
+          variable: final_score
+        selected: false
+        title: Output Scores
+        type: end
+      height: 174
+      id: '1783491287424'
+      position:
+        x: 1130
+        y: 303
+      positionAbsolute:
+        x: 1130
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        code: |-
+          import math
+
+          def main(relevance_score, grammar_score, keyword_score) -> dict:
+              relevance = int(relevance_score)
+              grammar = int(grammar_score)
+              keyword = int(keyword_score)
+
+              scores = [relevance, grammar, keyword]
+              if any(score not in (0, 1, 2, 3) for score in scores):
+                  raise ValueError("Component scores must be integers from 0 to 3")
+
+              average = sum(scores) / 3
+              final_score = math.floor(average + 0.5)
+
+              return {
+                  "relevance_score": relevance,
+                  "grammar_score": grammar,
+                  "keyword_score": keyword,
+                  "final_score": final_score,
+              }
+        code_language: python3
+        outputs:
+          relevance_score:
+            children:
+            type: number
+          grammar_score:
+            children:
+            type: number
+          keyword_score:
+            children:
+            type: number
+          final_score:
+            children:
+            type: number
+        selected: false
+        title: Calculate Final Score
+        type: code
+        variables:
+        - value_selector:
+          - '1783491136808'
+          - structured_output
+          - relevance_score
+          value_type: number
+          variable: relevance_score
+        - value_selector:
+          - '1783491136808'
+          - structured_output
+          - grammar_score
+          value_type: number
+          variable: grammar_score
+        - value_selector:
+          - '1783491136808'
+          - structured_output
+          - keyword_score
+          value_type: number
+          variable: keyword_score
+      height: 54
+      id: calculate-final-score
+      position:
+        x: 800
+        y: 303
+      positionAbsolute:
+        x: 800
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    viewport:
+      x: 5
+      y: -20
+      zoom: 1
+  rag_pipeline_variables: []

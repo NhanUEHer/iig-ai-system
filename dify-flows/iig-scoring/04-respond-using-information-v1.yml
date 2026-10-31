@@ -1,0 +1,2184 @@
+---
+app:
+  description: Scores one question after upstream STT and emits validated progressive
+    score, error, comment and completed payloads.
+  icon: "\U0001F399️"
+  icon_background: "#EEF2FF"
+  icon_type: emoji
+  mode: workflow
+  name: IIG Respond Using Information Q8-Q10 Flow v2
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier:
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.9.10@4979b8843fa46c3c2143d339f5868f04d9d77166616c00dd9f811a4adfce03ab
+    version:
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - ".JPG"
+      - ".JPEG"
+      - ".PNG"
+      - ".GIF"
+      - ".WEBP"
+      allowed_file_types:
+      - audio
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: true
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 20
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: true
+        number_limits: 1
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 2
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: code
+      id: rui-v1-start-source-rui-v1-validate-target
+      source: rui-v1-start
+      sourceHandle: source
+      target: rui-v1-validate
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: rui-v1-validate-source-rui-v1-route-target
+      source: rui-v1-validate
+      sourceHandle: source
+      target: rui-v1-route
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: rui-v1-route-upstream-zero-rui-v1-upstream-zero-target
+      source: rui-v1-route
+      sourceHandle: upstream-zero
+      target: rui-v1-upstream-zero
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: rui-v1-route-false-rui-v1-invalid-target
+      source: rui-v1-route
+      sourceHandle: 'false'
+      target: rui-v1-invalid
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: rui-v1-upstream-zero-source-rui-v1-result-aggregator-target
+      source: rui-v1-upstream-zero
+      sourceHandle: source
+      target: rui-v1-result-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: rui-v1-invalid-source-rui-v1-result-aggregator-target
+      source: rui-v1-invalid
+      sourceHandle: source
+      target: rui-v1-result-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: rui-v1-normalize-score-source-rui-v1-zero-gate-target
+      source: rui-v1-normalize-score
+      sourceHandle: source
+      target: rui-v1-zero-gate
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: rui-v1-zero-gate-true-rui-v1-scored-zero-target
+      source: rui-v1-zero-gate
+      sourceHandle: 'true'
+      target: rui-v1-scored-zero
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: rui-v1-zero-gate-false-rui-v1-errors-target
+      source: rui-v1-zero-gate
+      sourceHandle: 'false'
+      target: rui-v1-errors
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: rui-v1-scored-zero-source-rui-v1-result-aggregator-target
+      source: rui-v1-scored-zero
+      sourceHandle: source
+      target: rui-v1-result-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: rui-v1-errors-source-rui-v1-normalize-errors-target
+      source: rui-v1-errors
+      sourceHandle: source
+      target: rui-v1-normalize-errors
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+      id: rui-v1-normalize-errors-source-rui-v1-comment-target
+      source: rui-v1-normalize-errors
+      sourceHandle: source
+      target: rui-v1-comment
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: rui-v1-comment-source-rui-v1-assemble-target
+      source: rui-v1-comment
+      sourceHandle: source
+      target: rui-v1-assemble
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: rui-v1-assemble-source-rui-v1-result-aggregator-target
+      source: rui-v1-assemble
+      sourceHandle: source
+      target: rui-v1-result-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: variable-aggregator
+        targetType: end
+      id: rui-v1-result-aggregator-source-rui-v1-end-target
+      source: rui-v1-result-aggregator
+      sourceHandle: source
+      target: rui-v1-end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: if-else
+      id: rui-v1-route-normal-rui-v1-profile-route-target
+      source: rui-v1-route
+      sourceHandle: normal
+      target: rui-v1-profile-route
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: rui-v1-profile-route-extended-rui-v1-score-extended-target
+      source: rui-v1-profile-route
+      sourceHandle: extended
+      target: rui-v1-score-extended
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: rui-v1-profile-route-false-rui-v1-score-short-target
+      source: rui-v1-profile-route
+      sourceHandle: 'false'
+      target: rui-v1-score-short
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: variable-aggregator
+      id: rui-v1-score-short-source-rui-v1-score-aggregator-target
+      source: rui-v1-score-short
+      sourceHandle: source
+      target: rui-v1-score-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: variable-aggregator
+      id: rui-v1-score-extended-source-rui-v1-score-aggregator-target
+      source: rui-v1-score-extended
+      sourceHandle: source
+      target: rui-v1-score-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: variable-aggregator
+        targetType: code
+      id: rui-v1-score-aggregator-source-rui-v1-normalize-score-target
+      source: rui-v1-score-aggregator
+      sourceHandle: source
+      target: rui-v1-normalize-score
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: RESPOND_USING_INFORMATION Question Input v1
+        type: start
+        variables:
+        - default: respond-information-question-input-v1
+          hint: ''
+          label: schema_version
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: schema_version
+        - default: ''
+          hint: ''
+          label: job_id
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: job_id
+        - default: ''
+          hint: ''
+          label: keycode
+          options: []
+          placeholder: ''
+          required: true
+          type: text-input
+          variable: keycode
+        - default: s_q8
+          hint: ''
+          label: question_id
+          options:
+          - s_q8
+          - s_q9
+          - s_q10
+          placeholder: ''
+          required: true
+          type: select
+          variable: question_id
+        - default: 8
+          hint: ''
+          label: question_number
+          options: []
+          placeholder: ''
+          required: true
+          type: number
+          variable: question_number
+        - default: RESPOND_USING_INFORMATION
+          hint: ''
+          label: group_code
+          options:
+          - RESPOND_USING_INFORMATION
+          placeholder: ''
+          required: true
+          type: select
+          variable: group_code
+        - default: RESPOND_USING_INFORMATION
+          hint: ''
+          label: scorer_type
+          options:
+          - RESPOND_USING_INFORMATION
+          placeholder: ''
+          required: true
+          type: select
+          variable: scorer_type
+        - default: SHORT_INFORMATION
+          hint: ''
+          label: response_profile
+          options:
+          - SHORT_INFORMATION
+          - MULTI_ITEM_INFORMATION
+          placeholder: ''
+          required: true
+          type: select
+          variable: response_profile
+        - default: READY_FOR_AI
+          hint: ''
+          label: ai_status
+          options:
+          - READY_FOR_AI
+          - ZERO_SCORE
+          placeholder: ''
+          required: true
+          type: select
+          variable: ai_status
+        - default: NONE
+          hint: ''
+          label: upstream_zero_reason
+          options:
+          - NONE
+          - NO_SPEECH
+          - WRONG_LANGUAGE_VI
+          - WRONG_LANGUAGE_OTHER
+          placeholder: ''
+          required: true
+          type: select
+          variable: upstream_zero_reason
+        - default: ''
+          hint: ''
+          label: context
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: context
+        - default: ''
+          hint: ''
+          label: prompt_text
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: prompt_text
+        - default: ''
+          hint: ''
+          label: question
+          options: []
+          placeholder: ''
+          required: true
+          type: paragraph
+          variable: question
+        - default: ''
+          hint: ''
+          label: transcript
+          options: []
+          placeholder: ''
+          required: false
+          type: paragraph
+          variable: transcript
+        - default: 0
+          hint: ''
+          label: audio_duration_seconds
+          options: []
+          placeholder: ''
+          required: false
+          type: number
+          variable: audio_duration_seconds
+        - default: 0
+          hint: ''
+          label: response_word_count
+          options: []
+          placeholder: ''
+          required: false
+          type: number
+          variable: response_word_count
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - audio
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          default: ''
+          hide: false
+          hint: ''
+          label: student_audio
+          options: []
+          placeholder: ''
+          required: false
+          type: file
+          variable: student_audio
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - image
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          default: ''
+          hide: false
+          hint: ''
+          label: context_image
+          options: []
+          placeholder: ''
+          required: false
+          type: file
+          variable: context_image
+      height: 450
+      id: rui-v1-start
+      position:
+        x: 40
+        y: 360
+      positionAbsolute:
+        x: 40
+        y: 360
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        code: |
+          def main(schema_version,job_id,keycode,question_id,question_number,group_code,scorer_type,response_profile,ai_status,upstream_zero_reason,question,transcript,context) -> dict:
+              errors=[]; reason=(upstream_zero_reason or "NONE").strip().upper(); ids=["s_q8", "s_q9", "s_q10"]; profiles=["SHORT_INFORMATION", "MULTI_ITEM_INFORMATION"]
+              if schema_version!="respond-information-question-input-v1": errors.append("invalid schema_version")
+              if not (job_id or "").strip() or not (keycode or "").strip(): errors.append("job_id and keycode are required")
+              if question_id not in ids or int(question_number)!=int(question_id[3:]): errors.append("question identity mismatch")
+              if group_code!="RESPOND_USING_INFORMATION" or scorer_type!="RESPOND_USING_INFORMATION": errors.append("scorer identity mismatch")
+              expected=profiles[1] if question_id==ids[-1] else profiles[0]
+              if response_profile!=expected: errors.append("response_profile mismatch")
+              if not (question or "").strip(): errors.append("question is required")
+              if reason not in {"NONE","NO_SPEECH","WRONG_LANGUAGE_VI","WRONG_LANGUAGE_OTHER"}: errors.append("invalid zero reason")
+              if reason!="NONE": route="UPSTREAM_ZERO" if ai_status=="ZERO_SCORE" else "INVALID"
+              else: route="NORMAL" if ai_status=="READY_FOR_AI" and (transcript or "").strip() else "INVALID"
+              if errors: route="INVALID"
+              return {"route":route,"validation_ok":route!="INVALID","validation_errors_json":__import__("json").dumps(errors,ensure_ascii=False),"normalized_zero_reason":reason}
+        code_language: python3
+        outputs:
+          route:
+            children:
+            type: string
+          validation_ok:
+            children:
+            type: boolean
+          validation_errors_json:
+            children:
+            type: string
+          normalized_zero_reason:
+            children:
+            type: string
+        selected: false
+        title: Validate and Route Input
+        type: code
+        variables:
+        - value_selector:
+          - rui-v1-start
+          - schema_version
+          value_type: string
+          variable: schema_version
+        - value_selector:
+          - rui-v1-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - rui-v1-start
+          - keycode
+          value_type: string
+          variable: keycode
+        - value_selector:
+          - rui-v1-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - rui-v1-start
+          - question_number
+          value_type: string
+          variable: question_number
+        - value_selector:
+          - rui-v1-start
+          - group_code
+          value_type: string
+          variable: group_code
+        - value_selector:
+          - rui-v1-start
+          - scorer_type
+          value_type: string
+          variable: scorer_type
+        - value_selector:
+          - rui-v1-start
+          - response_profile
+          value_type: string
+          variable: response_profile
+        - value_selector:
+          - rui-v1-start
+          - ai_status
+          value_type: string
+          variable: ai_status
+        - value_selector:
+          - rui-v1-start
+          - upstream_zero_reason
+          value_type: string
+          variable: upstream_zero_reason
+        - value_selector:
+          - rui-v1-start
+          - question
+          value_type: string
+          variable: question
+        - value_selector:
+          - rui-v1-start
+          - transcript
+          value_type: string
+          variable: transcript
+        - value_selector:
+          - rui-v1-start
+          - context
+          value_type: string
+          variable: context
+      height: 54
+      id: rui-v1-validate
+      position:
+        x: 380
+        y: 360
+      positionAbsolute:
+        x: 380
+        y: 360
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 260
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: upstream-zero
+          conditions:
+          - comparison_operator: is
+            id: route-upstream-zero-condition
+            value: UPSTREAM_ZERO
+            varType: string
+            variable_selector:
+            - rui-v1-validate
+            - route
+          id: upstream-zero
+          logical_operator: and
+        - case_id: normal
+          conditions:
+          - comparison_operator: is
+            id: route-normal-condition
+            value: NORMAL
+            varType: string
+            variable_selector:
+            - rui-v1-validate
+            - route
+          id: normal
+          logical_operator: and
+        selected: false
+        title: Input Route
+        type: if-else
+      height: 190
+      id: rui-v1-route
+      position:
+        x: 700
+        y: 360
+      positionAbsolute:
+        x: 700
+        y: 360
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 250
+      zIndex: 0
+    - data:
+        code: |
+          import json
+          def main(job_id,keycode,question_id,group_code,response_profile,zero_reason,score_event_json=None)->dict:
+              reason=zero_reason if zero_reason in {"NO_SPEECH","WRONG_LANGUAGE_VI","WRONG_LANGUAGE_OTHER","COMPLETELY_UNRELATED"} else "NO_SPEECH"
+              comments={
+                "NO_SPEECH":("Không phát hiện phần trả lời có giọng nói.","Câu này chưa có nội dung tiếng Anh để đánh giá.","Hãy kiểm tra micro và bắt đầu trả lời ngay sau tín hiệu ghi âm."),
+                "WRONG_LANGUAGE_VI":("Hệ thống đã nhận được phần trả lời nhưng nội dung được trình bày bằng tiếng Việt.","Câu trả lời chưa đáp ứng yêu cầu sử dụng tiếng Anh của bài thi.","Hãy chuẩn bị một câu mở đầu tiếng Anh và duy trì tiếng Anh trong toàn bộ phần trả lời."),
+                "WRONG_LANGUAGE_OTHER":("Hệ thống đã nhận được phần trả lời nhưng không xác định được nội dung tiếng Anh phù hợp.","Câu trả lời chưa đáp ứng yêu cầu về ngôn ngữ của bài thi.","Hãy trả lời rõ ràng hoàn toàn bằng tiếng Anh trong lần tiếp theo."),
+                "COMPLETELY_UNRELATED":("Bạn đã tạo được một phần trả lời có thể nhận diện.","Nội dung trả lời không đúng trọng tâm của câu hỏi hoặc không dựa trên thông tin nguồn.","Hãy xác định từng thông tin được hỏi, đối chiếu với tài liệu rồi mới trả lời.")
+              }
+              first,second,third=comments[reason]
+              scores={k:0 for k in ["pronunciation_score", "intonation_fluency_score", "grammar_score", "vocabulary_score", "cohesion_score", "relevance_score", "completeness_score"]}; comment={"strength":first,"improvement":second,"action":third}; comment["text"]=" ".join(comment.values())
+              errors=[{"error_type":"FACTUAL_ACCURACY","severity":"HIGH","count":1,"evidence":[reason],"message_vi":first}]
+              result={"schema_version":"respond-information-question-result-v1","job_id":job_id,"keycode":keycode,"question_id":question_id,"group_code":group_code,"response_profile":response_profile,"status":"COMPLETED",**scores,"question_score_raw":0.0,"question_score_rounded":0,"zero_reason":reason,"rule_signals":{},"applied_rules":["BUSINESS_ZERO_"+reason],"errors":errors,"comment":comment,"versions":{"score_prompt_version":"deterministic-zero-v1"}}
+              env=lambda t,s,d:json.dumps({"schema_version":"respond-information-progress-event-v1","event_type":t,"job_id":job_id,"question_id":question_id,"sequence":s,"data":d},ensure_ascii=False)
+              return {**scores,"question_score_raw":0.0,"question_score_rounded":0,"zero_reason":reason,"errors_json":json.dumps(errors,ensure_ascii=False),"comment_strength":comment["strength"],"comment_improvement":comment["improvement"],"comment_action":comment["action"],"comment_text":comment["text"],"score_event_json":score_event_json or env("SCORE_READY",1,scores),"errors_event_json":env("ERRORS_READY",2,{"errors":errors}),"comment_event_json":env("COMMENT_READY",3,comment),"completed_event_json":env("QUESTION_COMPLETED",4,result),"result_json":json.dumps(result,ensure_ascii=False)}
+        code_language: python3
+        outputs:
+          pronunciation_score:
+            children:
+            type: number
+          intonation_fluency_score:
+            children:
+            type: number
+          grammar_score:
+            children:
+            type: number
+          vocabulary_score:
+            children:
+            type: number
+          cohesion_score:
+            children:
+            type: number
+          relevance_score:
+            children:
+            type: number
+          completeness_score:
+            children:
+            type: number
+          question_score_raw:
+            children:
+            type: number
+          question_score_rounded:
+            children:
+            type: number
+          zero_reason:
+            children:
+            type: string
+          errors_json:
+            children:
+            type: string
+          comment_strength:
+            children:
+            type: string
+          comment_improvement:
+            children:
+            type: string
+          comment_action:
+            children:
+            type: string
+          comment_text:
+            children:
+            type: string
+          score_event_json:
+            children:
+            type: string
+          errors_event_json:
+            children:
+            type: string
+          comment_event_json:
+            children:
+            type: string
+          completed_event_json:
+            children:
+            type: string
+          result_json:
+            children:
+            type: string
+        selected: false
+        title: Build Upstream Zero Result
+        type: code
+        variables:
+        - value_selector:
+          - rui-v1-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - rui-v1-start
+          - keycode
+          value_type: string
+          variable: keycode
+        - value_selector:
+          - rui-v1-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - rui-v1-start
+          - group_code
+          value_type: string
+          variable: group_code
+        - value_selector:
+          - rui-v1-start
+          - response_profile
+          value_type: string
+          variable: response_profile
+        - value_selector:
+          - rui-v1-validate
+          - normalized_zero_reason
+          value_type: string
+          variable: zero_reason
+      height: 54
+      id: rui-v1-upstream-zero
+      position:
+        x: 1360
+        y: 80
+      positionAbsolute:
+        x: 1360
+        y: 80
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        code: |
+          import json
+          def main(job_id, question_id, validation_errors_json) -> dict:
+              try: errors = json.loads(validation_errors_json or "[]")
+              except Exception: errors = ["invalid input"]
+              result = {"schema_version":"respond-information-question-result-v1","job_id":job_id,"question_id":question_id,"status":"FAILED","failure_code":"INVALID_INPUT","failure_details":errors}
+              return {"status":"FAILED","failure_code":"INVALID_INPUT","failure_details_json":json.dumps(errors,ensure_ascii=False),"result_json":json.dumps(result,ensure_ascii=False)}
+        code_language: python3
+        outputs:
+          status:
+            children:
+            type: string
+          failure_code:
+            children:
+            type: string
+          failure_details_json:
+            children:
+            type: string
+          result_json:
+            children:
+            type: string
+        selected: false
+        title: Build Invalid Input Result
+        type: code
+        variables:
+        - value_selector:
+          - rui-v1-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - rui-v1-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - rui-v1-validate
+          - validation_errors_json
+          value_type: string
+          variable: validation_errors_json
+      height: 54
+      id: rui-v1-invalid
+      position:
+        x: 1360
+        y: 760
+      positionAbsolute:
+        x: 1360
+        y: 760
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        code: |
+          import json, math, re
+          SCORE_KEYS = ["pronunciation_score","intonation_fluency_score","grammar_score","vocabulary_score","cohesion_score","relevance_score","completeness_score"]
+          STOPWORDS = {"a","an","and","are","as","at","be","by","do","does","for","from","how","i","if","in","is","it","of","on","or","the","this","to","what","when","where","which","who","why","with","would","you","your"}
+          def required_integer(value, label):
+              if value is None or value == "": raise ValueError(label + " is required")
+              try: parsed = int(value)
+              except Exception: raise ValueError(label + " must be an integer")
+              if parsed < 0 or parsed > 3: raise ValueError(label + " must be between 0 and 3")
+              return parsed
+          def integer(value, default=0):
+              try: return int(value)
+              except Exception: return default
+          def number(value, default=0.0):
+              try: return float(value)
+              except Exception: return default
+          def as_bool(value, default=False):
+              if isinstance(value, bool): return value
+              if isinstance(value, (int, float)): return value != 0
+              if isinstance(value, str):
+                  normalized=value.strip().lower()
+                  if normalized in {"true","1","yes","on"}: return True
+                  if normalized in {"false","0","no","off",""}: return False
+              return default
+          def terms(value):
+              return {token for token in re.findall(r"[a-z0-9]+", str(value or "").lower()) if len(token) > 2 and token not in STOPWORDS}
+          def main(job_id, question_id, response_profile, response_word_count, audio_duration_seconds,
+                   question, context, transcript, score_output) -> dict:
+              if isinstance(score_output, str):
+                  try: raw=json.loads(score_output)
+                  except Exception: raise ValueError("score_output must be valid JSON")
+              elif isinstance(score_output, dict): raw=score_output
+              else: raise ValueError("score_output is required")
+              scores = {k:required_integer(raw.get(k), k) for k in SCORE_KEYS}
+              alignment=max(0.0,min(1.0,number(raw.get("topic_alignment_ratio"))))
+              words=max(0,integer(response_word_count)); seconds=max(0.0,number(audio_duration_seconds))
+              task_terms=terms(str(question or "") + " " + str(context or "")); response_terms=terms(transcript)
+              matched_terms=sorted(task_terms & response_terms)
+              text_alignment=min(1.0, len(matched_terms) / max(1, min(5, len(task_terms))))
+              signals={"topic_alignment_ratio":round(alignment,4),"text_alignment_ratio":round(text_alignment,4),"matched_topic_term_count":len(matched_terms),"subquestions_total":max(1,integer(raw.get("subquestions_total"),1)),"subquestions_answered":max(0,integer(raw.get("subquestions_answered"))),"requested_details_total":max(0,integer(raw.get("requested_details_total"))),"requested_details_correct":max(0,integer(raw.get("requested_details_correct"))),"factual_error":as_bool(raw.get("factual_error")) if True else False,"response_word_count":words,"effective_speaking_seconds":seconds,"cut_off":as_bool(raw.get("cut_off")),"excessive_fillers":as_bool(raw.get("excessive_fillers")),"long_hesitation":as_bool(raw.get("long_hesitation")),"completely_unrelated":as_bool(raw.get("completely_unrelated"))}
+              rules=[]
+              if signals["completely_unrelated"] and (alignment >= 0.50 or len(matched_terms) >= 2):
+                  signals["completely_unrelated"]=False
+                  signals["topic_alignment_ratio"]=max(signals["topic_alignment_ratio"],0.50)
+                  rules.append("UNRELATED_SIGNAL_OVERRIDDEN_BY_TEXT_ALIGNMENT")
+              zero = signals["completely_unrelated"] and signals["topic_alignment_ratio"] < 0.50 and len(matched_terms) < 2
+              if zero:
+                  scores={k:0 for k in SCORE_KEYS}; reason="COMPLETELY_UNRELATED"; rules.append("COMPLETELY_UNRELATED_ZERO")
+              else:
+                  reason="NONE"; scores={k:max(1,v) for k,v in scores.items()}
+                  long_form=response_profile in {"EXTENDED_RESPONSE","MULTI_ITEM_INFORMATION"}
+                  # Q5/Q6 and Q8/Q9 may be fully correct in one concise sentence. Only
+                  # cap truly minimal short-form attempts; use a stronger threshold for Q7/Q10.
+                  if (long_form and (words < 15 or seconds < 10)) or (not long_form and (words < 4 or seconds < 3)):
+                      scores["completeness_score"]=min(scores["completeness_score"],1)
+                      scores["cohesion_score"]=min(scores["cohesion_score"],2)
+                      rules.append("SHORT_RESPONSE_COMPLETENESS_CAP")
+                  if signals["factual_error"]:
+                      scores["relevance_score"]=min(scores["relevance_score"],1)
+                      scores["completeness_score"]=min(scores["completeness_score"],1)
+                      rules.append("MATERIAL_FACTUAL_ERROR_TASK_CAP")
+                  if signals["cut_off"]:
+                      scores["cohesion_score"]=max(1,scores["cohesion_score"]-1)
+                      scores["completeness_score"]=min(scores["completeness_score"],2)
+                      rules.append("CUT_OFF_PENALTY")
+                  if signals["excessive_fillers"] or signals["long_hesitation"]: scores["intonation_fluency_score"]=max(1,scores["intonation_fluency_score"]-1); rules.append("DISRUPTED_DELIVERY_PENALTY")
+                  if (not long_form and seconds < 5) or (long_form and seconds < 12): scores["completeness_score"]=min(scores["completeness_score"],2); rules.append("PACING_COMPLETENESS_CAP")
+              avg=sum(scores.values())/7.0; rounded=math.floor(avg+0.5)
+              data={**scores,"question_score_raw":avg,"question_score_rounded":rounded,"zero_reason":reason,"rule_signals":signals,"applied_rules":list(dict.fromkeys(rules))}
+              event={"schema_version":"respond-information-progress-event-v1","event_type":"SCORE_READY","job_id":job_id,"question_id":question_id,"sequence":1,"data":data}
+              return {**scores,"question_score_raw":avg,"question_score_rounded":rounded,"zero_reason":reason,"rule_signals_json":json.dumps(signals,ensure_ascii=False),"applied_rules_json":json.dumps(data["applied_rules"],ensure_ascii=False),"score_event_json":json.dumps(event,ensure_ascii=False)}
+        code_language: python3
+        outputs:
+          pronunciation_score:
+            children:
+            type: number
+          intonation_fluency_score:
+            children:
+            type: number
+          grammar_score:
+            children:
+            type: number
+          vocabulary_score:
+            children:
+            type: number
+          cohesion_score:
+            children:
+            type: number
+          relevance_score:
+            children:
+            type: number
+          completeness_score:
+            children:
+            type: number
+          question_score_raw:
+            children:
+            type: number
+          question_score_rounded:
+            children:
+            type: number
+          zero_reason:
+            children:
+            type: string
+          rule_signals_json:
+            children:
+            type: string
+          applied_rules_json:
+            children:
+            type: string
+          score_event_json:
+            children:
+            type: string
+        selected: false
+        title: Apply Rules and Normalize Score
+        type: code
+        variables:
+        - value_selector:
+          - rui-v1-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - rui-v1-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - rui-v1-start
+          - response_profile
+          value_type: string
+          variable: response_profile
+        - value_selector:
+          - rui-v1-start
+          - response_word_count
+          value_type: number
+          variable: response_word_count
+        - value_selector:
+          - rui-v1-start
+          - audio_duration_seconds
+          value_type: number
+          variable: audio_duration_seconds
+        - value_selector:
+          - rui-v1-start
+          - question
+          value_type: string
+          variable: question
+        - value_selector:
+          - rui-v1-start
+          - context
+          value_type: string
+          variable: context
+        - value_selector:
+          - rui-v1-start
+          - transcript
+          value_type: string
+          variable: transcript
+        - value_selector:
+          - rui-v1-score-aggregator
+          - output
+          value_type: object
+          variable: score_output
+      height: 54
+      id: rui-v1-normalize-score
+      position:
+        x: 2050
+        y: 400
+      positionAbsolute:
+        x: 2050
+        y: 400
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: score-zero-condition
+            value: COMPLETELY_UNRELATED
+            varType: string
+            variable_selector:
+            - rui-v1-normalize-score
+            - zero_reason
+          id: 'true'
+          logical_operator: and
+        selected: false
+        title: Zero Score?
+        type: if-else
+      height: 126
+      id: rui-v1-zero-gate
+      position:
+        x: 2390
+        y: 400
+      positionAbsolute:
+        x: 2390
+        y: 400
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 250
+      zIndex: 0
+    - data:
+        code: |
+          import json
+          def main(job_id,keycode,question_id,group_code,response_profile,zero_reason,score_event_json=None)->dict:
+              reason=zero_reason if zero_reason in {"NO_SPEECH","WRONG_LANGUAGE_VI","WRONG_LANGUAGE_OTHER","COMPLETELY_UNRELATED"} else "NO_SPEECH"
+              comments={
+                "NO_SPEECH":("Không phát hiện phần trả lời có giọng nói.","Câu này chưa có nội dung tiếng Anh để đánh giá.","Hãy kiểm tra micro và bắt đầu trả lời ngay sau tín hiệu ghi âm."),
+                "WRONG_LANGUAGE_VI":("Hệ thống đã nhận được phần trả lời nhưng nội dung được trình bày bằng tiếng Việt.","Câu trả lời chưa đáp ứng yêu cầu sử dụng tiếng Anh của bài thi.","Hãy chuẩn bị một câu mở đầu tiếng Anh và duy trì tiếng Anh trong toàn bộ phần trả lời."),
+                "WRONG_LANGUAGE_OTHER":("Hệ thống đã nhận được phần trả lời nhưng không xác định được nội dung tiếng Anh phù hợp.","Câu trả lời chưa đáp ứng yêu cầu về ngôn ngữ của bài thi.","Hãy trả lời rõ ràng hoàn toàn bằng tiếng Anh trong lần tiếp theo."),
+                "COMPLETELY_UNRELATED":("Bạn đã tạo được một phần trả lời có thể nhận diện.","Nội dung trả lời không đúng trọng tâm của câu hỏi hoặc không dựa trên thông tin nguồn.","Hãy xác định từng thông tin được hỏi, đối chiếu với tài liệu rồi mới trả lời.")
+              }
+              first,second,third=comments[reason]
+              scores={k:0 for k in ["pronunciation_score", "intonation_fluency_score", "grammar_score", "vocabulary_score", "cohesion_score", "relevance_score", "completeness_score"]}; comment={"strength":first,"improvement":second,"action":third}; comment["text"]=" ".join(comment.values())
+              errors=[{"error_type":"FACTUAL_ACCURACY","severity":"HIGH","count":1,"evidence":[reason],"message_vi":first}]
+              result={"schema_version":"respond-information-question-result-v1","job_id":job_id,"keycode":keycode,"question_id":question_id,"group_code":group_code,"response_profile":response_profile,"status":"COMPLETED",**scores,"question_score_raw":0.0,"question_score_rounded":0,"zero_reason":reason,"rule_signals":{},"applied_rules":["BUSINESS_ZERO_"+reason],"errors":errors,"comment":comment,"versions":{"score_prompt_version":"deterministic-zero-v1"}}
+              env=lambda t,s,d:json.dumps({"schema_version":"respond-information-progress-event-v1","event_type":t,"job_id":job_id,"question_id":question_id,"sequence":s,"data":d},ensure_ascii=False)
+              return {**scores,"question_score_raw":0.0,"question_score_rounded":0,"zero_reason":reason,"errors_json":json.dumps(errors,ensure_ascii=False),"comment_strength":comment["strength"],"comment_improvement":comment["improvement"],"comment_action":comment["action"],"comment_text":comment["text"],"score_event_json":score_event_json or env("SCORE_READY",1,scores),"errors_event_json":env("ERRORS_READY",2,{"errors":errors}),"comment_event_json":env("COMMENT_READY",3,comment),"completed_event_json":env("QUESTION_COMPLETED",4,result),"result_json":json.dumps(result,ensure_ascii=False)}
+        code_language: python3
+        outputs:
+          pronunciation_score:
+            children:
+            type: number
+          intonation_fluency_score:
+            children:
+            type: number
+          grammar_score:
+            children:
+            type: number
+          vocabulary_score:
+            children:
+            type: number
+          cohesion_score:
+            children:
+            type: number
+          relevance_score:
+            children:
+            type: number
+          completeness_score:
+            children:
+            type: number
+          question_score_raw:
+            children:
+            type: number
+          question_score_rounded:
+            children:
+            type: number
+          zero_reason:
+            children:
+            type: string
+          errors_json:
+            children:
+            type: string
+          comment_strength:
+            children:
+            type: string
+          comment_improvement:
+            children:
+            type: string
+          comment_action:
+            children:
+            type: string
+          comment_text:
+            children:
+            type: string
+          score_event_json:
+            children:
+            type: string
+          errors_event_json:
+            children:
+            type: string
+          comment_event_json:
+            children:
+            type: string
+          completed_event_json:
+            children:
+            type: string
+          result_json:
+            children:
+            type: string
+        selected: false
+        title: Build Scored Zero Result
+        type: code
+        variables:
+        - value_selector:
+          - rui-v1-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - rui-v1-start
+          - keycode
+          value_type: string
+          variable: keycode
+        - value_selector:
+          - rui-v1-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - rui-v1-start
+          - group_code
+          value_type: string
+          variable: group_code
+        - value_selector:
+          - rui-v1-start
+          - response_profile
+          value_type: string
+          variable: response_profile
+        - value_selector:
+          - rui-v1-normalize-score
+          - zero_reason
+          value_type: string
+          variable: zero_reason
+        - value_selector:
+          - rui-v1-normalize-score
+          - score_event_json
+          value_type: string
+          variable: score_event_json
+      height: 54
+      id: rui-v1-scored-zero
+      position:
+        x: 2730
+        y: 180
+      positionAbsolute:
+        x: 2730
+        y: 180
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"errors":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"error_type":{"type":"string","enum":["FACTUAL_ACCURACY","REQUESTED_DETAIL","INFORMATION_DELIVERY","GRAMMAR","VOCABULARY","PRONUNCIATION","INTONATION_FLUENCY","COHESION"]},"severity":{"type":"string","enum":["LOW","MEDIUM","HIGH"]},"count":{"type":"integer","minimum":1},"evidence":{"type":"array","items":{"type":"string"}},"message_vi":{"type":"string"}},"required":["error_type","severity","count","evidence","message_vi"]}}},"required":["errors"]}'
+            max_output_tokens: 2500
+            temperature: 0.1
+            thinking_budget: 0
+            thinking_mode: false
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: rui-v1-errors-system
+          role: system
+          text: |
+            Analyze errors for one TOEIC Speaking Respond Using Information response. Scores are locked; never rescore.
+            Use the supplied question as the task requirement, transcript for exact language/content evidence, candidate audio for pronunciation and delivery, and the supplied information context as the sole source of factual truth. Never invent evidence.
+
+            Use only: FACTUAL_ACCURACY, REQUESTED_DETAIL, INFORMATION_DELIVERY, GRAMMAR, VOCABULARY, PRONUNCIATION, INTONATION_FLUENCY, COHESION.
+
+            ERROR DEFINITIONS
+            FACTUAL_ACCURACY: a concrete statement contradicts the supplied schedule, document, table, image, date, time, place, person, price, or other source fact. Do not use this for a missing detail, and do not treat a plausible STT spelling of a proper noun as a factual error when surrounding facts match.
+            REQUESTED_DETAIL: the response is on the correct source/topic but omits one or more items explicitly requested by the question. State the missing requested item in evidence; do not invent what was not requested.
+            INFORMATION_DELIVERY: the candidate selected or presented source information ineffectively, such as giving an unclear answer, mixing facts, or failing to make the requested relationship understandable. Do not use this merely for one grammar error.
+            GRAMMAR: a concrete error in sentence structure, tense, agreement, articles, prepositions, word form, or another grammatical form. Evidence must quote the shortest transcript phrase that shows the error.
+            VOCABULARY: an incorrect, imprecise, unnatural, or repeatedly overused word or expression that weakens meaning. Do not use this for a pronunciation problem or a factual contradiction.
+            PRONUNCIATION: inaccurate sounds, endings, or word stress that are clearly supported by the audio and reduce intelligibility. Evidence must identify the affected spoken word or short phrase; do not infer pronunciation from STT text alone.
+            INTONATION_FLUENCY: excessive hesitation, fillers, repetition, unnatural pausing, disrupted pace, rhythm, pitch, or phrasing clearly supported by the audio. Do not classify these delivery problems as pronunciation.
+            COHESION: ideas are ordered or connected unclearly, causing a fragmented or hard-to-follow response. Use this for organization and logical connection, not merely because the response is short or contains a grammar mistake.
+
+            SEVERITY
+            LOW: one isolated minor issue with little effect on meaning or task fulfillment.
+            MEDIUM: a noticeable or repeated issue that weakens clarity, accuracy, or fulfillment but the response remains understandable.
+            HIGH: a dominant or severe issue that substantially blocks understanding, contradicts the source, or leaves a major task requirement unmet.
+
+            OUTPUT AND CONSISTENCY RULES
+            - Return every clearly supported category, including LOW issues, but keep one object per error_type. Combine multiple occurrences of that type into one object.
+            - count is the number of distinct supported occurrences after deduplication, not the number of repeated mentions in your explanation. evidence must contain one unique item per counted occurrence, so count must equal evidence.length.
+            - evidence must contain one or more short, concrete transcript/audio/source-grounded phrases. For a missing requirement, evidence must name the omitted requested item. Never use a generic score label as evidence.
+            - For PRONUNCIATION evidence, name the affected spoken word or short phrase and describe only the audible issue in plain language. Do not invent IPA or a target pronunciation that the audio does not support.
+            - A rule-grounded delivery or completion error may cite a concrete rule signal, for example "audio ends before the final idea is completed" or "requested place is not answered". Never fabricate transcript wording to satisfy the non-empty-error requirement.
+            - message_vi must explain that specific error in concise factual Vietnamese; it must not be generic feedback or a practice recommendation.
+            - Do not duplicate one real-world issue under multiple types. When categories overlap, choose the type that best explains the primary problem.
+            - Keep severity consistent with the corresponding locked component: score 3 permits no error or an isolated LOW error only; score 2 normally supports LOW or MEDIUM; score 1 normally supports MEDIUM or HIGH when concrete evidence exists. Never create an error merely to force this mapping.
+            - When every locked component score is 3 and nothing is clearly supported, return {"errors": []}. Do not invent an error for a genuinely clean response.
+            - When one or more locked component scores are below 3, return at least one concrete supported error that explains the weakest relevant component. Never return an empty list for a non-perfect result.
+            - Return errors only. Do not return feedback, score changes, rationale, transcript, markdown, or extra fields.
+        - id: rui-v1-errors-user
+          role: user
+          text: |-
+            QUESTION PROFILE {{#rui-v1-start.response_profile#}}
+            QUESTION {{#rui-v1-start.question#}}
+            CONTEXT {{#rui-v1-start.context#}}
+            TRANSCRIPT {{#rui-v1-start.transcript#}}
+            CANDIDATE AUDIO {{#rui-v1-start.student_audio#}}
+            LOCKED SCORES AND RULE SIGNALS {{#rui-v1-normalize-score.score_event_json#}}
+            SOURCE IMAGE {{#rui-v1-start.context_image#}}
+            VALIDATION: if any locked component score is below 3, errors=[] is invalid; return at least one concrete supported error tied to the weakest score or rule signal.
+            Return supported error objects only.
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    error_type:
+                      type: string
+                      enum:
+                      - FACTUAL_ACCURACY
+                      - REQUESTED_DETAIL
+                      - INFORMATION_DELIVERY
+                      - GRAMMAR
+                      - VOCABULARY
+                      - PRONUNCIATION
+                      - INTONATION_FLUENCY
+                      - COHESION
+                    severity:
+                      type: string
+                      enum:
+                      - LOW
+                      - MEDIUM
+                      - HIGH
+                    count:
+                      type: integer
+                      minimum: 1
+                    evidence:
+                      type: array
+                      items:
+                        type: string
+                    message_vi:
+                      type: string
+                  required:
+                  - error_type
+                  - severity
+                  - count
+                  - evidence
+                  - message_vi
+            required:
+            - errors
+        structured_output_enabled: true
+        title: Detect Compact Error List
+        type: llm
+        vision:
+          configs:
+            detail: high
+            variable_selector:
+            - rui-v1-start
+            - context_image
+          enabled: true
+      height: 118
+      id: rui-v1-errors
+      position:
+        x: 2730
+        y: 520
+      positionAbsolute:
+        x: 2730
+        y: 520
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        code: |
+          import json
+          ALLOWED=["FACTUAL_ACCURACY", "REQUESTED_DETAIL", "INFORMATION_DELIVERY", "GRAMMAR", "VOCABULARY", "PRONUNCIATION", "INTONATION_FLUENCY", "COHESION"]; RANK={"LOW":1,"MEDIUM":2,"HIGH":3}
+          SCORE_KEY={"GRAMMAR":"grammar_score","VOCABULARY":"vocabulary_score","PRONUNCIATION":"pronunciation_score","INTONATION_FLUENCY":"intonation_fluency_score","COHESION":"cohesion_score","TASK_RELEVANCE":"relevance_score","TASK_COMPLETENESS":"completeness_score","CONTENT_DEVELOPMENT":"completeness_score","FACTUAL_ACCURACY":"relevance_score","REQUESTED_DETAIL":"completeness_score","INFORMATION_DELIVERY":"cohesion_score"}
+          def positive_count(value):
+              try: return max(1,min(99,int(value)))
+              except Exception: return 1
+          def main(job_id,question_id,error_output,rule_signals_json,pronunciation_score,intonation_fluency_score,grammar_score,vocabulary_score,cohesion_score,relevance_score,completeness_score)->dict:
+              scores={"pronunciation_score":int(pronunciation_score),"intonation_fluency_score":int(intonation_fluency_score),"grammar_score":int(grammar_score),"vocabulary_score":int(vocabulary_score),"cohesion_score":int(cohesion_score),"relevance_score":int(relevance_score),"completeness_score":int(completeness_score)}
+              try: signals=json.loads(rule_signals_json or "{}")
+              except Exception: signals={}
+              if not isinstance(error_output,dict) or not isinstance(error_output.get("errors"),list):
+                  raise ValueError("error_output.errors must be a list")
+              grouped={}
+              for x in error_output.get("errors",[]):
+                  if not isinstance(x,dict): continue
+                  k=str(x.get("error_type","")).upper(); sev=str(x.get("severity","")).upper()
+                  if k not in ALLOWED or sev not in RANK: continue
+                  ev=x.get("evidence",[]); ev=ev if isinstance(ev,list) else [ev]; ev=[" ".join(str(v).split())[:160] for v in ev if str(v).strip()]
+                  if not ev: continue
+                  if scores.get(SCORE_KEY.get(k))==3 and sev=="HIGH": sev="MEDIUM"
+                  cur=grouped.get(k,{"error_type":k,"severity":sev,"count":0,"evidence":[],"message_vi":""}); cur["evidence"]=list(dict.fromkeys(cur["evidence"]+ev)); cur["count"]=len(cur["evidence"]); cur["severity"]=sev if RANK[sev]>RANK[cur["severity"]] else cur["severity"]; msg=" ".join(str(x.get("message_vi","")).split())[:280]; cur["message_vi"]=msg if len(msg)>len(cur["message_vi"]) else cur["message_vi"]; grouped[k]=cur
+              errors=[e for e in grouped.values() if e["message_vi"]]
+              if min(scores.values()) < 3 and not errors:
+                  missing_details=max(0,int(signals.get("requested_details_total",0))-int(signals.get("requested_details_correct",0)))
+                  missing_subquestions=max(0,int(signals.get("subquestions_total",0))-int(signals.get("subquestions_answered",0)))
+                  if True and missing_details>0:
+                      errors=[{"error_type":"REQUESTED_DETAIL","severity":"MEDIUM","count":1,"evidence":[f"{missing_details} requested source detail(s) were not correctly covered"],"message_vi":"Câu trả lời chưa cung cấp chính xác và đầy đủ tất cả thông tin được hỏi từ nguồn."}]
+                  elif missing_subquestions>0:
+                      errors=[{"error_type":"REQUESTED_DETAIL","severity":"MEDIUM","count":1,"evidence":[f"{missing_subquestions} applicable question requirement(s) were not answered"],"message_vi":"Câu trả lời còn thiếu ít nhất một nội dung được hỏi trực tiếp."}]
+                  elif signals.get("cut_off"):
+                      errors=[{"error_type":"INFORMATION_DELIVERY","severity":"MEDIUM","count":1,"evidence":["audio ends before the final idea is completed"],"message_vi":"Phần trả lời kết thúc khi ý cuối chưa được hoàn thành."}]
+                  elif signals.get("excessive_fillers") or signals.get("long_hesitation"):
+                      errors=[{"error_type":"INTONATION_FLUENCY","severity":"MEDIUM","count":1,"evidence":["locked delivery signals identify repeated fillers or long hesitation"],"message_vi":"Ngập ngừng hoặc từ đệm làm gián đoạn đáng kể độ trôi chảy của phần trả lời."}]
+                  else:
+                      weakest=min(scores,key=scores.get); fallback_type={"pronunciation_score":"PRONUNCIATION","intonation_fluency_score":"INTONATION_FLUENCY","grammar_score":"GRAMMAR","vocabulary_score":"VOCABULARY","cohesion_score":"COHESION","relevance_score":"INFORMATION_DELIVERY","completeness_score":"REQUESTED_DETAIL"}[weakest]
+                      errors=[{"error_type":fallback_type,"severity":"LOW" if scores[weakest]==2 else "MEDIUM","count":1,"evidence":["normalized locked assessment identifies a limitation in "+weakest.replace("_score","")],"message_vi":"Kết quả chấm đã khóa cho thấy tiêu chí này vẫn còn hạn chế cần cải thiện."}]
+              summary="; ".join([f'{e["error_type"]}:{e["severity"]}({e["count"]})' for e in errors]) or "NONE"; data={"errors":errors,"summary":summary}; event={"schema_version":"respond-information-progress-event-v1","event_type":"ERRORS_READY","job_id":job_id,"question_id":question_id,"sequence":2,"data":data}; return {"errors_json":json.dumps(errors,ensure_ascii=False),"error_counts_json":json.dumps({e["error_type"]:e["count"] for e in errors}),"error_summary":summary,"errors_event_json":json.dumps(event,ensure_ascii=False)}
+        code_language: python3
+        outputs:
+          errors_json:
+            children:
+            type: string
+          error_counts_json:
+            children:
+            type: string
+          error_summary:
+            children:
+            type: string
+          errors_event_json:
+            children:
+            type: string
+        selected: false
+        title: Normalize and Summarize Errors
+        type: code
+        variables:
+        - value_selector:
+          - rui-v1-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - rui-v1-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - rui-v1-errors
+          - structured_output
+          value_type: object
+          variable: error_output
+        - value_selector:
+          - rui-v1-normalize-score
+          - rule_signals_json
+          value_type: string
+          variable: rule_signals_json
+        - value_selector:
+          - rui-v1-normalize-score
+          - pronunciation_score
+          value_type: number
+          variable: pronunciation_score
+        - value_selector:
+          - rui-v1-normalize-score
+          - intonation_fluency_score
+          value_type: number
+          variable: intonation_fluency_score
+        - value_selector:
+          - rui-v1-normalize-score
+          - grammar_score
+          value_type: number
+          variable: grammar_score
+        - value_selector:
+          - rui-v1-normalize-score
+          - vocabulary_score
+          value_type: number
+          variable: vocabulary_score
+        - value_selector:
+          - rui-v1-normalize-score
+          - cohesion_score
+          value_type: number
+          variable: cohesion_score
+        - value_selector:
+          - rui-v1-normalize-score
+          - relevance_score
+          value_type: number
+          variable: relevance_score
+        - value_selector:
+          - rui-v1-normalize-score
+          - completeness_score
+          value_type: number
+          variable: completeness_score
+      height: 54
+      id: rui-v1-normalize-errors
+      position:
+        x: 3070
+        y: 520
+      positionAbsolute:
+        x: 3070
+        y: 520
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"strength":{"type":"string"},"improvement":{"type":"string"},"action":{"type":"string"}},"required":["strength","improvement","action"]}'
+            max_output_tokens: 1500
+            temperature: 0.2
+            thinking_budget: 0
+            thinking_mode: false
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: rui-v1-comment-system
+          role: system
+          text: |
+            Write concise Vietnamese feedback for one TOEIC Speaking Respond Using Information response.
+
+            Return exactly three structured fields, each containing exactly one complete sentence:
+            strength: one specific positive observation supported by the strongest locked component score and the supplied evidence.
+            improvement: the single most important weakness supported by the highest-severity normalized error; for equal severity prefer the error tied to the weakest component score and task fulfillment.
+            action: one concrete next-attempt practice action that directly addresses that selected weakness.
+
+            PROFILE-SPECIFIC FEEDBACK
+            - SHORT_INFORMATION (Q8/Q9): reward a concise answer when the requested source fact is correct; do not demand unnecessary expansion.
+            - MULTI_ITEM_INFORMATION (Q10): prioritize factual accuracy, coverage of every requested item, and clear organization of multiple facts.
+            - When FACTUAL_ACCURACY exists, improvement must prioritize the incorrect source fact unless another HIGH error blocks intelligibility completely.
+            - When REQUESTED_DETAIL exists, action must tell the learner to identify every requested item before speaking and check each one against the source.
+
+            FEEDBACK SAFETY
+            - Use only the seven locked component scores, response profile, rule signals, and normalized errors.
+            - Never invent a spoken word, source fact, omitted requirement, reason, strength, or error that is absent from those inputs. A strength may reference only a score-supported task behavior: intelligibility, continuity, language control, organization, relevance, completeness, or source accuracy.
+            - Prefer task fulfillment first: when relevance, completeness, FACTUAL_ACCURACY, TASK_RELEVANCE, TASK_COMPLETENESS, or REQUESTED_DETAIL is the weakest area, improvement and action must address it before grammar, vocabulary, or delivery.
+            - When errors is empty and all component scores are 3, acknowledge the strongest task-specific behavior and recommend maintaining it.
+            - When errors is empty but one or more component scores are below 3, base improvement on the lowest component and keep the wording general enough not to invent evidence.
+            - When every component is 1, strength must be neutral: acknowledge only that the candidate produced an assessable attempt; do not claim strong accuracy, completeness, fluency, or language control.
+            - Do not praise completeness when completeness_score is 1, relevance when relevance_score is 1, or factual accuracy when a factual/source error is present.
+            - For information questions, never praise factual accuracy when FACTUAL_ACCURACY exists or when relevance_score is 1; never praise full coverage when REQUESTED_DETAIL exists or completeness_score is 1.
+            - Do not mention numeric scores, AI, model, rubric, JSON, internal error labels, or rule names.
+            - Write directly to the learner using "Bạn". Keep each sentence concise, normally 12-30 Vietnamese words, and do not combine multiple priorities into improvement or action.
+        - id: rui-v1-comment-user
+          role: user
+          text: |
+            question_id={{#rui-v1-start.question_id#}}
+            question_text={{#rui-v1-start.question#}}
+            context={{#rui-v1-start.context#}}
+            response_profile={{#rui-v1-start.response_profile#}}
+            pronunciation={{#rui-v1-normalize-score.pronunciation_score#}}
+            intonation_fluency={{#rui-v1-normalize-score.intonation_fluency_score#}}
+            grammar={{#rui-v1-normalize-score.grammar_score#}}
+            vocabulary={{#rui-v1-normalize-score.vocabulary_score#}}
+            cohesion={{#rui-v1-normalize-score.cohesion_score#}}
+            relevance={{#rui-v1-normalize-score.relevance_score#}}
+            completeness={{#rui-v1-normalize-score.completeness_score#}}
+            question_score={{#rui-v1-normalize-score.question_score_rounded#}}
+            rule_signals={{#rui-v1-normalize-score.rule_signals_json#}}
+            error_summary={{#rui-v1-normalize-errors.error_summary#}}
+            errors={{#rui-v1-normalize-errors.errors_json#}}
+            Return the three Vietnamese feedback fields only.
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              strength:
+                type: string
+              improvement:
+                type: string
+              action:
+                type: string
+            required:
+            - strength
+            - improvement
+            - action
+        structured_output_enabled: true
+        title: Write Three-Sentence Comment
+        type: llm
+        vision:
+          enabled: false
+      height: 118
+      id: rui-v1-comment
+      position:
+        x: 3410
+        y: 520
+      positionAbsolute:
+        x: 3410
+        y: 520
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    - data:
+        code: |
+          import json, re
+          def one_sentence(value, fallback):
+              text=" ".join(str(value or "").split()).strip() or fallback
+              chunks=[part.strip() for part in re.split(r"(?<=[.!?])\s+",text) if part.strip()]
+              text=chunks[0] if chunks else fallback
+              if text[-1:] not in ".!?”": text += "."
+              return text[:360]
+          def main(job_id,keycode,question_id,group_code,response_profile,pronunciation_score,
+                   intonation_fluency_score,grammar_score,vocabulary_score,cohesion_score,
+                   relevance_score,completeness_score,question_score_raw,question_score_rounded,
+                   rule_signals_json,applied_rules_json,score_event_json,errors_json,
+                   errors_event_json,comment_output)->dict:
+              output=comment_output if isinstance(comment_output,dict) else {}
+              strength=one_sentence(output.get("strength"),"Bạn đã tạo được phần trả lời có thể đối chiếu với thông tin nguồn.")
+              improvement=one_sentence(output.get("improvement"),"Bạn cần chọn và trình bày chính xác, đầy đủ hơn các thông tin được yêu cầu.")
+              action=one_sentence(output.get("action"),"Hãy gạch chân từng dữ kiện được hỏi, đối chiếu với nguồn và kiểm tra lại trước khi nói.")
+              comment={"strength":strength,"improvement":improvement,"action":action,"text":" ".join([strength,improvement,action])}
+              try: errors=json.loads(errors_json or "[]")
+              except Exception: errors=[]
+              try: signals=json.loads(rule_signals_json or "{}")
+              except Exception: signals={}
+              try: rules=json.loads(applied_rules_json or "[]")
+              except Exception: rules=[]
+              scores={"pronunciation_score":int(pronunciation_score),"intonation_fluency_score":int(intonation_fluency_score),"grammar_score":int(grammar_score),"vocabulary_score":int(vocabulary_score),"cohesion_score":int(cohesion_score),"relevance_score":int(relevance_score),"completeness_score":int(completeness_score)}
+              result={"schema_version":"respond-information-question-result-v1","job_id":job_id,"keycode":keycode,"question_id":question_id,"group_code":group_code,"response_profile":response_profile,"status":"COMPLETED",**scores,"question_score_raw":float(question_score_raw),"question_score_rounded":int(question_score_rounded),"zero_reason":None,"rule_signals":signals,"applied_rules":rules,"errors":errors,"comment":comment,"versions":{"rubric_version":"respond-information-rubric-v1","score_prompt_version":"respond-information-score-v3","error_prompt_version":"respond-information-error-v4","comment_prompt_version":"respond-information-comment-v4"}}
+              envelope=lambda event_type,sequence,data:json.dumps({"schema_version":"respond-information-progress-event-v1","event_type":event_type,"job_id":job_id,"question_id":question_id,"sequence":sequence,"data":data},ensure_ascii=False)
+              return {**scores,"question_score_raw":float(question_score_raw),"question_score_rounded":int(question_score_rounded),"zero_reason":"NONE","errors_json":json.dumps(errors,ensure_ascii=False),"comment_strength":strength,"comment_improvement":improvement,"comment_action":action,"comment_text":comment["text"],"score_event_json":score_event_json,"errors_event_json":errors_event_json,"comment_event_json":envelope("COMMENT_READY",3,comment),"completed_event_json":envelope("QUESTION_COMPLETED",4,result),"result_json":json.dumps(result,ensure_ascii=False)}
+        code_language: python3
+        outputs:
+          pronunciation_score:
+            children:
+            type: number
+          intonation_fluency_score:
+            children:
+            type: number
+          grammar_score:
+            children:
+            type: number
+          vocabulary_score:
+            children:
+            type: number
+          cohesion_score:
+            children:
+            type: number
+          relevance_score:
+            children:
+            type: number
+          completeness_score:
+            children:
+            type: number
+          question_score_raw:
+            children:
+            type: number
+          question_score_rounded:
+            children:
+            type: number
+          zero_reason:
+            children:
+            type: string
+          errors_json:
+            children:
+            type: string
+          comment_strength:
+            children:
+            type: string
+          comment_improvement:
+            children:
+            type: string
+          comment_action:
+            children:
+            type: string
+          comment_text:
+            children:
+            type: string
+          score_event_json:
+            children:
+            type: string
+          errors_event_json:
+            children:
+            type: string
+          comment_event_json:
+            children:
+            type: string
+          completed_event_json:
+            children:
+            type: string
+          result_json:
+            children:
+            type: string
+        selected: false
+        title: Validate Comment and Assemble Result
+        type: code
+        variables:
+        - value_selector:
+          - rui-v1-start
+          - job_id
+          value_type: string
+          variable: job_id
+        - value_selector:
+          - rui-v1-start
+          - keycode
+          value_type: string
+          variable: keycode
+        - value_selector:
+          - rui-v1-start
+          - question_id
+          value_type: string
+          variable: question_id
+        - value_selector:
+          - rui-v1-start
+          - group_code
+          value_type: string
+          variable: group_code
+        - value_selector:
+          - rui-v1-start
+          - response_profile
+          value_type: string
+          variable: response_profile
+        - value_selector:
+          - rui-v1-normalize-score
+          - pronunciation_score
+          value_type: number
+          variable: pronunciation_score
+        - value_selector:
+          - rui-v1-normalize-score
+          - intonation_fluency_score
+          value_type: number
+          variable: intonation_fluency_score
+        - value_selector:
+          - rui-v1-normalize-score
+          - grammar_score
+          value_type: number
+          variable: grammar_score
+        - value_selector:
+          - rui-v1-normalize-score
+          - vocabulary_score
+          value_type: number
+          variable: vocabulary_score
+        - value_selector:
+          - rui-v1-normalize-score
+          - cohesion_score
+          value_type: number
+          variable: cohesion_score
+        - value_selector:
+          - rui-v1-normalize-score
+          - relevance_score
+          value_type: number
+          variable: relevance_score
+        - value_selector:
+          - rui-v1-normalize-score
+          - completeness_score
+          value_type: number
+          variable: completeness_score
+        - value_selector:
+          - rui-v1-normalize-score
+          - question_score_raw
+          value_type: number
+          variable: question_score_raw
+        - value_selector:
+          - rui-v1-normalize-score
+          - question_score_rounded
+          value_type: number
+          variable: question_score_rounded
+        - value_selector:
+          - rui-v1-normalize-score
+          - rule_signals_json
+          value_type: string
+          variable: rule_signals_json
+        - value_selector:
+          - rui-v1-normalize-score
+          - applied_rules_json
+          value_type: string
+          variable: applied_rules_json
+        - value_selector:
+          - rui-v1-normalize-score
+          - score_event_json
+          value_type: string
+          variable: score_event_json
+        - value_selector:
+          - rui-v1-normalize-errors
+          - errors_json
+          value_type: string
+          variable: errors_json
+        - value_selector:
+          - rui-v1-normalize-errors
+          - errors_event_json
+          value_type: string
+          variable: errors_event_json
+        - value_selector:
+          - rui-v1-comment
+          - structured_output
+          value_type: object
+          variable: comment_output
+      height: 54
+      id: rui-v1-assemble
+      position:
+        x: 3750
+        y: 520
+      positionAbsolute:
+        x: 3750
+        y: 520
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 300
+      zIndex: 0
+    - data:
+        advanced_settings:
+          group_enabled: false
+          groups:
+          - groupId: rui-v1-result-group
+            group_name: Question Result
+            output_type: string
+            variables:
+            - - rui-v1-upstream-zero
+              - result_json
+            - - rui-v1-invalid
+              - result_json
+            - - rui-v1-scored-zero
+              - result_json
+            - - rui-v1-assemble
+              - result_json
+        output_type: string
+        selected: false
+        title: Merge Question Result
+        type: variable-aggregator
+        variables:
+        - - rui-v1-upstream-zero
+          - result_json
+        - - rui-v1-invalid
+          - result_json
+        - - rui-v1-scored-zero
+          - result_json
+        - - rui-v1-assemble
+          - result_json
+      height: 180
+      id: rui-v1-result-aggregator
+      position:
+        x: 4110
+        y: 400
+      positionAbsolute:
+        x: 4110
+        y: 400
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    - data:
+        outputs:
+        - value_selector:
+          - rui-v1-result-aggregator
+          - output
+          value_type: string
+          variable: result_json
+        selected: false
+        title: RESPOND_USING_INFORMATION Question Result
+        type: end
+      height: 110
+      id: rui-v1-end
+      position:
+        x: 4480
+        y: 430
+      positionAbsolute:
+        x: 4480
+        y: 430
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: extended
+          conditions:
+          - comparison_operator: is
+            id: profile-condition
+            value: MULTI_ITEM_INFORMATION
+            varType: string
+            variable_selector:
+            - rui-v1-start
+            - response_profile
+          id: extended
+          logical_operator: and
+        selected: false
+        title: Question Profile Route
+        type: if-else
+      height: 126
+      id: rui-v1-profile-route
+      position:
+        x: 1020
+        y: 360
+      positionAbsolute:
+        x: 1020
+        y: 360
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 250
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"pronunciation_score":{"type":"integer","enum":[0,1,2,3]},"intonation_fluency_score":{"type":"integer","enum":[0,1,2,3]},"grammar_score":{"type":"integer","enum":[0,1,2,3]},"vocabulary_score":{"type":"integer","enum":[0,1,2,3]},"cohesion_score":{"type":"integer","enum":[0,1,2,3]},"relevance_score":{"type":"integer","enum":[0,1,2,3]},"completeness_score":{"type":"integer","enum":[0,1,2,3]},"topic_alignment_ratio":{"type":"number","minimum":0,"maximum":1},"subquestions_total":{"type":"integer","minimum":1},"subquestions_answered":{"type":"integer","minimum":0},"requested_details_total":{"type":"integer","minimum":0},"requested_details_correct":{"type":"integer","minimum":0},"factual_error":{"type":"boolean"},"cut_off":{"type":"boolean"},"excessive_fillers":{"type":"boolean"},"long_hesitation":{"type":"boolean"},"completely_unrelated":{"type":"boolean"}},"required":["pronunciation_score","intonation_fluency_score","grammar_score","vocabulary_score","cohesion_score","relevance_score","completeness_score","topic_alignment_ratio","subquestions_total","subquestions_answered","requested_details_total","requested_details_correct","factual_error","cut_off","excessive_fillers","long_hesitation","completely_unrelated"]}'
+            max_output_tokens: 3000
+            temperature: 0.1
+            thinking_budget: 0
+            thinking_mode: false
+            thinking_level: Low
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: rui-v1-score-short-system
+          role: system
+          text: |
+            You are an official IIG Viet Nam examiner grading TOEIC Speaking Questions 8-10: Respond Using Information.
+            Upstream STT is complete. Never transcribe again. Use transcript for language/content evidence and candidate audio only for pronunciation, intelligibility, rhythm, pauses and fluency. Use the supplied document/context as the sole factual source. Phonetically similar proper nouns count as correct when adjacent time, title, or location details match.
+            Q8/Q9 are concise 15-second information responses. A concise one- or two-sentence answer may earn full relevance and completeness; do not require paragraph-level development.
+            Return the compact structured object immediately. Do not narrate, deliberate step by step, repeat the rubric, or spend output tokens on hidden analysis.
+
+            Score each criterion independently from 0 to 3. Do not let one strong or weak criterion automatically determine another.
+
+            CRITERION-SPECIFIC ANCHORS
+            pronunciation_score: 3 = consistently intelligible with only isolated minor sound, ending, or stress lapses; 2 = generally intelligible but several noticeable lapses or first-language influence require some listener effort; 1 = frequently unclear and understandable only in parts; 0 = reserved for the business-zero condition below.
+            intonation_fluency_score: 3 = natural-enough pace, phrasing, pausing, rhythm, and pitch with only minor lapses; 2 = generally continuous but noticeable hesitation, fillers, repetition, or unnatural phrasing; 1 = heavily disrupted, fragmented, or laborious delivery; 0 = reserved for the business-zero condition below.
+            grammar_score: 3 = effective control of structures needed for the task with only minor non-disruptive errors; 2 = adequate control with several noticeable errors but meaning remains clear; 1 = very limited structures or frequent errors that obscure relationships or meaning; 0 = reserved for the business-zero condition below.
+            vocabulary_score: 3 = precise and appropriate words for the requested content with only minor lapses; 2 = adequate but limited, repetitive, or occasionally imprecise wording; 1 = very limited or frequently inappropriate wording that weakens meaning; 0 = reserved for the business-zero condition below.
+            cohesion_score: 3 = ideas are logically ordered and clearly connected for the response length; 2 = organization is understandable but connections or progression lapse noticeably; 1 = ideas are isolated, repetitive, or difficult to follow; 0 = reserved for the business-zero condition below. A concise Q5/Q6/Q8/Q9 answer does not need explicit linking words to earn 3.
+            relevance_score: 3 = directly answers the requested focus and presents the source facts accurately; 2 = mainly relevant with a minor drift, ambiguity, or partially indirect answer; 1 = only partly addresses the requested focus or contains major task-level weakness or a material source contradiction; 0 = reserved for the business-zero condition below.
+            completeness_score: 3 = answers every applicable requested item with enough information for this response profile; 2 = answers the core request but misses or underdevelops one applicable item; 1 = provides only a minimal fragment or leaves a major applicable requirement unanswered; 0 = reserved for the business-zero condition below.
+
+            BUSINESS-ZERO CONDITION
+            Use score 0 in all seven criteria only when completely_unrelated is true: the response clearly answers a different topic/question and topic_alignment_ratio is below 0.50. Silence and wrong-language cases are handled upstream. An assessable English attempt that addresses any applicable requested item is not completely unrelated and must receive at least 1 in every criterion.
+
+            COUNTING RULES
+            - subquestions_total counts independent applicable answer obligations in the question. A yes/no clause plus a conditional "if yes/no" follow-up counts as one applicable obligation when the condition is not met and two when it is met. A candidate who truthfully answers "No" must not be penalized for omitting an "If yes" detail.
+            - subquestions_answered counts obligations that receive a recognizable answer, even when the language is imperfect. It must never exceed subquestions_total.
+            - requested_details_total counts explicit atomic facts requested from the supplied information, such as one time, person, place, topic, price, or activity. Do not count background facts that were not requested.
+            - requested_details_correct counts requested facts that agree with the source. It must never exceed requested_details_total. A missing fact lowers completeness; a contradictory fact may also lower relevance and set factual_error=true.
+
+            SIGNAL RULES
+            - topic_alignment_ratio is 0..1 and measures semantic task alignment, not grammar quality.
+            - factual_error is true only for at least one material contradiction with the supplied source. A missing detail alone is not a factual error, and a plausible STT spelling of a proper noun is acceptable when adjacent facts match.
+            - cut_off is true only when the audio audibly ends during an unfinished word, phrase, or essential final idea; ending briefly or concisely is not cut-off.
+            - excessive_fillers is true when fillers or false starts recur enough to noticeably disrupt delivery, normally at least three clear occurrences; one isolated filler is false.
+            - long_hesitation is true when one pause is approximately two seconds or longer, or repeated pauses create an equivalent major disruption; normal phrase-boundary pauses are false.
+
+            CONSISTENCY RULES
+            - completely_unrelated may be true only when topic_alignment_ratio is below 0.50 and the candidate clearly answers a different topic or question.
+            - If the transcript directly answers a yes/no, choice, amount, reason, preference, feature, time, place, person, or other requested item, completely_unrelated must be false and relevance_score must be at least 1.
+            - Repeating a key topic entity alone is insufficient, but providing any plausible answer about the requested focus is an on-topic attempt even when grammar is weak, the answer is self-corrected, or one requested detail is incomplete.
+            - A contradictory, awkward, short, or incomplete on-topic answer is never completely_unrelated.
+            - Boolean signals must be real JSON booleans, never strings such as "true" or "false".
+
+            Populate every required field exactly once. Do not return rationale, errors, feedback, transcript, markdown or final score. Deterministic code applies targeted caps and rounding.
+        - id: rui-v1-score-short-user
+          role: user
+          text: |-
+            QUESTION: {{#rui-v1-start.question#}}
+            CONTEXT: {{#rui-v1-start.context#}}
+            TRANSCRIPT: {{#rui-v1-start.transcript#}}
+            AUDIO: {{#rui-v1-start.student_audio#}}
+            CONTEXT IMAGE: {{#rui-v1-start.context_image#}}
+            Return structured preliminary scores and signals only.
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          schema: &1
+            type: object
+            additionalProperties: false
+            properties:
+              pronunciation_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+              intonation_fluency_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+              grammar_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+              vocabulary_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+              cohesion_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+              relevance_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+              completeness_score:
+                type: integer
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+              topic_alignment_ratio:
+                type: number
+                minimum: 0
+                maximum: 1
+              subquestions_total:
+                type: integer
+                minimum: 1
+              subquestions_answered:
+                type: integer
+                minimum: 0
+              requested_details_total:
+                type: integer
+                minimum: 0
+              requested_details_correct:
+                type: integer
+                minimum: 0
+              factual_error:
+                type: boolean
+              cut_off:
+                type: boolean
+              excessive_fillers:
+                type: boolean
+              long_hesitation:
+                type: boolean
+              completely_unrelated:
+                type: boolean
+            required:
+            - pronunciation_score
+            - intonation_fluency_score
+            - grammar_score
+            - vocabulary_score
+            - cohesion_score
+            - relevance_score
+            - completeness_score
+            - topic_alignment_ratio
+            - subquestions_total
+            - subquestions_answered
+            - requested_details_total
+            - requested_details_correct
+            - factual_error
+            - cut_off
+            - excessive_fillers
+            - long_hesitation
+            - completely_unrelated
+        structured_output_enabled: true
+        title: Score Q8-Q9
+        type: llm
+        vision:
+          configs:
+            detail: high
+            variable_selector:
+            - rui-v1-start
+            - context_image
+          enabled: true
+      height: 118
+      id: rui-v1-score-short
+      position:
+        x: 1360
+        y: 280
+      positionAbsolute:
+        x: 1360
+        y: 280
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        model:
+          completion_params:
+            json_schema: '{"type":"object","additionalProperties":false,"properties":{"pronunciation_score":{"type":"integer","enum":[0,1,2,3]},"intonation_fluency_score":{"type":"integer","enum":[0,1,2,3]},"grammar_score":{"type":"integer","enum":[0,1,2,3]},"vocabulary_score":{"type":"integer","enum":[0,1,2,3]},"cohesion_score":{"type":"integer","enum":[0,1,2,3]},"relevance_score":{"type":"integer","enum":[0,1,2,3]},"completeness_score":{"type":"integer","enum":[0,1,2,3]},"topic_alignment_ratio":{"type":"number","minimum":0,"maximum":1},"subquestions_total":{"type":"integer","minimum":1},"subquestions_answered":{"type":"integer","minimum":0},"requested_details_total":{"type":"integer","minimum":0},"requested_details_correct":{"type":"integer","minimum":0},"factual_error":{"type":"boolean"},"cut_off":{"type":"boolean"},"excessive_fillers":{"type":"boolean"},"long_hesitation":{"type":"boolean"},"completely_unrelated":{"type":"boolean"}},"required":["pronunciation_score","intonation_fluency_score","grammar_score","vocabulary_score","cohesion_score","relevance_score","completeness_score","topic_alignment_ratio","subquestions_total","subquestions_answered","requested_details_total","requested_details_correct","factual_error","cut_off","excessive_fillers","long_hesitation","completely_unrelated"]}'
+            max_output_tokens: 3000
+            temperature: 0.1
+            thinking_budget: 0
+            thinking_mode: false
+            thinking_level: Low
+          mode: chat
+          name: gemini-3.8-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: rui-v1-score-extended-system
+          role: system
+          text: |
+            You are an official IIG Viet Nam examiner grading TOEIC Speaking Questions 8-10: Respond Using Information.
+            Upstream STT is complete. Never transcribe again. Use transcript for language/content evidence and candidate audio only for pronunciation, intelligibility, rhythm, pauses and fluency. Use the supplied document/context as the sole factual source. Phonetically similar proper nouns count as correct when adjacent time, title, or location details match.
+            Q10 is a 30-second multi-detail response. Expect a developed answer that covers every requested item and organizes multiple facts clearly.
+            Return the compact structured object immediately. Do not narrate, deliberate step by step, repeat the rubric, or spend output tokens on hidden analysis.
+
+            Score each criterion independently from 0 to 3. Do not let one strong or weak criterion automatically determine another.
+
+            CRITERION-SPECIFIC ANCHORS
+            pronunciation_score: 3 = consistently intelligible with only isolated minor sound, ending, or stress lapses; 2 = generally intelligible but several noticeable lapses or first-language influence require some listener effort; 1 = frequently unclear and understandable only in parts; 0 = reserved for the business-zero condition below.
+            intonation_fluency_score: 3 = natural-enough pace, phrasing, pausing, rhythm, and pitch with only minor lapses; 2 = generally continuous but noticeable hesitation, fillers, repetition, or unnatural phrasing; 1 = heavily disrupted, fragmented, or laborious delivery; 0 = reserved for the business-zero condition below.
+            grammar_score: 3 = effective control of structures needed for the task with only minor non-disruptive errors; 2 = adequate control with several noticeable errors but meaning remains clear; 1 = very limited structures or frequent errors that obscure relationships or meaning; 0 = reserved for the business-zero condition below.
+            vocabulary_score: 3 = precise and appropriate words for the requested content with only minor lapses; 2 = adequate but limited, repetitive, or occasionally imprecise wording; 1 = very limited or frequently inappropriate wording that weakens meaning; 0 = reserved for the business-zero condition below.
+            cohesion_score: 3 = ideas are logically ordered and clearly connected for the response length; 2 = organization is understandable but connections or progression lapse noticeably; 1 = ideas are isolated, repetitive, or difficult to follow; 0 = reserved for the business-zero condition below. A concise Q5/Q6/Q8/Q9 answer does not need explicit linking words to earn 3.
+            relevance_score: 3 = directly answers the requested focus and presents the source facts accurately; 2 = mainly relevant with a minor drift, ambiguity, or partially indirect answer; 1 = only partly addresses the requested focus or contains major task-level weakness or a material source contradiction; 0 = reserved for the business-zero condition below.
+            completeness_score: 3 = answers every applicable requested item with enough information for this response profile; 2 = answers the core request but misses or underdevelops one applicable item; 1 = provides only a minimal fragment or leaves a major applicable requirement unanswered; 0 = reserved for the business-zero condition below.
+
+            BUSINESS-ZERO CONDITION
+            Use score 0 in all seven criteria only when completely_unrelated is true: the response clearly answers a different topic/question and topic_alignment_ratio is below 0.50. Silence and wrong-language cases are handled upstream. An assessable English attempt that addresses any applicable requested item is not completely unrelated and must receive at least 1 in every criterion.
+
+            COUNTING RULES
+            - subquestions_total counts independent applicable answer obligations in the question. A yes/no clause plus a conditional "if yes/no" follow-up counts as one applicable obligation when the condition is not met and two when it is met. A candidate who truthfully answers "No" must not be penalized for omitting an "If yes" detail.
+            - subquestions_answered counts obligations that receive a recognizable answer, even when the language is imperfect. It must never exceed subquestions_total.
+            - requested_details_total counts explicit atomic facts requested from the supplied information, such as one time, person, place, topic, price, or activity. Do not count background facts that were not requested.
+            - requested_details_correct counts requested facts that agree with the source. It must never exceed requested_details_total. A missing fact lowers completeness; a contradictory fact may also lower relevance and set factual_error=true.
+
+            SIGNAL RULES
+            - topic_alignment_ratio is 0..1 and measures semantic task alignment, not grammar quality.
+            - factual_error is true only for at least one material contradiction with the supplied source. A missing detail alone is not a factual error, and a plausible STT spelling of a proper noun is acceptable when adjacent facts match.
+            - cut_off is true only when the audio audibly ends during an unfinished word, phrase, or essential final idea; ending briefly or concisely is not cut-off.
+            - excessive_fillers is true when fillers or false starts recur enough to noticeably disrupt delivery, normally at least three clear occurrences; one isolated filler is false.
+            - long_hesitation is true when one pause is approximately two seconds or longer, or repeated pauses create an equivalent major disruption; normal phrase-boundary pauses are false.
+
+            CONSISTENCY RULES
+            - completely_unrelated may be true only when topic_alignment_ratio is below 0.50 and the candidate clearly answers a different topic or question.
+            - If the transcript directly answers a yes/no, choice, amount, reason, preference, feature, time, place, person, or other requested item, completely_unrelated must be false and relevance_score must be at least 1.
+            - Repeating a key topic entity alone is insufficient, but providing any plausible answer about the requested focus is an on-topic attempt even when grammar is weak, the answer is self-corrected, or one requested detail is incomplete.
+            - A contradictory, awkward, short, or incomplete on-topic answer is never completely_unrelated.
+            - Boolean signals must be real JSON booleans, never strings such as "true" or "false".
+
+            Populate every required field exactly once. Do not return rationale, errors, feedback, transcript, markdown or final score. Deterministic code applies targeted caps and rounding.
+        - id: rui-v1-score-extended-user
+          role: user
+          text: |-
+            QUESTION: {{#rui-v1-start.question#}}
+            CONTEXT: {{#rui-v1-start.context#}}
+            TRANSCRIPT: {{#rui-v1-start.transcript#}}
+            AUDIO: {{#rui-v1-start.student_audio#}}
+            CONTEXT IMAGE: {{#rui-v1-start.context_image#}}
+            Return structured preliminary scores and signals only.
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 1000
+        selected: false
+        structured_output:
+          schema: *1
+        structured_output_enabled: true
+        title: Score Q10
+        type: llm
+        vision:
+          configs:
+            detail: high
+            variable_selector:
+            - rui-v1-start
+            - context_image
+          enabled: true
+      height: 118
+      id: rui-v1-score-extended
+      position:
+        x: 1360
+        y: 520
+      positionAbsolute:
+        x: 1360
+        y: 520
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 280
+      zIndex: 0
+    - data:
+        advanced_settings:
+          group_enabled: false
+          groups:
+          - groupId: rui-v1-score-group
+            group_name: Score Output
+            output_type: object
+            variables: &2
+            - - rui-v1-score-short
+              - structured_output
+            - - rui-v1-score-extended
+              - structured_output
+        output_type: object
+        selected: false
+        title: Merge Specialized Score Output
+        type: variable-aggregator
+        variables: *2
+      height: 180
+      id: rui-v1-score-aggregator
+      position:
+        x: 1710
+        y: 400
+      positionAbsolute:
+        x: 1710
+        y: 400
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 290
+      zIndex: 0
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.7

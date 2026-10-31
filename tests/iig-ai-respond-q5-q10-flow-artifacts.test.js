@@ -1,0 +1,117 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const artifact = name => fs.readFileSync(
+  path.join(__dirname, `../dify-flows/iig-scoring/${name}`),
+  'utf8'
+);
+
+test('Q5-Q7 question flow keeps the extended-speaking contract and specialized scorers', () => {
+  const source = artifact('03-respond-to-questions-v1.yml');
+  assert.match(source, /name: IIG Respond to Questions Q5-Q7 Flow v2/);
+  assert.match(source, /respond-questions-question-input-v1/);
+  assert.match(source, /respond-questions-question-result-v1/);
+  assert.match(source, /respond-questions-progress-event-v1/);
+  assert.match(source, /title: Score Q5-Q6/);
+  assert.match(source, /title: Score Q7/);
+  assert.match(source, /value: EXTENDED_RESPONSE/);
+  assert.match(source, /relevance_score/);
+  assert.match(source, /completeness_score/);
+  assert.match(source, /SHORT_RESPONSE_COMPLETENESS_CAP/);
+  assert.match(source, /UNRELATED_SIGNAL_OVERRIDDEN_BY_TEXT_ALIGNMENT/);
+  assert.match(source, /def as_bool\(value, default=False\):/);
+  assert.doesNotMatch(source, /"factual_error":bool\(raw\.get/);
+  assert.match(source, /Q7 is a 30-second extended response/);
+  assert.match(source, /TASK_RELEVANCE: the response does not directly answer the question/);
+  assert.match(source, /TASK_COMPLETENESS: the response is relevant but leaves one explicitly requested/);
+  assert.match(source, /CONTENT_DEVELOPMENT: the core answer is present but support is too thin/);
+  assert.match(source, /conditional \"if yes\/no\" follow-up/);
+  assert.match(source, /count must equal evidence\.length/);
+  assert.match(source, /normally at least three clear occurrences/);
+  assert.match(source, /GRAMMAR: a concrete error in sentence structure/);
+  assert.match(source, /LOW: one isolated minor issue/);
+  assert.match(source, /evidence must contain one or more short, concrete/);
+  assert.match(source, /SHORT_DIRECT_RESPONSE \(Q5\/Q6\): reward a concise direct answer/);
+  assert.match(source, /EXTENDED_RESPONSE \(Q7\): prioritize a clear answer or position/);
+  assert.match(source, /strength: one specific positive observation supported by the strongest locked component score/);
+  assert.match(source, /question_text=\{\{#rtq-v1-start\.question#\}\}/);
+  assert.match(source, /errors=\[\] is invalid/);
+  assert.match(source, /missing_subquestions=max/);
+  assert.match(source, /pronunciation=\{\{#rtq-v1-normalize-score\.pronunciation_score#\}\}/);
+  assert.match(source, /completeness=\{\{#rtq-v1-normalize-score\.completeness_score#\}\}/);
+  assert.match(source, /respond-questions-score-v3/);
+  assert.match(source, /respond-questions-error-v4/);
+  assert.match(source, /respond-questions-comment-v4/);
+  assert.match(source, /SCORE_READY/);
+  assert.match(source, /ERRORS_READY/);
+  assert.match(source, /COMMENT_READY/);
+  assert.match(source, /max_output_tokens: 3000/);
+  assert.match(source, /thinking_level: Low/);
+  assert.match(source, /max_output_tokens: 2500/);
+  assert.match(source, /max_output_tokens: 1500/);
+  assert.doesNotMatch(source, /context_image|DESCRIBE_PICTURE|READ_TEXT_ALOUD/);
+});
+
+test('Q8-Q10 question flow uses source information and a separate Q10 scorer', () => {
+  const source = artifact('04-respond-using-information-v1.yml');
+  assert.match(source, /name: IIG Respond Using Information Q8-Q10 Flow v2/);
+  assert.match(source, /respond-information-question-input-v1/);
+  assert.match(source, /respond-information-question-result-v1/);
+  assert.match(source, /respond-information-progress-event-v1/);
+  assert.match(source, /title: Score Q8-Q9/);
+  assert.match(source, /title: Score Q10/);
+  assert.match(source, /value: MULTI_ITEM_INFORMATION/);
+  assert.match(source, /variable: context_image/);
+  assert.match(source, /MATERIAL_FACTUAL_ERROR_TASK_CAP/);
+  assert.match(source, /FACTUAL_ACCURACY/);
+  assert.match(source, /REQUESTED_DETAIL/);
+  assert.match(source, /INFORMATION_DELIVERY/);
+  assert.match(source, /FACTUAL_ACCURACY: a concrete statement contradicts the supplied/);
+  assert.match(source, /REQUESTED_DETAIL: the response is on the correct source\/topic but omits/);
+  assert.match(source, /INFORMATION_DELIVERY: the candidate selected or presented source information ineffectively/);
+  assert.match(source, /PRONUNCIATION: inaccurate sounds, endings, or word stress/);
+  assert.match(source, /HIGH: a dominant or severe issue/);
+  assert.match(source, /SHORT_INFORMATION \(Q8\/Q9\): reward a concise answer/);
+  assert.match(source, /MULTI_ITEM_INFORMATION \(Q10\): prioritize factual accuracy/);
+  assert.match(source, /When FACTUAL_ACCURACY exists, improvement must prioritize/);
+  assert.match(source, /A missing fact lowers completeness/);
+  assert.match(source, /count must equal evidence\.length/);
+  assert.match(source, /missing_details=max/);
+  assert.match(source, /requested source detail\(s\) were not correctly covered/);
+  assert.doesNotMatch(source, /For Q5-Q7 without an external information source/);
+  assert.match(source, /question_text=\{\{#rui-v1-start\.question#\}\}/);
+  assert.match(source, /Boolean signals must be real JSON booleans/);
+  assert.match(source, /relevance=\{\{#rui-v1-normalize-score\.relevance_score#\}\}/);
+  assert.match(source, /respond-information-score-v3/);
+  assert.match(source, /respond-information-error-v4/);
+  assert.match(source, /respond-information-comment-v4/);
+  assert.doesNotMatch(source, /DESCRIBE_PICTURE|READ_TEXT_ALOUD/);
+});
+
+test('Q5-Q10 group flow consumes exactly six locked results and returns one score', () => {
+  const source = artifact('03-04-respond-q5-q10-group-v1.yml');
+  assert.match(source, /name: IIG Speaking Q5-Q10 Group Flow v2/);
+  assert.match(source, /respond-q5-q10-group-input-v1/);
+  assert.match(source, /respond-q5-q10-group-result-v1/);
+  assert.match(source, /RESPOND_Q5_Q10/);
+  assert.match(source, /s_q5/);
+  assert.match(source, /s_q10/);
+  assert.match(source, /q7_final/);
+  assert.match(source, /q10_final/);
+  assert.match(source, /LOCKED-SCORE BOUNDARY/);
+  assert.match(source, /EVIDENCE PRIORITY/);
+  assert.match(source, /GROUP SCORE BANDS/);
+  assert.match(source, /DECISION PROCEDURE/);
+  assert.match(source, /Q5-Q6 are short direct responses/);
+  assert.match(source, /Q7 is an extended response/);
+  assert.match(source, /Q8-Q9 are short source-based information responses/);
+  assert.match(source, /Q10 is a longer multi-item source-based response/);
+  assert.match(source, /average final score at least 2\.5/);
+  assert.match(source, /GROUP_HIGH_DISTRIBUTION_FLOOR/);
+  assert.match(source, /respond-q5-q10-group-prompt-v2/);
+  assert.match(source, /GROUP_EXCELLENT_CAP/);
+  assert.match(source, /group_final_score/);
+  assert.doesNotMatch(source, /Describe Picture Group Result|Adjudicate Q3-Q4/);
+});
