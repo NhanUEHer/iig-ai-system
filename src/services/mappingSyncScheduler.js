@@ -29,7 +29,8 @@ async function check(now = new Date(), dependencies = {}) {
     if (!config?.enabled) return null;
     const local = dateParts(now, config.timezone);
     const runTime = String(config.run_time).slice(0, 5);
-    if (local.time < runTime || String(config.last_run_date || '').slice(0, 10) === local.date) return null;
+    const ranToday = String(config.last_run_date || '').slice(0, 10) === local.date;
+    if (local.time < runTime || (ranToday && !['error', 'running'].includes(config.last_status))) return null;
     const claimed = await schedules.claim(local.date);
     if (!claimed) return null;
     try {

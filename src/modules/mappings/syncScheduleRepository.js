@@ -15,7 +15,11 @@ module.exports = {
     const result = await db.query(`UPDATE mapping_sync_schedule SET
       last_run_date=$1, last_run_at=CURRENT_TIMESTAMP, last_status='running',
       last_error=NULL, updated_at=CURRENT_TIMESTAMP
-      WHERE id=1 AND enabled=TRUE AND last_run_date IS DISTINCT FROM $1
+      WHERE id=1 AND enabled=TRUE AND (
+        last_run_date IS DISTINCT FROM $1
+        OR (last_status='error' AND last_run_at < CURRENT_TIMESTAMP - INTERVAL '15 minutes')
+        OR (last_status='running' AND last_run_at < CURRENT_TIMESTAMP - INTERVAL '30 minutes')
+      )
       RETURNING *`, [runDate]);
     return result.rows[0] || null;
   },
