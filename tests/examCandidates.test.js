@@ -27,7 +27,16 @@ test('candidate list displays direct exam activity and scoring result',()=>{
   assert.match(repository,/LEFT JOIN exam_attempts a ON a\.candidate_id=c\.id/);
   assert.match(repository,/LEFT JOIN exams e ON e\.id=a\.exam_id/);
   assert.doesNotMatch(repository,/exam_events|exam_event_id/);
-  assert.match(page,/HOẠT ĐỘNG THÍ SINH|Hoạt động thí sinh/i);
+  assert.match(page,/Danh sách thí sinh/i);
   assert.match(page,/row\.activity\.totalScore/);
   assert.match(page,/row\.activity\.correctCount/);
+});
+
+test('candidate list uses the shared design-system list contract and preserves API filters',()=>{
+  const page=read('frontend/src/features/exam-candidates/pages/ExamCandidateListPage.jsx');
+  ['ListPage','TableToolbar','FilterBar','MultiSelectFilter','DataTable','Pagination','ColumnVisibilityMenu'].forEach(component=>assert.match(page,new RegExp(component)));
+  ['search','examIds','attemptStatuses','schools','page','limit'].forEach(parameter=>assert.match(page,new RegExp(parameter)));
+  assert.match(page,/className="iig3-list-screen candidate-list-page"/);
+  assert.doesNotMatch(page,/components\/ui/);
+  assert.doesNotMatch(page,/<table|<thead|<tbody/);
 });

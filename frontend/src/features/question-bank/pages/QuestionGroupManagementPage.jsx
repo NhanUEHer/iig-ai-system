@@ -1,117 +1,159 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Check, ChevronRight, CircleAlert, Pencil, Plus, Trash2 } from 'lucide-react';
-import { createManagedQuestionGroup, deleteManagedQuestionGroup, listManagedQuestionGroups, updateManagedQuestionGroup } from '../../../services/questionBankService';
-import { Breadcrumb, Button, DataTable, DateDisplay, FormField, Input, Modal, Pagination, Select, Textarea } from '../../../components/ui';
-import MultiSelectFilter from '../../../components/ui/MultiSelectFilter';
-import SearchInput from '../../../components/ui/SearchInput';
-import { useDialog } from '../../../components/feedback/dialogContext';
-import QuestionBankRowActions from '../components/QuestionBankRowActions';
-import './QuestionBankListPage.css';
-import './QuestionBankRowMenu.css';
-import './QuestionBankStitchOverrides.css';
-import './QuestionBankToolbar.css';
-import './QuestionBankTopbar.css';
-import './QuestionBankFilterCompact.css';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Check, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import {
+  Button, CodeText, ColumnVisibilityMenu, ConfirmDialog, DataTable, DateTimeDisplay,
+  FilterBar, FormField, Input, ListPage, Modal, MultiSelectFilter, Pagination,
+  Select, StatusBadge, TableToolbar, Textarea,
+} from '../../../design-system-v2';
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
+import {
+  createManagedQuestionGroup, deleteManagedQuestionGroup,
+  listManagedQuestionGroups, updateManagedQuestionGroup,
+} from '../../../services/questionBankService';
+import { apiError, QUESTION_STATUSES, statusLabel } from '../../question-management/constants';
 import './QuestionGroupManagementPage.css';
-import './QuestionGroupManagementFilterOverrides.css';
-import './QuestionGroupManagementModal.css';
 
-const emptyForm = { name: '', description: '', status: 'ACTIVE' };
-const labels = { ACTIVE: 'Hoạt động', INACTIVE: 'Dừng hoạt động', DRAFT: 'Bản nháp' };
-const statusOptions = [{ value: 'ACTIVE', label: 'Hoạt động' }, { value: 'INACTIVE', label: 'Dừng hoạt động' }, { value: 'DRAFT', label: 'Bản nháp' }];
+const EMPTY_FORM = { name: '', description: '', status: 'ACTIVE' };
+const ALL_COLUMN_KEYS = ['stt', 'code', 'name', 'questionCount', 'updatedAt', 'status'];
 
-function GroupModal({ group, onClose, onSaved, onDelete, showMsg }) {
+function GroupModal({ group, onClose, onSaved, onRequestDelete, showMsg }) {
   const editing = Boolean(group?.id);
-  const [form, setForm] = useState(group ? { name: group.name, description: group.description || '', status: group.status } : emptyForm);
+  const [form, setForm] = useState(group ? { name: group.name, description: group.description || '', status: group.status } : EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const set = (key, value) => setForm(current => ({ ...current, [key]: value }));
+
   const submit = async event => {
     event.preventDefault();
     setError('');
-    if (!form.name.trim()) { setError('Vui lòng nhập tên nhóm câu hỏi.'); return; }
+    if (!form.name.trim()) {
+      setError('Vui lòng nhập tên nhóm câu hỏi.');
+      return;
+    }
+    setSaving(true);
     try {
-      setSaving(true);
-      const result = editing ? await updateManagedQuestionGroup(group.id, form) : await createManagedQuestionGroup(form);
+      const payload = { ...form, name: form.name.trim(), description: form.description.trim() };
+      const response = editing ? await updateManagedQuestionGroup(group.id, payload) : await createManagedQuestionGroup(payload);
       showMsg?.(editing ? 'Đã cập nhật nhóm câu hỏi.' : 'Đã tạo nhóm câu hỏi.', 'success');
-      onSaved(result.data);
+      onSaved(response.data);
     } catch (requestError) {
-      setError(requestError.response?.data?.error || 'Không thể lưu nhóm câu hỏi.');
+      setError(apiError(requestError, 'Không thể lưu nhóm câu hỏi.'));
     } finally {
       setSaving(false);
     }
   };
+
   const footer = <>
-    {editing && <Button type="button" size="sm" variant="danger" className="question-group-delete-button" icon={<Trash2 />} onClick={onDelete}>Xóa nhóm</Button>}
-    <div className="question-group-editor-footer-actions">
-      <Button type="button" size="sm" variant="secondary" onClick={onClose}>Hủy</Button>
-      <Button type="submit" form="question-group-form" size="sm" loading={saving} icon={<Check />}>{editing ? 'Lưu thay đổi' : 'Tạo nhóm'}</Button>
-    </div>
+    {editing && <Button variant="ghost" icon={<Trash2 />} disabled={saving} onClick={() => onRequestDelete(group)}>Xóa nhóm</Button>}
+    <span className="question-group-modal__spacer" />
+    <Button variant="outline" disabled={saving} onClick={onClose}>Hủy</Button>
+    <Button form="question-group-form" type="submit" loading={saving} icon={<Check />}>{editing ? 'Lưu thay đổi' : 'Tạo nhóm'}</Button>
   </>;
-  return <Modal open title={editing ? 'Cập nhật nhóm câu hỏi' : 'Thêm mới nhóm câu hỏi'} onClose={onClose} footer={footer} className="question-group-modal">
-    <form id="question-group-form" className="question-group-form-grid" onSubmit={submit}>
-      <FormField id="question-group-name" label="Tên nhóm câu hỏi" required className="full"><Input id="question-group-name" value={form.name} maxLength="240" onChange={event => set('name', event.target.value)} placeholder="Nhập tên nhóm câu hỏi (VD: Luyện thi IELTS - Listening Section 1)..." autoFocus /></FormField>
-      <FormField id="question-group-description" label="Mô tả nhóm" className="full"><Textarea id="question-group-description" value={form.description} maxLength="2000" onChange={event => set('description', event.target.value)} placeholder="Mô tả ngắn gọn về mục đích sử dụng của nhóm câu hỏi này..." rows="3" /></FormField>
-      <FormField id="question-group-status" label={editing ? 'Trạng thái' : 'Trạng thái ban đầu'} required className="full"><Select id="question-group-status" value={form.status} onChange={event => set('status', event.target.value)}>{statusOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</Select></FormField>
-      {editing && <div className="question-group-linked full"><CircleAlert /><span>Đang liên kết với <strong>{group.questionCount} câu hỏi</strong> trong ngân hàng đề thi</span></div>}
-      {error && <p className="question-group-form-error full" role="alert">{error}</p>}
+
+  return <Modal open title={editing ? 'Cập nhật nhóm câu hỏi' : 'Thêm nhóm câu hỏi'} description={editing ? 'Chỉnh sửa thông tin phân loại của nhóm câu hỏi.' : 'Tạo nhóm phân loại mới cho ngân hàng câu hỏi.'} footer={footer} onClose={saving ? undefined : onClose}>
+    <form id="question-group-form" className="question-group-form" onSubmit={submit}>
+      <FormField label="Tên nhóm câu hỏi" required error={error}>
+        <Input value={form.name} maxLength={240} onChange={event => set('name', event.target.value)} placeholder="Nhập tên nhóm câu hỏi…" autoFocus />
+      </FormField>
+      <FormField label="Mô tả nhóm" description={`${form.description.length}/2.000 ký tự`}>
+        <Textarea value={form.description} maxLength={2000} onChange={event => set('description', event.target.value)} placeholder="Mô tả ngắn gọn mục đích sử dụng…" rows={4} />
+      </FormField>
+      <FormField label={editing ? 'Trạng thái' : 'Trạng thái ban đầu'} required>
+        <Select value={form.status} onChange={event => set('status', event.target.value)}>
+          {QUESTION_STATUSES.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </Select>
+      </FormField>
+      {editing && <p className="question-group-form__linked">Đang liên kết với <strong>{group.questionCount || 0} câu hỏi</strong>.</p>}
     </form>
   </Modal>;
 }
 
 export default function QuestionGroupManagementPage({ showMsg, canManage = false }) {
-  const { confirm } = useDialog();
   const [query, setQuery] = useState({ search: '', statuses: [], page: 1, limit: 10 });
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search);
   const [result, setResult] = useState({ data: [], meta: { page: 1, limit: 10, total: 0, totalPages: 1 } });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [modal, setModal] = useState(null);
-  const [selected, setSelected] = useState([]);
+  const [modalGroup, setModalGroup] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [visibleColumnKeys, setVisibleColumnKeys] = useState(ALL_COLUMN_KEYS);
+
+  const setFilter = (key, value) => setQuery(current => ({ ...current, [key]: value, ...(key === 'page' ? {} : { page: 1 }) }));
+  useEffect(() => setQuery(current => current.search === debouncedSearch ? current : { ...current, search: debouncedSearch, page: 1 }), [debouncedSearch]);
+
   const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
     try {
-      setLoading(true);
-      setError('');
-      setResult(await listManagedQuestionGroups({ ...query, statuses: query.statuses.join(',') }));
+      const response = await listManagedQuestionGroups({ ...query, search: query.search || undefined, statuses: query.statuses.join(',') || undefined });
+      setResult(response);
     } catch (requestError) {
-      const message = requestError.response?.data?.error || 'Không thể tải danh sách nhóm câu hỏi.';
-      setError(message);
-      showMsg?.(message, 'error');
+      setError(apiError(requestError, 'Không thể tải danh sách nhóm câu hỏi.'));
     } finally {
       setLoading(false);
     }
-  }, [query, showMsg]);
+  }, [query]);
+
   useEffect(() => { load(); }, [load]);
-  const updateQuery = (key, value) => setQuery(current => ({ ...current, [key]: value, ...(key !== 'page' ? { page: 1 } : {}) }));
-  const remove = async group => {
-    if (!await confirm({ title: 'Xóa nhóm câu hỏi?', message: `Nhóm “${group.name}” sẽ bị xóa vĩnh viễn.`, confirmText: 'Xóa nhóm' })) return;
+
+  const remove = async () => {
+    if (!pendingDelete || deleting) return;
+    setDeleting(true);
     try {
-      await deleteManagedQuestionGroup(group.id);
+      await deleteManagedQuestionGroup(pendingDelete.id);
       showMsg?.('Đã xóa nhóm câu hỏi.', 'success');
-      load();
+      setPendingDelete(null);
+      await load();
     } catch (requestError) {
-      showMsg?.(requestError.response?.data?.error || 'Không thể xóa nhóm câu hỏi.', 'error');
+      showMsg?.(apiError(requestError, 'Không thể xóa nhóm câu hỏi.'), 'error');
+    } finally {
+      setDeleting(false);
     }
   };
+
   const meta = result.meta || {};
-  const rows = result.data || [];
-  const columns = [
-    { key: 'rowNumber', label: 'STT', className: 'is-center', width: 64, render: (_group, index) => ((meta.page || 1) - 1) * (meta.limit || 10) + index + 1 },
-    { key: 'code', label: 'Mã nhóm', render: group => <code>{group.code}</code> },
-    { key: 'name', label: 'Tên nhóm câu hỏi', render: group => <strong>{group.name}</strong> },
-    { key: 'questionCount', label: 'Số lượng câu hỏi', className: 'is-center', render: group => `${group.questionCount} câu hỏi` },
-    { key: 'updatedAt', label: 'Ngày cập nhật', render: group => <DateDisplay value={group.updatedAt} includeTime /> },
-    { key: 'status', label: 'Trạng thái', className: 'is-center', render: group => <span className={`question-bank-status is-${String(group.status).toLowerCase()}`}><i />{labels[group.status] || group.status}</span> },
-    ...(canManage ? [{ key: 'actions', label: 'Thao tác', className: 'question-bank-actions is-center', render: group => <QuestionBankRowActions actions={[{ label: 'Chỉnh sửa', icon: <Pencil />, onClick: () => setModal(group) }, { label: 'Xóa nhóm', icon: <Trash2 />, danger: true, onClick: () => remove(group) }]} /> }] : []),
+  const allColumns = useMemo(() => [
+    { key: 'stt', label: 'STT', align: 'center', width: 64, render: (_row, index) => ((meta.page || 1) - 1) * (meta.limit || 10) + index + 1 },
+    { key: 'code', label: 'Mã nhóm', width: 140, render: row => <CodeText className="iig3-list-code">{row.code}</CodeText> },
+    { key: 'name', label: 'Tên nhóm câu hỏi', sortable: true, width: 320, render: row => <strong className="question-group-list__name">{row.name}</strong> },
+    { key: 'questionCount', label: 'Số câu hỏi', sortable: true, sortType: 'number', align: 'center', width: 130, render: row => row.questionCount || 0 },
+    { key: 'updatedAt', label: 'Ngày cập nhật', sortable: true, sortType: 'date', width: 170, render: row => <DateTimeDisplay value={row.updatedAt} /> },
+    { key: 'status', label: 'Trạng thái', sortable: true, align: 'center', width: 150, render: row => <StatusBadge status={row.status} label={statusLabel(row.status)} /> },
+  ], [meta.limit, meta.page]);
+  const columns = allColumns.filter(column => visibleColumnKeys.includes(column.key));
+  const createButton = canManage ? <Button size="sm" icon={<Plus />} onClick={() => setModalGroup({})}>Thêm mới</Button> : null;
+  const rowActions = row => [
+    { label: 'Chỉnh sửa', icon: <Pencil />, onClick: () => setModalGroup(row) },
+    { label: 'Xóa nhóm', icon: <Trash2 />, danger: true, onClick: () => setPendingDelete(row) },
   ];
-  return <section className="question-bank-page question-group-list-page">
-    <header className="question-bank-topbar"><Breadcrumb separator={<ChevronRight />} items={[{ label: 'Ngân hàng câu hỏi' }, { label: 'Quản lý nhóm câu hỏi', current: true }]} /></header>
-    <main className="question-bank-workspace">
-      <section className="question-bank-filter-card"><div className="question-bank-filter-row"><div className="question-bank-filters"><SearchInput value={query.search} onChange={event => updateQuery('search', event.target.value)} onClear={() => updateQuery('search', '')} placeholder="Tìm kiếm theo tên nhóm..." /><MultiSelectFilter options={statusOptions} value={query.statuses} onApply={value => updateQuery('statuses', value)} placeholder="Tất cả trạng thái" selectedLabel="Trạng thái" allLabel="Tất cả trạng thái" searchPlaceholder="Tìm trạng thái..." /></div>{canManage && <Button type="button" size="sm" className="question-bank-create-button" icon={<Plus />} onClick={() => setModal({})}>Thêm nhóm câu hỏi</Button>}</div></section>
-      <section className="question-bank-table-card">
-        <DataTable columns={columns} data={rows} rowKey="id" loading={loading} error={error} selectable={canManage} selectedRowKeys={selected} onSelectionChange={setSelected} />
-        <Pagination summaryLabel="Tổng" page={meta.page || 1} pageSize={meta.limit || 10} total={meta.total || 0} onPageChange={page => updateQuery('page', page)} onPageSizeChange={limit => setQuery(current => ({ ...current, limit, page: 1 }))} />
-      </section>
-    </main>
-    {modal && <GroupModal group={modal.id ? modal : null} onClose={() => setModal(null)} onSaved={() => { setModal(null); load(); }} onDelete={() => { const group = modal; setModal(null); remove(group); }} showMsg={showMsg} />}
-  </section>;
+  const clearFilters = () => { setSearch(''); setQuery(current => ({ ...current, search: '', statuses: [], page: 1 })); };
+
+  return <div className="iig3-list-screen question-group-list-page"><ListPage
+    breadcrumb={[{ label: 'Ngân hàng câu hỏi', href: '/question-bank' }, { label: 'Danh sách nhóm câu hỏi' }]}
+    title="Danh sách nhóm câu hỏi"
+    toolbar={<>
+      <TableToolbar title="Tất cả nhóm câu hỏi" count={meta.total || 0} loading={loading} actions={createButton} view={<ColumnVisibilityMenu columns={allColumns} visibleKeys={visibleColumnKeys} requiredKeys={['name']} onChange={setVisibleColumnKeys} />} />
+      <FilterBar search={search} onSearch={event => setSearch(event.target.value)} placeholder="Tìm tên hoặc mã nhóm…" filters={<MultiSelectFilter label="Trạng thái" options={QUESTION_STATUSES} value={query.statuses} onChange={value => setFilter('statuses', value)} placeholder="Tất cả trạng thái" searchPlaceholder="Tìm trạng thái…" />} appliedCount={query.statuses.length} onClear={clearFilters} loading={loading} />
+    </>}
+    table={<DataTable
+      ariaLabel="Danh sách nhóm câu hỏi"
+      columns={columns}
+      rows={result.data || []}
+      rowKey="id"
+      loading={loading}
+      error={error}
+      errorAction={<Button variant="outline" size="sm" icon={<RotateCcw />} onClick={load}>Thử lại</Button>}
+      emptyTitle="Chưa có nhóm câu hỏi"
+      emptyDescription="Không có nhóm câu hỏi phù hợp với bộ lọc hiện tại."
+      emptyAction={query.statuses.length || search ? <Button variant="outline" size="sm" onClick={clearFilters}>Xóa bộ lọc</Button> : createButton}
+      onRowClick={canManage ? row => setModalGroup(row) : undefined}
+      getRowActions={canManage ? rowActions : undefined}
+    />}
+    pagination={<Pagination page={meta.page || 1} pageCount={meta.totalPages || 1} pageSize={meta.limit || 10} total={meta.total || 0} loading={loading} onPage={page => setFilter('page', page)} onPageSize={limit => setQuery(current => ({ ...current, limit, page: 1 }))} />}
+  />
+  {modalGroup && <GroupModal group={modalGroup.id ? modalGroup : null} showMsg={showMsg} onClose={() => setModalGroup(null)} onSaved={() => { setModalGroup(null); load(); }} onRequestDelete={group => { setModalGroup(null); setPendingDelete(group); }} />}
+  <ConfirmDialog open={Boolean(pendingDelete)} title="Xóa nhóm câu hỏi?" description={pendingDelete ? `Nhóm “${pendingDelete.name}” sẽ bị xóa vĩnh viễn. Nhóm đang liên kết với câu hỏi sẽ không thể xóa.` : ''} confirmLabel="Xóa nhóm" danger loading={deleting} onConfirm={remove} onClose={() => setPendingDelete(null)} />
+  </div>;
 }

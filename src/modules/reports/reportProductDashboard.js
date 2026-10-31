@@ -1,0 +1,13 @@
+const n=value=>value===null||value===undefined||value===''?null:Number(value);
+const norm=value=>String(value||'').trim().toUpperCase().replace(/\s+/g,'_');
+const dateValue=value=>value&&!Number.isNaN(new Date(value).getTime())?new Date(value):null;
+const statusOf=row=>{const value=norm(row.progress_status);if(['COMPLETED','HOÀN_THÀNH','HOAN_THANH'].includes(value))return'completed';if(['PAUSED','TẠM_DỪNG','TAM_DUNG','PENDING_APPROVAL','CHỜ_DUYỆT','CHO_DUYET'].includes(value))return'risk';if(['NOT_STARTED','CHƯA_BẮT_ĐẦU','CHUA_BAT_DAU'].includes(value))return'pending';return'inProgress';};
+
+function buildProductDashboard(dashboard){
+  const rows=dashboard?.details||[],period=dashboard?.period||{},periodEnd=new Date(Date.UTC(Number(period.year)||2000,Number(period.month)||1,0,23,59,59));
+  const activities=rows.map((row,index)=>{const status=statusOf(row),plannedEnd=dateValue(row.planned_end_date),overdue=status!=='completed'&&plannedEnd&&plannedEnd<periodEnd;return{id:row.id||row.row_key||index,name:row.activity_name||'Hoạt động',group:row.product_group||'Khác',type:row.activity_type||'Khác',kpiCode:row.kpi_code||'Khác',contribution:n(row.contribution_value)||0,progress:n(row.progress_percent)||0,owner:row.owner_unit||'Chưa phân công',cooperator:row.cooperating_unit||'',plannedStart:row.planned_start_date||null,plannedEnd:row.planned_end_date||null,actualEnd:row.actual_end_date||null,status,overdue,nextAction:row.next_action||'',result:row.implementation_result||''};});
+  const aggregate=key=>{const map=new Map();for(const item of activities){const name=item[key]||'Khác';if(!map.has(name))map.set(name,{name,total:0,inProgress:0,completed:0,pending:0,risk:0,overdue:0,contribution:0});const group=map.get(name);group.total++;group[item.status]++;if(item.overdue)group.overdue++;group.contribution+=item.contribution;}return[...map.values()].sort((a,b)=>b.total-a.total);};
+  const total=activities.length,completed=activities.filter(item=>item.status==='completed').length,inProgress=activities.filter(item=>item.status==='inProgress').length,risk=activities.filter(item=>item.status==='risk'||item.overdue),overdue=activities.filter(item=>item.overdue),averageProgress=total?activities.reduce((sum,item)=>sum+item.progress,0)/total:0;
+  return{period,metrics:{total,inProgress,completed,risk:risk.length,overdue:overdue.length,averageProgress:averageProgress/100},groups:aggregate('group'),owners:aggregate('owner'),kpis:aggregate('kpiCode'),activities,attention:[...activities].filter(item=>item.overdue||item.status==='risk').sort((a,b)=>Number(b.overdue)-Number(a.overdue)||a.progress-b.progress)};
+}
+module.exports={buildProductDashboard,statusOf};

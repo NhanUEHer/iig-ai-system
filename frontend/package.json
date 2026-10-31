@@ -10,6 +10,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
+    "test:design-system": "node --test src/design-system-v2/__tests__/*.test.js",
     "preview": "vite preview"
   },
   "dependencies": {

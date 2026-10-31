@@ -1,0 +1,42 @@
+.role-management-page .iig3-data-table table {
+  min-width: 1180px;
+}
+
+.role-list__identity {
+  display: flex;
+  align-items: center;
+  gap: var(--iig3-space-3);
+}
+
+.role-list__identity > span {
+  width: var(--iig3-control-md);
+  height: var(--iig3-control-md);
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--iig3-radius-md);
+  color: var(--iig3-ai);
+  background: var(--iig3-ai-soft);
+}
+
+.role-list__identity > span svg,
+.role-list__permissions + svg {
+  width: 1rem;
+}
+
+.role-list__identity > div {
+  min-width: 0;
+  display: grid;
+  gap: var(--iig3-space-1);
+}
+
+.role-list__description {
+  color: var(--iig3-text-secondary);
+}
+
+.role-list__permissions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--iig3-space-1);
+}

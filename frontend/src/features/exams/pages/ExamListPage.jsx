@@ -1,118 +1,110 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { ChevronRight, Pencil, Plus, X } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pencil, Plus, RotateCcw } from 'lucide-react';
+import {
+  Button, CodeText, ColumnVisibilityMenu, DataTable, DateTimeDisplay, FilterBar,
+  ListPage, MultiSelectFilter, Pagination, StatusBadge, TableToolbar,
+} from '../../../design-system-v2';
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { listExams } from '../../../services/examService';
-import Button from '../../../components/ui/Button';
-import { DataTable, Pagination } from '../../../components/ui/DataTable';
-import { Breadcrumb } from '../../../components/ui/Layout';
-import SearchInput from '../../../components/ui/SearchInput';
-import MultiSelectFilter from '../../../components/ui/MultiSelectFilter';
-import QuestionBankRowActions from '../../question-bank/components/QuestionBankRowActions';
 import { EXAM_STATUS_OPTIONS, examStatusMeta } from '../examStatus';
-import './ExamPages.css';
 import './ExamListPage.css';
-import './ExamListPageOverrides.css';
-import '../../question-bank/pages/QuestionBankRowMenu.css';
-import { DIFFICULTY_OPTIONS } from '../examCatalog';
 
 const EXAM_TYPE_OPTIONS = [
-  { value: 'LISTENING_READING', label: 'Listening & Reading' },
-  { value: 'READING', label: 'Reading' },
-  { value: 'LISTENING', label: 'Listening' },
-  { value: 'SPEAKING_WRITING', label: 'Speaking & Writing' },
-  { value: 'SPEAKING', label: 'Speaking' },
-  { value: 'WRITING', label: 'Writing' },
+  { value: 'LISTENING_READING', label: 'Đề Listening & Reading' },
+  { value: 'READING', label: 'Đề Reading' },
+  { value: 'LISTENING', label: 'Đề Listening' },
+  { value: 'SPEAKING_WRITING', label: 'Đề Speaking & Writing' },
+  { value: 'SPEAKING', label: 'Đề Speaking' },
+  { value: 'WRITING', label: 'Đề Writing' },
 ];
-const TEST_TYPE_OPTIONS = [{ value: 'TOEIC', label: 'TOEIC' }, { value: 'TOEFL_IBT', label: 'TOEFL iBT' }];
 
-const formatDate = value => value
-  ? new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric', year: '2-digit', hour12: false }).format(new Date(value)).replace(',', '')
-  : '—';
+const ALL_COLUMN_KEYS = ['stt', 'examCode', 'title', 'examType', 'sectionCount', 'subQuestionCount', 'status', 'updatedAt'];
+const examTypeLabel = value => EXAM_TYPE_OPTIONS.find(option => option.value === value)?.label || 'Chưa phân loại';
 
-function formatDuration(value) {
-  const seconds = Math.max(0, Number(value || 0));
-  if (!seconds) return '0 phút';
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.ceil((seconds % 3600) / 60);
-  if (!hours) return `${minutes} phút`;
-  return minutes ? `${hours} giờ ${minutes} phút` : `${hours} giờ`;
-}
-
-export default function ExamListPage({ navigate }) {
-  const [searchInput, setSearchInput] = useState('');
-  const [filters, setFilters] = useState({ search: '', statuses: [], testTypes: [], examTypes: [], page: 1, limit: 10 });
+export default function ExamListPage({ navigate, canManage = false }) {
+  const [query, setQuery] = useState({ search: '', statuses: [], examTypes: [], page: 1, limit: 10 });
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search);
   const [result, setResult] = useState({ data: [], meta: { page: 1, limit: 10, total: 0, totalPages: 1 } });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [visibleColumnKeys, setVisibleColumnKeys] = useState(ALL_COLUMN_KEYS);
 
-  const updateFilter = (key, value) => setFilters(current => ({ ...current, [key]: value, ...(key !== 'page' ? { page: 1 } : {}) }));
+  const setFilter = (key, value) => setQuery(current => ({ ...current, [key]: value, ...(key === 'page' ? {} : { page: 1 }) }));
+  useEffect(() => setQuery(current => current.search === debouncedSearch.trim() ? current : { ...current, search: debouncedSearch.trim(), page: 1 }), [debouncedSearch]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      setResult(await listExams({ ...filters, statuses: filters.statuses.join(','), testTypes: filters.testTypes.join(','), examTypes: filters.examTypes.join(',') }));
+      const response = await listExams({
+        ...query,
+        search: query.search || undefined,
+        statuses: query.statuses.join(',') || undefined,
+        examTypes: query.examTypes.join(',') || undefined,
+      });
+      setResult(response);
     } catch (requestError) {
       setError(requestError.response?.data?.error || 'Không thể tải danh sách đề thi.');
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [query]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setFilters(current => current.search === searchInput.trim()
-        ? current
-        : { ...current, search: searchInput.trim(), page: 1 });
-    }, 300);
-    return () => window.clearTimeout(timer);
-  }, [searchInput]);
 
+  const meta = result.meta || {};
+  const allColumns = useMemo(() => [
+    { key: 'stt', label: 'STT', align: 'center', width: 64, render: (_row, index) => ((meta.page || 1) - 1) * (meta.limit || 10) + index + 1 },
+    { key: 'examCode', label: 'Mã đề', sortable: true, width: 130, render: row => <CodeText className="iig3-list-code">{row.examCode || '—'}</CodeText> },
+    { key: 'title', label: 'Tên đề thi', sortable: true, width: 320, render: row => <strong className="exam-list__title">{row.title}</strong> },
+    { key: 'examType', label: 'Kiểu đề thi', sortable: true, width: 220, render: row => examTypeLabel(row.examType) },
+    { key: 'sectionCount', label: 'Số phần thi', sortable: true, sortType: 'number', align: 'center', width: 120, render: row => Number(row.sectionCount || 0) },
+    { key: 'subQuestionCount', label: 'Tổng câu hỏi', sortable: true, sortType: 'number', align: 'center', width: 130, render: row => Number(row.subQuestionCount || 0) },
+    { key: 'status', label: 'Trạng thái', sortable: true, align: 'center', width: 150, render: row => <StatusBadge status={row.status} label={examStatusMeta(row.status).label} /> },
+    { key: 'updatedAt', label: 'Ngày cập nhật', sortable: true, sortType: 'date', width: 170, render: row => <DateTimeDisplay value={row.updatedAt} /> },
+  ], [meta.limit, meta.page]);
+  const columns = allColumns.filter(column => visibleColumnKeys.includes(column.key));
+  const appliedCount = query.statuses.length + query.examTypes.length;
   const clearFilters = () => {
-    setSearchInput('');
-    setFilters(current => ({ ...current, search: '', statuses: [], testTypes: [], examTypes: [], page: 1 }));
+    setSearch('');
+    setQuery(current => ({ ...current, search: '', statuses: [], examTypes: [], page: 1 }));
   };
-  const typeLabel = value => EXAM_TYPE_OPTIONS.find(option => option.value === value)?.label || 'Chưa phân loại';
-  const difficultyLabel = value => DIFFICULTY_OPTIONS.find(option => option.value === value)?.label || 'Chưa thiết lập';
-  const columns = [
-    { key: 'number', label: 'STT', className: 'is-center', width: 64, render: (_row, index) => (Number(result.meta?.page || 1) - 1) * Number(result.meta?.limit || filters.limit) + index + 1 },
-    { key: 'examCode', label: 'Mã đề thi', width: 118, render: row => <code className="exam-list-code">{row.examCode || '—'}</code> },
-    { key: 'title', label: 'Đề thi', render: row => <div className="exam-list-identity">{row.cardImage?.url?<img src={row.cardImage.url} alt=""/>:<span className="exam-list-image-placeholder"/>}<div><button type="button" className="exam-list-title-button" onClick={() => navigate(`/exams/${row.id}/edit`)}>{row.title}</button>{row.displayLabel&&<small>{row.displayLabel}</small>}</div></div> },
-    { key: 'testType', label: 'Loại đề', render: row => <span className="exam-list-type">{row.testType === 'TOEFL_IBT' ? 'TOEFL iBT' : 'TOEIC'}</span> },
-    { key: 'examType', label: 'Kiểu đề thi', render: row => <span className={`exam-list-type${row.examType ? '' : ' is-unclassified'}`}>{typeLabel(row.examType)}</span> },
-    { key: 'catalog', label: 'Phân loại', render: row => <div className="exam-list-catalog"><strong>{difficultyLabel(row.difficulty)}</strong><small>{row.groups?.length?row.groups.map(group=>group.name).join(', '):'Chưa có nhóm'}</small></div> },
-    { key: 'status', label: 'Trạng thái', className: 'is-center', render: row => { const meta = examStatusMeta(row.status); return <span className={`exam-list-status is-${meta.tone}`}><i />{meta.label}</span>; } },
-    { key: 'sectionCount', label: 'Số phần thi', className: 'is-center', render: row => Number(row.sectionCount || 0) },
-    { key: 'subQuestionCount', label: 'Số câu hỏi', className: 'is-center', render: row => Number(row.subQuestionCount || 0) },
-    { key: 'configuredDurationSeconds', label: 'Thời gian', className: 'is-center', render: row => formatDuration(row.configuredDurationSeconds) },
-    { key: 'popularityCount', label: 'Lượt thi', className: 'is-center', render: row => Number(row.popularityCount || 0).toLocaleString('vi-VN') },
-    { key: 'updatedAt', label: 'Ngày cập nhật', render: row => <span className="exam-list-date">{formatDate(row.updatedAt)}</span> },
-    { key: 'actions', label: 'Thao tác', className: 'question-bank-actions is-center', width: 82, render: row => <QuestionBankRowActions actions={[{ label: 'Chỉnh sửa', icon: <Pencil />, onClick: () => navigate(`/exams/${row.id}/edit`) }]} /> },
-  ];
-  const hasFilters = Boolean(searchInput || filters.statuses.length || filters.testTypes.length || filters.examTypes.length);
+  const createButton = canManage ? <Button size="sm" icon={<Plus />} onClick={() => navigate('/exams/new')}>Thêm mới</Button> : null;
+  const rowActions = row => [{ label: 'Chỉnh sửa', icon: <Pencil />, onClick: () => navigate(`/exams/${row.id}/edit`) }];
 
-  return <section className="exam-list-page">
-    <header className="exam-list-header"><Breadcrumb separator={<ChevronRight />} items={[{ label: 'Quản lý đề thi' }, { label: 'Danh sách đề thi', current: true }]} /></header>
-    <main className="exam-list-main">
-      <section className="exam-list-filter-card">
-        <div className="exam-list-filters">
-          <SearchInput value={searchInput} onChange={event => setSearchInput(event.target.value)} onClear={() => setSearchInput('')} placeholder="Tìm tên đề thi, mã đề..." />
-          <MultiSelectFilter options={TEST_TYPE_OPTIONS} value={filters.testTypes} onApply={value => updateFilter('testTypes', value)} placeholder="Tất cả loại đề" selectedLabel="Loại đề" allLabel="Tất cả loại đề" />
-          <MultiSelectFilter options={EXAM_TYPE_OPTIONS} value={filters.examTypes} onApply={value => updateFilter('examTypes', value)} placeholder="Tất cả kiểu đề" selectedLabel="Kiểu đề" allLabel="Tất cả kiểu đề" searchPlaceholder="Tìm kiểu đề..." />
-          <MultiSelectFilter options={EXAM_STATUS_OPTIONS} value={filters.statuses} onApply={value => updateFilter('statuses', value)} placeholder="Tất cả trạng thái" selectedLabel="Trạng thái" allLabel="Tất cả trạng thái" searchPlaceholder="Tìm trạng thái..." />
-        </div>
-        <Button size="sm" className="exam-list-add" icon={<Plus />} onClick={() => navigate('/exams/new')}>Thêm đề thi</Button>
-        {hasFilters && <div className="exam-list-active-filters">
-          <span>Đang lọc:</span>
-          {filters.testTypes.length > 0 && <span className="exam-list-filter-chip">Loại: {TEST_TYPE_OPTIONS.filter(option => filters.testTypes.includes(option.value)).map(option => option.label).join(', ')}<button type="button" onClick={() => updateFilter('testTypes', [])}><X /></button></span>}
-          {filters.examTypes.length > 0 && <span className="exam-list-filter-chip">Kiểu đề: {EXAM_TYPE_OPTIONS.filter(option => filters.examTypes.includes(option.value)).map(option => option.label).join(', ')}<button type="button" onClick={() => updateFilter('examTypes', [])}><X /></button></span>}
-          {filters.statuses.length > 0 && <span className="exam-list-filter-chip">Trạng thái: {EXAM_STATUS_OPTIONS.filter(option => filters.statuses.includes(option.value)).map(option => option.label).join(', ')}<button type="button" onClick={() => updateFilter('statuses', [])}><X /></button></span>}
-          <button className="exam-list-clear-filters" type="button" onClick={clearFilters}>Xóa tất cả bộ lọc</button>
-        </div>}
-      </section>
-      <section className="exam-list-table-card">
-        <DataTable columns={columns} data={result.data || []} rowKey="id" loading={loading} error={error} />
-        <Pagination summaryLabel="Tổng" page={result.meta?.page || 1} pageSize={result.meta?.limit || filters.limit} total={result.meta?.total || 0} onPageChange={page => updateFilter('page', page)} onPageSizeChange={limit => setFilters(current => ({ ...current, limit, page: 1 }))} />
-      </section>
-    </main>
-  </section>;
+  return <div className="iig3-list-screen exam-list-page"><ListPage
+    breadcrumb={[{ label: 'Quản lý đề thi' }, { label: 'Danh sách đề thi' }]}
+    title="Danh sách đề thi"
+    toolbar={<>
+      <TableToolbar title="Tất cả đề thi" count={meta.total || 0} loading={loading} actions={createButton} view={<ColumnVisibilityMenu columns={allColumns} visibleKeys={visibleColumnKeys} requiredKeys={['title']} onChange={setVisibleColumnKeys} />} />
+      <FilterBar
+        search={search}
+        onSearch={event => setSearch(event.target.value)}
+        placeholder="Tìm tên hoặc mã đề…"
+        filters={<>
+          <MultiSelectFilter label="Kiểu đề" options={EXAM_TYPE_OPTIONS} value={query.examTypes} onChange={value => setFilter('examTypes', value)} placeholder="Tất cả kiểu đề" searchPlaceholder="Tìm kiểu đề…" />
+          <MultiSelectFilter label="Trạng thái" options={EXAM_STATUS_OPTIONS} value={query.statuses} onChange={value => setFilter('statuses', value)} placeholder="Tất cả trạng thái" searchPlaceholder="Tìm trạng thái…" />
+        </>}
+        appliedCount={appliedCount}
+        onClear={clearFilters}
+        loading={loading}
+      />
+    </>}
+    table={<DataTable
+      ariaLabel="Danh sách đề thi"
+      columns={columns}
+      rows={result.data || []}
+      rowKey="id"
+      loading={loading}
+      error={error}
+      errorAction={<Button variant="outline" size="sm" icon={<RotateCcw />} onClick={load}>Thử lại</Button>}
+      emptyTitle="Chưa có đề thi"
+      emptyDescription="Không có đề thi phù hợp với bộ lọc hiện tại."
+      emptyAction={appliedCount || search ? <Button variant="outline" size="sm" onClick={clearFilters}>Xóa bộ lọc</Button> : createButton}
+      onRowClick={canManage ? row => navigate(`/exams/${row.id}/edit`) : undefined}
+      getRowActions={canManage ? rowActions : undefined}
+    />}
+    pagination={<Pagination page={meta.page || 1} pageCount={meta.totalPages || 1} pageSize={meta.limit || 10} total={meta.total || 0} loading={loading} onPage={page => setFilter('page', page)} onPageSize={limit => setQuery(current => ({ ...current, limit, page: 1 }))} />}
+  /></div>;
 }
