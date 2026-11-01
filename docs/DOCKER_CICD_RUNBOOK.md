@@ -8,11 +8,11 @@ The release contains three immutable ARM64 images built from one commit:
 - `iig-admin-admin-web`: Admin React application served by Nginx.
 - `iig-admin-exam-web`: candidate Exam React application served by Nginx.
 
-During the first migration phase, PostgreSQL, media and model files remain on
-the VPS. Containers reach PostgreSQL through `host.docker.internal`; each
-environment runs its own unpublished Redis container. Persistent media/model
-directories are mounted from `/opt/ai-scoring`. Database containerization is a
-separate migration.
+Production PostgreSQL, media and model files remain on the VPS. Beta uses its
+own PostgreSQL container and named volume (`iig-admin-beta-postgres-data`) plus
+its own unpublished Redis container. Persistent Beta media is isolated under
+`/opt/iig-admin-data/beta`; model files remain read-only mounts from
+`/opt/ai-scoring`.
 
 ## Release path
 
@@ -54,6 +54,11 @@ Create `/opt/iig-admin/beta` and `/opt/iig-admin/prod`. Each directory requires:
 - `.env`, based on `deploy/.env.deploy.example`.
 - `.env.container`, containing runtime configuration and secrets.
 
+Beta additionally receives `docker-compose.beta.yml`, `nginx-beta.conf` and
+`configure-beta-environment.sh`. The bootstrap is idempotent: it preserves the
+generated PostgreSQL password, points only Beta at the `postgres` service, and
+never modifies the Production runtime environment.
+
 Use separate loopback ports per environment. Recommended defaults:
 
 | Environment | API | Admin Web | Exam Web |
@@ -72,11 +77,27 @@ Use separate mutable media roots. Beta should use
 `MEDIA_ROOT=/opt/ai-scoring`. Both can use the existing read-only model runtime
 with `MODEL_ROOT=/opt/ai-scoring`. Never point Beta at Production media.
 
-For phase one, convert only host-local endpoints in the copied runtime env:
+For Production, convert only host-local endpoints in the copied runtime env:
 
 - PostgreSQL host `127.0.0.1` -> `host.docker.internal`.
 - Redis URL -> `redis://redis:6379/0`; Redis has no published host port.
 - Application `PORT` is controlled by Compose and should not be copied.
+
+For Beta, the bootstrap configures:
+
+- `DATABASE_URL` to the isolated `postgres` service.
+- `REDIS_URL=redis://redis:6379/0`.
+- `APP_URL` and `PUBLIC_URL` to `https://admin-beta.iigvn.site`.
+- the first administrator from `BOOTSTRAP_ADMIN_EMAIL` and
+  `BOOTSTRAP_ADMIN_PASSWORD` when the isolated database has no users.
+- `admin-beta.iigvn.site` -> Admin Web port `3212`.
+- `exam-beta.iigvn.site` -> Exam Web port `3213`.
+
+The migration service creates the Beta schema through append-only migrations.
+No Production data is copied into Beta by this process.
+Set the Beta bootstrap administrator values in `.env.container` before the
+first deployment. The bootstrap is idempotent and does not create another user
+after the database contains an account.
 
 Do not print or commit either populated environment file.
 

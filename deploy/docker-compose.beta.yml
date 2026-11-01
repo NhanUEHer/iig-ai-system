@@ -1,0 +1,26 @@
+services:
+  postgres:
+    restart: unless-stopped
+    image: postgres:16-alpine
+    init: true
+    env_file: [.env.container]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    networks: [app]
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  migrate:
+    depends_on:
+      postgres: { condition: service_healthy }
+
+volumes:
+  postgres-data:
+    name: iig-admin-beta-postgres-data

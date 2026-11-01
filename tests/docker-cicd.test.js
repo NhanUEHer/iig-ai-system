@@ -67,6 +67,30 @@ test('container release uses immutable SHA tags and protected environments', () 
   assert.doesNotMatch(workflow, /node -p \\"require\('\.\/package\.json'\)\.version\\"/);
 });
 
+test('Beta deploy adds isolated PostgreSQL and dedicated Admin and Exam domains only', () => {
+  const baseCompose = read('deploy/docker-compose.yml');
+  const betaCompose = read('deploy/docker-compose.beta.yml');
+  const betaNginx = read('deploy/nginx-beta.conf');
+  const deploy = read('scripts/deploy-containers.sh');
+  const workflow = read('.github/workflows/release-containers.yml');
+
+  assert.doesNotMatch(baseCompose, /^  postgres:/m);
+  assert.match(betaCompose, /^  postgres:/m);
+  assert.match(betaCompose, /iig-admin-beta-postgres-data/);
+  assert.match(betaCompose, /condition: service_healthy/);
+  assert.match(betaNginx, /server_name admin-beta\.iigvn\.site/);
+  assert.match(betaNginx, /proxy_pass http:\/\/127\.0\.0\.1:3212/);
+  assert.match(betaNginx, /server_name exam-beta\.iigvn\.site/);
+  assert.match(betaNginx, /proxy_pass http:\/\/127\.0\.0\.1:3213/);
+  assert.match(deploy, /compose_files\+=\(-f docker-compose\.beta\.yml\)/);
+  assert.match(workflow, /deploy\/docker-compose\.beta\.yml/);
+  assert.match(workflow, /deploy\/nginx-beta\.conf/);
+  assert.match(workflow, /scripts\/configure-beta-environment\.sh/);
+
+  const productionUpload = workflow.slice(workflow.indexOf('deploy-production:'));
+  assert.doesNotMatch(productionUpload, /docker-compose\.beta\.yml|nginx-beta\.conf|configure-beta-environment/);
+});
+
 test('runtime secrets and mutable data are excluded from images', () => {
   const ignore = read('.dockerignore');
   assert.match(ignore, /^\.env$/m);
