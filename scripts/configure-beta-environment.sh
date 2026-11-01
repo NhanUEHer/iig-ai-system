@@ -44,18 +44,6 @@ if [ -z "$postgres_password" ] || [ "$postgres_password" = CHANGE_ME ]; then
   postgres_password="$(openssl rand -hex 32)"
 fi
 
-bootstrap_admin_email="$(read_env BOOTSTRAP_ADMIN_EMAIL)"
-bootstrap_admin_password="$(read_env BOOTSTRAP_ADMIN_PASSWORD)"
-if [ -z "$bootstrap_admin_email" ] || [ "$bootstrap_admin_email" = beta-admin@example.com ] || \
-   [ -z "$bootstrap_admin_password" ] || [ "$bootstrap_admin_password" = CHANGE_ME_STRONG_PASSWORD ]; then
-  cat >&2 <<'EOF'
-Beta uses a fresh isolated database. Configure BOOTSTRAP_ADMIN_EMAIL and
-BOOTSTRAP_ADMIN_PASSWORD in .env.container before the first deployment so the
-initial administrator can be created. Existing Production users are not copied.
-EOF
-  exit 1
-fi
-
 upsert_env POSTGRES_DB iig_admin_beta
 upsert_env POSTGRES_USER iig_admin_beta
 upsert_env POSTGRES_PASSWORD "$postgres_password"
