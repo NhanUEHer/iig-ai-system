@@ -128,20 +128,6 @@ jobs:
             scripts/configure-beta-environment.sh \
             scripts/deploy-containers.sh \
             root@${{ secrets.VPS_HOST }}:/opt/iig-admin/beta/
-      - name: Stage initial Beta administrator
-        env:
-          BOOTSTRAP_ADMIN_EMAIL: ${{ secrets.BOOTSTRAP_ADMIN_EMAIL }}
-          BOOTSTRAP_ADMIN_PASSWORD: ${{ secrets.BOOTSTRAP_ADMIN_PASSWORD }}
-        run: |
-          test -n "$BOOTSTRAP_ADMIN_EMAIL" || { echo 'Missing Beta environment secret: BOOTSTRAP_ADMIN_EMAIL' >&2; exit 1; }
-          test -n "$BOOTSTRAP_ADMIN_PASSWORD" || { echo 'Missing Beta environment secret: BOOTSTRAP_ADMIN_PASSWORD' >&2; exit 1; }
-          umask 077
-          bootstrap_file="$(mktemp)"
-          trap 'rm -f "$bootstrap_file"' EXIT
-          printf 'BOOTSTRAP_ADMIN_NAME=%s\n' 'Beta Admin' > "$bootstrap_file"
-          printf 'BOOTSTRAP_ADMIN_EMAIL=%s\n' "$BOOTSTRAP_ADMIN_EMAIL" >> "$bootstrap_file"
-          printf 'BOOTSTRAP_ADMIN_PASSWORD=%s\n' "$BOOTSTRAP_ADMIN_PASSWORD" >> "$bootstrap_file"
-          scp -O "$bootstrap_file" root@${{ secrets.VPS_HOST }}:/opt/iig-admin/beta/.bootstrap-admin.env
       - name: Deploy immutable Beta images
         env:
           IMAGE_TAG: beta-${{ github.sha }}
