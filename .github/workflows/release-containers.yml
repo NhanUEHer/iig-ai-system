@@ -120,7 +120,14 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' '${{ secrets.VPS_KNOWN_HOSTS }}' > ~/.ssh/known_hosts
       - name: Upload deployment definition
-        run: scp -O deploy/docker-compose.yml scripts/deploy-containers.sh root@${{ secrets.VPS_HOST }}:/opt/iig-admin/beta/
+        run: |
+          scp -O \
+            deploy/docker-compose.yml \
+            deploy/docker-compose.beta.yml \
+            deploy/nginx-beta.conf \
+            scripts/configure-beta-environment.sh \
+            scripts/deploy-containers.sh \
+            root@${{ secrets.VPS_HOST }}:/opt/iig-admin/beta/
       - name: Deploy immutable Beta images
         env:
           IMAGE_TAG: beta-${{ github.sha }}
