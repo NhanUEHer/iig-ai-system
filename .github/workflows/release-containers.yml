@@ -63,14 +63,23 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: api
-            context: .
+          - name: admin-api
+            image: iig-admin-api
             file: Dockerfile
+            target: admin-api
+          - name: scoring-api
+            image: iig-ai-scoring-api
+            file: Dockerfile
+            target: ai-scoring-api
+          - name: scoring-worker
+            image: iig-ai-scoring-worker
+            file: Dockerfile
+            target: ai-scoring-worker
           - name: admin-web
-            context: frontend
+            image: iig-admin-admin-web
             file: frontend/Dockerfile
           - name: exam-web
-            context: exam-web
+            image: iig-admin-exam-web
             file: exam-web/Dockerfile
     steps:
       - uses: actions/checkout@v4
@@ -85,9 +94,10 @@ jobs:
         with:
           context: .
           file: ${{ matrix.file }}
+          target: ${{ matrix.target }}
           push: true
           platforms: linux/arm64
-          tags: ghcr.io/${{ needs.prepare.outputs.owner }}/iig-admin-${{ matrix.name }}:${{ needs.prepare.outputs.tag }}
+          tags: ghcr.io/${{ needs.prepare.outputs.owner }}/${{ matrix.image }}:${{ needs.prepare.outputs.tag }}
           build-args: |
             VITE_APP_ENV=${{ needs.prepare.outputs.target }}
             VITE_APP_VERSION=${{ needs.prepare.outputs.version }}
