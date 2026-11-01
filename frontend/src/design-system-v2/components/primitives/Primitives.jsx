@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import '../../tokens.css';
 import './primitives.css';
+import FloatingPortal from '../../../components/common/FloatingPortal';
 
 const cx = (...names) => names.filter(Boolean).join(' ');
 
@@ -38,7 +39,10 @@ export function Button({ variant = 'primary', size = 'md', icon, iconAfter, load
 }
 
 export function IconButton({ label, variant = 'outline', size = 'md', children, className = '', ...props }) {
-  return <button className={cx('iig3-icon-button', `is-${variant}`, `is-${size}`, className)} aria-label={label} data-tooltip={label} {...props}>{children}</button>;
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+  const buttonRef = useRef(null);
+  const { onMouseEnter, onMouseLeave, onFocus, onBlur, ...buttonProps } = props;
+  return <><button ref={buttonRef} className={cx('iig3-icon-button', `is-${variant}`, `is-${size}`, className)} aria-label={label} {...buttonProps} onMouseEnter={event => { onMouseEnter?.(event); setTooltipOpen(true); }} onMouseLeave={event => { onMouseLeave?.(event); setTooltipOpen(false); }} onFocus={event => { onFocus?.(event); setTooltipOpen(true); }} onBlur={event => { onBlur?.(event); setTooltipOpen(false); }}>{children}</button>{label && <FloatingPortal open={tooltipOpen} anchorRef={buttonRef} placement="top" offset={7} className="iig3-theme iig3-tooltip__portal" role="tooltip">{label}</FloatingPortal>}</>;
 }
 
 export function ButtonGroup({ children }) { return <div className="iig3-button-group">{children}</div>; }
@@ -47,25 +51,8 @@ export function Menu({ trigger, items = [], align = 'end' }) {
   const [open, setOpen] = useState(false);
   const menuId = useId();
   const menuRef = useRef(null);
-  useEffect(() => {
-    if (!open) return undefined;
-    const closeOutside = event => {
-      if (!menuRef.current?.contains(event.target)) setOpen(false);
-    };
-    const closeWithKeyboard = event => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('pointerdown', closeOutside);
-    document.addEventListener('focusin', closeOutside);
-    document.addEventListener('keydown', closeWithKeyboard);
-    return () => {
-      document.removeEventListener('pointerdown', closeOutside);
-      document.removeEventListener('focusin', closeOutside);
-      document.removeEventListener('keydown', closeWithKeyboard);
-    };
-  }, [open]);
   const enhancedTrigger = React.cloneElement(trigger, { 'aria-haspopup': 'menu', 'aria-expanded': open, 'aria-controls': open ? menuId : undefined, onClick: event => { trigger.props.onClick?.(event); setOpen(value => !value); } });
-  return <div ref={menuRef} className={cx('iig3-menu', `align-${align}`)}>{enhancedTrigger}{open && <div id={menuId} className="iig3-menu__popup" role="menu">{items.map((item, index) => item.separator ? <Divider key={index} /> : <button type="button" role="menuitem" className={item.danger ? 'is-danger' : ''} key={item.label} disabled={item.disabled} onClick={() => { if (item.disabled) return; item.onClick?.(); setOpen(false); }}>{item.icon}<span><strong>{item.label}</strong>{item.description && <small>{item.description}</small>}</span>{item.shortcut && <kbd>{item.shortcut}</kbd>}</button>)}</div>}</div>;
+  return <><div ref={menuRef} className={cx('iig3-menu', `align-${align}`)}>{enhancedTrigger}</div><FloatingPortal open={open} anchorRef={menuRef} onDismiss={() => setOpen(false)} id={menuId} align={align} minWidth={220} className="iig3-theme iig3-menu__popup iig3-menu__portal" role="menu">{items.map((item, index) => item.separator ? <Divider key={index} /> : <button type="button" role="menuitem" className={item.danger ? 'is-danger' : ''} key={item.label} disabled={item.disabled} onClick={() => { if (item.disabled) return; item.onClick?.(); setOpen(false); }}>{item.icon}<span><strong>{item.label}</strong>{item.description && <small>{item.description}</small>}</span>{item.shortcut && <kbd>{item.shortcut}</kbd>}</button>)}</FloatingPortal></>;
 }
 
 export function SplitButton({ children, items = [], ...props }) {
@@ -191,11 +178,16 @@ export function Drawer({ open, title, description, children, footer, onClose }) 
   return <div className="iig3-overlay is-drawer" onMouseDown={onClose}><aside ref={dialogRef} className="iig3-drawer" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined} onMouseDown={event => event.stopPropagation()}><header><div><h2 id={titleId}>{title}</h2>{description && <p id={descriptionId}>{description}</p>}</div><IconButton label="Close" variant="ghost" onClick={onClose}><X /></IconButton></header><main>{children}</main>{footer && <footer>{footer}</footer>}</aside></div>;
 }
 
-export function Tooltip({ content, children }) { return <span className="iig3-tooltip" data-tooltip={content}>{children}</span>; }
+export function Tooltip({ content, children }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  return <span ref={rootRef} className="iig3-tooltip" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}><span>{children}</span><FloatingPortal open={open} anchorRef={rootRef} placement="top" offset={7} className="iig3-theme iig3-tooltip__portal" role="tooltip">{content}</FloatingPortal></span>;
+}
 
 export function Popover({ trigger, children }) {
   const [open, setOpen] = useState(false);
-  return <div className="iig3-popover"><span onClick={() => setOpen(current => !current)}>{trigger}</span>{open && <div>{children}</div>}</div>;
+  const rootRef = useRef(null);
+  return <div ref={rootRef} className="iig3-popover"><span onClick={() => setOpen(current => !current)}>{trigger}</span><FloatingPortal open={open} anchorRef={rootRef} onDismiss={() => setOpen(false)} align="end" minWidth={220} className="iig3-theme iig3-popover__panel">{children}</FloatingPortal></div>;
 }
 
 export function EmptyState({ icon = <Info />, title, description, action }) { return <div className="iig3-empty"><span>{icon}</span><strong>{title}</strong>{description && <p>{description}</p>}{action}</div>; }

@@ -46,10 +46,22 @@ test('high-risk interactive primitives expose accessibility contracts', () => {
 
 test('shared menu closes on outside interaction and Escape', () => {
   const source = read('components/primitives/Primitives.jsx');
-  assert.match(source, /document\.addEventListener\('pointerdown', closeOutside\)/);
-  assert.match(source, /document\.addEventListener\('focusin', closeOutside\)/);
-  assert.match(source, /event\.key === 'Escape'/);
-  assert.match(source, /menuRef\.current\?\.contains\(event\.target\)/);
+  const floatingPortal = read('../components/common/FloatingPortal.jsx');
+  const styles = read('components/primitives/primitives.css');
+  assert.match(source, /<FloatingPortal open=\{open\}/);
+  assert.match(source, /onDismiss=\{\(\) => setOpen\(false\)\}/);
+  assert.match(source, /align=\{align\}/);
+  assert.match(source, /role="menu"/);
+  assert.match(floatingPortal, /document\.addEventListener\('pointerdown', outside\)/);
+  assert.match(floatingPortal, /document\.addEventListener\('focusin', outside\)/);
+  assert.match(floatingPortal, /event\.key === 'Escape'/);
+  assert.match(floatingPortal, /anchorRef\.current\?\.contains\(event\.target\)/);
+  assert.match(floatingPortal, /floatingRef\.current\?\.contains\(event\.target\)/);
+  assert.match(floatingPortal, /createPortal\(/);
+  assert.match(floatingPortal, /window\.addEventListener\('scroll', update, true\)/);
+  assert.match(floatingPortal, /window\.innerWidth/);
+  assert.match(floatingPortal, /window\.innerHeight/);
+  assert.match(styles, /\.iig3-menu__portal\{position:fixed/);
 });
 
 test('production sidebar supports routes, hierarchy and responsive drawer', () => {
@@ -95,10 +107,12 @@ test('production list screens use the canonical design-system shell', () => {
 test('list filters, dates and column visibility are reusable public components', () => {
   const source = read('components/index.js');
   const filter = read('components/forms/MultiSelectFilter.jsx');
+  const floatingPortal = read('../components/common/FloatingPortal.jsx');
   const columns = read('components/data/ColumnVisibilityMenu.jsx');
   const date = read('components/data/DateTimeDisplay.jsx');
   ['forms/MultiSelectFilter', 'data/DateTimeDisplay', 'data/ColumnVisibilityMenu'].forEach(path => assert.match(source, new RegExp(path)));
-  ['aria-multiselectable', "event.key === 'Escape'", "document.addEventListener('pointerdown'"].forEach(contract => assert.ok(filter.includes(contract), contract));
+  ['aria-multiselectable', 'FloatingPortal', 'onDismiss'].forEach(contract => assert.ok(filter.includes(contract), contract));
+  ["event.key === 'Escape'", "document.addEventListener('pointerdown'"].forEach(contract => assert.ok(floatingPortal.includes(contract), contract));
   ['menuitemcheckbox', 'requiredKeys'].forEach(contract => assert.ok(columns.includes(contract), contract));
   ['Intl.DateTimeFormat', 'dateTime={date.toISOString()}'].forEach(contract => assert.ok(date.includes(contract), contract));
 });

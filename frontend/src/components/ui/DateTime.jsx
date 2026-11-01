@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CalendarDays, Check, ChevronLeft, ChevronRight, Clock3 } from 'lucide-react';
+import FloatingPortal from '../common/FloatingPortal';
 import './date-time.css';
 import './date-time-overrides.css';
 import './time-picker-overrides.css';
+import './floating-portal-overrides.css';
 
 function toDateValue(value) { return value ? new Date(value) : null; }
 function formatDate(value, includeTime = false) { const date = toDateValue(value); if (!date || Number.isNaN(date.getTime())) return ''; return new Intl.DateTimeFormat('vi-VN', includeTime ? { dateStyle: 'short', timeStyle: 'short' } : { dateStyle: 'short' }).format(date); }
@@ -19,11 +21,12 @@ export function CalendarPopup({ open, value, onChange, minDate, maxDate, onClose
 
 export function DatePicker({ value, onChange, label, minDate, maxDate, disabled = false, error }) {
   const [open, setOpen] = useState(false);
-  return <div className={`ui-date-field ui-date-picker${error ? ' has-error' : ''}`}>
+  const rootRef = useRef(null);
+  return <div ref={rootRef} className={`ui-date-field ui-date-picker${error ? ' has-error' : ''}`}>
     {label && <span>{label}</span>}
     <div className="ui-date-picker__control">
       <button type="button" className="ui-date-picker__trigger" disabled={disabled} onClick={() => setOpen(!open)} aria-haspopup="dialog" aria-expanded={open}><span>{formatDate(value) || 'Chọn ngày'}</span><span aria-hidden="true">▣</span></button>
-      {open && <CalendarPopup open value={value} minDate={minDate} maxDate={maxDate} onChange={selected => { onChange?.(selected); setOpen(false); }} onClose={() => setOpen(false)} />}
+      <FloatingPortal open={open} anchorRef={rootRef} onDismiss={() => setOpen(false)} minWidth={320} className="ui-calendar-popup"><Calendar value={value} onChange={selected => { onChange?.(selected); setOpen(false); }} minDate={minDate} maxDate={maxDate} /><div className="ui-calendar-popup__footer"><button type="button" onClick={() => onChange?.(new Date().toISOString())}>Hôm nay</button><button type="button" onClick={() => setOpen(false)}>Đóng</button></div></FloatingPortal>
     </div>
     {error && <small>{error}</small>}
   </div>;
@@ -31,14 +34,16 @@ export function DatePicker({ value, onChange, label, minDate, maxDate, disabled 
 
 export function DateRangePicker({ startDate, endDate, onChange, label, minDate, maxDate }) {
   const [open, setOpen] = useState(false); const [draftStart, setDraftStart] = useState(startDate); const [draftEnd, setDraftEnd] = useState(endDate);
+  const rootRef = useRef(null);
   const choose = value => { if (!draftStart || draftEnd) { setDraftStart(value); setDraftEnd(''); } else { const first = new Date(draftStart) <= new Date(value) ? draftStart : value; const last = first === draftStart ? value : draftStart; setDraftStart(first); setDraftEnd(last); onChange?.({ startDate: first, endDate: last }); setOpen(false); } };
-  return <div className="ui-date-range"><span>{label}</span><div className="ui-date-range__control"><button type="button" className="ui-date-picker__trigger" onClick={() => { setDraftStart(startDate); setDraftEnd(endDate); setOpen(!open); }} aria-haspopup="dialog" aria-expanded={open}><span>{startDate && endDate ? `${formatDate(startDate)} – ${formatDate(endDate)}` : 'Chọn khoảng ngày'}</span><span aria-hidden="true">▣</span></button>{open && <div className="ui-range-popup"><Calendar value={draftStart} onChange={choose} minDate={minDate} maxDate={maxDate} rangeStart={draftStart} rangeEnd={draftEnd} /><div className="ui-calendar-popup__footer"><button type="button" onClick={() => { setDraftStart(''); setDraftEnd(''); onChange?.({ startDate: '', endDate: '' }); }}>Xóa</button><button type="button" onClick={() => setOpen(false)}>Đóng</button></div></div>}</div></div>;
+  return <div ref={rootRef} className="ui-date-range"><span>{label}</span><div className="ui-date-range__control"><button type="button" className="ui-date-picker__trigger" onClick={() => { setDraftStart(startDate); setDraftEnd(endDate); setOpen(!open); }} aria-haspopup="dialog" aria-expanded={open}><span>{startDate && endDate ? `${formatDate(startDate)} – ${formatDate(endDate)}` : 'Chọn khoảng ngày'}</span><span aria-hidden="true">▣</span></button><FloatingPortal open={open} anchorRef={rootRef} onDismiss={() => setOpen(false)} minWidth={320} className="ui-range-popup"><Calendar value={draftStart} onChange={choose} minDate={minDate} maxDate={maxDate} rangeStart={draftStart} rangeEnd={draftEnd} /><div className="ui-calendar-popup__footer"><button type="button" onClick={() => { setDraftStart(''); setDraftEnd(''); onChange?.({ startDate: '', endDate: '' }); }}>Xóa</button><button type="button" onClick={() => setOpen(false)}>Đóng</button></div></FloatingPortal></div></div>;
 }
 
 export function TimePicker({ value, onChange, label, disabled = false, minuteStep = 30 }) {
   const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
   const times = Array.from({ length: Math.ceil(24 * 60 / minuteStep) }, (_, index) => { const minutes = index * minuteStep; return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`; });
-  return <div className="ui-date-field ui-time-picker"><span>{label}</span><div className="ui-date-picker__control"><button type="button" className="ui-date-picker__trigger" disabled={disabled} onClick={() => setOpen(!open)} aria-haspopup="listbox" aria-expanded={open}><span>{value || 'Chọn giờ'}</span><span aria-hidden="true">◷</span></button>{open && <div className="ui-time-popup" role="listbox">{times.map(time => <button type="button" role="option" aria-selected={value === time} className={value === time ? 'is-active' : ''} key={time} onClick={() => { onChange?.(time); setOpen(false); }}>{time}</button>)}</div>}</div></div>;
+  return <div ref={rootRef} className="ui-date-field ui-time-picker"><span>{label}</span><div className="ui-date-picker__control"><button type="button" className="ui-date-picker__trigger" disabled={disabled} onClick={() => setOpen(!open)} aria-haspopup="listbox" aria-expanded={open}><span>{value || 'Chọn giờ'}</span><span aria-hidden="true">◷</span></button><FloatingPortal open={open} anchorRef={rootRef} onDismiss={() => setOpen(false)} matchAnchorWidth className="ui-time-popup" role="listbox">{times.map(time => <button type="button" role="option" aria-selected={value === time} className={value === time ? 'is-active' : ''} key={time} onClick={() => { onChange?.(time); setOpen(false); }}>{time}</button>)}</FloatingPortal></div></div>;
 }
 
 function localParts(value) {
@@ -71,13 +76,6 @@ export function DateTimePicker({ value, onChange, label, minDate, maxDate, disab
     setMinute(next.minute);
   }, [value, open]);
 
-  useEffect(() => {
-    if (!open) return undefined;
-    const close = event => { if (!rootRef.current?.contains(event.target)) setOpen(false); };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [open]);
-
   const start = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
   const gridStart = new Date(start);
   gridStart.setDate(1 - ((start.getDay() + 6) % 7));
@@ -108,7 +106,7 @@ export function DateTimePicker({ value, onChange, label, minDate, maxDate, disab
       <button type="button" className={`ui-date-time-picker__trigger${open ? ' is-open' : ''}`} disabled={disabled} onClick={() => setOpen(current => !current)} aria-haspopup="dialog" aria-expanded={open}>
         <CalendarDays/><span>{formatDateTime(value) || 'Chọn ngày và giờ'}</span><Clock3/>
       </button>
-      {open && <div className="ui-date-time-popup" role="dialog" aria-label={label || 'Chọn ngày và giờ'}>
+      <FloatingPortal open={open} anchorRef={rootRef} onDismiss={() => setOpen(false)} align="end" minWidth={640} className="ui-date-time-popup" role="dialog">
         <div className="ui-date-time-popup__main">
           <section className="ui-datetime-calendar">
             <header><strong>{new Intl.DateTimeFormat('vi-VN', { month: '2-digit', year: 'numeric' }).format(viewMonth).replace('tháng ', 'Tháng ')}</strong><div><button type="button" onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1))} aria-label="Tháng trước"><ChevronLeft/></button><button type="button" onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1))} aria-label="Tháng sau"><ChevronRight/></button></div></header>
@@ -122,7 +120,7 @@ export function DateTimePicker({ value, onChange, label, minDate, maxDate, disab
           </section>
         </div>
         <footer className="ui-date-time-popup__footer"><div><span>Gợi ý:</span><button type="button" onClick={() => chooseShortcut(0)}>Hôm nay</button><button type="button" onClick={() => chooseShortcut(1)}>Ngày mai</button><button type="button" onClick={() => chooseShortcut('weekend')}>Cuối tuần này</button></div><aside><button type="button" onClick={reset}>Đặt lại</button><button type="button" className="confirm" disabled={!draftDate} onClick={confirm}><Check/>Xác nhận</button></aside></footer>
-      </div>}
+      </FloatingPortal>
     </div>
   </div>;
 }

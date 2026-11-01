@@ -3,6 +3,7 @@ import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import './layout.css';
 import './layout-overrides.css';
 import './header-menu.css';
+import FloatingPortal from '../common/FloatingPortal';
 
 export function AppShell({ sidebar, header, children, collapsed = false, className = '' }) {
   return <div className={['ui-shell', collapsed && 'ui-shell--collapsed', className].filter(Boolean).join(' ')}>
@@ -36,7 +37,7 @@ export function Topbar({ left, right, className = '' }) {
 
 export function NotificationMenu({ count = 0, items = [], emptyText = 'Không có thông báo mới' }) { return <HeaderMenu label="Thông báo" badge={count} items={items} emptyText={emptyText} />; }
 export function UserMenu({ name = 'Người dùng', email, avatar, items = [] }) { return <HeaderMenu label={name} avatar={avatar} items={items.length ? items : [{ label: 'Thông tin tài khoản' }, { label: 'Đăng xuất', danger: true }]} emptyText={email || ''} />; }
-function HeaderMenu({ label, badge, avatar, items, emptyText }) { const [open, setOpen] = React.useState(false); const root = React.useRef(null); React.useEffect(() => { if (!open) return undefined; const outside = event => !root.current?.contains(event.target) && setOpen(false); const escape = event => event.key === 'Escape' && setOpen(false); document.addEventListener('mousedown', outside); document.addEventListener('keydown', escape); return () => { document.removeEventListener('mousedown', outside); document.removeEventListener('keydown', escape); }; }, [open]); return <div ref={root} className="ui-header-menu"><button type="button" className="ui-header-menu__trigger" onClick={() => setOpen(!open)}>{avatar ? <img src={avatar} alt="" /> : <span className="ui-header-menu__avatar">{label.slice(0, 1).toUpperCase()}</span>}<span>{label}</span>{badge > 0 && <em>{badge}</em>}<ChevronDown /></button>{open && <div className="ui-header-menu__content">{emptyText && <small>{emptyText}</small>}{items.length ? items.map(item => <button type="button" key={item.label} className={item.danger ? 'is-danger' : ''} onClick={() => { item.onClick?.(); setOpen(false); }}>{item.icon}{item.label}</button>) : <p>{emptyText}</p>}</div>}</div>; }
+function HeaderMenu({ label, badge, avatar, items, emptyText }) { const [open, setOpen] = React.useState(false); const root = React.useRef(null); return <div ref={root} className="ui-header-menu"><button type="button" className="ui-header-menu__trigger" onClick={() => setOpen(!open)}>{avatar ? <img src={avatar} alt="" /> : <span className="ui-header-menu__avatar">{label.slice(0, 1).toUpperCase()}</span>}<span>{label}</span>{badge > 0 && <em>{badge}</em>}<ChevronDown /></button><FloatingPortal open={open} anchorRef={root} onDismiss={() => setOpen(false)} align="end" minWidth={220} className="ui-header-menu__content">{emptyText && <small>{emptyText}</small>}{items.length ? items.map(item => <button type="button" key={item.label} className={item.danger ? 'is-danger' : ''} onClick={() => { item.onClick?.(); setOpen(false); }}>{item.icon}{item.label}</button>) : <p>{emptyText}</p>}</FloatingPortal></div>; }
 
 export function Breadcrumb({ items = [], separator = '/' }) {
   return <nav className="ui-breadcrumb" aria-label="Breadcrumb">{items.map((item, index) => <React.Fragment key={`${item.label}-${index}`}>
