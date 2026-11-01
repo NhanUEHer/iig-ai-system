@@ -1,0 +1,33 @@
+.ui-dropdown-menu__content,
+.ui-header-menu__content,
+.ui-combobox__menu,
+.ui-multiselect__menu,
+.ui-popover__content {
+  right: auto !important;
+  bottom: auto !important;
+}
+
+.ui-filter-multiselect__menu,
+.ui-creatable-multi__panel {
+  right: auto !important;
+  bottom: auto !important;
+}
+
+.ui-calendar-popup,
+.ui-range-popup,
+.ui-time-popup,
+.ui-date-time-popup {
+  right: auto !important;
+  bottom: auto !important;
+}
+
+.ui-tooltip__content {
+  right: auto !important;
+  bottom: auto !important;
+  width: max-content;
+  visibility: visible !important;
+  transform: none !important;
+  opacity: 1 !important;
+  line-height: 1.35;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .18);
+}
