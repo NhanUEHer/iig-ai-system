@@ -51,10 +51,10 @@ function createTokenManager({ database = db, client = iigClient, now = () => new
         needsRefresh = !Number.isFinite(effectiveExpiration.getTime()) ||
           effectiveExpiration.getTime() <= now().getTime() + REFRESH_SKEW_MS;
         console.log(needsRefresh
-          ? '🔑 Cached IIG token is expired or near expiry. Refreshing...'
-          : '🔑 Found valid cached IIG token in DB');
+          ? '[token] Cached IIG token is expired or near expiry. Refreshing...'
+          : '[token] Found valid cached IIG token in DB');
       } else {
-        console.log('🔑 No cached IIG token found in DB. Reading admin SSO session...');
+        console.log('[token] No cached IIG token found in DB. Reading admin SSO session...');
       }
 
       if (needsRefresh) {
@@ -71,7 +71,7 @@ function createTokenManager({ database = db, client = iigClient, now = () => new
      * Reads the admin SSO session and saves its access token to the database.
      */
     async refreshAccessToken() {
-      console.log('🔄 Requesting IIG token from admin SSO session...');
+      console.log('[token] Requesting IIG token from admin SSO session...');
       const session = await client.getAdminSession();
       const token = session?.accessToken;
 
@@ -92,7 +92,7 @@ function createTokenManager({ database = db, client = iigClient, now = () => new
         'INSERT INTO tokens (access_token, expired_at, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP)',
         [token, expiredAt]
       );
-      console.log('✅ New token saved to database successfully.');
+      console.log('[token] New token saved to database successfully.');
 
       return token;
     }
