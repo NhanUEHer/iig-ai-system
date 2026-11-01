@@ -86,9 +86,17 @@ test('Beta deploy adds isolated PostgreSQL and dedicated Admin and Exam domains 
   assert.match(workflow, /deploy\/docker-compose\.beta\.yml/);
   assert.match(workflow, /deploy\/nginx-beta\.conf/);
   assert.match(workflow, /scripts\/configure-beta-environment\.sh/);
+  assert.match(workflow, /secrets\.BOOTSTRAP_ADMIN_EMAIL/);
+  assert.match(workflow, /secrets\.BOOTSTRAP_ADMIN_PASSWORD/);
+  assert.match(workflow, /\/opt\/iig-admin\/beta\/\.bootstrap-admin\.env/);
+  assert.match(deploy, /configure-beta-environment\.sh/);
+
+  const betaBootstrap = read('scripts/configure-beta-environment.sh');
+  assert.match(betaBootstrap, /\.bootstrap-admin\.env/);
+  assert.match(betaBootstrap, /rm -f "\$BOOTSTRAP_ENV"/);
 
   const productionUpload = workflow.slice(workflow.indexOf('deploy-production:'));
-  assert.doesNotMatch(productionUpload, /docker-compose\.beta\.yml|nginx-beta\.conf|configure-beta-environment/);
+  assert.doesNotMatch(productionUpload, /docker-compose\.beta\.yml|nginx-beta\.conf|configure-beta-environment|BOOTSTRAP_ADMIN/);
 });
 
 test('runtime secrets and mutable data are excluded from images', () => {
@@ -127,6 +135,6 @@ test('GitHub deployment credential is constrained by a forced-command gateway', 
   assert.match(gateway, /image_tag.*app_commit/);
   assert.match(workflow, /deploy beta \$IMAGE_TAG \$APP_VERSION \$APP_COMMIT/);
   assert.match(workflow, /deploy production \$IMAGE_TAG \$APP_VERSION \$APP_COMMIT/);
-  assert.equal((workflow.match(/scp -O /g) || []).length, 2);
+  assert.equal((workflow.match(/scp -O /g) || []).length, 3);
   assert.doesNotMatch(workflow, /run: scp (?!-O )/);
 });
