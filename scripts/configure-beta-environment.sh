@@ -3,6 +3,7 @@ set -euo pipefail
 
 DEPLOY_DIR="${DEPLOY_DIR:-/opt/iig-admin/beta}"
 RUNTIME_ENV="$DEPLOY_DIR/.env.container"
+BOOTSTRAP_ENV="$DEPLOY_DIR/.bootstrap-admin.env"
 NGINX_SOURCE="$DEPLOY_DIR/nginx-beta.conf"
 NGINX_TARGET="/etc/nginx/conf.d/iig-admin-beta.conf"
 
@@ -20,12 +21,23 @@ read_env() {
 upsert_env() {
   key="$1"
   value="$2"
-  if grep -q "^${key}=" "$RUNTIME_ENV"; then
-    sed -i "s|^${key}=.*|${key}=${value}|" "$RUNTIME_ENV"
-  else
-    printf '%s=%s\n' "$key" "$value" >> "$RUNTIME_ENV"
-  fi
+  updated="$(mktemp "$DEPLOY_DIR/.env.container.XXXXXX")"
+  grep -v "^${key}=" "$RUNTIME_ENV" > "$updated" || true
+  printf '%s=%s\n' "$key" "$value" >> "$updated"
+  chmod 600 "$updated"
+  mv "$updated" "$RUNTIME_ENV"
 }
+
+if [ -s "$BOOTSTRAP_ENV" ]; then
+  chmod 600 "$BOOTSTRAP_ENV"
+  for key in BOOTSTRAP_ADMIN_NAME BOOTSTRAP_ADMIN_EMAIL BOOTSTRAP_ADMIN_PASSWORD; do
+    value="$(sed -n "s/^${key}=//p" "$BOOTSTRAP_ENV" | tail -1)"
+    if [ -n "$value" ]; then
+      upsert_env "$key" "$value"
+    fi
+  done
+  rm -f "$BOOTSTRAP_ENV"
+fi
 
 postgres_password="$(read_env POSTGRES_PASSWORD)"
 if [ -z "$postgres_password" ] || [ "$postgres_password" = CHANGE_ME ]; then
