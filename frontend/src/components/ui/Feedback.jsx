@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle2, Info, X, XCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import FloatingPortal from '../common/FloatingPortal';
 import './feedback.css';
 import './toast-overrides.css';
+import './floating-portal-overrides.css';
 
 const icons = { success: CheckCircle2, error: XCircle, warning: AlertCircle, info: Info };
 
@@ -31,24 +33,20 @@ export function ConfirmDialog({ open, title = 'Xác nhận thao tác', message, 
 }
 
 export function ConfirmPopup({ open, anchorRef, message, onConfirm, onCancel, confirmText = 'Xác nhận', cancelText = 'Hủy' }) {
-  useEffect(() => { if (!open) return undefined; const escape = event => event.key === 'Escape' && onCancel?.(); document.addEventListener('keydown', escape); return () => document.removeEventListener('keydown', escape); }, [open, onCancel]);
-  if (!open) return null;
-  const rect = anchorRef?.current?.getBoundingClientRect();
-  const style = rect ? { position: 'fixed', top: rect.bottom + 8, left: Math.max(8, rect.right - 280) } : undefined;
-  return <div className="ui-confirm-popup" style={style} role="dialog"><p>{message}</p><div><button type="button" onClick={onCancel}>{cancelText}</button><button type="button" className="is-danger" onClick={onConfirm}>{confirmText}</button></div></div>;
+  return <FloatingPortal open={open} anchorRef={anchorRef} onDismiss={onCancel} align="end" minWidth={280} className="ui-confirm-popup" role="dialog"><p>{message}</p><div><button type="button" onClick={onCancel}>{cancelText}</button><button type="button" className="is-danger" onClick={onConfirm}>{confirmText}</button></div></FloatingPortal>;
 }
 
 export function OverlayPanel({ open, anchorRef, children, onClose, placement = 'bottom', className = '' }) {
-  useEffect(() => { if (!open) return undefined; const escape = event => event.key === 'Escape' && onClose?.(); document.addEventListener('keydown', escape); return () => document.removeEventListener('keydown', escape); }, [open, onClose]);
-  if (!open) return null;
-  const rect = anchorRef?.current?.getBoundingClientRect();
-  const style = rect ? { position: 'fixed', top: placement === 'top' ? Math.max(8, rect.top - 8) : rect.bottom + 8, left: Math.max(8, rect.left) } : undefined;
-  return <div className={['ui-overlay-panel', `ui-overlay-panel--${placement}`, className].filter(Boolean).join(' ')} style={style} role="dialog"><button type="button" className="ui-overlay-panel__close" onClick={onClose} aria-label="Đóng"><X /></button>{children}</div>;
+  return <FloatingPortal open={open} anchorRef={anchorRef} onDismiss={onClose} placement={placement === 'top' ? 'top' : 'auto'} minWidth={240} className={['ui-overlay-panel', `ui-overlay-panel--${placement}`, className].filter(Boolean).join(' ')} role="dialog"><button type="button" className="ui-overlay-panel__close" onClick={onClose} aria-label="Đóng"><X /></button>{children}</FloatingPortal>;
 }
 
-export function Tooltip({ content, children }) { return <span className="ui-tooltip"><span>{children}</span><span className="ui-tooltip__content" role="tooltip">{content}</span></span>; }
+export function Tooltip({ content, children }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  return <span ref={rootRef} className="ui-tooltip" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}><span>{children}</span><FloatingPortal open={open} anchorRef={rootRef} placement="top" align="start" offset={8} className="ui-tooltip__content" role="tooltip">{content}</FloatingPortal></span>;
+}
 
-export function Popover({ open, trigger, children, className = '' }) { return <span className="ui-popover"><span>{trigger}</span>{open && <span className={['ui-popover__content', className].filter(Boolean).join(' ')} role="dialog">{children}</span>}</span>; }
+export function Popover({ open, trigger, children, className = '', onClose }) { const rootRef = useRef(null); return <span ref={rootRef} className="ui-popover"><span>{trigger}</span><FloatingPortal open={open} anchorRef={rootRef} onDismiss={onClose} minWidth={240} className={['ui-popover__content', className].filter(Boolean).join(' ')} role="dialog">{children}</FloatingPortal></span>; }
 
 export function Accordion({ items = [], multiple = false, defaultOpenKeys = [], className = '' }) {
   const [openKeys, setOpenKeys] = useState(defaultOpenKeys);

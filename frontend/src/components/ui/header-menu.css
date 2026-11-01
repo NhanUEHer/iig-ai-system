@@ -10,3 +10,4 @@
 .ui-header-menu__content button { display:flex; align-items:center; gap:8px; min-height:40px; padding:0 8px; border:0; border-radius:4px; background:transparent; color:#000; text-align:left; cursor:pointer; font:400 14px Inter,sans-serif; }
 .ui-header-menu__content button:hover { background:#F5F5F5; color:#155DFC; }
 .ui-header-menu__content button.is-danger { color:#EF4444; }
+.ui-header-menu__content { right:auto!important; bottom:auto!important; }
