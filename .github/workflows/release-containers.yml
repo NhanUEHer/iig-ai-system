@@ -119,9 +119,22 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' '${{ secrets.VPS_KNOWN_HOSTS }}' > ~/.ssh/known_hosts
+      - name: Prepare one-time Beta admin bootstrap
+        env:
+          BOOTSTRAP_ADMIN_NAME: ${{ secrets.BOOTSTRAP_ADMIN_NAME }}
+          BOOTSTRAP_ADMIN_EMAIL: ${{ secrets.BOOTSTRAP_ADMIN_EMAIL }}
+          BOOTSTRAP_ADMIN_PASSWORD: ${{ secrets.BOOTSTRAP_ADMIN_PASSWORD }}
+        run: |
+          install -m 600 /dev/null bootstrap-admin.env
+          if [ -n "$BOOTSTRAP_ADMIN_EMAIL" ] && [ -n "$BOOTSTRAP_ADMIN_PASSWORD" ]; then
+            printf 'BOOTSTRAP_ADMIN_NAME=%s\n' "${BOOTSTRAP_ADMIN_NAME:-Beta Administrator}" >> bootstrap-admin.env
+            printf 'BOOTSTRAP_ADMIN_EMAIL=%s\n' "$BOOTSTRAP_ADMIN_EMAIL" >> bootstrap-admin.env
+            printf 'BOOTSTRAP_ADMIN_PASSWORD=%s\n' "$BOOTSTRAP_ADMIN_PASSWORD" >> bootstrap-admin.env
+          fi
       - name: Upload deployment definition
         run: |
           scp -O \
+            bootstrap-admin.env \
             deploy/docker-compose.yml \
             deploy/docker-compose.beta.yml \
             deploy/nginx-beta.conf \

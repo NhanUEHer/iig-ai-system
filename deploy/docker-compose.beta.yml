@@ -21,6 +21,25 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
 
+  bootstrap-admin:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-admin-api:${ADMIN_API_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
+    restart: "no"
+    profiles: [bootstrap]
+    command:
+      - node
+      - -e
+      - require('./src/config/initDb')().then(() => process.exit(0)).catch((error) => { console.error(error); process.exit(1); })
+    env_file: [.env.container, bootstrap-admin.env]
+    environment:
+      NODE_ENV: production
+      APP_ENV: beta
+      APP_VERSION: ${APP_VERSION:?APP_VERSION is required}
+      APP_COMMIT: ${APP_COMMIT:?APP_COMMIT is required}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      postgres: { condition: service_healthy }
+    networks: [app]
+
 volumes:
   postgres-data:
     name: iig-admin-beta-postgres-data

@@ -77,6 +77,13 @@ activated=true
 compose pull
 compose up -d --remove-orphans --wait --wait-timeout 240
 
+if [ "$deploy_env" = beta ] && [ -s bootstrap-admin.env ]; then
+  bootstrap_rc=0
+  compose --profile bootstrap run --rm bootstrap-admin || bootstrap_rc=$?
+  rm -f bootstrap-admin.env
+  test "$bootstrap_rc" -eq 0
+fi
+
 api_port="$(sed -n 's/^API_PORT=//p' .env | head -1)"
 scoring_api_port="$(sed -n 's/^SCORING_API_PORT=//p' .env | head -1)"
 admin_port="$(sed -n 's/^ADMIN_PORT=//p' .env | head -1)"

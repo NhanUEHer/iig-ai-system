@@ -3,7 +3,7 @@ set -euo pipefail
 
 DEPLOY_DIR="${DEPLOY_DIR:-/opt/iig-admin/beta}"
 RUNTIME_ENV="$DEPLOY_DIR/.env.container"
-BOOTSTRAP_ENV="$DEPLOY_DIR/.bootstrap-admin.env"
+BOOTSTRAP_ENV="$DEPLOY_DIR/bootstrap-admin.env"
 NGINX_SOURCE="$DEPLOY_DIR/nginx-beta.conf"
 NGINX_TARGET="/etc/nginx/conf.d/iig-admin-beta.conf"
 
@@ -28,15 +28,8 @@ upsert_env() {
   mv "$updated" "$RUNTIME_ENV"
 }
 
-if [ -s "$BOOTSTRAP_ENV" ]; then
+if [ -e "$BOOTSTRAP_ENV" ]; then
   chmod 600 "$BOOTSTRAP_ENV"
-  for key in BOOTSTRAP_ADMIN_NAME BOOTSTRAP_ADMIN_EMAIL BOOTSTRAP_ADMIN_PASSWORD; do
-    value="$(sed -n "s/^${key}=//p" "$BOOTSTRAP_ENV" | tail -1)"
-    if [ -n "$value" ]; then
-      upsert_env "$key" "$value"
-    fi
-  done
-  rm -f "$BOOTSTRAP_ENV"
 fi
 
 postgres_password="$(read_env POSTGRES_PASSWORD)"
