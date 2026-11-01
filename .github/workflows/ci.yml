@@ -33,14 +33,18 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: api
-            context: .
+          - name: admin-api
             file: Dockerfile
+            target: admin-api
+          - name: scoring-api
+            file: Dockerfile
+            target: ai-scoring-api
+          - name: scoring-worker
+            file: Dockerfile
+            target: ai-scoring-worker
           - name: admin-web
-            context: frontend
             file: frontend/Dockerfile
           - name: exam-web
-            context: exam-web
             file: exam-web/Dockerfile
     steps:
       - uses: actions/checkout@v4
@@ -50,6 +54,7 @@ jobs:
         with:
           context: .
           file: ${{ matrix.file }}
+          target: ${{ matrix.target }}
           push: false
           platforms: linux/arm64
           build-args: |

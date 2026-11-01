@@ -40,7 +40,7 @@ function buildApiAccessLog(req, res, durationMs, outcome = 'finished') {
     timestamp: new Date().toISOString(),
     level,
     event: 'api_request_completed',
-    service: 'iig-admin-api',
+    service: req.app?.locals?.serviceName || 'iig-admin-api',
     environment: process.env.APP_ENV || process.env.NODE_ENV || 'development',
     requestId: req.requestId,
     method: req.method,

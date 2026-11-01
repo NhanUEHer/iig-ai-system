@@ -6,17 +6,27 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 
-test('container topology keeps one shared API and two isolated web applications', () => {
+test('container topology isolates admin API, scoring API, worker and web applications', () => {
   const compose = read('deploy/docker-compose.yml');
-  assert.match(compose, /^  api:/m);
+  assert.match(compose, /^  admin-api:/m);
+  assert.match(compose, /^  scoring-api:/m);
+  assert.match(compose, /^  scoring-worker:/m);
   assert.match(compose, /^  migrate:/m);
   assert.match(compose, /^  redis:/m);
   assert.match(compose, /^  admin-web:/m);
   assert.match(compose, /^  exam-web:/m);
+  assert.match(compose, /iig-admin-api/);
+  assert.match(compose, /iig-ai-scoring-api/);
+  assert.match(compose, /iig-ai-scoring-worker/);
   assert.match(compose, /iig-admin-admin-web/);
   assert.match(compose, /iig-admin-exam-web/);
   assert.doesNotMatch(compose, /\/iig-exam-web:/);
-  assert.equal((compose.match(/^  api:/gm) || []).length, 1);
+  assert.doesNotMatch(compose, /^  api:/m);
+  assert.match(compose, /ADMIN_API_IMAGE_TAG/);
+  assert.match(compose, /SCORING_API_IMAGE_TAG/);
+  assert.match(compose, /SCORING_WORKER_IMAGE_TAG/);
+  assert.match(compose, /ADMIN_WEB_IMAGE_TAG/);
+  assert.match(compose, /EXAM_WEB_IMAGE_TAG/);
   assert.match(compose, /condition: service_completed_successfully/);
   assert.match(compose, /condition: service_healthy/);
   assert.match(compose, /name: iig-admin-\$\{DEPLOY_ENV:-beta\}/);
@@ -26,8 +36,8 @@ test('container topology keeps one shared API and two isolated web applications'
   assert.doesNotMatch(compose, /^\s+- .*:6379:6379$/m);
   assert.match(compose, /127\.0\.0\.1:\$\{ADMIN_PORT/);
   assert.match(compose, /127\.0\.0\.1:\$\{EXAM_PORT/);
-  assert.match(compose, /driver: journald/);
-  assert.match(compose, /tag: "iig-admin-\{\{\.Name\}\}"/);
+  assert.equal((compose.match(/driver: journald/g) || []).length, 3);
+  assert.equal((compose.match(/tag: "iig-admin-\{\{\.Name\}\}"/g) || []).length, 3);
 });
 
 test('API observability uses structured request logs without sensitive query strings', () => {

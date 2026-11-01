@@ -27,6 +27,11 @@ done
 
 previous_tag="$(sed -n 's/^IMAGE_TAG=//p' .env | head -1)"
 next_tag="${IMAGE_TAG:?IMAGE_TAG is required}"
+next_admin_api_tag="${ADMIN_API_IMAGE_TAG:-$next_tag}"
+next_scoring_api_tag="${SCORING_API_IMAGE_TAG:-$next_tag}"
+next_scoring_worker_tag="${SCORING_WORKER_IMAGE_TAG:-$next_tag}"
+next_admin_web_tag="${ADMIN_WEB_IMAGE_TAG:-$next_tag}"
+next_exam_web_tag="${EXAM_WEB_IMAGE_TAG:-$next_tag}"
 next_version="${APP_VERSION:?APP_VERSION is required}"
 next_commit="${APP_COMMIT:?APP_COMMIT is required}"
 
@@ -44,6 +49,11 @@ update_env() {
 }
 
 update_env IMAGE_TAG "$next_tag"
+update_env ADMIN_API_IMAGE_TAG "$next_admin_api_tag"
+update_env SCORING_API_IMAGE_TAG "$next_scoring_api_tag"
+update_env SCORING_WORKER_IMAGE_TAG "$next_scoring_worker_tag"
+update_env ADMIN_WEB_IMAGE_TAG "$next_admin_web_tag"
+update_env EXAM_WEB_IMAGE_TAG "$next_exam_web_tag"
 update_env APP_VERSION "$next_version"
 update_env APP_COMMIT "$next_commit"
 activated=true
@@ -52,13 +62,19 @@ docker compose pull
 docker compose up -d --remove-orphans --wait --wait-timeout 180
 
 api_port="$(sed -n 's/^API_PORT=//p' .env | head -1)"
+scoring_api_port="$(sed -n 's/^SCORING_API_PORT=//p' .env | head -1)"
 admin_port="$(sed -n 's/^ADMIN_PORT=//p' .env | head -1)"
 exam_port="$(sed -n 's/^EXAM_PORT=//p' .env | head -1)"
 
-api_health="$(curl -fsS "http://127.0.0.1:${api_port}/health")"
+api_health="$(curl -fsS "http://127.0.0.1:${api_port}/health/ready")"
 HEALTH="$api_health" EXPECTED_VERSION="$next_version" EXPECTED_COMMIT="$next_commit" node -e '
   const value = JSON.parse(process.env.HEALTH);
-  if (value.status !== "ok" || value.build?.version !== process.env.EXPECTED_VERSION || value.build?.commit !== process.env.EXPECTED_COMMIT) process.exit(1);
+  if (value.status !== "ready" || value.build?.version !== process.env.EXPECTED_VERSION || value.build?.commit !== process.env.EXPECTED_COMMIT) process.exit(1);
+'
+scoring_health="$(curl -fsS "http://127.0.0.1:${scoring_api_port:-3214}/health/ready")"
+HEALTH="$scoring_health" EXPECTED_VERSION="$next_version" EXPECTED_COMMIT="$next_commit" node -e '
+  const value = JSON.parse(process.env.HEALTH);
+  if (value.status !== "ready" || value.build?.version !== process.env.EXPECTED_VERSION || value.build?.commit !== process.env.EXPECTED_COMMIT) process.exit(1);
 '
 curl -fsS "http://127.0.0.1:${admin_port}/health" >/dev/null
 curl -fsS "http://127.0.0.1:${exam_port}/health" >/dev/null
