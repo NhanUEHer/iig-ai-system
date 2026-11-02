@@ -35,11 +35,44 @@ trap cleanup EXIT INT TERM
 for file in docker-compose.yml .env .env.container; do
   test -s "$file" || { echo "Missing required deployment file: $DEPLOY_DIR/$file" >&2; exit 1; }
 done
+
+ensure_runtime_secret() {
+  key="$1"
+  runtime_env="$DEPLOY_DIR/.env.container"
+
+  if awk -F= -v key="$key" '
+    $1 == key && length(substr($0, index($0, "=") + 1)) > 0 { found = 1 }
+    END { exit(found ? 0 : 1) }
+  ' "$runtime_env"; then
+    echo "Runtime secret already configured: $key"
+    return
+  fi
+
+  command -v openssl >/dev/null 2>&1 || {
+    echo "OpenSSL is required to generate runtime secrets." >&2
+    exit 1
+  }
+
+  generated_secret="$(openssl rand -hex 32)"
+  updated_runtime_env="$(mktemp "$DEPLOY_DIR/.env.container.XXXXXX")"
+  awk -F= -v key="$key" '$1 != key { print }' "$runtime_env" > "$updated_runtime_env"
+  printf '%s=%s\n' "$key" "$generated_secret" >> "$updated_runtime_env"
+  chmod 600 "$updated_runtime_env"
+  mv "$updated_runtime_env" "$runtime_env"
+  unset generated_secret
+  echo "Generated missing runtime secret: $key"
+}
+
 if [ "$deploy_env" = beta ]; then
   test -s docker-compose.beta.yml || { echo "Missing Beta deployment override: $DEPLOY_DIR/docker-compose.beta.yml" >&2; exit 1; }
   test -s configure-beta-environment.sh || { echo "Missing Beta bootstrap: $DEPLOY_DIR/configure-beta-environment.sh" >&2; exit 1; }
   DEPLOY_ENV=beta DEPLOY_DIR="$DEPLOY_DIR" bash configure-beta-environment.sh
 fi
+
+# Admin API and AI Scoring API share this machine credential only inside one
+# deployment environment. Generate it once per environment and preserve it on
+# later deployments. The value is intentionally never written to CI logs.
+ensure_runtime_secret AI_SCORING_ADMIN_SERVICE_TOKEN
 
 previous_tag="$(sed -n 's/^IMAGE_TAG=//p' .env | head -1)"
 next_tag="${IMAGE_TAG:?IMAGE_TAG is required}"

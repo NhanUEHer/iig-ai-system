@@ -117,6 +117,15 @@ test('runtime secrets and mutable data are excluded from images', () => {
   assert.match(compose, /MODEL_ROOT is required/);
 });
 
+test('deployment creates the internal Admin-to-Scoring credential without exposing it', () => {
+  const deploy = read('scripts/deploy-containers.sh');
+  assert.match(deploy, /ensure_runtime_secret AI_SCORING_ADMIN_SERVICE_TOKEN/);
+  assert.match(deploy, /openssl rand -hex 32/);
+  assert.match(deploy, /chmod 600 "\$updated_runtime_env"/);
+  assert.match(deploy, /Runtime secret already configured: \$key/);
+  assert.doesNotMatch(deploy, /echo .*generated_secret|printf .*generated_secret.*>&2/);
+});
+
 test('deployment verifies API identity and both frontend health endpoints', () => {
   const deploy = read('scripts/deploy-containers.sh');
   assert.match(deploy, /EXPECTED_VERSION/);
