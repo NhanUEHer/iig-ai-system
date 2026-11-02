@@ -86,14 +86,19 @@ test('Beta deploy adds isolated PostgreSQL and dedicated Admin and Exam domains 
   assert.match(workflow, /deploy\/docker-compose\.beta\.yml/);
   assert.match(workflow, /deploy\/nginx-beta\.conf/);
   assert.match(workflow, /scripts\/configure-beta-environment\.sh/);
-  assert.doesNotMatch(workflow, /secrets\.BOOTSTRAP_ADMIN_EMAIL/);
-  assert.doesNotMatch(workflow, /secrets\.BOOTSTRAP_ADMIN_PASSWORD/);
+  assert.match(workflow, /environment: beta/);
+  assert.match(workflow, /secrets\.BOOTSTRAP_ADMIN_EMAIL/);
+  assert.match(workflow, /secrets\.BOOTSTRAP_ADMIN_PASSWORD/);
+  assert.match(workflow, /install -m 600 \/dev\/null bootstrap-admin\.env/);
+  assert.match(workflow, /bootstrap-admin\.env/);
   assert.doesNotMatch(workflow, /\/opt\/iig-admin\/beta\/\.bootstrap-admin\.env/);
   assert.match(deploy, /configure-beta-environment\.sh/);
+  assert.match(deploy, /compose --profile bootstrap run --rm bootstrap-admin/);
+  assert.match(deploy, /rm -f bootstrap-admin\.env/);
 
   const betaBootstrap = read('scripts/configure-beta-environment.sh');
-  assert.match(betaBootstrap, /\.bootstrap-admin\.env/);
-  assert.match(betaBootstrap, /rm -f "\$BOOTSTRAP_ENV"/);
+  assert.match(betaBootstrap, /bootstrap-admin\.env/);
+  assert.match(betaBootstrap, /chmod 600 "\$BOOTSTRAP_ENV"/);
   assert.doesNotMatch(betaBootstrap, /Configure BOOTSTRAP_ADMIN_EMAIL/);
 
   const productionUpload = workflow.slice(workflow.indexOf('deploy-production:'));
