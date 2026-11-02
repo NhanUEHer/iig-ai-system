@@ -17,6 +17,7 @@ const examRoutes = require('../../routes/examV3Routes');
 const scoreScaleRoutes = require('../../routes/scoreScaleRoutes');
 const examCandidateRoutes = require('../../routes/examCandidateRoutes');
 const publicExamCatalogRoutes = require('../../routes/publicExamCatalogRoutes');
+const { createAiScoringAdminProxyRoutes } = require('../../routes/aiScoringAdminProxyRoutes');
 
 function createAdminApp(options = {}) {
   return createHttpApp({
@@ -33,6 +34,7 @@ function createAdminApp(options = {}) {
     mountRoutes(app) {
       app.use('/api/public/exams', publicExamCatalogRoutes);
       app.use('/api/auth', authRoutes);
+      app.use('/api/ai-scoring', authenticate, createAiScoringAdminProxyRoutes(options.aiScoringAdminProxy));
       app.use('/api/submissions', authenticate, submissionRoutes);
       app.use('/api/agents', authenticate, agentRoutes);
       app.use('/api/local-tts', authenticate, localTtsRoutes);

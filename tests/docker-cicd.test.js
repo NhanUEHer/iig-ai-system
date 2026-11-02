@@ -99,7 +99,13 @@ test('Beta deploy adds isolated PostgreSQL and dedicated Admin and Exam domains 
   const betaBootstrap = read('scripts/configure-beta-environment.sh');
   assert.match(betaBootstrap, /bootstrap-admin\.env/);
   assert.match(betaBootstrap, /chmod 600 "\$BOOTSTRAP_ENV"/);
+  assert.match(betaBootstrap, /read_env WEBHOOK_SECRET_ENCRYPTION_KEY/);
+  assert.match(betaBootstrap, /openssl rand -hex 32/);
+  assert.match(betaBootstrap, /upsert_env WEBHOOK_SECRET_ENCRYPTION_KEY/);
   assert.doesNotMatch(betaBootstrap, /Configure BOOTSTRAP_ADMIN_EMAIL/);
+
+  const betaEnvironment = read('deploy/.env.container.beta.example');
+  assert.match(betaEnvironment, /^WEBHOOK_SECRET_ENCRYPTION_KEY=CHANGE_ME_AT_LEAST_32_RANDOM_CHARACTERS$/m);
 
   const productionUpload = workflow.slice(workflow.indexOf('deploy-production:'));
   assert.doesNotMatch(productionUpload, /docker-compose\.beta\.yml|nginx-beta\.conf|configure-beta-environment|BOOTSTRAP_ADMIN/);
@@ -115,6 +121,15 @@ test('runtime secrets and mutable data are excluded from images', () => {
   assert.match(compose, /voice_clone_models:\/app\/voice_clone_models:ro/);
   assert.match(compose, /MEDIA_ROOT is required/);
   assert.match(compose, /MODEL_ROOT is required/);
+});
+
+test('deployment creates the internal Admin-to-Scoring credential without exposing it', () => {
+  const deploy = read('scripts/deploy-containers.sh');
+  assert.match(deploy, /ensure_runtime_secret AI_SCORING_ADMIN_SERVICE_TOKEN/);
+  assert.match(deploy, /openssl rand -hex 32/);
+  assert.match(deploy, /chmod 600 "\$updated_runtime_env"/);
+  assert.match(deploy, /Runtime secret already configured: \$key/);
+  assert.doesNotMatch(deploy, /echo .*generated_secret|printf .*generated_secret.*>&2/);
 });
 
 test('deployment verifies API identity and both frontend health endpoints', () => {
