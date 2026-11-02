@@ -27,14 +27,16 @@ async function startAdminServer(dependencies = {}) {
 
   deps.storage.requireProductionR2();
   await deps.initDb();
-  const server = await deps.listen(deps.app, port, 'iig-admin-api');
+  let server;
   try {
+    server = await deps.listen(deps.app, port, 'iig-admin-api');
     deps.scheduler.start();
     await deps.dictionary.startWorker();
   } catch (error) {
     deps.scheduler.stop();
     deps.dictionary.stopWorker();
     await closeServer(server);
+    await Promise.allSettled([deps.redis.close(), deps.db.close()]);
     throw error;
   }
 

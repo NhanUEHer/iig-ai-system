@@ -41,6 +41,8 @@ async function startAiScoringWorker(dependencies = {}) {
     healthServer = await deps.listen(app, port, 'ai-scoring-worker');
   } catch (error) {
     deps.registry.stop();
+    await closeServer(healthServer);
+    await Promise.allSettled([deps.redis.close(), deps.db.close()]);
     throw error;
   }
 
