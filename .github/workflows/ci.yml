@@ -7,7 +7,26 @@ on:
       - main
   pull_request:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.changes.outputs.matrix }}
+      has_changes: ${{ steps.changes.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: node scripts/ci/changed-components.mjs "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -27,25 +46,12 @@ jobs:
       - run: npm run check
 
   docker-build:
-    needs: verify
+    needs: [verify, detect-changes]
+    if: needs.detect-changes.outputs.has_changes == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
-      matrix:
-        include:
-          - name: admin-api
-            file: Dockerfile
-            target: admin-api
-          - name: scoring-api
-            file: Dockerfile
-            target: ai-scoring-api
-          - name: scoring-worker
-            file: Dockerfile
-            target: ai-scoring-worker
-          - name: admin-web
-            file: frontend/Dockerfile
-          - name: exam-web
-            file: exam-web/Dockerfile
+      matrix: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
