@@ -20,7 +20,13 @@ async function startAiScoringApi(dependencies = {}) {
   const port = dependencies.port || runtimePort('AI_SCORING_API_PORT', deps.processRef.env);
 
   await deps.initDb();
-  const server = await deps.listen(deps.app, port, 'ai-scoring-api');
+  let server;
+  try {
+    server = await deps.listen(deps.app, port, 'ai-scoring-api');
+  } catch (error) {
+    await Promise.allSettled([deps.redis.close(), deps.db.close()]);
+    throw error;
+  }
   const close = async () => {
     await closeServer(server);
     await deps.redis.close();

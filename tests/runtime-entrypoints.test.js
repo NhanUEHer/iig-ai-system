@@ -4,6 +4,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { createWorkerRegistry } = require('../src/apps/ai-scoring/workerRegistry');
 const { createReadiness } = require('../src/apps/shared/readiness');
+const startAdminServer = require('../src/apps/admin/server');
+const startAiScoringApi = require('../src/apps/ai-scoring/server');
+const startAiScoringWorker = require('../src/apps/ai-scoring/worker');
 
 const root = path.resolve(__dirname, '..');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
@@ -108,4 +111,82 @@ test('runtime Dockerfile exposes independent backend targets', () => {
   assert.match(dockerfile, /src\/apps\/admin\/server\.js/);
   assert.match(dockerfile, /src\/apps\/ai-scoring\/server\.js/);
   assert.match(dockerfile, /src\/apps\/ai-scoring\/worker\.js/);
+});
+
+function closableServer(calls, name) {
+  return {
+    close(callback) {
+      calls.push(`close:${name}`);
+      callback();
+    },
+  };
+}
+
+function sharedRuntimeDependencies(calls) {
+  return {
+    initDb: async () => calls.push('init:db'),
+    db: {
+      query: async () => ({ rows: [{ value: 1 }] }),
+      close: async () => calls.push('close:db'),
+    },
+    redis: {
+      configured: () => false,
+      close: async () => calls.push('close:redis'),
+    },
+    processRef: { env: {} },
+    installSignals: false,
+    port: 5001,
+  };
+}
+
+test('admin runtime closes every owned resource when background startup fails', async () => {
+  const calls = [];
+  const dependencies = sharedRuntimeDependencies(calls);
+  dependencies.app = {};
+  dependencies.storage = { requireProductionR2: () => calls.push('check:storage') };
+  dependencies.scheduler = {
+    start: () => calls.push('start:scheduler'),
+    stop: () => calls.push('stop:scheduler'),
+  };
+  dependencies.dictionary = {
+    startWorker: async () => { throw new Error('dictionary startup failed'); },
+    stopWorker: () => calls.push('stop:dictionary'),
+  };
+  dependencies.listen = async () => closableServer(calls, 'admin-http');
+
+  await assert.rejects(startAdminServer(dependencies), /dictionary startup failed/);
+  assert.deepEqual(calls, [
+    'check:storage', 'init:db', 'start:scheduler', 'stop:scheduler',
+    'stop:dictionary', 'close:admin-http', 'close:redis', 'close:db',
+  ]);
+});
+
+test('scoring API releases database dependencies when HTTP startup fails', async () => {
+  const calls = [];
+  const dependencies = sharedRuntimeDependencies(calls);
+  dependencies.app = {};
+  dependencies.listen = async () => { throw new Error('port unavailable'); };
+
+  await assert.rejects(startAiScoringApi(dependencies), /port unavailable/);
+  assert.deepEqual(calls, ['init:db', 'close:redis', 'close:db']);
+});
+
+test('scoring worker unwinds workers and dependencies when health server startup fails', async () => {
+  const calls = [];
+  const dependencies = sharedRuntimeDependencies(calls);
+  dependencies.app = {};
+  dependencies.storage = { requireProductionR2: () => calls.push('check:storage') };
+  dependencies.registry = {
+    names: ['ingestion', 'scoring'],
+    isReady: () => true,
+    start: async () => calls.push('start:workers'),
+    stop: () => calls.push('stop:workers'),
+  };
+  dependencies.listen = async () => { throw new Error('health port unavailable'); };
+
+  await assert.rejects(startAiScoringWorker(dependencies), /health port unavailable/);
+  assert.deepEqual(calls, [
+    'check:storage', 'init:db', 'start:workers', 'stop:workers',
+    'close:redis', 'close:db',
+  ]);
 });
