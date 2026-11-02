@@ -99,7 +99,13 @@ test('Beta deploy adds isolated PostgreSQL and dedicated Admin and Exam domains 
   const betaBootstrap = read('scripts/configure-beta-environment.sh');
   assert.match(betaBootstrap, /bootstrap-admin\.env/);
   assert.match(betaBootstrap, /chmod 600 "\$BOOTSTRAP_ENV"/);
+  assert.match(betaBootstrap, /read_env WEBHOOK_SECRET_ENCRYPTION_KEY/);
+  assert.match(betaBootstrap, /openssl rand -hex 32/);
+  assert.match(betaBootstrap, /upsert_env WEBHOOK_SECRET_ENCRYPTION_KEY/);
   assert.doesNotMatch(betaBootstrap, /Configure BOOTSTRAP_ADMIN_EMAIL/);
+
+  const betaEnvironment = read('deploy/.env.container.beta.example');
+  assert.match(betaEnvironment, /^WEBHOOK_SECRET_ENCRYPTION_KEY=CHANGE_ME_AT_LEAST_32_RANDOM_CHARACTERS$/m);
 
   const productionUpload = workflow.slice(workflow.indexOf('deploy-production:'));
   assert.doesNotMatch(productionUpload, /docker-compose\.beta\.yml|nginx-beta\.conf|configure-beta-environment|BOOTSTRAP_ADMIN/);

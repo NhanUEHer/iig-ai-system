@@ -37,6 +37,11 @@ if [ -z "$postgres_password" ] || [ "$postgres_password" = CHANGE_ME ]; then
   postgres_password="$(openssl rand -hex 32)"
 fi
 
+webhook_secret_encryption_key="$(read_env WEBHOOK_SECRET_ENCRYPTION_KEY)"
+if [ -z "$webhook_secret_encryption_key" ] || [ "$webhook_secret_encryption_key" = CHANGE_ME_AT_LEAST_32_RANDOM_CHARACTERS ]; then
+  webhook_secret_encryption_key="$(openssl rand -hex 32)"
+fi
+
 upsert_env POSTGRES_DB iig_admin_beta
 upsert_env POSTGRES_USER iig_admin_beta
 upsert_env POSTGRES_PASSWORD "$postgres_password"
@@ -44,6 +49,7 @@ upsert_env DATABASE_URL "postgresql://iig_admin_beta:${postgres_password}@postgr
 upsert_env REDIS_URL redis://redis:6379/0
 upsert_env APP_URL https://admin-beta.iigvn.site
 upsert_env PUBLIC_URL https://admin-beta.iigvn.site
+upsert_env WEBHOOK_SECRET_ENCRYPTION_KEY "$webhook_secret_encryption_key"
 
 chmod 600 "$RUNTIME_ENV" "$backup"
 mkdir -p /opt/iig-admin-data/beta/public
