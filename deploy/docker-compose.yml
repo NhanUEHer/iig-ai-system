@@ -50,6 +50,7 @@ services:
     environment:
       <<: *runtime-env
       ADMIN_API_PORT: 3001
+      AI_SCORING_ADMIN_URL: http://scoring-api:3002
     extra_hosts: [host.docker.internal:host-gateway]
     volumes:
       - ${MEDIA_ROOT:?MEDIA_ROOT is required}/public/cleaned-audio:/app/public/cleaned-audio
