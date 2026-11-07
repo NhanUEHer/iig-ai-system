@@ -64,7 +64,10 @@ scoring_admin_url="$(read_runtime_env AI_SCORING_ADMIN_URL)"
 scoring_health="$(curl -fsS "${scoring_admin_url%/}/health/ready")"
 HEALTH="$scoring_health" node -e '
   const value = JSON.parse(process.env.HEALTH);
-  if (value.status !== "ready") process.exit(1);
+  if (value.status !== "ok" || value.database !== "ready") {
+    console.error(`AI Scoring readiness check failed: status=${value.status ?? "missing"}, database=${value.database ?? "missing"}`);
+    process.exit(1);
+  }
 '
 
 previous_tag="$(sed -n 's/^IMAGE_TAG=//p' .env | head -1)"

@@ -141,6 +141,9 @@ test('deployment verifies external Scoring readiness, API identity and both fron
   const deploy = read('scripts/deploy-containers.sh');
   assert.match(deploy, /scoring_admin_url/);
   assert.match(deploy, /health\/ready/);
+  assert.match(deploy, /value\.status !== "ok"/);
+  assert.match(deploy, /value\.database !== "ready"/);
+  assert.match(deploy, /AI Scoring readiness check failed/);
   assert.match(deploy, /EXPECTED_VERSION/);
   assert.match(deploy, /EXPECTED_COMMIT/);
   assert.match(deploy, /admin_port/);
