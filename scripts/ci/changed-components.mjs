@@ -3,8 +3,6 @@ import { fileURLToPath } from 'node:url';
 
 const COMPONENTS = {
   'admin-api': { file: 'Dockerfile', target: 'admin-api' },
-  'scoring-api': { file: 'Dockerfile', target: 'ai-scoring-api' },
-  'scoring-worker': { file: 'Dockerfile', target: 'ai-scoring-worker' },
   'admin-web': { file: 'frontend/Dockerfile' },
   'exam-web': { file: 'exam-web/Dockerfile' },
 };
@@ -22,8 +20,6 @@ export function componentsForFiles(files) {
       selected.add('exam-web');
     } else if (file.startsWith('src/') || file.startsWith('scripts/')) {
       selected.add('admin-api');
-      selected.add('scoring-api');
-      selected.add('scoring-worker');
     }
   }
   return ALL_COMPONENTS.filter(component => selected.has(component));
