@@ -36,31 +36,18 @@ for file in docker-compose.yml .env .env.container; do
   test -s "$file" || { echo "Missing required deployment file: $DEPLOY_DIR/$file" >&2; exit 1; }
 done
 
-ensure_runtime_secret() {
+read_runtime_env() {
   key="$1"
-  runtime_env="$DEPLOY_DIR/.env.container"
+  sed -n "s/^${key}=//p" "$DEPLOY_DIR/.env.container" | tail -1
+}
 
-  if awk -F= -v key="$key" '
-    $1 == key && length(substr($0, index($0, "=") + 1)) > 0 { found = 1 }
-    END { exit(found ? 0 : 1) }
-  ' "$runtime_env"; then
-    echo "Runtime secret already configured: $key"
-    return
-  fi
-
-  command -v openssl >/dev/null 2>&1 || {
-    echo "OpenSSL is required to generate runtime secrets." >&2
+require_runtime_value() {
+  key="$1"
+  value="$(read_runtime_env "$key")"
+  test -n "$value" && ! printf '%s' "$value" | grep -q '^CHANGE_ME' || {
+    echo "Missing required isolated-service configuration: $key" >&2
     exit 1
   }
-
-  generated_secret="$(openssl rand -hex 32)"
-  updated_runtime_env="$(mktemp "$DEPLOY_DIR/.env.container.XXXXXX")"
-  awk -F= -v key="$key" '$1 != key { print }' "$runtime_env" > "$updated_runtime_env"
-  printf '%s=%s\n' "$key" "$generated_secret" >> "$updated_runtime_env"
-  chmod 600 "$updated_runtime_env"
-  mv "$updated_runtime_env" "$runtime_env"
-  unset generated_secret
-  echo "Generated missing runtime secret: $key"
 }
 
 if [ "$deploy_env" = beta ]; then
@@ -69,16 +56,20 @@ if [ "$deploy_env" = beta ]; then
   DEPLOY_ENV=beta DEPLOY_DIR="$DEPLOY_DIR" bash configure-beta-environment.sh
 fi
 
-# Admin API and AI Scoring API share this machine credential only inside one
-# deployment environment. Generate it once per environment and preserve it on
-# later deployments. The value is intentionally never written to CI logs.
-ensure_runtime_secret AI_SCORING_ADMIN_SERVICE_TOKEN
+# AI Scoring is deployed independently. Admin must be configured with the URL
+# and matching service credential for the target environment before rollout.
+require_runtime_value AI_SCORING_ADMIN_URL
+require_runtime_value AI_SCORING_ADMIN_SERVICE_TOKEN
+scoring_admin_url="$(read_runtime_env AI_SCORING_ADMIN_URL)"
+scoring_health="$(curl -fsS "${scoring_admin_url%/}/health/ready")"
+HEALTH="$scoring_health" node -e '
+  const value = JSON.parse(process.env.HEALTH);
+  if (value.status !== "ready") process.exit(1);
+'
 
 previous_tag="$(sed -n 's/^IMAGE_TAG=//p' .env | head -1)"
 next_tag="${IMAGE_TAG:?IMAGE_TAG is required}"
 next_admin_api_tag="${ADMIN_API_IMAGE_TAG:-$next_tag}"
-next_scoring_api_tag="${SCORING_API_IMAGE_TAG:-$next_tag}"
-next_scoring_worker_tag="${SCORING_WORKER_IMAGE_TAG:-$next_tag}"
 next_admin_web_tag="${ADMIN_WEB_IMAGE_TAG:-$next_tag}"
 next_exam_web_tag="${EXAM_WEB_IMAGE_TAG:-$next_tag}"
 next_version="${APP_VERSION:?APP_VERSION is required}"
@@ -99,8 +90,6 @@ update_env() {
 
 update_env IMAGE_TAG "$next_tag"
 update_env ADMIN_API_IMAGE_TAG "$next_admin_api_tag"
-update_env SCORING_API_IMAGE_TAG "$next_scoring_api_tag"
-update_env SCORING_WORKER_IMAGE_TAG "$next_scoring_worker_tag"
 update_env ADMIN_WEB_IMAGE_TAG "$next_admin_web_tag"
 update_env EXAM_WEB_IMAGE_TAG "$next_exam_web_tag"
 update_env APP_VERSION "$next_version"
@@ -118,17 +107,11 @@ if [ "$deploy_env" = beta ] && [ -s bootstrap-admin.env ]; then
 fi
 
 api_port="$(sed -n 's/^API_PORT=//p' .env | head -1)"
-scoring_api_port="$(sed -n 's/^SCORING_API_PORT=//p' .env | head -1)"
 admin_port="$(sed -n 's/^ADMIN_PORT=//p' .env | head -1)"
 exam_port="$(sed -n 's/^EXAM_PORT=//p' .env | head -1)"
 
 api_health="$(curl -fsS "http://127.0.0.1:${api_port}/health/ready")"
 HEALTH="$api_health" EXPECTED_VERSION="$next_version" EXPECTED_COMMIT="$next_commit" node -e '
-  const value = JSON.parse(process.env.HEALTH);
-  if (value.status !== "ready" || value.build?.version !== process.env.EXPECTED_VERSION || value.build?.commit !== process.env.EXPECTED_COMMIT) process.exit(1);
-'
-scoring_health="$(curl -fsS "http://127.0.0.1:${scoring_api_port:-3214}/health/ready")"
-HEALTH="$scoring_health" EXPECTED_VERSION="$next_version" EXPECTED_COMMIT="$next_commit" node -e '
   const value = JSON.parse(process.env.HEALTH);
   if (value.status !== "ready" || value.build?.version !== process.env.EXPECTED_VERSION || value.build?.commit !== process.env.EXPECTED_COMMIT) process.exit(1);
 '

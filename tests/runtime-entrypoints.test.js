@@ -103,14 +103,12 @@ test('readiness fails closed when a required dependency is unavailable', async (
   assert.equal(result.checks.database.status, 'error');
 });
 
-test('runtime Dockerfile exposes independent backend targets', () => {
+test('runtime Dockerfile owns only the Admin backend target', () => {
   const dockerfile = read('Dockerfile');
   assert.match(dockerfile, /AS admin-api/);
-  assert.match(dockerfile, /AS ai-scoring-api/);
-  assert.match(dockerfile, /AS ai-scoring-worker/);
   assert.match(dockerfile, /src\/apps\/admin\/server\.js/);
-  assert.match(dockerfile, /src\/apps\/ai-scoring\/server\.js/);
-  assert.match(dockerfile, /src\/apps\/ai-scoring\/worker\.js/);
+  assert.doesNotMatch(dockerfile, /AS ai-scoring-api|AS ai-scoring-worker/);
+  assert.doesNotMatch(dockerfile, /src\/apps\/ai-scoring\/(?:server|worker)\.js/);
 });
 
 function closableServer(calls, name) {

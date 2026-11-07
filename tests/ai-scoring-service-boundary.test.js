@@ -95,9 +95,14 @@ test('Admin and AI Scoring apps expose BFF and versioned service routes while pr
   assert.match(scoringApp, /\/api\/ai-scoring\/tenants.*authenticate/s);
 });
 
-test('container runtime routes the Admin BFF through the scoring service network alias', () => {
+test('container runtime consumes isolated Scoring configuration without owning Scoring services', () => {
   const root = path.resolve(__dirname, '..');
   const compose = fs.readFileSync(path.join(root, 'deploy/docker-compose.yml'), 'utf8');
+  const betaEnvironment = fs.readFileSync(path.join(root, 'deploy/.env.container.beta.example'), 'utf8');
+  const productionEnvironment = fs.readFileSync(path.join(root, 'deploy/.env.container.example'), 'utf8');
 
-  assert.match(compose, /AI_SCORING_ADMIN_URL:\s*http:\/\/scoring-api:3002/);
+  assert.doesNotMatch(compose, /^  scoring-api:|^  scoring-worker:/m);
+  assert.match(compose, /env_file:\s*\[\.env\.container\]/);
+  assert.match(betaEnvironment, /AI_SCORING_ADMIN_URL=https:\/\/ai-scoring-beta\.iigvn\.site/);
+  assert.match(productionEnvironment, /AI_SCORING_ADMIN_URL=https:\/\/ai-scoring\.iigvn\.site/);
 });

@@ -67,14 +67,6 @@ jobs:
             image: iig-admin-api
             file: Dockerfile
             target: admin-api
-          - name: scoring-api
-            image: iig-ai-scoring-api
-            file: Dockerfile
-            target: ai-scoring-api
-          - name: scoring-worker
-            image: iig-ai-scoring-worker
-            file: Dockerfile
-            target: ai-scoring-worker
           - name: admin-web
             image: iig-admin-admin-web
             file: frontend/Dockerfile

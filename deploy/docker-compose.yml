@@ -50,7 +50,6 @@ services:
     environment:
       <<: *runtime-env
       ADMIN_API_PORT: 3001
-      AI_SCORING_ADMIN_URL: http://scoring-api:3002
     extra_hosts: [host.docker.internal:host-gateway]
     volumes:
       - ${MEDIA_ROOT:?MEDIA_ROOT is required}/public/cleaned-audio:/app/public/cleaned-audio
@@ -70,54 +69,11 @@ services:
       redis: { condition: service_healthy }
     networks: [app]
 
-  scoring-api:
-    <<: *app-defaults
-    logging:
-      driver: journald
-      options:
-        tag: "iig-admin-{{.Name}}"
-        labels: "com.docker.compose.project,com.docker.compose.service"
-    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-ai-scoring-api:${SCORING_API_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
-    env_file: [.env.container]
-    environment:
-      <<: *runtime-env
-      AI_SCORING_API_PORT: 3002
-    extra_hosts: [host.docker.internal:host-gateway]
-    ports: ["127.0.0.1:${SCORING_API_PORT:-3214}:3002"]
-    depends_on:
-      migrate: { condition: service_completed_successfully }
-      redis: { condition: service_healthy }
-    networks: [app]
-
-  scoring-worker:
-    <<: *app-defaults
-    logging:
-      driver: journald
-      options:
-        tag: "iig-admin-{{.Name}}"
-        labels: "com.docker.compose.project,com.docker.compose.service"
-    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-ai-scoring-worker:${SCORING_WORKER_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
-    env_file: [.env.container]
-    environment:
-      <<: *runtime-env
-      AI_SCORING_WORKER_HEALTH_PORT: 3003
-    extra_hosts: [host.docker.internal:host-gateway]
-    volumes:
-      - ${MEDIA_ROOT:?MEDIA_ROOT is required}/public/cleaned-audio:/app/public/cleaned-audio
-      - ${MEDIA_ROOT:?MEDIA_ROOT is required}/public/tmp_local:/app/public/tmp_local
-      - ${MEDIA_ROOT:?MEDIA_ROOT is required}/public/question-bank-media:/app/public/question-bank-media
-      - ${MODEL_ROOT:?MODEL_ROOT is required}/src/models:/app/src/models:ro
-    depends_on:
-      migrate: { condition: service_completed_successfully }
-      redis: { condition: service_healthy }
-    networks: [app]
-
   admin-web:
     <<: *app-defaults
     image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-admin-admin-web:${ADMIN_WEB_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     depends_on:
       admin-api: { condition: service_healthy }
-      scoring-api: { condition: service_healthy }
     volumes: ["${MEDIA_ROOT:?MEDIA_ROOT is required}/public:/srv/media:ro"]
     ports: ["127.0.0.1:${ADMIN_PORT:-3212}:8080"]
     networks: [app]
@@ -127,7 +83,6 @@ services:
     image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-admin-exam-web:${EXAM_WEB_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     depends_on:
       admin-api: { condition: service_healthy }
-      scoring-api: { condition: service_healthy }
     volumes: ["${MEDIA_ROOT:?MEDIA_ROOT is required}/public:/srv/media:ro"]
     ports: ["127.0.0.1:${EXAM_PORT:-3213}:8080"]
     networks: [app]
