@@ -49,6 +49,7 @@ upsert_env DATABASE_URL "postgresql://iig_admin_beta:${postgres_password}@postgr
 upsert_env REDIS_URL redis://redis:6379/0
 upsert_env APP_URL https://admin-beta.iigvn.site
 upsert_env PUBLIC_URL https://admin-beta.iigvn.site
+upsert_env AI_SCORING_ADMIN_URL https://ai-scoring-beta.iigvn.site
 upsert_env WEBHOOK_SECRET_ENCRYPTION_KEY "$webhook_secret_encryption_key"
 
 chmod 600 "$RUNTIME_ENV" "$backup"
