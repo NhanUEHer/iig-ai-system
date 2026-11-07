@@ -54,16 +54,17 @@ Create `/opt/iig-admin/beta` and `/opt/iig-admin/prod`. Each directory requires:
 - `.env`, based on `deploy/.env.deploy.example`.
 - `.env.container`, containing runtime configuration and secrets.
 
-The deployment script generates `AI_SCORING_ADMIN_SERVICE_TOKEN` inside
-`.env.container` when it is missing or blank. Admin API and AI Scoring API in
-the same environment receive the same machine credential through Compose.
-Beta and Production generate independent values, existing values are preserved,
-and the credential is never printed to CI logs or committed to Git.
+Provision `AI_SCORING_ADMIN_SERVICE_TOKEN` inside `.env.container` out of band.
+It must match the machine credential configured on the independently deployed
+AI Scoring API for the same environment. The deployment validates that the
+credential exists but never generates, prints, or overwrites it. Beta and
+Production must use independent values.
 
 Beta additionally receives `docker-compose.beta.yml`, `nginx-beta.conf` and
 `configure-beta-environment.sh`. The bootstrap is idempotent: it preserves the
 generated PostgreSQL password, points only Beta at the `postgres` service, and
-never modifies the Production runtime environment.
+sets `AI_SCORING_ADMIN_URL=https://ai-scoring-beta.iigvn.site`. It preserves the
+existing service token and never modifies the Production runtime environment.
 
 Use separate loopback ports per environment. Recommended defaults:
 

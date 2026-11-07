@@ -103,6 +103,11 @@ test('Beta deploy adds isolated PostgreSQL and dedicated Admin and Exam domains 
   assert.match(betaBootstrap, /read_env WEBHOOK_SECRET_ENCRYPTION_KEY/);
   assert.match(betaBootstrap, /openssl rand -hex 32/);
   assert.match(betaBootstrap, /upsert_env WEBHOOK_SECRET_ENCRYPTION_KEY/);
+  assert.match(
+    betaBootstrap,
+    /upsert_env AI_SCORING_ADMIN_URL https:\/\/ai-scoring-beta\.iigvn\.site/,
+  );
+  assert.doesNotMatch(betaBootstrap, /upsert_env AI_SCORING_ADMIN_SERVICE_TOKEN/);
   assert.doesNotMatch(betaBootstrap, /Configure BOOTSTRAP_ADMIN_EMAIL/);
 
   const betaEnvironment = read('deploy/.env.container.beta.example');
