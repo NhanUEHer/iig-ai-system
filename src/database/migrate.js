@@ -1,6 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const db = require('../config/db');
+const {
+  ADMIN_MIGRATION_LOCK,
+  EXTERNALIZED_AI_SCORING_MIGRATIONS,
+  isAdminOwnedMigration,
+} = require('./migrationOwnership');
 
 const migrationsDir = path.join(__dirname, 'migrations');
 
@@ -9,7 +14,7 @@ async function runMigrations() {
   try {
     // Only one application instance may inspect/apply migrations at a time.
     // The session-level lock is released automatically if the process exits.
-    await migrationClient.query("SELECT pg_advisory_lock(hashtext('ai-scoring-schema-migrations'))");
+    await migrationClient.query('SELECT pg_advisory_lock(hashtext($1))', [ADMIN_MIGRATION_LOCK]);
   // Historical migrations use gen_random_uuid() and digest(). Ensure their
   // PostgreSQL extension is available before replaying the migration chain on
   // a fresh database or during disaster recovery.
@@ -22,9 +27,17 @@ async function runMigrations() {
     )
   `);
 
-  const migrationFiles = fs.readdirSync(migrationsDir)
+  const sqlFiles = fs.readdirSync(migrationsDir)
     .filter(file => file.endsWith('.sql'))
     .sort();
+  const migrationFiles = sqlFiles.filter(isAdminOwnedMigration);
+  const externalizedMigrations = sqlFiles.filter(file =>
+    EXTERNALIZED_AI_SCORING_MIGRATIONS.has(file)
+  );
+
+  if (externalizedMigrations.length > 0) {
+    console.log(`Skipping ${externalizedMigrations.length} AI Scoring-owned migrations in IIG Admin`);
+  }
 
   for (const file of migrationFiles) {
     const applied = await migrationClient.query(
@@ -46,7 +59,7 @@ async function runMigrations() {
     }
   }
   } finally {
-    await migrationClient.query("SELECT pg_advisory_unlock(hashtext('ai-scoring-schema-migrations'))").catch(() => {});
+    await migrationClient.query('SELECT pg_advisory_unlock(hashtext($1))', [ADMIN_MIGRATION_LOCK]).catch(() => {});
     migrationClient.release();
   }
 }
