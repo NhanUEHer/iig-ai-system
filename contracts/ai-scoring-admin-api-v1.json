@@ -80,27 +80,29 @@
     {
       "method": "POST",
       "path": "/api/admin/v1/jobs/:jobId/retry",
-      "status": "pending"
+      "status": "implemented"
     },
     {
       "method": "POST",
       "path": "/api/admin/v1/jobs/:jobId/cancel",
-      "status": "pending"
+      "status": "implemented"
     },
     {
       "method": "POST",
       "path": "/api/admin/v1/jobs/:jobId/rescore",
-      "status": "pending"
+      "status": "pending",
+      "note": "Deferred: needs a plan-driven design in the Scoring core; available-actions reports it as unsupported."
     },
     {
       "method": "POST",
       "path": "/api/admin/v1/jobs/:jobId/reconcile",
-      "status": "pending"
+      "status": "implemented"
     },
     {
       "method": "POST",
       "path": "/api/admin/v1/jobs/:jobId/pipeline/:stepId/retry",
-      "status": "pending"
+      "status": "pending",
+      "note": "Deferred: needs a plan-driven design in the Scoring core; available-actions reports it as unsupported."
     },
     {
       "method": "GET",

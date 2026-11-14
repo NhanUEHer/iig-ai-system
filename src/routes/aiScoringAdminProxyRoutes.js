@@ -50,11 +50,15 @@ function forwardedRequest(req, tenantIds) {
   const query = Object.fromEntries(Object.entries(req.query || {}).filter(([, value]) => value !== '' && value != null));
   query.tenantId = tenantId;
   let body = req.body;
-  if (body && typeof body === 'object' && !Array.isArray(body) && 'tenantId' in body) {
-    const { tenantId: _ignored, ...rest } = body;
+  let idempotencyKey;
+  if (body && typeof body === 'object' && !Array.isArray(body)) {
+    // Legacy job-operation dialogs put a per-operation key in the body; the contract wants it
+    // as the Idempotency-Key header. tenantId never travels in bodies.
+    const { tenantId: _tenant, idempotencyKey: bodyKey, ...rest } = body;
+    if (typeof bodyKey === 'string' && bodyKey.trim()) idempotencyKey = bodyKey.trim();
     body = rest;
   }
-  return { query, body };
+  return { query, body, idempotencyKey };
 }
 
 function createAiScoringAdminProxyRoutes(options = {}) {
@@ -65,13 +69,15 @@ function createAiScoringAdminProxyRoutes(options = {}) {
     if (tenantIds.length === 0) {
       throw new HttpError('AI Scoring Admin tenant scope is not configured.', 503, 'AI_SCORING_ADMIN_TENANT_SCOPE_NOT_CONFIGURED');
     }
-    const { query, body } = forwardedRequest(req, tenantIds);
+    const { query, body, idempotencyKey } = forwardedRequest(req, tenantIds);
+    const headers = forwardedHeaders(req, tenantIds);
+    if (idempotencyKey) headers['idempotency-key'] = idempotencyKey;
     const response = await client.request({
       method: req.method,
       path: req.path,
       query,
       body,
-      headers: forwardedHeaders(req, tenantIds),
+      headers,
     });
     for (const header of ['content-type', 'content-disposition', 'x-request-id']) {
       if (response.headers?.[header]) res.setHeader(header, response.headers[header]);

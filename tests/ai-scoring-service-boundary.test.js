@@ -160,7 +160,7 @@ const OTHER_TENANT = '7a0e0a5e-1f6a-4c1e-9a43-2a4c8c1b9f10';
 test('BFF fills tenantId from a single server-side scope and moves body tenantId to the query', () => {
   assert.deepEqual(forwardedRequest({ query: { limit: '20' } }, [TENANT]).query, { limit: '20', tenantId: TENANT });
   const replay = forwardedRequest({ query: {}, body: { tenantId: TENANT, reason: 'Receiver fixed' } }, [TENANT]);
-  assert.deepEqual(replay, { query: { tenantId: TENANT }, body: { reason: 'Receiver fixed' } });
+  assert.deepEqual(replay, { query: { tenantId: TENANT }, body: { reason: 'Receiver fixed' }, idempotencyKey: undefined });
 });
 
 test('BFF rejects a browser-selected tenant outside the server-side scope', () => {
@@ -172,4 +172,22 @@ test('BFF rejects a browser-selected tenant outside the server-side scope', () =
 test('BFF drops empty filter values so Scoring strict validation does not reject them', () => {
   const { query } = forwardedRequest({ query: { status: '', scope: '', search: 'KEY1', limit: '25' } }, [TENANT]);
   assert.deepEqual(query, { search: 'KEY1', limit: '25', tenantId: TENANT });
+});
+
+test('BFF lifts a legacy body idempotencyKey into the Idempotency-Key header', async () => {
+  const calls = [];
+  const client = { request: async config => { calls.push(config); return { status: 202, data: {}, headers: {} }; } };
+  const router = createAiScoringAdminProxyRoutes({ client, tenantIds: TENANT });
+  const req = {
+    method: 'POST', path: '/jobs/x/cancel', query: {}, body: { reason: 'Stop it', idempotencyKey: 'dialog-key-0001' },
+    requestId: 'request-1', headers: { 'idempotency-key': 'per-call-key' }, url: '/jobs/x/cancel',
+    auth: { userId: 'user-1', permissions: ['ai_scoring.operations.cancel'] }, user: { email: 'a@example.com' },
+    get: name => (name.toLowerCase() === 'idempotency-key' ? 'per-call-key' : undefined),
+  };
+  await new Promise(resolve => {
+    const res = { setHeader() {}, status() { return this; }, send() { resolve(); return this; } };
+    router.handle(req, res, resolve);
+  });
+  assert.equal(calls[0].headers['idempotency-key'], 'dialog-key-0001');
+  assert.deepEqual(calls[0].body, { reason: 'Stop it' });
 });
