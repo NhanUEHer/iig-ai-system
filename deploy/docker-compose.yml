@@ -18,6 +18,9 @@ x-runtime-env: &runtime-env
 services:
   redis:
     <<: *app-defaults
+    mem_limit: 256m
+    memswap_limit: 512m
+    cpus: 0.5
     image: redis:7.4-alpine
     command: ["redis-server", "--appendonly", "yes", "--save", "60", "100"]
     healthcheck:
@@ -30,6 +33,9 @@ services:
 
   migrate:
     <<: *app-defaults
+    mem_limit: 1g
+    memswap_limit: 1536m
+    cpus: 1
     image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-admin-api:${ADMIN_API_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     restart: "no"
     command: ["node", "scripts/run-migrations.js"]
@@ -40,6 +46,9 @@ services:
 
   admin-api:
     <<: *app-defaults
+    mem_limit: 2g
+    memswap_limit: 3g
+    cpus: 2
     logging:
       driver: journald
       options:
@@ -71,6 +80,9 @@ services:
 
   admin-web:
     <<: *app-defaults
+    mem_limit: 128m
+    memswap_limit: 256m
+    cpus: 0.5
     image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-admin-admin-web:${ADMIN_WEB_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     depends_on:
       admin-api: { condition: service_healthy }
@@ -80,6 +92,9 @@ services:
 
   exam-web:
     <<: *app-defaults
+    mem_limit: 128m
+    memswap_limit: 256m
+    cpus: 0.5
     image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-admin-exam-web:${EXAM_WEB_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     depends_on:
       admin-api: { condition: service_healthy }
