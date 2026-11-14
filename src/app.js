@@ -16,6 +16,8 @@ const errorHandler = require('./http/errorHandler');
 const HttpError = require('./http/httpError');
 const { authenticate } = require('./middleware/authenticate');
 const { getBuildInfo } = require('./config/buildInfo');
+const db = require('./config/db');
+const { createReadinessHandler } = require('./http/readinessHandler');
 const questionBankV3Routes = require('./routes/questionBankV3Routes');
 const examV3Routes = require('./routes/examV3Routes');
 const scoreScaleRoutes = require('./routes/scoreScaleRoutes');
@@ -74,6 +76,8 @@ app.use('/api/ai-scoring', authenticate, aiScoringAuditRoutes);
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', time: new Date(), requestId: req.requestId, build: getBuildInfo() });
 });
+
+app.get('/health/ready', createReadinessHandler(db));
 
 app.use((req, res, next) => next(new HttpError('Route not found.', 404, 'ROUTE_NOT_FOUND')));
 
