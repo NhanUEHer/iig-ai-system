@@ -6,12 +6,12 @@
 
 ### 0.1 Code đang nằm ở đâu
 
-Tất cả mới commit **local**, chưa push, chưa có PR, chưa deploy.
+Branch làm việc chính đã push lên GitHub (chưa có PR, chưa deploy).
 
 | Repo | Worktree (`.codex-tmp/worktrees/…`) | Branch | Nội dung |
 | --- | --- | --- | --- |
 | Scoring | `scoring-phase1-integration` | `codex/scoring-phase1-integration` | **Branch làm việc chính của Scoring**: gộp S1–S8 + contract manifest |
-| Scoring | `scoring-beta-baseline` | đang checkout `codex/scoring-s1-s2-migration-runtime` | S1/S2. Branch `codex/scoring-beta-baseline` (= Beta `3b1991f`) vẫn còn nguyên |
+| Scoring | `scoring-beta-baseline` | `codex/scoring-beta-baseline` | Baseline = Beta `3b1991f`, không sửa |
 | Scoring | `scoring-admin-api-phase1`, `scoring-containers-s3-s4` | cùng tên | S5/S6 batch 1, S3/S4; đã gộp vào branch tích hợp |
 | Admin | `admin-bff-tenant-scope` | `codex/admin-bff-tenant-scope` | **Branch làm việc chính của Admin**: tenant scope, chuẩn hóa tenantId, Idempotency-Key, contract test |
 | Admin | `admin-beta-baseline` | `codex/admin-beta-baseline` | Baseline = Beta `2af0854`, không sửa |
@@ -37,7 +37,7 @@ Tất cả mới commit **local**, chưa push, chưa có PR, chưa deploy.
 | # | Vấn đề | Mức | Trạng thái |
 | --- | --- | --- | --- |
 | 1 | FE gọi 36 endpoint, Scoring có 5; FE không gửi tenantId/Idempotency-Key | Nghiêm trọng | Lệch tham số đã sửa (`52b1958`, `7223219`), E2E 9/9; **thiếu endpoint vẫn còn** |
-| 2 | Chưa push gì; doc chưa commit | Nghiêm trọng | Chưa làm (W1) |
+| 2 | Chưa push gì; doc chưa commit | Nghiêm trọng | Đã xử lý (W1) |
 | 3 | Phần Claude làm chưa có review độc lập | Trung bình | Chưa làm (W6) |
 | 4 | Fingerprint 139 tự duyệt | Trung bình | Xác nhận trên Beta ở B-phase |
 | 5 | S6 quá lớn cho một task | Kế hoạch | Đã tách S6a–S6e |
@@ -59,13 +59,12 @@ Mỗi gói xong phải: test pass, contract manifest cập nhật, commit local,
 | **W7 Phase 2 (A1–A9)** | Cờ `legacy|standalone`, webhook receiver + inbox (A5), reconciliation (A6), tách Scoring khỏi Admin runtime | Admin không đọc Scoring DB; split E2E pass |
 | W8+ | C1–C6 CI/CD, B1–B6 Beta, P1–P5 Production | Theo mục 5.1 |
 
-Đang làm: **W1** — một phần.
+Đang làm: **W2** (S6a đọc job). W1 DONE.
 
 W1 evidence 2026-11-14:
-- Docs đã commit vào `codex/admin-bff-tenant-scope` (`1ae3446`).
-- Worktree `scoring-beta-baseline` đã trả về branch `codex/scoring-beta-baseline` (`3b1991f`).
+- Pushed (không PR, không có workflow nào chạy): `NhanUEHer/iig-ai-scoring-backend` → `codex/scoring-phase1-integration` (`7223219`); `NhanUEHer/iig-ai-system` → `codex/admin-bff-tenant-scope`.
+- Docs đã commit vào branch Admin; worktree `scoring-beta-baseline` trả về `codex/scoring-beta-baseline` (`3b1991f`).
 - Backup git bundle (đã verify): `report/iig-two-system-backup-2026-11-14/{scoring,admin}.bundle`.
-- **Chưa push**: GitHub account `nhannd25` không có quyền vào `NhanUEHer/iig-ai-scoring-backend` (private, not found) và bị 403 khi ghi `NhanUEHer/iig-ai-system` (public). Chờ cấp quyền.
 
 ## 1. Mục đích
 
