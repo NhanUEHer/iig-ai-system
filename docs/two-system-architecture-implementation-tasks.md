@@ -25,7 +25,7 @@ Branch làm việc chính đã push lên GitHub (chưa có PR, chưa deploy).
 | S2 API/Worker | DONE | Tách entrypoint | — |
 | S3/S4 Image | REVIEW | Build + smoke ARM64 pass, API 480 MB | Đẩy audio-base lên registry, ghi digest |
 | S5 Public API | DONE (baseline) | create/detail/result/retry, tenant auth | — |
-| S6 Admin API | IN_PROGRESS | **18/43 endpoint** (S6a đọc job, S6b retry/cancel/reconcile), service credential, tenant scope, replay | 25 endpoint (S6c–S6e) + rescore/step-retry (hoãn) |
+| S6 Admin API | IN_PROGRESS | **38/43 endpoint** (S6a–S6d xong) | `jobs/changes`, `jobs/lookup` (S6e); `POST /tenants`, rescore, step-retry (hoãn) |
 | S7 Outbox/Inbox | REVIEW | Crash-window test thật pass | Metric reconciliation |
 | S8 Webhook | IN_PROGRESS | Ký v2, body ổn định, retry, replay | Event `scoring.failed`/`scoring.cancelled` |
 | S9 Regression | TODO | — | — |
@@ -60,7 +60,15 @@ Mỗi gói xong phải: test pass, contract manifest cập nhật, commit local,
 | **W7 Phase 2 (A1–A9)** | Cờ `legacy|standalone`, webhook receiver + inbox (A5), reconciliation (A6), tách Scoring khỏi Admin runtime | Admin không đọc Scoring DB; split E2E pass |
 | W8+ | C1–C6 CI/CD, B1–B6 Beta, P1–P5 Production | Theo mục 5.1 |
 
-Đang làm: **W4** (S6c tenant/credential, S6d webhook/audit). W1, W2, W3 DONE.
+Đang làm: **W5** (S6e change feed + lookup, S8b event failed/cancelled). W1–W4 DONE.
+
+Cách làm từ W4: **Codex là agent viết code** (gói ChatGPT, chạy `codex exec` trong worktree riêng theo brief ở `report/codex-briefs/`), **Claude chỉ review** theo checklist, tự chạy lại test + E2E, sửa finding, rồi merge.
+
+W4 evidence 2026-11-14 — Scoring `fdb5ba6` (fast-forward vào `codex/scoring-phase1-integration`, đã push):
+- Codex làm 19 endpoint tenant/credential/webhook/audit; manifest 38/43; không migration.
+- Claude review tìm 4 lỗi và đã sửa: (1) suspend/đổi môi trường tenant của chính Admin service → tự khóa Admin (giờ 409 `TENANT_SELF_LOCKOUT`); (2) rotate credential bỏ qua `overlapMinutes` → giờ key cũ hết hạn sau overlap; (3) webhook test gửi `scoring.completed` giả → đổi `webhook.test`; (4) URL webhook không hợp lệ trả 500 → 422.
+- E2E qua Admin BFF trên PostgreSQL 16: 22/22 (credential mới dùng được ở public API, overlap giữ token cũ, revoke chặn token cũ, không lộ secret trong list/audit). Jest 44/44, core 503.
+- Ghi chú: token sai/đã thu hồi ở public API trả 403 thay vì 401 (hành vi có sẵn, kiểm lại ở S9). Lần sau chạy Codex thêm `--add-dir` thư mục git chung để Codex tự commit.
 
 W3 evidence 2026-11-14 — Scoring `dc692e6`, Admin `3d8b4ec` (đã push):
 - Quyết định: dùng cơ chế chuẩn Scoring. Retry = retry job chuẩn (job mới, `retry_of_job_id`); cancel/reconcile port có lọc tenant; rescore + retry từng bước hoãn (available-actions báo "chưa hỗ trợ").
