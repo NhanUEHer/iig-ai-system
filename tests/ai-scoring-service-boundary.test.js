@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { authenticateAiScoringService, parsePermissions } = require('../src/middleware/authenticateAiScoringService');
 const { createAiScoringAdminClient } = require('../src/clients/aiScoringAdminClient');
-const { forwardedHeaders } = require('../src/routes/aiScoringAdminProxyRoutes');
+const { forwardedHeaders, parseTenantScope, createAiScoringAdminProxyRoutes } = require('../src/routes/aiScoringAdminProxyRoutes');
 
 function middlewareResult(headers, token) {
   const previous = process.env.AI_SCORING_ADMIN_SERVICE_TOKEN;
@@ -77,13 +77,60 @@ test('BFF forwards request identity, actor, scoped permissions and idempotency k
     user: { email: 'admin@example.com' },
     get: name => name === 'idempotency-key' ? 'retry-1' : undefined,
   };
-  assert.deepEqual(forwardedHeaders(req), {
+  assert.deepEqual(forwardedHeaders(req, [TENANT]), {
     'x-request-id': 'request-1',
     'x-admin-actor-id': 'user-1',
     'x-admin-actor-email': 'admin@example.com',
     'x-admin-permissions': 'ai_scoring.jobs.view',
+    'x-admin-tenant-ids': TENANT,
     'idempotency-key': 'retry-1',
   });
+});
+
+const TENANT = '4fe58fc4-644e-452e-aacd-56523db1b2e7';
+
+test('tenant scope is validated server-side configuration', () => {
+  assert.deepEqual(parseTenantScope(''), []);
+  assert.deepEqual(parseTenantScope(` ${TENANT.toUpperCase()} ,${TENANT}`), [TENANT]);
+  assert.throws(() => parseTenantScope('*'));
+  assert.throws(() => parseTenantScope('IIG'));
+});
+
+test('actors without AI Scoring permissions receive no tenant scope', () => {
+  const req = { auth: { userId: 'user-1', permissions: ['users.view'] }, get: () => undefined };
+  assert.equal(forwardedHeaders(req, [TENANT])['x-admin-tenant-ids'], '');
+});
+
+async function proxyCall(tenantIds, incomingHeaders = {}) {
+  const calls = [];
+  const client = { request: async config => { calls.push(config); return { status: 200, data: { ok: true }, headers: {} }; } };
+  const router = createAiScoringAdminProxyRoutes({ client, tenantIds });
+  const req = {
+    method: 'GET', path: '/jobs', query: {}, body: undefined, requestId: 'request-1',
+    headers: incomingHeaders, url: '/jobs', originalUrl: '/api/ai-scoring/jobs',
+    auth: { userId: 'user-1', permissions: ['ai_scoring.jobs.view'] },
+    user: { email: 'admin@example.com' },
+    get: name => incomingHeaders[name.toLowerCase()],
+  };
+  let status; let caught;
+  const res = { setHeader() {}, status(code) { status = code; return this; }, send() { return this; } };
+  await new Promise(resolve => {
+    res.send = () => { resolve(); return res; };
+    router.handle(req, res, error => { caught = error; resolve(); });
+  });
+  return { calls, status, error: caught };
+}
+
+test('proxy forwards configured tenant scope and ignores browser-supplied tenant header', async () => {
+  const { calls, status } = await proxyCall(TENANT, { 'x-admin-tenant-ids': '*' });
+  assert.equal(status, 200);
+  assert.equal(calls[0].headers['x-admin-tenant-ids'], TENANT);
+});
+
+test('proxy fails closed when tenant scope is not configured', async () => {
+  const { calls, error } = await proxyCall('');
+  assert.equal(calls.length, 0);
+  assert.equal(error.code, 'AI_SCORING_ADMIN_TENANT_SCOPE_NOT_CONFIGURED');
 });
 
 test('Admin and AI Scoring apps expose BFF and versioned service routes while preserving legacy routes', () => {
