@@ -21,14 +21,14 @@ Branch làm việc chính đã push lên GitHub (chưa có PR, chưa deploy).
 | Task | Trạng thái | Đã có | Còn thiếu |
 | --- | --- | --- | --- |
 | F0–F4 | DONE | Baseline, ownership, contract v1 | — |
-| S1 Migration | REVIEW | Runner checksum/fingerprint; chạy thật trên PG 16 | Chạy trên schema-only dump của Beta |
+| S1 Migration | DONE (local) | Runner checksum/fingerprint; PG 16; Beta schema thật khớp registry 137; nâng cấp 138→140 từ schema Beta pass | Lần deploy Beta đầu cần `IIG_MIGRATION_ADOPT_LEGACY_CHECKSUMS=true` một lần |
 | S2 API/Worker | DONE | Tách entrypoint | — |
 | S3/S4 Image | REVIEW | Build + smoke ARM64 pass, API 480 MB | Đẩy audio-base lên registry, ghi digest |
 | S5 Public API | DONE (baseline) | create/detail/result/retry, tenant auth | — |
 | S6 Admin API | REVIEW | **40/43 endpoint** (S6a–S6e xong) | `POST /tenants`, rescore, step-retry (hoãn có chủ đích) |
 | S7 Outbox/Inbox | REVIEW | Crash-window test thật pass | Metric reconciliation |
 | S8 Webhook | REVIEW | Ký v2, body ổn định, retry, replay, `scoring.failed`/`scoring.cancelled` | — |
-| S9 Regression | REVIEW | Ma trận regression, gate code/local PASS (W6) | Dump schema Beta, digest audio-base trên registry, AMD64 |
+| S9 Regression | REVIEW | Ma trận regression, gate code/local PASS (W6); gate schema Beta PASS | Digest audio-base trên registry, AMD64 |
 | A-phase (Admin) | TODO | Tenant scope + contract alignment ở BFF | Cờ legacy/standalone, webhook receiver, reconciliation… |
 | C, B, P | TODO | — | — |
 
@@ -66,7 +66,14 @@ W5 + W6 evidence 2026-11-14 — Scoring `af61b15` (fast-forward vào `codex/scor
 - W5 (Codex): migration 140 ledger + trigger, `GET /jobs/changes` (rào snapshot-xmin, 410 khi cursor hết hạn), `POST /jobs/lookup`, webhook `scoring.failed` (trigger) / `scoring.cancelled` (trong transaction cancel). Manifest 40/43.
 - W6 (Codex): ma trận regression S9 + review toàn Phase 1; sửa 2 lỗi P1: (1) `dist` thiếu registry checksum/fingerprint → container migrate không chạy; (2) API image tách không khởi động được vì Admin management import module Worker (lỗi lọt từ W4) → tách `webhookUrlPolicy.js`.
 - Claude review độc lập trên PostgreSQL 16: bootstrap qua runner chuẩn (fingerprint 140 khớp), rerun no-op; giao dịch mở seq thấp chặn đúng commit seq cao hơn, commit xong trả đủ; job lỗi 2 lần chỉ 1 delivery `scoring.failed` v2; lookup tenant khác báo missing. Jest 46/46, core 521, build có đủ registry.
-- Gate còn BLOCKED: (a) dump schema-only Beta đã sanitize (cần quyền), (b) publish audio-base lên registry tổ chức + digest, (c) build/smoke AMD64. Còn mở: lên lịch cleanup ledger trước khi chạy Beta lâu.
+- Gate (a) schema Beta: **PASS** 2026-11-14 (chi tiết dưới). Còn BLOCKED: (b) publish audio-base lên registry tổ chức + digest, (c) build/smoke AMD64.
+
+Gate schema Beta evidence 2026-11-14 (chỉ đọc, chỉ container `iig-ai-scoring-beta-postgres-1`; script `report/beta-schema-dump/dump-beta-scoring-schema.sh`):
+- Dump schema-only + ledger (`Nhan`, SHA-256 trong output script); 0 dòng dữ liệu nghiệp vụ.
+- Ledger Beta: 17 dòng 121→137, **không có cột `checksum_sha256`** (ledger kiểu cũ) → lần deploy đầu phải bật `IIG_MIGRATION_ADOPT_LEGACY_CHECKSUMS=true` (runner từ chối nếu thiếu, đã kiểm).
+- Fingerprint DB Beta thật (query read-only) = `8dabfa04…` = registry 137, 866 thành phần → **MATCH**.
+- Restore dump vào PG 16 tạm: fingerprint lệch chỉ do pg_dump in lại cast (`::character varying::text`); chuẩn hóa thì 866/866 giống canonical.
+- Nâng cấp trên schema Beta đã restore: ghi checksum 17 dòng cũ, apply 138/139/140, rerun no-op, ledger 20/20 có checksum, 6 trigger; cấu trúc cuối = bootstrap mới 140 (917/917, 0 khác biệt). Còn mở: lên lịch cleanup ledger trước khi chạy Beta lâu.
 
 Cách làm từ W4: **Codex là agent viết code** (gói ChatGPT, chạy `codex exec` trong worktree riêng theo brief ở `report/codex-briefs/`), **Claude chỉ review** theo checklist, tự chạy lại test + E2E, sửa finding, rồi merge.
 
