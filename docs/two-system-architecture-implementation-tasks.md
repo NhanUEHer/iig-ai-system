@@ -25,7 +25,7 @@ Branch làm việc chính đã push lên GitHub (chưa có PR, chưa deploy).
 | S2 API/Worker | DONE | Tách entrypoint | — |
 | S3/S4 Image | REVIEW | Build + smoke ARM64 pass, API 480 MB | Đẩy audio-base lên registry, ghi digest |
 | S5 Public API | DONE (baseline) | create/detail/result/retry, tenant auth | — |
-| S6 Admin API | IN_PROGRESS | **15/43 endpoint** (S6a đọc job xong), service credential, tenant scope, replay | 28 endpoint (S6b–S6e) |
+| S6 Admin API | IN_PROGRESS | **18/43 endpoint** (S6a đọc job, S6b retry/cancel/reconcile), service credential, tenant scope, replay | 25 endpoint (S6c–S6e) + rescore/step-retry (hoãn) |
 | S7 Outbox/Inbox | REVIEW | Crash-window test thật pass | Metric reconciliation |
 | S8 Webhook | IN_PROGRESS | Ký v2, body ổn định, retry, replay | Event `scoring.failed`/`scoring.cancelled` |
 | S9 Regression | TODO | — | — |
@@ -52,14 +52,23 @@ Mỗi gói xong phải: test pass, contract manifest cập nhật, commit local,
 | --- | --- | --- |
 | **W1 Bảo toàn** | Push các branch làm việc lên GitHub (không PR); commit doc kế hoạch + contract vào repo Admin; trả worktree baseline về đúng branch | Mọi commit có trên remote |
 | **W2 S6a Đọc job** | `attempts`, `available-actions`, `plan`, `questions`, `questions/:id`, `groups/:id`, `timeline`, `pipeline`, `model-executions`, `export` | Màn hình danh sách + chi tiết job trên Admin chạy E2E không 404 |
-| **W3 S6b Thao tác job** | `retry`, `cancel`, `rescore`, `reconcile`, `pipeline/:stepId/retry`; idempotency namespace dùng chung | Replay cùng key / conflict khác payload có test |
+| **W3 S6b Thao tác job** | `retry`, `cancel`, `reconcile` (rescore + step-retry hoãn, xem W3b); idempotency ledger dùng chung | Replay cùng key / conflict khác payload có test |
+| W3b Rescore + retry từng bước | Thiết kế theo scoring plan trong Scoring core (đụng Worker) | Có thiết kế + test pipeline; trước Beta |
 | **W4 S6c Tenant/credential, S6d Webhook/audit** | Quản trị tenant, credential, webhook endpoint, deliveries, audit events | Màn hình tenant/webhook chạy E2E |
 | **W5 S6e + S8b** | Change ledger + `GET /jobs/changes`, `POST /jobs/lookup`; enqueue `scoring.failed`/`scoring.cancelled` | Manifest 43/43 implemented |
 | **W6 S9 + review** | Regression suite Scoring; review độc lập toàn bộ Phase 1; S1 trên dump Beta; audio-base digest | Phase 1 gate đạt |
 | **W7 Phase 2 (A1–A9)** | Cờ `legacy|standalone`, webhook receiver + inbox (A5), reconciliation (A6), tách Scoring khỏi Admin runtime | Admin không đọc Scoring DB; split E2E pass |
 | W8+ | C1–C6 CI/CD, B1–B6 Beta, P1–P5 Production | Theo mục 5.1 |
 
-Đang làm: **W3** (S6b thao tác job). W1, W2 DONE.
+Đang làm: **W4** (S6c tenant/credential, S6d webhook/audit). W1, W2, W3 DONE.
+
+W3 evidence 2026-11-14 — Scoring `dc692e6`, Admin `3d8b4ec` (đã push):
+- Quyết định: dùng cơ chế chuẩn Scoring. Retry = retry job chuẩn (job mới, `retry_of_job_id`); cancel/reconcile port có lọc tenant; rescore + retry từng bước hoãn (available-actions báo "chưa hỗ trợ").
+- Idempotency ledger trên `integration_admin_audit_events` (replay cùng payload, 409 khác payload), audit cùng transaction.
+- Sửa race trong `retryFailed` chuẩn (ảnh hưởng cả public API): request cùng key đồng thời giờ replay thay vì `SCORING_JOB_SUPERSEDED`. 8 request đồng thời → 1 job.
+- BFF chuyển `idempotencyKey` trong body (theo hộp thoại FE) lên header.
+- E2E qua Admin BFF trên PostgreSQL 16: 15/15. Test: Scoring Jest 44/44, core 488; Admin 804/804.
+- Rủi ro còn lại: cancel giữ nguyên `submission.ai_scoring_status` như Admin cũ; cần kiểm với completion theo plan ở S9.
 
 W2 evidence 2026-11-14 — Scoring `5fc59e6`, Admin `c02fd99` (đã push):
 - 10 endpoint đọc mới (port từ read model cũ của Admin), mọi query lọc `job.tenant_id`; job tenant khác trả 404.
