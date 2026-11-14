@@ -153,3 +153,18 @@ test('container runtime consumes isolated Scoring configuration without owning S
   assert.match(betaEnvironment, /AI_SCORING_ADMIN_URL=https:\/\/ai-scoring-beta\.iigvn\.site/);
   assert.match(productionEnvironment, /AI_SCORING_ADMIN_URL=https:\/\/ai-scoring\.iigvn\.site/);
 });
+
+const { forwardedRequest } = require('../src/routes/aiScoringAdminProxyRoutes');
+const OTHER_TENANT = '7a0e0a5e-1f6a-4c1e-9a43-2a4c8c1b9f10';
+
+test('BFF fills tenantId from a single server-side scope and moves body tenantId to the query', () => {
+  assert.deepEqual(forwardedRequest({ query: { limit: '20' } }, [TENANT]).query, { limit: '20', tenantId: TENANT });
+  const replay = forwardedRequest({ query: {}, body: { tenantId: TENANT, reason: 'Receiver fixed' } }, [TENANT]);
+  assert.deepEqual(replay, { query: { tenantId: TENANT }, body: { reason: 'Receiver fixed' } });
+});
+
+test('BFF rejects a browser-selected tenant outside the server-side scope', () => {
+  assert.throws(() => forwardedRequest({ query: { tenantId: OTHER_TENANT } }, [TENANT]), error => error.code === 'AI_SCORING_TENANT_FORBIDDEN');
+  assert.throws(() => forwardedRequest({ query: {} }, [TENANT, OTHER_TENANT]), error => error.code === 'AI_SCORING_TENANT_REQUIRED');
+  assert.equal(forwardedRequest({ query: { tenantId: OTHER_TENANT } }, [TENANT, OTHER_TENANT]).query.tenantId, OTHER_TENANT);
+});

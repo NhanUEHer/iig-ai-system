@@ -29,6 +29,32 @@ function forwardedHeaders(req, tenantIds = []) {
   return headers;
 }
 
+// Contract: every /api/admin/v1 call carries the target tenant as ?tenantId=. The browser
+// may name a tenant, but only one inside the server-side scope; with a single configured
+// tenant it is filled in. tenantId is stripped from bodies (Scoring rejects unknown fields).
+function resolveTenant(req, tenantIds) {
+  const requested = String(req.query?.tenantId ?? req.body?.tenantId ?? '').trim().toLowerCase();
+  if (requested) {
+    if (!tenantIds.includes(requested)) {
+      throw new HttpError('The actor is not authorized for this tenant.', 403, 'AI_SCORING_TENANT_FORBIDDEN');
+    }
+    return requested;
+  }
+  if (tenantIds.length === 1) return tenantIds[0];
+  throw new HttpError('tenantId is required when several tenants are in scope.', 400, 'AI_SCORING_TENANT_REQUIRED');
+}
+
+function forwardedRequest(req, tenantIds) {
+  const tenantId = resolveTenant(req, tenantIds);
+  const query = { ...(req.query || {}), tenantId };
+  let body = req.body;
+  if (body && typeof body === 'object' && !Array.isArray(body) && 'tenantId' in body) {
+    const { tenantId: _ignored, ...rest } = body;
+    body = rest;
+  }
+  return { query, body };
+}
+
 function createAiScoringAdminProxyRoutes(options = {}) {
   const router = express.Router();
   const client = options.client || createAiScoringAdminClient();
@@ -37,11 +63,12 @@ function createAiScoringAdminProxyRoutes(options = {}) {
     if (tenantIds.length === 0) {
       throw new HttpError('AI Scoring Admin tenant scope is not configured.', 503, 'AI_SCORING_ADMIN_TENANT_SCOPE_NOT_CONFIGURED');
     }
+    const { query, body } = forwardedRequest(req, tenantIds);
     const response = await client.request({
       method: req.method,
       path: req.path,
-      query: req.query,
-      body: req.body,
+      query,
+      body,
       headers: forwardedHeaders(req, tenantIds),
     });
     for (const header of ['content-type', 'content-disposition', 'x-request-id']) {
@@ -52,4 +79,4 @@ function createAiScoringAdminProxyRoutes(options = {}) {
   return router;
 }
 
-module.exports = { createAiScoringAdminProxyRoutes, forwardedHeaders, parseTenantScope };
+module.exports = { createAiScoringAdminProxyRoutes, forwardedHeaders, forwardedRequest, parseTenantScope };

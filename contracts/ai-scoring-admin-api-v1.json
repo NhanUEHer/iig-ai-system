@@ -1,0 +1,225 @@
+{
+  "contract": "ai-scoring-admin-api-v1",
+  "source": "docs/ai-scoring-admin-api-webhook-contract-v1.md sections 4 and 10",
+  "conventions": {
+    "tenant": "Every request carries the target tenant as ?tenantId=<uuid>; the Admin BFF fills it from server-side scope.",
+    "idempotency": "Every POST/PATCH carries an Idempotency-Key header (8-128 chars)."
+  },
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/facets",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/export",
+      "status": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/result",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/available-actions",
+      "status": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/attempts",
+      "status": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/plan",
+      "status": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/questions",
+      "status": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/questions/:questionId",
+      "status": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/groups/:groupId",
+      "status": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/timeline",
+      "status": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/pipeline",
+      "status": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/model-executions",
+      "status": "pending"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/jobs/:jobId/retry",
+      "status": "pending"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/jobs/:jobId/cancel",
+      "status": "pending"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/jobs/:jobId/rescore",
+      "status": "pending"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/jobs/:jobId/reconcile",
+      "status": "pending"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/jobs/:jobId/pipeline/:stepId/retry",
+      "status": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/tenants",
+      "status": "pending"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/tenants",
+      "status": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/tenants/:tenantId",
+      "status": "pending"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/v1/tenants/:tenantId",
+      "status": "pending"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/tenants/:tenantId/activate",
+      "status": "pending"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/tenants/:tenantId/suspend",
+      "status": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/tenants/:tenantId/audit-events",
+      "status": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/tenants/:tenantId/credentials",
+      "status": "pending"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/tenants/:tenantId/credentials",
+      "status": "pending"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/v1/credentials/:credentialId",
+      "status": "pending"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/credentials/:credentialId/rotate",
+      "status": "pending"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/credentials/:credentialId/revoke",
+      "status": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/tenants/:tenantId/webhooks",
+      "status": "pending"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/tenants/:tenantId/webhooks",
+      "status": "pending"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/v1/webhooks/:webhookId",
+      "status": "pending"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/webhooks/:webhookId/rotate-secret",
+      "status": "pending"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/webhooks/:webhookId/test",
+      "status": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/webhook-deliveries",
+      "status": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/webhook-deliveries/:deliveryId",
+      "status": "pending"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/webhook-deliveries/:deliveryId/replay",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/audit-events",
+      "status": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/audit-events/:eventId",
+      "status": "pending"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/changes",
+      "status": "pending"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/jobs/lookup",
+      "status": "pending"
+    }
+  ]
+}

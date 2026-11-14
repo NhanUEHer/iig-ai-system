@@ -1,3 +1,4 @@
+import { idempotencyConfig } from './aiScoringIdempotency';
 import api from './api';
 const unwrap = response => response.data.data;
 export async function listScoringJobs(params) { return unwrap(await api.get('/ai-scoring/jobs', { params })); }
@@ -12,8 +13,8 @@ export async function getScoringJobTimeline(jobId) { return unwrap(await api.get
 export async function getScoringJobPipeline(jobId, runId) { return unwrap(await api.get(`/ai-scoring/jobs/${jobId}/pipeline`, { params: { runId } })); }
 export async function getScoringJobModelExecutions(jobId) { return unwrap(await api.get(`/ai-scoring/jobs/${jobId}/model-executions`)); }
 export async function getScoringJobAvailableActions(jobId) { return unwrap(await api.get(`/ai-scoring/jobs/${jobId}/available-actions`)); }
-export async function retryScoringJob(jobId, payload) { return unwrap(await api.post(`/ai-scoring/jobs/${jobId}/retry`, payload)); }
-export async function cancelScoringJob(jobId, payload) { return unwrap(await api.post(`/ai-scoring/jobs/${jobId}/cancel`, payload)); }
-export async function rescoreScoringJob(jobId, payload) { return unwrap(await api.post(`/ai-scoring/jobs/${jobId}/rescore`, payload)); }
-export async function reconcileScoringJob(jobId, payload) { return unwrap(await api.post(`/ai-scoring/jobs/${jobId}/reconcile`, payload)); }
-export async function retryScoringStep(jobId, stepId, payload) { return unwrap(await api.post(`/ai-scoring/jobs/${jobId}/pipeline/${encodeURIComponent(stepId)}/retry`, payload)); }
+export async function retryScoringJob(jobId, payload) { return unwrap(await api.post(`/ai-scoring/jobs/${jobId}/retry`, payload, idempotencyConfig())); }
+export async function cancelScoringJob(jobId, payload) { return unwrap(await api.post(`/ai-scoring/jobs/${jobId}/cancel`, payload, idempotencyConfig())); }
+export async function rescoreScoringJob(jobId, payload) { return unwrap(await api.post(`/ai-scoring/jobs/${jobId}/rescore`, payload, idempotencyConfig())); }
+export async function reconcileScoringJob(jobId, payload) { return unwrap(await api.post(`/ai-scoring/jobs/${jobId}/reconcile`, payload, idempotencyConfig())); }
+export async function retryScoringStep(jobId, stepId, payload) { return unwrap(await api.post(`/ai-scoring/jobs/${jobId}/pipeline/${encodeURIComponent(stepId)}/retry`, payload, idempotencyConfig())); }
