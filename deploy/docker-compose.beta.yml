@@ -1,6 +1,9 @@
 services:
   postgres:
     restart: unless-stopped
+    mem_limit: 512m
+    memswap_limit: 1g
+    cpus: 1
     image: postgres:16-alpine
     init: true
     env_file: [.env.container]
