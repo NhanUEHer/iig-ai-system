@@ -168,3 +168,8 @@ test('BFF rejects a browser-selected tenant outside the server-side scope', () =
   assert.throws(() => forwardedRequest({ query: {} }, [TENANT, OTHER_TENANT]), error => error.code === 'AI_SCORING_TENANT_REQUIRED');
   assert.equal(forwardedRequest({ query: { tenantId: OTHER_TENANT } }, [TENANT, OTHER_TENANT]).query.tenantId, OTHER_TENANT);
 });
+
+test('BFF drops empty filter values so Scoring strict validation does not reject them', () => {
+  const { query } = forwardedRequest({ query: { status: '', scope: '', search: 'KEY1', limit: '25' } }, [TENANT]);
+  assert.deepEqual(query, { search: 'KEY1', limit: '25', tenantId: TENANT });
+});

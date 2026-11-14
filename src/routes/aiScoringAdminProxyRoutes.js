@@ -46,7 +46,9 @@ function resolveTenant(req, tenantIds) {
 
 function forwardedRequest(req, tenantIds) {
   const tenantId = resolveTenant(req, tenantIds);
-  const query = { ...(req.query || {}), tenantId };
+  // Drop empty filters (`status=`): Scoring validates every present field strictly.
+  const query = Object.fromEntries(Object.entries(req.query || {}).filter(([, value]) => value !== '' && value != null));
+  query.tenantId = tenantId;
   let body = req.body;
   if (body && typeof body === 'object' && !Array.isArray(body) && 'tenantId' in body) {
     const { tenantId: _ignored, ...rest } = body;

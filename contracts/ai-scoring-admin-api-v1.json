@@ -3,7 +3,8 @@
   "source": "docs/ai-scoring-admin-api-webhook-contract-v1.md sections 4 and 10",
   "conventions": {
     "tenant": "Every request carries the target tenant as ?tenantId=<uuid>; the Admin BFF fills it from server-side scope.",
-    "idempotency": "Every POST/PATCH carries an Idempotency-Key header (8-128 chars)."
+    "idempotency": "Every POST/PATCH carries an Idempotency-Key header (8-128 chars).",
+    "pagination": "List endpoints use an opaque durable cursor: ?cursor=&limit= (default 50, max 200); responses carry nextCursor."
   },
   "endpoints": [
     {
@@ -19,7 +20,7 @@
     {
       "method": "GET",
       "path": "/api/admin/v1/jobs/export",
-      "status": "pending"
+      "status": "implemented"
     },
     {
       "method": "GET",
@@ -34,47 +35,47 @@
     {
       "method": "GET",
       "path": "/api/admin/v1/jobs/:jobId/available-actions",
-      "status": "pending"
+      "status": "implemented"
     },
     {
       "method": "GET",
       "path": "/api/admin/v1/jobs/:jobId/attempts",
-      "status": "pending"
+      "status": "implemented"
     },
     {
       "method": "GET",
       "path": "/api/admin/v1/jobs/:jobId/plan",
-      "status": "pending"
+      "status": "implemented"
     },
     {
       "method": "GET",
       "path": "/api/admin/v1/jobs/:jobId/questions",
-      "status": "pending"
+      "status": "implemented"
     },
     {
       "method": "GET",
       "path": "/api/admin/v1/jobs/:jobId/questions/:questionId",
-      "status": "pending"
+      "status": "implemented"
     },
     {
       "method": "GET",
       "path": "/api/admin/v1/jobs/:jobId/groups/:groupId",
-      "status": "pending"
+      "status": "implemented"
     },
     {
       "method": "GET",
       "path": "/api/admin/v1/jobs/:jobId/timeline",
-      "status": "pending"
+      "status": "implemented"
     },
     {
       "method": "GET",
       "path": "/api/admin/v1/jobs/:jobId/pipeline",
-      "status": "pending"
+      "status": "implemented"
     },
     {
       "method": "GET",
       "path": "/api/admin/v1/jobs/:jobId/model-executions",
-      "status": "pending"
+      "status": "implemented"
     },
     {
       "method": "POST",
