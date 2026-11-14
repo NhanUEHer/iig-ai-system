@@ -25,9 +25,9 @@ Branch làm việc chính đã push lên GitHub (chưa có PR, chưa deploy).
 | S2 API/Worker | DONE | Tách entrypoint | — |
 | S3/S4 Image | REVIEW | Build + smoke ARM64 pass, API 480 MB | Đẩy audio-base lên registry, ghi digest |
 | S5 Public API | DONE (baseline) | create/detail/result/retry, tenant auth | — |
-| S6 Admin API | IN_PROGRESS | **38/43 endpoint** (S6a–S6d xong) | `jobs/changes`, `jobs/lookup` (S6e); `POST /tenants`, rescore, step-retry (hoãn) |
+| S6 Admin API | REVIEW | **40/43 endpoint** (S6a–S6e xong) | `POST /tenants`, rescore, step-retry (hoãn) |
 | S7 Outbox/Inbox | REVIEW | Crash-window test thật pass | Metric reconciliation |
-| S8 Webhook | IN_PROGRESS | Ký v2, body ổn định, retry, replay | Event `scoring.failed`/`scoring.cancelled` |
+| S8 Webhook | REVIEW | Ký v2, body ổn định, retry, replay; event `scoring.failed`/`scoring.cancelled` | Chốt gate Phase 1 trong W6 |
 | S9 Regression | TODO | — | — |
 | A-phase (Admin) | TODO | Tenant scope + contract alignment ở BFF | Cờ legacy/standalone, webhook receiver, reconciliation… |
 | C, B, P | TODO | — | — |
@@ -41,7 +41,7 @@ Branch làm việc chính đã push lên GitHub (chưa có PR, chưa deploy).
 | 3 | Phần Claude làm chưa có review độc lập | Trung bình | Chưa làm (W6) |
 | 4 | Fingerprint 139 tự duyệt | Trung bình | Xác nhận trên Beta ở B-phase |
 | 5 | S6 quá lớn cho một task | Kế hoạch | Đã tách S6a–S6e |
-| 6 | Change feed chưa có thiết kế ledger | Kế hoạch | Thuộc S6e |
+| 6 | Change feed chưa có thiết kế ledger | Kế hoạch | Đã xử lý trong W5 (`6480ad8`) |
 | 7 | Admin chưa có cờ `legacy|standalone` | Kế hoạch | Thuộc A1 |
 
 ### 0.4 Thứ tự làm tiếp (work packages)
@@ -55,14 +55,22 @@ Mỗi gói xong phải: test pass, contract manifest cập nhật, commit local,
 | **W3 S6b Thao tác job** | `retry`, `cancel`, `reconcile` (rescore + step-retry hoãn, xem W3b); idempotency ledger dùng chung | Replay cùng key / conflict khác payload có test |
 | W3b Rescore + retry từng bước | Thiết kế theo scoring plan trong Scoring core (đụng Worker) | Có thiết kế + test pipeline; trước Beta |
 | **W4 S6c Tenant/credential, S6d Webhook/audit** | Quản trị tenant, credential, webhook endpoint, deliveries, audit events | Màn hình tenant/webhook chạy E2E |
-| **W5 S6e + S8b** | Change ledger + `GET /jobs/changes`, `POST /jobs/lookup`; enqueue `scoring.failed`/`scoring.cancelled` | Manifest 43/43 implemented |
+| **W5 S6e + S8b** | Change ledger + `GET /jobs/changes`, `POST /jobs/lookup`; enqueue `scoring.failed`/`scoring.cancelled` | Manifest 40/43; 3 endpoint đã hoãn không thuộc W5 |
 | **W6 S9 + review** | Regression suite Scoring; review độc lập toàn bộ Phase 1; S1 trên dump Beta; audio-base digest | Phase 1 gate đạt |
 | **W7 Phase 2 (A1–A9)** | Cờ `legacy|standalone`, webhook receiver + inbox (A5), reconciliation (A6), tách Scoring khỏi Admin runtime | Admin không đọc Scoring DB; split E2E pass |
 | W8+ | C1–C6 CI/CD, B1–B6 Beta, P1–P5 Production | Theo mục 5.1 |
 
-Đang làm: **W5** (S6e change feed + lookup, S8b event failed/cancelled). W1–W4 DONE.
+Đang làm: **W6** (S9 regression + review độc lập toàn bộ Phase 1). W1–W5 DONE.
 
 Cách làm từ W4: **Codex là agent viết code** (gói ChatGPT, chạy `codex exec` trong worktree riêng theo brief ở `report/codex-briefs/`), **Claude chỉ review** theo checklist, tự chạy lại test + E2E, sửa finding, rồi merge.
+
+W5 evidence 2026-11-14 — Scoring `6480ad8` (fast-forward vào `codex/scoring-phase1-integration`, đã push):
+- Thêm durable job change ledger (migration 140), `GET /api/admin/v1/jobs/changes`, `POST /api/admin/v1/jobs/lookup`; enqueue `scoring.failed` và `scoring.cancelled` theo subscription.
+- Review độc lập phát hiện và sửa biên retention cursor: cursor ngay trước row cũ nhất còn giữ không còn bị trả 410 sai.
+- PostgreSQL 16 thật: apply migrations 121→140; 6 trigger ledger; dedupe `scoring.failed`; tenant lookup; transaction commit lệch thứ tự qua snapshot-xmin; cleanup retention; migration rerun no-op đều pass. Fingerprint migration 140 đã ghi vào registry, cần xác nhận lại trên Beta khi rollout.
+- Gate: lint pass; TypeScript pass; Jest 46/46; core 518 pass, 7 integration skip do không có external DB/Redis; build pass; `git diff --check` pass; secret scan sạch.
+- Manifest **40/43**. Ba endpoint còn lại đã hoãn theo kế hoạch: `POST /jobs/:jobId/rescore`, `POST /jobs/:jobId/pipeline/:stepId/retry`, `POST /tenants`.
+- Rủi ro còn lại cho W6/ops: cleanup retention đã có hàm bounded nhưng chưa gắn scheduler tự động.
 
 W4 evidence 2026-11-14 — Scoring `fdb5ba6` (fast-forward vào `codex/scoring-phase1-integration`, đã push):
 - Codex làm 19 endpoint tenant/credential/webhook/audit; manifest 38/43; không migration.
