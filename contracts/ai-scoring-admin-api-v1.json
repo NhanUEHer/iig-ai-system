@@ -3,7 +3,7 @@
   "source": "docs/ai-scoring-admin-api-webhook-contract-v1.md sections 4 and 10",
   "conventions": {
     "tenant": "Every request carries the target tenant as ?tenantId=<uuid>; the Admin BFF fills it from server-side scope.",
-    "idempotency": "Every POST/PATCH carries an Idempotency-Key header (8-128 chars).",
+    "idempotency": "Every mutating POST/PATCH carries an Idempotency-Key header (8-128 chars); read-only POST queries such as jobs/lookup do not.",
     "pagination": "List endpoints use an opaque durable cursor: ?cursor=&limit= (default 50, max 200); responses carry nextCursor."
   },
   "endpoints": [
@@ -218,12 +218,12 @@
     {
       "method": "GET",
       "path": "/api/admin/v1/jobs/changes",
-      "status": "pending"
+      "status": "implemented"
     },
     {
       "method": "POST",
       "path": "/api/admin/v1/jobs/lookup",
-      "status": "pending"
+      "status": "implemented"
     }
   ]
 }
