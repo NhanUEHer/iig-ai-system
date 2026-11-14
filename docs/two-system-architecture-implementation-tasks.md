@@ -59,7 +59,13 @@ Mỗi gói xong phải: test pass, contract manifest cập nhật, commit local,
 | **W7 Phase 2 (A1–A9)** | Cờ `legacy|standalone`, webhook receiver + inbox (A5), reconciliation (A6), tách Scoring khỏi Admin runtime | Admin không đọc Scoring DB; split E2E pass |
 | W8+ | C1–C6 CI/CD, B1–B6 Beta, P1–P5 Production | Theo mục 5.1 |
 
-Đang làm: **W1**.
+Đang làm: **W1** — một phần.
+
+W1 evidence 2026-11-14:
+- Docs đã commit vào `codex/admin-bff-tenant-scope` (`1ae3446`).
+- Worktree `scoring-beta-baseline` đã trả về branch `codex/scoring-beta-baseline` (`3b1991f`).
+- Backup git bundle (đã verify): `report/iig-two-system-backup-2026-11-14/{scoring,admin}.bundle`.
+- **Chưa push**: GitHub account `nhannd25` không có quyền vào `NhanUEHer/iig-ai-scoring-backend` (private, not found) và bị 403 khi ghi `NhanUEHer/iig-ai-system` (public). Chờ cấp quyền.
 
 ## 1. Mục đích
 
