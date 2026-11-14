@@ -25,7 +25,7 @@ Branch làm việc chính đã push lên GitHub (chưa có PR, chưa deploy).
 | S2 API/Worker | DONE | Tách entrypoint | — |
 | S3/S4 Image | REVIEW | Build + smoke ARM64 pass, API 480 MB | Đẩy audio-base lên registry, ghi digest |
 | S5 Public API | DONE (baseline) | create/detail/result/retry, tenant auth | — |
-| S6 Admin API | IN_PROGRESS | **5/43 endpoint**, service credential, tenant scope, replay | 38 endpoint (xem S6a–S6e) |
+| S6 Admin API | IN_PROGRESS | **15/43 endpoint** (S6a đọc job xong), service credential, tenant scope, replay | 28 endpoint (S6b–S6e) |
 | S7 Outbox/Inbox | REVIEW | Crash-window test thật pass | Metric reconciliation |
 | S8 Webhook | IN_PROGRESS | Ký v2, body ổn định, retry, replay | Event `scoring.failed`/`scoring.cancelled` |
 | S9 Regression | TODO | — | — |
@@ -59,7 +59,15 @@ Mỗi gói xong phải: test pass, contract manifest cập nhật, commit local,
 | **W7 Phase 2 (A1–A9)** | Cờ `legacy|standalone`, webhook receiver + inbox (A5), reconciliation (A6), tách Scoring khỏi Admin runtime | Admin không đọc Scoring DB; split E2E pass |
 | W8+ | C1–C6 CI/CD, B1–B6 Beta, P1–P5 Production | Theo mục 5.1 |
 
-Đang làm: **W2** (S6a đọc job). W1 DONE.
+Đang làm: **W3** (S6b thao tác job). W1, W2 DONE.
+
+W2 evidence 2026-11-14 — Scoring `5fc59e6`, Admin `c02fd99` (đã push):
+- 10 endpoint đọc mới (port từ read model cũ của Admin), mọi query lọc `job.tenant_id`; job tenant khác trả 404.
+- List giữ cursor theo contract; FE chuyển sang `CursorPagination` (Trước/Sau). Chi tiết giữ shape cũ FE đang dùng, bỏ credential_id.
+- E2E Admin BFF → Scoring API trên PostgreSQL 16 có dữ liệu job thật: 20/20.
+- Test: Scoring lint sạch, Jest 44/44, core 480 pass; Admin 803/803, FE build + oxlint sạch.
+- Ghi chú: 2 test design-system FE (màn Report) fail sẵn từ trước, không liên quan.
+- Chưa có: parity dữ liệu thật so với Admin cũ (thuộc S9).
 
 W1 evidence 2026-11-14:
 - Pushed (không PR, không có workflow nào chạy): `NhanUEHer/iig-ai-scoring-backend` → `codex/scoring-phase1-integration` (`7223219`); `NhanUEHer/iig-ai-system` → `codex/admin-bff-tenant-scope`.
