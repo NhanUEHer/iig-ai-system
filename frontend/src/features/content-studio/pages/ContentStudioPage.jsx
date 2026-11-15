@@ -119,7 +119,8 @@ export default function ContentStudioPage({ showMsg, permissions = {} }) {
           </div>
           <Textarea
             aria-label="Nội dung đoạn văn và câu hỏi"
-            rows={16}
+            rows={hasContent ? 8 : 16}
+            className={hasContent ? 'is-filled' : ''}
             value={text}
             placeholder={'Dán đoạn văn, câu hỏi và đáp án vào đây…\n\nVí dụ:\nDear Miss Joseph, I am writing this letter…\n\n1. What is the purpose of the letter?\n(A) …  (B) …  (C) …  (D) …\nAnswer key: 1B'}
             onChange={event => { setText(event.target.value); if (source.kind === 'docx') setSource({ kind: 'paste', fileName: null }); }}

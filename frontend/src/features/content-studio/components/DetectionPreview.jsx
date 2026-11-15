@@ -22,7 +22,7 @@ export default function DetectionPreview({ detection, detecting }) {
           <span className="cs-detect__kind"><BookText />Đoạn văn</span>
           <div>
             <p>{segment.text.length > 260 ? `${segment.text.slice(0, 260)}…` : segment.text}</p>
-            <small>{segment.meta?.sentenceCount || 0} câu{segment.meta?.hasBlanks ? ' · có chỗ trống (Part 6)' : ''}</small>
+            <small>{segment.meta?.sentenceCount || 0} câu văn{segment.meta?.hasBlanks ? ' · có chỗ trống (Part 6)' : ''}</small>
           </div>
         </li>
         : <li key={index} className="cs-detect__segment is-questions">

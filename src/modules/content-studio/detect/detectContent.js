@@ -119,9 +119,17 @@ function detectContent(rawText) {
   };
 }
 
-function countSentences(text) {
-  return text.split(/\n+/).flatMap(part => part.match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g) || []).map(clean).filter(Boolean).length;
+const ABBREVIATIONS = /\b(?:Mr|Mrs|Ms|Dr|Prof|St|No|Inc|Co|Ltd|Jr|Sr|vs|etc|e\.g|i\.e|a\.m|p\.m)\.|\b(?:[A-Z]\.){2,}/gi;
+
+function splitSentences(text) {
+  // Lines without terminal punctuation (greetings, signatures, titles) are not sentences.
+  return text.split(/\n+/).map(clean).filter(line => /[.!?]["')\]]*$/.test(line))
+    .flatMap(line => line.replace(ABBREVIATIONS, match => match.replace(/\./g, '\u0001'))
+      .split(/(?<=[.!?]["')\]]*)\s+(?=["'(\[]?[A-Z0-9])/))
+    .map(sentence => clean(sentence.replace(/\u0001/g, '.'))).filter(sentence => /\p{L}{2,}/u.test(sentence));
 }
+
+const countSentences = text => splitSentences(text).length;
 
 function guessPart(passageText, questions) {
   if (passageText && BLANK.test(passageText)) return 6;
@@ -136,12 +144,21 @@ function questionRange(segments) {
   return { from: Math.min(...numbers), to: Math.max(...numbers) };
 }
 
+const DOC_TYPE = /following\s+([a-z\- ]+?)(?:\s+and\s+[a-z\- ]+)?\s*\.?$/i;
+
 function suggestTitle(segments) {
-  const passage = segments.find(segment => segment.kind === 'passage');
-  const first = passage ? passage.text.split('\n').map(clean).find(Boolean) : null;
-  if (first) return first.length > 80 ? `${first.slice(0, 77)}…` : first;
   const range = questionRange(segments);
-  return range ? `Câu ${range.from}–${range.to}` : 'Học liệu mới';
+  const rangeLabel = range ? (range.from === range.to ? `Câu ${range.from}` : `Câu ${range.from}–${range.to}`) : null;
+  const header = segments.find(segment => segment.meta?.header)?.meta.header;
+  const type = header?.match(DOC_TYPE)?.[1]?.trim();
+  if (type) {
+    const label = type.charAt(0).toUpperCase() + type.slice(1);
+    return rangeLabel ? `${label} · ${rangeLabel}` : label;
+  }
+  const passage = segments.find(segment => segment.kind === 'passage');
+  const first = passage ? passage.text.split('\n').map(clean).find(Boolean)?.replace(/[,:;]+$/, '') : null;
+  if (first) return first.length > 80 ? `${first.slice(0, 77)}…` : first;
+  return rangeLabel || 'Học liệu mới';
 }
 
-module.exports = { detectContent, countSentences };
+module.exports = { detectContent, countSentences, splitSentences };

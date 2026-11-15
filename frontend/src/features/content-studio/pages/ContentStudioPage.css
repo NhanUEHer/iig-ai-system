@@ -5,7 +5,8 @@
 .cs-input { display: flex; flex-direction: column; gap: var(--iig3-space-3); }
 .cs-input__head { display: flex; align-items: center; gap: var(--iig3-space-2); }
 .cs-input__head > strong { flex: 1; font-size: 15px; }
-.cs-input textarea { width: 100%; min-height: 360px; font-size: 14px; line-height: 1.6; resize: vertical; }
+.cs-input textarea { width: 100%; min-height: 360px; transition: min-height .15s; font-size: 14px; line-height: 1.6; resize: vertical; }
+.cs-input textarea.is-filled { min-height: 0; height: 200px; }
 .cs-input__save { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: var(--iig3-space-3); align-items: end; padding-top: var(--iig3-space-3); border-top: 1px solid var(--iig3-border); }
 @media (max-width: 720px) { .cs-input__save { grid-template-columns: minmax(0, 1fr); } }
 

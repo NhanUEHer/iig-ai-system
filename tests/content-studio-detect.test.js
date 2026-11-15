@@ -33,7 +33,7 @@ test('detects passage followed by questions, options and answer keys', () => {
   assert.equal(result.segments[1].meta.part, 7);
   assert.deepEqual(result.summary, { passageCount: 1, questionCount: 2, questionRange: { from: 1, to: 2 } });
   assert.equal(result.warnings.length, 0);
-  assert.equal(result.title, 'Dear Miss Joseph,');
+  assert.equal(result.title, 'Dear Miss Joseph');
 });
 
 test('splits multiple sets on "Questions x-y refer to" headers and supports inline options', () => {
@@ -81,4 +81,16 @@ test('extracts paragraph text from a DOCX package', async () => {
   const text = await docxToText(await zip.generateAsync({ type: 'nodebuffer' }));
   assert.equal(text, 'Dear & Co,\n1. Why now?');
   await assert.rejects(docxToText(Buffer.from('nope')), /DOCX/);
+});
+
+test('suggests a title from the set header and counts only real sentences', () => {
+  const result = detectContent(`Questions 1-2 refer to the following letter.
+Dear Ms. Joseph,
+We met on 8 March at 10:00 A.M. in the office. Please call 555-0142!
+Sincerely,
+Daniel Brooks
+1. Why? (A) a (B) b (C) c (D) d
+2. When? (A) a (B) b (C) c (D) d`);
+  assert.equal(result.title, 'Letter · Câu 1–2');
+  assert.equal(result.segments[0].meta.sentenceCount, 2);
 });
