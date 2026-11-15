@@ -105,7 +105,7 @@ export default function ContentStudioPage({ showMsg, permissions = {} }) {
   return <div className="iig3-list-screen cs-screen"><PageFrame
     className="cs-page"
     breadcrumb={[{ label: 'Content Studio' }, ...(folderPath.length ? folderPath.map(folder => ({ label: folder.name })) : [{ label: folderLabel }])]}
-    header={<PageHeader title="Content Studio" description="Dán đoạn văn và câu hỏi TOEIC LR hoặc tải file DOCX — hệ thống tự nhận diện, bạn xác nhận rồi lưu." />}
+    header={<PageHeader title="Content Studio" />}
   >
     <div className="cs-layout">
       <div className="cs-main">
