@@ -1,3 +1,4 @@
+// Contract is owned by iig-ai-scoring-backend; update only via scripts/sync-ai-scoring-contract.sh.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
