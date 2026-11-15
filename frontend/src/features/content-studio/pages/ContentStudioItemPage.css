@@ -113,3 +113,11 @@
 .cs-words__edit .cs-select { width: 100%; height: 36px; }
 .cs-source mark.is-active { background: var(--iig3-color-accent); color: #fff; }
 @media (max-width: 720px) { .cs-words__row { grid-template-columns: 24px minmax(0, 1fr); } .cs-words__meaning { grid-column: 2; } .cs-words__edit { grid-template-columns: minmax(0, 1fr); padding-left: 14px; } .cs-words__wide { grid-column: auto; } }
+
+/* Dictionary: groups by sentence, same rows as vocab */
+.cs-dict-groups { display: flex; flex-direction: column; gap: 14px; }
+.cs-dict-groups > section > header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+.cs-dict-groups > section > header strong { color: var(--iig3-text); white-space: nowrap; }
+.cs-dict-groups > section > header span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--iig3-text-muted); }
+.cs-dict-groups > section > header small { color: var(--iig3-text-muted); white-space: nowrap; }
+.cs-words__edit textarea { width: 100%; min-height: 0; }

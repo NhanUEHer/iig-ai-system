@@ -23,6 +23,7 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   const [sourceDraft, setSourceDraft] = useState(EMPTY_SOURCE);
   const [saving, setSaving] = useState(false);
   const [activeWord, setActiveWord] = useState(null); // [passageId, index]
+  const [activeEntry, setActiveEntry] = useState(null); // [passageId, sentenceIndex, entryIndex]
   const [generating, setGenerating] = useState(false);
   const showMsgRef = useRef(showMsg);
   useEffect(() => { showMsgRef.current = showMsg; }, [showMsg]);
@@ -140,6 +141,10 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
     return [];
   };
   const activeTerm = passage => {
+    if (activeTab === 'dictionary' && activeEntry?.[0] === passage.id) {
+      const artifact = artifactFor('dictionary', passage.id);
+      return (artifact && (drafts[artifact.id] ?? artifact.content))?.sentences?.[activeEntry[1]]?.entries?.[activeEntry[2]]?.inText;
+    }
     if (activeTab !== 'vocab' || activeWord?.[0] !== passage.id) return null;
     const artifact = artifactFor('vocab', passage.id);
     return (artifact && (drafts[artifact.id] ?? artifact.content))?.items?.[activeWord[1]]?.inText;
@@ -185,7 +190,8 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
               activeIndex={activeWord?.[0] === passage.id ? activeWord[1] : null} onActivate={index => setActiveWord(index == null ? null : [passage.id, index])} />
           </div>)}
           {activeTab === 'dictionary' && passages.map(passage => <div key={passage.id} className="cs-hub__block">
-            <DictionaryView {...editorProps(artifactFor('dictionary', passage.id))} shell={passageShell('dictionary')} />
+            <DictionaryView {...editorProps(artifactFor('dictionary', passage.id))} shell={passageShell('dictionary')}
+              active={activeEntry?.[0] === passage.id ? activeEntry.slice(1) : null} onActivate={value => setActiveEntry(value ? [passage.id, ...value] : null)} />
           </div>)}
           {activeTab === 'questions' && questions.map(question => <QuestionEditor key={question.id} question={question} {...editorProps(artifactsByQuestion[question.id])} shell={questionShell}
             open={openQuestion === question.id} onToggle={() => setOpenQuestion(current => ((current === undefined ? questions[0]?.id : current) === question.id ? null : question.id))} />)}
