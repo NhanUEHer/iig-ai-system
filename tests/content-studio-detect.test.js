@@ -94,3 +94,8 @@ Daniel Brooks
   assert.equal(result.title, 'Letter · Câu 1–2');
   assert.equal(result.segments[0].meta.sentenceCount, 2);
 });
+
+test('keeps only known generation tasks that match detected content', () => {
+  const segments = service.normalizeSegments([{ kind: 'passage', text: 'Hi.' }]);
+  assert.deepEqual(service.normalizeTasks({ passage: ['translation', 'vocab', 'x', 'vocab'], question: ['hint'] }, segments), { passage: ['translation', 'vocab'], question: [] });
+});

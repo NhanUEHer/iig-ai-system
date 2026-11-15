@@ -18,6 +18,14 @@ const requireName = (value, max, label) => {
   if (name.length > max) throw new HttpError(`${label} tối đa ${max} ký tự.`, 400, 'VALIDATION_ERROR');
   return name;
 };
+const TASKS = { passage: ['translation', 'vocab', 'dictionary'], question: ['translation', 'hint', 'explanation', 'note'] };
+function normalizeTasks(tasks, segments) {
+  const hasPassage = segments.some(segment => segment.kind === 'passage');
+  const hasQuestions = segments.some(segment => segment.questions.length);
+  const pick = (group, enabled) => (enabled ? [...new Set((tasks?.[group] || []).map(String))].filter(task => TASKS[group].includes(task)) : []);
+  return { passage: pick('passage', hasPassage), question: pick('question', hasQuestions) };
+}
+
 const requireSource = value => {
   const text = String(value || '').trim();
   if (!text) throw new HttpError('Hãy dán nội dung hoặc tải file DOCX.', 400, 'EMPTY_SOURCE');
@@ -114,7 +122,9 @@ async function listItems({ folderId, search, limit = 50 } = {}) {
   params.push(Math.min(Math.max(Number(limit) || 50, 1), 200));
   const { rows } = await db.query(`
     SELECT i.id, i.folder_id AS "folderId", i.title, i.status, i.source_kind AS "sourceKind",
-           i.detection->'summary' AS summary, i.updated_at AS "updatedAt", COALESCE(u.name, u.username) AS "createdByName"
+           i.detection->'summary' AS summary, i.tasks,
+           (SELECT (s.meta->>'part')::int FROM cs_segments s WHERE s.item_id = i.id AND s.kind = 'question_set' AND s.meta->>'part' IS NOT NULL ORDER BY s.position LIMIT 1) AS part,
+           (SELECT COALESCE(SUM((s.meta->>'sentenceCount')::int), 0)::int FROM cs_segments s WHERE s.item_id = i.id AND s.kind = 'passage') AS "sentenceCount", i.updated_at AS "updatedAt", COALESCE(u.name, u.username) AS "createdByName"
     FROM cs_items i LEFT JOIN users u ON u.id = i.created_by
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
     ORDER BY i.updated_at DESC LIMIT $${params.length}`, params);
@@ -138,7 +148,7 @@ function normalizeSegments(segments) {
   });
 }
 
-async function createItem({ title, folderId, sourceText, sourceKind = 'paste', sourceFileName, segments }, userId) {
+async function createItem({ title, folderId, sourceText, sourceKind = 'paste', sourceFileName, segments, tasks }, userId) {
   const text = requireSource(sourceText);
   const detection = detectContent(text);
   const finalSegments = normalizeSegments(segments || detection.segments);
@@ -150,10 +160,11 @@ async function createItem({ title, folderId, sourceText, sourceKind = 'paste', s
       if (!exists.rowCount) throw new HttpError('Thư mục không tồn tại.', 404, 'FOLDER_NOT_FOUND');
     }
     const { rows: [item] } = await client.query(`
-      INSERT INTO cs_items (folder_id, title, source_kind, source_file_name, source_text, detection, created_by)
-      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      INSERT INTO cs_items (folder_id, title, source_kind, source_file_name, source_text, detection, tasks, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
     [folder, itemTitle, sourceKind === 'docx' ? 'docx' : 'paste', sourceFileName || null, text,
-      JSON.stringify({ summary: summarize(finalSegments), warnings: detection.warnings, confidence: detection.confidence }), userId]);
+      JSON.stringify({ summary: summarize(finalSegments), warnings: detection.warnings, confidence: detection.confidence }),
+      JSON.stringify(normalizeTasks(tasks, finalSegments)), userId]);
     await insertSegments(client, item.id, finalSegments);
     return getItem(item.id, client);
   });
@@ -185,7 +196,7 @@ async function getItem(id, client = db) {
   requireId(id);
   const { rows: [item] } = await client.query(`
     SELECT id, folder_id AS "folderId", title, status, source_kind AS "sourceKind", source_file_name AS "sourceFileName",
-           source_text AS "sourceText", detection, created_at AS "createdAt", updated_at AS "updatedAt"
+           source_text AS "sourceText", detection, tasks, created_at AS "createdAt", updated_at AS "updatedAt"
     FROM cs_items WHERE id = $1`, [id]);
   if (!item) throw new HttpError('Không tìm thấy học liệu.', 404, 'ITEM_NOT_FOUND');
   const { rows: segments } = await client.query(
@@ -217,5 +228,5 @@ async function deleteItem(id) {
 
 module.exports = {
   listFolders, createFolder, updateFolder, deleteFolder,
-  detect, listItems, createItem, getItem, updateItem, deleteItem, normalizeSegments,
+  detect, listItems, createItem, getItem, updateItem, deleteItem, normalizeSegments, normalizeTasks, TASKS,
 };

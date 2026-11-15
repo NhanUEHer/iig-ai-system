@@ -3,10 +3,12 @@ import { FileText, RotateCcw, Save, Upload } from 'lucide-react';
 import {
   Alert, Badge, Button, FormField, Input, PageFrame, PageHeader, Select, Surface, Textarea,
 } from '../../../design-system-v2';
-import { createItem, detectDocx, detectText, errorMessage, listFolders } from '../../../services/contentStudioService';
+import { createItem, detectDocx, detectText, errorMessage, listFolders, listItems } from '../../../services/contentStudioService';
 import FolderPanel from '../components/FolderPanel';
 import { ALL_FOLDERS, UNFILED, buildFolderPath, flattenFolders } from '../folderTree';
 import DetectionPreview from '../components/DetectionPreview';
+import ItemList from '../components/ItemList';
+import TaskPanel, { DEFAULT_TASKS } from '../components/TaskPanel';
 import './ContentStudioPage.css';
 
 
@@ -23,6 +25,10 @@ export default function ContentStudioPage({ showMsg, permissions = {} }) {
   const [titleTouched, setTitleTouched] = useState(false);
   const [targetFolder, setTargetFolder] = useState('');
   const [saving, setSaving] = useState(false);
+  const [tasks, setTasks] = useState(DEFAULT_TASKS);
+  const [items, setItems] = useState([]);
+  const [itemsLoading, setItemsLoading] = useState(true);
+  const [lastSavedId, setLastSavedId] = useState(null);
   const detectSeq = useRef(0);
   const fileInput = useRef(null);
   const showMsgRef = useRef(showMsg);
@@ -35,6 +41,13 @@ export default function ContentStudioPage({ showMsg, permissions = {} }) {
     } catch (error) { showMsgRef.current?.(errorMessage(error, 'Không thể tải thư mục.'), 'error'); }
   }, []);
   useEffect(() => { loadFolders(); }, [loadFolders]);
+  const loadItems = useCallback(async () => {
+    setItemsLoading(true);
+    try { setItems(await listItems(selectedFolder === ALL_FOLDERS ? {} : { folderId: selectedFolder })); }
+    catch (error) { showMsgRef.current?.(errorMessage(error, 'Không thể tải danh sách học liệu.'), 'error'); }
+    finally { setItemsLoading(false); }
+  }, [selectedFolder]);
+  useEffect(() => { loadItems(); }, [loadItems]);
   // New content is saved into the folder the user is browsing.
   useEffect(() => { setTargetFolder(selectedFolder === ALL_FOLDERS || selectedFolder === UNFILED ? '' : selectedFolder); }, [selectedFolder]);
 
@@ -82,12 +95,17 @@ export default function ContentStudioPage({ showMsg, permissions = {} }) {
     if (!detection?.segments?.length || saving) return;
     setSaving(true);
     try {
-      await createItem({
+      const saved = await createItem({
         title: title.trim() || detection.title, folderId: targetFolder || null, sourceText: text,
-        sourceKind: source.kind, sourceFileName: source.fileName, segments: detection.segments,
+        sourceKind: source.kind, sourceFileName: source.fileName, segments: detection.segments, tasks,
       });
       showMsg?.('Đã lưu học liệu.', 'success');
       reset();
+      setLastSavedId(saved.id);
+      const savedFolder = targetFolder || UNFILED;
+      // Show the folder the item was saved into so the new card is visible right away.
+      if (selectedFolder !== ALL_FOLDERS && selectedFolder !== savedFolder) setSelectedFolder(savedFolder);
+      else await loadItems();
       await loadFolders();
     } catch (error) { showMsg?.(errorMessage(error, 'Không thể lưu học liệu.'), 'error'); }
     finally { setSaving(false); }
@@ -143,17 +161,25 @@ export default function ContentStudioPage({ showMsg, permissions = {} }) {
         </Surface>}
         {!canEdit && <Alert tone="info" title="Chế độ chỉ xem">Bạn cần quyền "Nhập và chỉnh sửa nội dung" để thêm học liệu.</Alert>}
 
+        <ItemList title={selectedFolder === ALL_FOLDERS ? 'Tất cả học liệu' : `Trong ${folderLabel}`} items={items} loading={itemsLoading} highlightId={lastSavedId} />
       </div>
 
-      <FolderPanel
+      <aside className="cs-side"><FolderPanel
         folders={folders}
         unfiledCount={unfiledCount}
         selected={selectedFolder}
         onSelect={setSelectedFolder}
         canManage={permissions.manageFolders}
-        onChanged={loadFolders}
+        onChanged={async () => { await loadFolders(); await loadItems(); }}
         showMsg={showMsg}
       />
+      {canEdit && <TaskPanel
+        value={tasks}
+        onChange={setTasks}
+        detected={Boolean(detection?.segments?.length)}
+        hasPassage={Boolean(detection?.summary?.passageCount)}
+        hasQuestions={Boolean(detection?.summary?.questionCount)}
+      />}</aside>
     </div>
   </PageFrame></div>;
 }
