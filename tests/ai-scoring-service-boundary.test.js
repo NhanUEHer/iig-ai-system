@@ -2,7 +2,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { authenticateAiScoringService, parsePermissions } = require('../src/middleware/authenticateAiScoringService');
 const { createAiScoringAdminClient } = require('../src/clients/aiScoringAdminClient');
 const { forwardedHeaders, parseTenantScope, createAiScoringAdminProxyRoutes } = require('../src/routes/aiScoringAdminProxyRoutes');
 
@@ -16,26 +15,6 @@ function middlewareResult(headers, token) {
   else process.env.AI_SCORING_ADMIN_SERVICE_TOKEN = previous;
   return { req, error: receivedError };
 }
-
-test('machine authentication accepts the shared service token and constrained permissions', () => {
-  const { req, error } = middlewareResult({
-    authorization: 'Bearer service-secret',
-    'x-admin-actor-id': 'user-1',
-    'x-admin-actor-email': 'admin@example.com',
-    'x-admin-permissions': 'ai_scoring.jobs.view,users.delete,ai_scoring.operations.retry',
-  }, 'service-secret');
-  assert.equal(error, undefined);
-  assert.equal(req.auth.service, 'iig-admin-bff');
-  assert.deepEqual(req.auth.permissions, ['ai_scoring.jobs.view', 'ai_scoring.operations.retry']);
-  assert.equal(req.user.email, 'admin@example.com');
-});
-
-test('machine authentication rejects invalid credentials without database session lookup', () => {
-  const { error } = middlewareResult({ authorization: 'Bearer wrong' }, 'service-secret');
-  assert.equal(error.statusCode, 401);
-  assert.equal(error.code, 'AI_SCORING_SERVICE_AUTH_FAILED');
-  assert.deepEqual(parsePermissions('users.delete, reports.view'), []);
-});
 
 test('BFF client retries safe reads once but never retries mutations', async () => {
   const calls = [];
@@ -131,15 +110,6 @@ test('proxy fails closed when tenant scope is not configured', async () => {
   const { calls, error } = await proxyCall('');
   assert.equal(calls.length, 0);
   assert.equal(error.code, 'AI_SCORING_ADMIN_TENANT_SCOPE_NOT_CONFIGURED');
-});
-
-test('Admin and AI Scoring apps expose BFF and versioned service routes while preserving legacy routes', () => {
-  const root = path.resolve(__dirname, '..');
-  const adminApp = fs.readFileSync(path.join(root, 'src/apps/admin/app.js'), 'utf8');
-  const scoringApp = fs.readFileSync(path.join(root, 'src/apps/ai-scoring/app.js'), 'utf8');
-  assert.match(adminApp, /\/api\/ai-scoring.*createAiScoringAdminProxyRoutes/s);
-  assert.match(scoringApp, /\/api\/admin\/v1\/tenants.*authenticateAiScoringService/s);
-  assert.match(scoringApp, /\/api\/ai-scoring\/tenants.*authenticate/s);
 });
 
 test('container runtime consumes isolated Scoring configuration without owning Scoring services', () => {

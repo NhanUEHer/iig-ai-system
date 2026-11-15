@@ -2,6 +2,7 @@ const submissionRepository = require('../modules/submissions/submissionRepositor
 const tokenManager = require('../services/tokenManager');
 const iigClient = require('../clients/iigClient');
 const storageService = require('../services/storageService');
+const HttpError = require('../http/httpError');
 
 async function withPlaybackUrl(answer) {
   if (!storageService.isR2Key(answer?.cleaned_audio_url)) return answer;
@@ -55,6 +56,12 @@ module.exports = {
     const answer = await submissionRepository.findAnswerDetail(req.params.id, req.params.answerId);
     if (!answer) return res.status(404).json({ success: false, error: 'Không tìm thấy câu trả lời trong bài thi.' });
     return res.json({ success: true, data: await withPlaybackUrl(answer) });
+  },
+
+  async teacherNote(req, res) {
+    if (!req.body.answer_id) throw new HttpError('answer_id is required.', 400, 'ANSWER_ID_REQUIRED');
+    await submissionRepository.upsertTeacherNote(req.body.answer_id, req.body.teacher_note);
+    return res.json({ success: true, message: 'Nhận xét giáo viên đã được lưu.' });
   },
 
   async fileUrl(req, res) {

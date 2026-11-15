@@ -7,6 +7,7 @@ const router = express.Router();
 
 router.get('/', requirePermission('submissions.view'), submissionController.list);
 router.post('/bulk-delete', requirePermission('submissions.delete'), submissionController.bulkRemove);
+router.put('/teacher-note', requirePermission('scoring.grade'), asyncHandler(submissionController.teacherNote));
 router.get('/file-url/:fileId', requirePermission('submissions.view'), submissionController.fileUrl);
 router.get('/:id/answers', requirePermission('submissions.view'), asyncHandler(submissionController.answers));
 router.get('/:id/answers/:answerId', requirePermission('submissions.view'), asyncHandler(submissionController.answerDetail));

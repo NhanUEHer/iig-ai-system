@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import {
   AlertCircle, ArrowLeft, ArrowRight, CheckCircle2, Clock3, Download,
-  Eye, FileSpreadsheet, FileText, RefreshCw, Search, Sparkles, Trash2, UploadCloud, X
+  Eye, FileSpreadsheet, FileText, RefreshCw, Search, Trash2, UploadCloud, X
 } from 'lucide-react';
 import './SubmissionListPage.css';
 import './SubmissionListDark.css';
@@ -36,30 +36,11 @@ export default function SubmissionListPage({
   const [keycode, setKeycode] = useState('');
   const [syncValidation, setSyncValidation] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
-  const [gradingJob, setGradingJob] = useState(null);
 
   useEffect(() => {
     const timer = setTimeout(() => onRefresh?.({ page: currentPage, limit: pageSize, search: searchKey.trim() || undefined, status: statusFilter === 'all' ? undefined : statusFilter }), 250);
     return () => clearTimeout(timer);
   }, [currentPage, pageSize, searchKey, statusFilter]);
-
-  useEffect(() => {
-    if (!gradingJob?.id || ['completed', 'completed_with_errors', 'failed'].includes(gradingJob.status)) return undefined;
-    const timer = setInterval(async () => {
-      try {
-        const response = await axios.get(`${API_BASE}/grading-jobs/${gradingJob.id}`);
-        const job = response.data.data;
-        setGradingJob(job);
-        if (['completed', 'completed_with_errors', 'failed'].includes(job.status)) {
-          setSelectedIds([]);
-          onRefresh?.();
-        }
-      } catch (error) {
-        setGradingJob(current => ({ ...current, status: 'failed', pollError: error.response?.data?.error || 'Mất kết nối theo dõi job.' }));
-      }
-    }, 2000);
-    return () => clearInterval(timer);
-  }, [gradingJob?.id, gradingJob?.status, onRefresh]);
 
   const counts = useMemo(() => ({
     total: meta.total,
@@ -129,16 +110,6 @@ export default function SubmissionListPage({
     finally { setActionBusy(false); }
   };
 
-  const gradeSelected = async () => {
-    if (!selectedIds.length) return;
-    setActionBusy(true);
-    try {
-      const response = await axios.post(`${API_BASE}/bulk-grade`, { submissionIds: selectedIds });
-      setGradingJob(response.data.data);
-    } catch (error) { await alertDialog({title:'Không thể bắt đầu chấm',message:error.response?.data?.error || 'Không thể tạo job chấm hàng loạt.',tone:'danger'}); }
-    finally { setActionBusy(false); }
-  };
-
   return (
     <div className="submission-workspace">
       <header className="submission-page-header">
@@ -168,7 +139,7 @@ export default function SubmissionListPage({
           <div className="submission-search"><Search size={17} /><input value={searchKey} onChange={event => { setSearchKey(event.target.value); setCurrentPage(1); }} placeholder="Tìm keycode, học viên hoặc tên đề…" /></div>
         </div>
 
-        {selectedIds.length > 0 && <div className="submission-selection-bar"><div><strong>{selectedIds.length}</strong> bài đã chọn<button onClick={() => setSelectedIds([])}>Bỏ chọn</button></div><div><button className="grade" onClick={gradeSelected} disabled={actionBusy}><Sparkles size={15} /> Chấm bằng AI</button><button onClick={exportSelected} disabled={actionBusy}><FileSpreadsheet size={15} /> Xuất Excel</button><button className="danger" onClick={removeSelected} disabled={actionBusy}><Trash2 size={15} /> Xóa bài chưa chấm</button></div></div>}
+        {selectedIds.length > 0 && <div className="submission-selection-bar"><div><strong>{selectedIds.length}</strong> bài đã chọn<button onClick={() => setSelectedIds([])}>Bỏ chọn</button></div><div><button onClick={exportSelected} disabled={actionBusy}><FileSpreadsheet size={15} /> Xuất Excel</button><button className="danger" onClick={removeSelected} disabled={actionBusy}><Trash2 size={15} /> Xóa bài chưa chấm</button></div></div>}
 
         <div className="submission-table-wrap">
           {loading && !submissions.length ? <div className="submission-empty"><RefreshCw className="spin" /><strong>Đang tải dữ liệu…</strong></div>
@@ -192,7 +163,6 @@ export default function SubmissionListPage({
 
       {showSyncModal && <div className="submission-modal-backdrop"><div className="submission-modal sync-entry-modal"><button className="sync-entry-close" onClick={() => setShowSyncModal(false)} title="Đóng"><X /></button><div className="submission-modal-icon"><Download size={21} /></div><h2>Đồng bộ bài thi</h2><p>Nhập một hoặc nhiều keycode để lấy bài làm mới nhất từ IIG Elearning.</p><label>Danh sách keycode<textarea autoFocus value={keycode} onChange={event => { setKeycode(event.target.value.toUpperCase()); setSyncValidation(''); }} placeholder={'Ví dụ:\nQETUVZ, ABC123\nKLM456'} /></label><div className="sync-entry-help"><span>Mỗi keycode cách nhau bằng dấu phẩy hoặc xuống dòng.</span><strong>{parsedKeycodes.length} keycode</strong></div>{syncValidation && <div className="submission-modal-message error">{syncValidation}</div>}<div className="sync-entry-note"><UploadCloud size={16} /><span>Tiến trình có thể thu nhỏ và tiếp tục chạy khi bạn làm việc ở tính năng khác.</span></div><div className="submission-modal-actions"><button className="submission-button secondary" onClick={() => setShowSyncModal(false)}>Hủy</button><button className="submission-button primary" onClick={syncSubmission} disabled={!parsedKeycodes.length}><Download size={16} /> Bắt đầu đồng bộ</button></div></div></div>}
 
-      {gradingJob && <div className="submission-modal-backdrop"><div className="submission-modal grading-progress-modal"><div className="submission-modal-icon"><Sparkles size={21} /></div><h2>Chấm bài hàng loạt</h2><p>Job tiếp tục chạy trên server kể cả khi đóng cửa sổ này.</p><div className="grading-progress-numbers"><strong>{Number(gradingJob.completed_items || 0) + Number(gradingJob.failed_items || 0)} / {gradingJob.total_items}</strong><span>{gradingJob.status === 'queued' ? 'Đang chờ' : gradingJob.status === 'processing' ? 'Đang chấm' : gradingJob.status === 'completed' ? 'Hoàn tất' : gradingJob.status === 'completed_with_errors' ? 'Hoàn tất, có lỗi' : 'Job lỗi'}</span></div><div className="grading-progress-track"><div style={{ width: `${gradingJob.total_items ? ((Number(gradingJob.completed_items || 0) + Number(gradingJob.failed_items || 0)) / gradingJob.total_items) * 100 : 0}%` }} /></div><div className="grading-progress-stats"><span className="success">{gradingJob.completed_items || 0} thành công</span><span className="error">{gradingJob.failed_items || 0} lỗi</span></div>{gradingJob.pollError && <div className="submission-modal-message error">{gradingJob.pollError}</div>}<div className="submission-modal-actions"><button className="submission-button secondary" onClick={() => setGradingJob(null)}>Đóng</button></div></div></div>}
     </div>
   );
 }
