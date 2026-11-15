@@ -1708,3 +1708,20 @@ body .question-navigator>header>button.question-navigator-collapse{width:34px;he
   .toefl-listening-exam .listening-content-image{width:min(100%,360px);height:clamp(180px,34dvh,280px);max-height:34dvh}
   .listening-content-pane video{width:100%;height:auto;max-height:42dvh}
 }
+
+/* Registration gate (candidate must register before entering an exam) */
+.registration-notice,
+.registration-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.registration-notice { background: #eef4ff; color: #1d4ed8; }
+.registration-error { margin: 12px 0 0; background: #fef2f2; color: #b91c1c; }
+.registration-notice .material-symbols-outlined,
+.registration-error .material-symbols-outlined { font-size: 20px; }
