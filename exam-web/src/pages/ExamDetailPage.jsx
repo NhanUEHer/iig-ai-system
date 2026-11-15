@@ -1,3 +1,4 @@
+import { readCandidateProfile, requireCandidateProfile } from '../services/candidateProfile'
 import { useEffect, useMemo, useState } from 'react'
 import { getPublicExamDetail, registerExamCandidate } from '../services/publicExamApi'
 import { FeaturedCourses } from './ExamListPage'
@@ -90,11 +91,11 @@ function ExamDetailPage({ examId, Header, Footer }) {
   }, [examId])
 
   const enterExam = async () => {
-    let profile = null
-    try { profile = JSON.parse(window.localStorage.getItem('exam-candidate-profile') || 'null') } catch { profile = null }
+    if (!requireCandidateProfile(`/exams/${examId}`)) return
+    const profile = readCandidateProfile()
     setEntering(true)
     try {
-      const result = await registerExamCandidate({ examId, candidate: { ...(profile || {}), privacyConsent: true } })
+      const result = await registerExamCandidate({ examId, candidate: { ...profile } })
       window.localStorage.setItem(`exam-candidate:${examId}`, JSON.stringify({
         examId,
         candidateId: result.data.candidate.id,

@@ -1,3 +1,4 @@
+import { requireCandidateProfile } from '../services/candidateProfile'
 import { useEffect, useState } from 'react'
 import { getPublicExamGroups, getPublicExams } from '../services/publicExamApi'
 
@@ -79,7 +80,7 @@ function ExamCard({ exam }) {
         <span><Icon>signal_cellular_alt</Icon><small>Độ khó:<strong>{difficultyNames[exam.difficulty] || 'Đang cập nhật'}</strong></small></span>
       </div>
       <div className="catalog-card-actions">
-        <a href={`/exams/${exam.id}`}><span>Vào thi ngay</span><Icon>play_arrow</Icon></a>
+        <a href={`/exams/${exam.id}`} onClick={event => { if (!requireCandidateProfile(`/exams/${exam.id}`)) event.preventDefault() }}><span>Vào thi ngay</span><Icon>play_arrow</Icon></a>
         <button type="button" aria-label={`Xem thông tin ${exam.title}`} title="Xem thông tin đề thi"><Icon>info</Icon></button>
       </div>
     </div>

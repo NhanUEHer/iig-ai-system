@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { featureCards, institutions, learningOptions } from './data/landingData'
+import { PROFILE_KEY, hasPendingReturn, profileProblems, takeReturnTo } from './services/candidateProfile'
 import ExamListPage from './pages/ExamListPage'
 import ExamDetailPage from './pages/ExamDetailPage'
 import ExamStructurePage from './pages/ExamStructurePage'
@@ -100,10 +101,20 @@ function Registration() {
   const [learning, setLearning] = useState('')
   const [birthYear, setBirthYear] = useState('')
   const [consent, setConsent] = useState(false)
+  const [formError, setFormError] = useState('')
+  const [needsProfile] = useState(() => hasPendingReturn())
+  const sectionRef = useRef(null)
+
+  // Arriving from "Vào thi ngay" without a saved profile (/#registration): bring the form into view.
+  useEffect(() => {
+    if (window.location.hash !== '#registration') return undefined
+    const timer = window.setTimeout(() => sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+    return () => window.clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     try {
-      const profile = JSON.parse(window.localStorage.getItem('exam-candidate-profile') || 'null')
+      const profile = JSON.parse(window.localStorage.getItem(PROFILE_KEY) || 'null')
       if (!profile || typeof profile !== 'object') return
       setFullName(String(profile.fullName || ''))
       setPhone(String(profile.phone || ''))
@@ -113,7 +124,7 @@ function Registration() {
       setBirthYear(profile.birthYear == null ? '' : String(profile.birthYear))
       setConsent(profile.privacyConsent === true)
     } catch {
-      window.localStorage.removeItem('exam-candidate-profile')
+      window.localStorage.removeItem(PROFILE_KEY)
     }
   }, [])
 
@@ -123,14 +134,21 @@ function Registration() {
       fullName, phone, email, birthYear: birthYear ? Number(birthYear) : null, schoolName: institution,
       toeicExperience: learning, privacyConsent: consent,
     }
-    window.localStorage.setItem('exam-candidate-profile', JSON.stringify(profile))
-    window.location.href = '/exams'
+    const problems = profileProblems(profile)
+    if (problems.length) {
+      setFormError(`Vui lòng kiểm tra lại: ${problems.join(', ')}.`)
+      return
+    }
+    setFormError('')
+    window.localStorage.setItem(PROFILE_KEY, JSON.stringify(profile))
+    window.location.href = takeReturnTo() || '/exams'
   }
   return (
-    <section className="registration-section" id="registration">
+    <section className="registration-section" id="registration" ref={sectionRef}>
       <div className="registration-card">
         <header><h2>Đăng ký dự thi</h2><p>Nhập thông tin để tham gia TOEIC Challenge 2026</p></header>
-        <form onSubmit={submit}>
+        {needsProfile && <p className="registration-notice" role="status"><Icon>info</Icon>Vui lòng nhập thông tin đăng ký trước khi vào thi.</p>}
+        <form onSubmit={submit} noValidate>
           <div className="form-grid">
             <label><span className="field-label">Họ và tên</span><span className="field-control"><Icon>badge</Icon><input autoComplete="name" value={fullName} onChange={event => setFullName(event.target.value)} placeholder="Nhập họ và tên" /></span></label>
             <label><span className="field-label">Số điện thoại</span><span className="field-control"><Icon>call</Icon><input type="tel" autoComplete="tel" value={phone} onChange={event => setPhone(event.target.value)} placeholder="Nhập số điện thoại" /></span></label>
@@ -140,6 +158,7 @@ function Registration() {
             <label className="full"><span className="field-label">Kinh nghiệm học và thi TOEIC</span><span className="field-control"><Icon>school</Icon><select value={learning} onChange={event => setLearning(event.target.value)}><option value="">Chọn tình trạng học/thi TOEIC</option>{learningOptions.map(option => <option value={option.value} key={option.value}>{option.label}</option>)}</select></span></label>
           </div>
           <label className="consent"><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} /><span>Tôi xác nhận thông tin đã cung cấp là chính xác và đồng ý với <a href="#rules">quy định dự thi</a> cùng chính sách xử lý thông tin của chương trình.</span></label>
+          {formError && <p className="registration-error" role="alert"><Icon>error</Icon>{formError}</p>}
           <button className="submit-button" type="submit"><Icon>how_to_reg</Icon>Đăng ký dự thi</button>
         </form>
       </div>
