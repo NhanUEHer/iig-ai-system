@@ -67,9 +67,20 @@ require_runtime_value() {
   }
 }
 
+# One-time migration support: Production ran the API as compose service `api`
+# before it was renamed to `admin-api`. Find that legacy container by labels.
+legacy_api_container() {
+  project="$(compose config --format json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(JSON.parse(s).name||""))')"
+  test -n "$project" || return 0
+  docker ps -q --filter "label=com.docker.compose.project=$project" --filter "label=com.docker.compose.service=api" | head -1
+}
+
 running_image() {
   service="$1"
   container_id="$(compose ps -q "$service" 2>/dev/null || true)"
+  if [ -z "$container_id" ] && [ "$service" = admin-api ]; then
+    container_id="$(legacy_api_container)"
+  fi
   test -n "$container_id" || {
     echo "Required service is not running before deployment: $service" >&2
     exit 1
@@ -164,6 +175,13 @@ update_env APP_COMMIT "$next_commit"
 activated=true
 
 compose pull
+# The renamed service binds the same host port as the legacy `api` container;
+# remove the legacy container right before activation (its image is captured above).
+legacy_container="$(legacy_api_container)"
+if [ -n "$legacy_container" ]; then
+  echo "Removing legacy api container before activating admin-api" >&2
+  docker rm -f "$legacy_container" >/dev/null
+fi
 compose up -d --remove-orphans --wait --wait-timeout 240
 
 expected_images="$(compose config --format json)"
