@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Sparkles } from 'lucide-react';
-import { Button, ErrorState, PageFrame, Skeleton, StatusBadge, Tabs } from '../../../design-system-v2';
+import { Button, ErrorState, PageFrame, SegmentedControl, Skeleton, StatusBadge } from '../../../design-system-v2';
 import { errorMessage, generateItem, getItem } from '../../../services/contentStudioService';
 import { STATUS, isBusy } from '../item/ArtifactShell';
-import { DictionaryPanel, TranslationPanel, VocabPanel } from '../item/PassagePanels';
+import { DictionaryView, SourceView, TranslationView, VocabView } from '../item/PassagePanels';
 import { QuestionEditor } from '../item/QuestionPanels';
 import './ContentStudioPage.css';
 import './ContentStudioItemPage.css';
@@ -15,7 +15,8 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   const { id } = useParams();
   const [item, setItem] = useState(null);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState(null);
+  const [mode, setMode] = useState('source');
+  const [openQuestionId, setOpenQuestion] = useState(undefined);
   const [generating, setGenerating] = useState(false);
   const showMsgRef = useRef(showMsg);
   useEffect(() => { showMsgRef.current = showMsg; }, [showMsg]);
@@ -63,7 +64,7 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
 
   const hasPassage = passages.length > 0;
   const hasQuestions = questions.length > 0;
-  const tab = activeTab || 'main';
+  const openQuestion = openQuestionId === undefined ? questions[0]?.id : openQuestionId;
   const passageShell = task => ({ ...shell, onGenerate: () => generate({ passage: [task], question: [] }) });
   const questionShell = { ...shell, onGenerate: () => generate({ passage: [], question: tasks.question?.length ? tasks.question : ['translation', 'hint', 'explanation', 'note'] }) };
 
@@ -80,24 +81,36 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
       </div>
     </div>}
   >
-    <Tabs value={tab} onChange={setActiveTab} items={[
-      { value: 'main', label: hasPassage && hasQuestions ? 'Dịch & câu hỏi' : hasPassage ? 'Dịch' : 'Câu hỏi' },
-      ...(hasPassage ? [
-        { value: 'vocab', label: `Từ vựng${counts.vocab ? ` · ${counts.vocab}` : ''}` },
-        { value: 'dictionary', label: `Từ điển${counts.dictionary ? ` · ${counts.dictionary}` : ''}` },
-      ] : []),
-    ]} />
-
-    {tab === 'main' && <div className={`cs-workspace${hasPassage && hasQuestions ? ' is-split' : ''}`}>
-      {hasPassage && <div className="cs-workspace__passage">
-        {passages.map(passage => <TranslationPanel key={artifactFor('passage_translation', passage.id)?.id || passage.id} artifact={artifactFor('passage_translation', passage.id)} shell={passageShell('translation')} />)}
-      </div>}
-      {hasQuestions && <div className="cs-workspace__questions">
-        {questions.map(question => <QuestionEditor key={question.id} question={question} artifact={artifactsByQuestion[question.id]} shell={questionShell} />)}
-      </div>}
-    </div>}
-
-    {tab === 'vocab' && passages.map(passage => <VocabPanel key={artifactFor('vocab', passage.id)?.id || passage.id} artifact={artifactFor('vocab', passage.id)} segment={passage} shell={passageShell('vocab')} />)}
-    {tab === 'dictionary' && passages.map(passage => <DictionaryPanel key={artifactFor('dictionary', passage.id)?.id || passage.id} artifact={artifactFor('dictionary', passage.id)} shell={passageShell('dictionary')} />)}
+    <div className={`cs-hub${hasPassage && hasQuestions ? ' is-split' : ''}`}>
+      {hasPassage && <section className="cs-hub__col cs-hub__passage" aria-label="Đoạn văn">
+        <header className="cs-hub__head">
+          <strong>Đoạn văn</strong>
+          <SegmentedControl value={mode} onChange={setMode} options={[
+            { value: 'source', label: 'Gốc' },
+            { value: 'translation', label: 'Dịch' },
+            { value: 'vocab', label: 'Từ vựng', count: counts.vocab || undefined },
+            { value: 'dictionary', label: 'Từ điển', count: counts.dictionary || undefined },
+          ]} />
+        </header>
+        <div className="cs-hub__body">
+          {passages.map(passage => <div key={passage.id} className="cs-hub__block">
+            {mode === 'source' && <SourceView segment={passage} />}
+            {mode === 'translation' && <TranslationView key={artifactFor('passage_translation', passage.id)?.id || 'none'} artifact={artifactFor('passage_translation', passage.id)} shell={passageShell('translation')} />}
+            {mode === 'vocab' && <VocabView key={artifactFor('vocab', passage.id)?.id || 'none'} artifact={artifactFor('vocab', passage.id)} segment={passage} shell={passageShell('vocab')} />}
+            {mode === 'dictionary' && <DictionaryView key={artifactFor('dictionary', passage.id)?.id || 'none'} artifact={artifactFor('dictionary', passage.id)} shell={passageShell('dictionary')} />}
+          </div>)}
+        </div>
+      </section>}
+      {hasQuestions && <section className="cs-hub__col cs-hub__questions" aria-label="Câu hỏi">
+        <header className="cs-hub__head">
+          <strong>Câu hỏi{range ? ` ${range.from}–${range.to}` : ''}</strong>
+          <span className="cs-muted">{questions.filter(question => artifactsByQuestion[question.id]?.status === 'ready').length}/{questions.length} hoàn tất</span>
+        </header>
+        <div className="cs-hub__body">
+          {questions.map(question => <QuestionEditor key={question.id} question={question} artifact={artifactsByQuestion[question.id]} shell={questionShell}
+            open={openQuestion === question.id} onToggle={() => setOpenQuestion(current => (current === question.id ? null : question.id))} />)}
+        </div>
+      </section>}
+    </div>
   </PageFrame></div>;
 }

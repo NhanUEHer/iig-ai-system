@@ -5,6 +5,9 @@ const { detectContent } = require('./detect/detectContent');
 
 const MAX_SOURCE_CHARS = 60000;
 const MAX_FOLDER_DEPTH = 6;
+// Item status is derived from its artifacts at read time so concurrent workers can never leave it stale.
+const ITEM_STATUS_SQL = `COALESCE((SELECT CASE WHEN bool_or(a.status IN ('queued','generating')) THEN 'generating' WHEN bool_or(a.status = 'failed') THEN 'failed'
+             WHEN bool_or(a.status = 'needs_review') THEN 'needs_review' ELSE 'ready' END FROM cs_artifacts a WHERE a.item_id = i.id), 'draft')`;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const requireId = (value, label = 'id') => {
@@ -121,7 +124,7 @@ async function listItems({ folderId, search, limit = 50 } = {}) {
   if (search) { params.push(`%${String(search).trim()}%`); where.push(`i.title ILIKE $${params.length}`); }
   params.push(Math.min(Math.max(Number(limit) || 50, 1), 200));
   const { rows } = await db.query(`
-    SELECT i.id, i.folder_id AS "folderId", i.title, i.status, i.source_kind AS "sourceKind",
+    SELECT i.id, i.folder_id AS "folderId", i.title, ${ITEM_STATUS_SQL} AS status, i.source_kind AS "sourceKind",
            i.detection->'summary' AS summary, i.tasks,
            (SELECT (s.meta->>'part')::int FROM cs_segments s WHERE s.item_id = i.id AND s.kind = 'question_set' AND s.meta->>'part' IS NOT NULL ORDER BY s.position LIMIT 1) AS part,
            (SELECT COALESCE(SUM((s.meta->>'sentenceCount')::int), 0)::int FROM cs_segments s WHERE s.item_id = i.id AND s.kind = 'passage') AS "sentenceCount",
@@ -199,9 +202,9 @@ async function insertSegments(client, itemId, segments) {
 async function getItem(id, client = db) {
   requireId(id);
   const { rows: [item] } = await client.query(`
-    SELECT id, folder_id AS "folderId", title, status, source_kind AS "sourceKind", source_file_name AS "sourceFileName",
-           source_text AS "sourceText", detection, tasks, created_at AS "createdAt", updated_at AS "updatedAt"
-    FROM cs_items WHERE id = $1`, [id]);
+    SELECT i.id, i.folder_id AS "folderId", i.title, ${ITEM_STATUS_SQL} AS status, i.source_kind AS "sourceKind", i.source_file_name AS "sourceFileName",
+           i.source_text AS "sourceText", i.detection, i.tasks, i.created_at AS "createdAt", i.updated_at AS "updatedAt"
+    FROM cs_items i WHERE i.id = $1`, [id]);
   if (!item) throw new HttpError('Không tìm thấy học liệu.', 404, 'ITEM_NOT_FOUND');
   const { rows: segments } = await client.query(
     'SELECT id, kind, position, text, meta FROM cs_segments WHERE item_id = $1 ORDER BY position', [id]);
