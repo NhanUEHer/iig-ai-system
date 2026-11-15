@@ -56,16 +56,19 @@ test('API observability uses structured request logs without sensitive query str
   assert.equal((nginx.match(/iig-api-observability\.conf/g) || []).length, 2);
 });
 
-test('container release uses immutable SHA tags and protected environments', () => {
-  const workflow = read('.github/workflows/release-containers.yml');
-  assert.match(workflow, /tag=\$\{prefix\}-\$\{GITHUB_SHA\}/);
+test('container release builds only changed images once and promotes digests to production', () => {
+  const workflow = read('.github/workflows/release.yml');
+  const promote = read('.github/workflows/promote.yml');
+  assert.match(workflow, /:beta-\$\{\{ github\.sha \}\}/);
   assert.match(workflow, /environment: beta/);
-  assert.match(workflow, /environment: production/);
-  assert.doesNotMatch(workflow, /:latest/);
+  assert.match(promote, /environment: production/);
+  assert.doesNotMatch(workflow, /:latest|setup-qemu-action|npm run check/);
+  assert.match(workflow, /runs-on: ubuntu-24\.04-arm/);
   assert.match(workflow, /platforms: linux\/arm64/);
-  assert.match(workflow, /version="\$\(node -p 'require\("\.\/package\.json"\)\.version'\)"/);
-  assert.doesNotMatch(workflow, /node -p \\"require\('\.\/package\.json'\)\.version\\"/);
-  assert.doesNotMatch(workflow, /scoring-api|scoring-worker|iig-ai-scoring/);
+  assert.match(workflow, /changed-components\.mjs/);
+  assert.match(promote, /imagetools create/);
+  assert.doesNotMatch(promote, /build-push-action/);
+  assert.doesNotMatch(workflow + promote, /scoring-api|scoring-worker|iig-ai-scoring/);
 });
 
 test('Beta deploy adds isolated PostgreSQL and dedicated Admin and Exam domains only', () => {
@@ -73,7 +76,7 @@ test('Beta deploy adds isolated PostgreSQL and dedicated Admin and Exam domains 
   const betaCompose = read('deploy/docker-compose.beta.yml');
   const betaNginx = read('deploy/nginx-beta.conf');
   const deploy = read('scripts/deploy-containers.sh');
-  const workflow = read('.github/workflows/release-containers.yml');
+  const workflow = read('.github/workflows/release.yml') + read('.github/workflows/promote.yml');
 
   assert.doesNotMatch(baseCompose, /^  postgres:/m);
   assert.match(betaCompose, /^  postgres:/m);
@@ -170,7 +173,7 @@ test('browser AI Scoring routes stay behind the Admin BFF', () => {
 
 test('GitHub deployment credential is constrained by a forced-command gateway', () => {
   const gateway = read('deploy/docker/deploy-ssh-gateway.sh');
-  const workflow = read('.github/workflows/release-containers.yml');
+  const workflow = read('.github/workflows/release.yml') + read('.github/workflows/promote.yml');
   assert.match(gateway, /SSH_ORIGINAL_COMMAND/);
   assert.match(gateway, /scp -t \/opt\/iig-admin\/beta["|]/);
   assert.match(gateway, /scp -t \/opt\/iig-admin\/beta\//);
@@ -179,8 +182,9 @@ test('GitHub deployment credential is constrained by a forced-command gateway', 
   assert.match(gateway, /scp -d -t \/opt\/iig-admin\/beta\//);
   assert.match(gateway, /scp -d -t \/opt\/iig-admin\/prod\//);
   assert.match(gateway, /image_tag.*app_commit/);
-  assert.match(workflow, /deploy beta \$IMAGE_TAG \$APP_VERSION \$APP_COMMIT/);
-  assert.match(workflow, /deploy production \$IMAGE_TAG \$APP_VERSION \$APP_COMMIT/);
+  assert.match(workflow, /deploy beta \$tag \$VERSION/);
+  assert.match(workflow, /deploy production prod-\$COMMIT \$VERSION \$COMMIT \$COMPONENTS/);
+  assert.match(gateway, /\^manifest/);
   assert.equal((workflow.match(/scp -O /g) || []).length, 2);
   assert.doesNotMatch(workflow, /run: scp (?!-O )/);
 });

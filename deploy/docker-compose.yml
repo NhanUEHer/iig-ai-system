@@ -9,11 +9,18 @@ x-app-defaults: &app-defaults
       max-size: 10m
       max-file: "3"
 
+# Release identity is tracked per component so a deploy only recreates the services
+# whose image changed (APP_VERSION/APP_COMMIT remain the fallback).
 x-runtime-env: &runtime-env
   NODE_ENV: production
   APP_ENV: ${DEPLOY_ENV:-beta}
-  APP_VERSION: ${APP_VERSION:?APP_VERSION is required}
-  APP_COMMIT: ${APP_COMMIT:?APP_COMMIT is required}
+  APP_VERSION: ${ADMIN_API_APP_VERSION:-${APP_VERSION:?APP_VERSION is required}}
+  APP_COMMIT: ${ADMIN_API_APP_COMMIT:-${APP_COMMIT:?APP_COMMIT is required}}
+
+x-web-runtime-env: &web-runtime-env
+  APP_ENV: ${DEPLOY_ENV:-beta}
+  APP_VERSION: ${ADMIN_WEB_APP_VERSION:-${APP_VERSION:?APP_VERSION is required}}
+  APP_COMMIT: ${ADMIN_WEB_APP_COMMIT:-${APP_COMMIT:?APP_COMMIT is required}}
 
 services:
   redis:
@@ -83,6 +90,7 @@ services:
     mem_limit: 128m
     memswap_limit: 256m
     cpus: 0.5
+    environment: *web-runtime-env
     image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-admin-admin-web:${ADMIN_WEB_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     depends_on:
       admin-api: { condition: service_healthy }

@@ -1,0 +1,106 @@
+name: Promote Beta to Production
+
+# CI/CD v2: Production receives exactly the images running on Beta (no rebuild). Requires the
+# `production` environment approval. Moves only components whose digest differs from Production,
+# tags v<version>, fast-forwards main to the Beta commit and records a GitHub Release manifest.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version (X.Y.Z)
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+  actions: read
+
+concurrency:
+  group: iig-admin-production
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Validate version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: '[[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "version must be X.Y.Z" >&2; exit 1; }'
+      - name: Beta commit (last successful Beta release)
+        id: commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          sha="$(gh run list -R "$GITHUB_REPOSITORY" -w release.yml -b develop --status success -L 1 --json headSha -q '.[0].headSha')"
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo "No successful Beta release found" >&2; exit 1; }
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.commit.outputs.sha }}
+          fetch-depth: 0
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+      - name: Trust deployment host
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' '${{ secrets.VPS_KNOWN_HOSTS }}' > ~/.ssh/known_hosts
+      - name: Read running manifests
+        id: m
+        run: |
+          set -euo pipefail
+          beta="$(ssh root@${{ secrets.VPS_HOST }} 'manifest beta')"; prod="$(ssh root@${{ secrets.VPS_HOST }} 'manifest production')"
+          echo "beta=$beta"; echo "prod=$prod"
+          { echo "beta=$beta"; echo "prod=$prod"; } >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Retag Beta digests for Production (no rebuild)
+        id: retag
+        env:
+          BETA: ${{ steps.m.outputs.beta }}
+          PROD: ${{ steps.m.outputs.prod }}
+          COMMIT: ${{ steps.commit.outputs.sha }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          components=()
+          for svc in admin-api admin-web exam-web; do
+            b="$(jq -r --arg s "$svc" '.[$s]' <<<"$BETA")"; p="$(jq -r --arg s "$svc" '.[$s]' <<<"$PROD")"
+            [[ "$b" == *@sha256:* ]] || { echo "Beta $svc has no registry digest" >&2; exit 1; }
+            if [ "${b#*@}" != "${p#*@}" ]; then
+              repo="${b%@*}"
+              docker buildx imagetools create -t "$repo:prod-$COMMIT" -t "$repo:v$VERSION" "$b"
+              components+=("$svc")
+            fi
+          done
+          list="$(IFS=,; echo "${components[*]}")"
+          echo "Components to promote: ${list:-none}"; echo "components=$list" >> "$GITHUB_OUTPUT"
+      - name: Deploy Production (changed components only)
+        if: steps.retag.outputs.components != ''
+        env:
+          COMPONENTS: ${{ steps.retag.outputs.components }}
+          COMMIT: ${{ steps.commit.outputs.sha }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          scp -O deploy/docker-compose.yml scripts/deploy-containers.sh root@${{ secrets.VPS_HOST }}:/opt/iig-admin/prod/
+          ssh root@${{ secrets.VPS_HOST }} "deploy production prod-$COMMIT $VERSION $COMMIT $COMPONENTS"
+      - name: Tag, fast-forward main, record release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ inputs.version }}
+          COMMIT: ${{ steps.commit.outputs.sha }}
+          BETA: ${{ steps.m.outputs.beta }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "Production release v$VERSION" "$COMMIT"; git push origin "v$VERSION"
+          git push origin "$COMMIT:refs/heads/main" || echo "::warning::main could not be fast-forwarded to $COMMIT"
+          manifest="$(jq -c --arg v "$VERSION" --arg c "$COMMIT" --arg t "$(date -u +%FT%TZ)" '. + {version:$v, commit:$c, deployedAt:$t}' <<<"$BETA")"
+          printf 'Promoted from Beta (no rebuild).\n\nManifest:\n%s\n' "$manifest" > release-notes.md
+          gh release create "v$VERSION" --title "v$VERSION" --target "$COMMIT" --notes-file release-notes.md

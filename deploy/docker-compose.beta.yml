@@ -36,8 +36,8 @@ services:
     environment:
       NODE_ENV: production
       APP_ENV: beta
-      APP_VERSION: ${APP_VERSION:?APP_VERSION is required}
-      APP_COMMIT: ${APP_COMMIT:?APP_COMMIT is required}
+      APP_VERSION: ${ADMIN_API_APP_VERSION:-${APP_VERSION:?APP_VERSION is required}}
+      APP_COMMIT: ${ADMIN_API_APP_COMMIT:-${APP_COMMIT:?APP_COMMIT is required}}
     depends_on:
       migrate: { condition: service_completed_successfully }
       postgres: { condition: service_healthy }
