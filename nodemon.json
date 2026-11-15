@@ -1,8 +1,6 @@
 {
   "ignore": [
     "public/**/*",
-    "src/models/kokoro/**/*",
-    "tts_env/**/*",
     "node_modules/**/*",
     "*.log"
   ],

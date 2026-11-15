@@ -15,7 +15,6 @@ import ScoringJobListPage from './features/ai-scoring-jobs/pages/ScoringJobListP
 import ScoringJobDetailPage from './features/ai-scoring-jobs/pages/ScoringJobDetailPage';
 import UserManagementPage from './features/users/pages/UserManagementPage';
 import RoleManagementPage from './features/users/pages/RoleManagementPage';
-import LocalTTSStudio from './components/local-tts/LocalTTSStudio';
 import KpiReportPage from './features/reports/pages/KpiReportPage';
 import ManualReportPage from './features/reports/pages/ManualReportPage';
 import ReportPeriodManagementPage from './features/reports/pages/ReportPeriodManagementPage';
@@ -59,7 +58,6 @@ const firstAllowedPath = user => {
   if (has('agents.view')) return '/ai';
   if (has('ai_scoring.jobs.view')) return '/ai-scoring/jobs';
   if (has('ai_scoring.tenants.view')) return '/ai-scoring/tenants';
-  if (has('audio.view')) return '/local-tts';
   if (hasAny(['content_sources.view','content_sources.create'])) return '/content-sources';
   if (hasAny(['key_vocab.view','key_vocab.generate','key_vocab.manage','dictionary.view','dictionary.generate','dictionary.manage'])) return '/key-vocab';
   if (hasAny(['reports.view','reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'])) return '/reports/kpi';
@@ -93,7 +91,6 @@ function App() {
   else if (path.startsWith('/ai')) activeTab = 'ai';
   else if (path.startsWith('/users')) activeTab = 'users';
   else if (path.startsWith('/roles')) activeTab = 'roles';
-  else if (path.startsWith('/local-tts')) activeTab = 'local-tts';
   else if (path.startsWith('/content-development')) activeTab = 'content-development';
   else if (path.startsWith('/content-sources')) activeTab = 'content-sources';
   else if (path.startsWith('/key-vocab')) activeTab = 'key-vocab';
@@ -535,7 +532,6 @@ function App() {
                 hasPermission('roles.view') ? <RoleManagementPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />
               } />
 
-              <Route path="/local-tts" element={hasPermission('audio.view') ? <LocalTTSStudio /> : <Navigate to={defaultPath} replace />} />
               <Route path="/content-sources" element={['content_sources.view','content_sources.create'].some(hasPermission) ? <ContentSourcePage showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/content-sources/:sourceId" element={hasPermission('content_sources.view') ? <ContentSourceDetailPage showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/content-development" element={['content_sources.view','content_sources.analyze'].some(hasPermission) ? <ContentDevelopmentPage showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />

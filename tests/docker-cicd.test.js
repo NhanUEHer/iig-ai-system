@@ -123,13 +123,10 @@ test('Beta deploy adds isolated PostgreSQL and dedicated Admin and Exam domains 
 test('runtime secrets and mutable data are excluded from images', () => {
   const ignore = read('.dockerignore');
   assert.match(ignore, /^\.env$/m);
-  assert.match(ignore, /^public\/local_audio$/m);
-  assert.match(ignore, /^voice_clone_models$/m);
   const compose = read('deploy/docker-compose.yml');
   assert.match(compose, /\.env\.container/);
-  assert.match(compose, /voice_clone_models:\/app\/voice_clone_models:ro/);
+  assert.doesNotMatch(compose, /voice_clone|tts_env|local_voices|local_audio/);
   assert.match(compose, /MEDIA_ROOT is required/);
-  assert.match(compose, /MODEL_ROOT is required/);
 });
 
 test('deployment requires the isolated Scoring URL and credential without generating secrets', () => {

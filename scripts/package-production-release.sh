@@ -56,7 +56,7 @@ cp "$PROJECT_DIR/exam-web/package.json" "$PROJECT_DIR/exam-web/package-lock.json
 cp "$PROJECT_DIR/deploy/nginx-ai-scoring.conf" "$STAGE_DIR/deploy-nginx-ai-scoring.conf"
 cp "$PROJECT_DIR/scripts/run-migrations.js" "$PROJECT_DIR/scripts/backup-production.sh" "$PROJECT_DIR/scripts/restore-production-backup.sh" "$STAGE_DIR/scripts/"
 cp "$PROJECT_DIR/docs/PRODUCTION_RELEASE_CHECKLIST.md" "$STAGE_DIR/docs/"
-mkdir -p "$STAGE_DIR/public/cleaned-audio" "$STAGE_DIR/public/local_audio" "$STAGE_DIR/public/local_voices" "$STAGE_DIR/public/tmp_local" "$STAGE_DIR/public/dialogues" "$STAGE_DIR/public/custom_voices" "$STAGE_DIR/public/question-bank-media"
+mkdir -p "$STAGE_DIR/public/cleaned-audio" "$STAGE_DIR/public/dialogues" "$STAGE_DIR/public/question-bank-media"
 
 cat > "$STAGE_DIR/RELEASE-MANIFEST.txt" <<EOF
 application=ai-scoring-admin

@@ -18,7 +18,6 @@ const groups = [
   { id: 'content-tools', label: 'Tạo & Phát triển', icon: BookOpen, items: [
     { id: 'content-sources', label: 'Nguồn học liệu', path: '/content-sources', permissions: ['content_sources.view', 'content_sources.create'] },
     { id: 'content-development', label: 'Phát triển học liệu', path: '/content-development', permissions: ['content_sources.view', 'content_sources.analyze'] },
-    { id: 'local-tts', label: 'Audio Studio', path: '/local-tts', permission: 'audio.view' },
     { id: 'key-vocab', label: 'Tạo học liệu', path: '/key-vocab', permissions: ['key_vocab.view', 'key_vocab.generate', 'key_vocab.manage', 'dictionary.view', 'dictionary.generate', 'dictionary.manage'] },
   ] },
   { id: 'ai-scoring', label: 'AI Scoring & Khảo thí', icon: Monitor, items: [

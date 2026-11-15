@@ -28,14 +28,10 @@ async function migrateRows({query,folder,kind,update}){
 (async()=>{
   storage.requireR2();
   if(!storage.isR2Configured())throw new Error('R2 is not configured.');
-  const generated=await migrateRows({
-    query:"SELECT id,audio_path FROM local_tts_history WHERE audio_path IS NOT NULL AND audio_path NOT LIKE 'r2:%'",
-    folder:'local_audio',kind:'generated',update:'UPDATE local_tts_history SET audio_path=$1,updated_at=CURRENT_TIMESTAMP WHERE id=$2'
-  });
   const cleaned=await migrateRows({
     query:"SELECT answer_id id,cleaned_audio_url audio_path FROM ai_evaluation_results WHERE cleaned_audio_url IS NOT NULL AND cleaned_audio_url NOT LIKE 'r2:%'",
     folder:'cleaned-audio',kind:'cleaned',update:'UPDATE ai_evaluation_results SET cleaned_audio_url=$1,updated_at=CURRENT_TIMESTAMP WHERE answer_id=$2'
   });
-  console.log(JSON.stringify({mode:apply?'apply':'dry-run',generated,cleaned},null,2));
+  console.log(JSON.stringify({mode:apply?'apply':'dry-run',cleaned},null,2));
   await db.pool.end();
 })().catch(async error=>{console.error(error);await db.pool.end();process.exit(1);});

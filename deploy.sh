@@ -96,21 +96,21 @@ echo "[5/9] Uploading immutable release ${RELEASE_DIR}..."
 sshpass -p "$VPS_PASSWORD" ssh "${SSH_OPTIONS[@]}" root@"$VPS_IP" "install -d -m 755 '$RELEASE_DIR'"
 sshpass -p "$VPS_PASSWORD" rsync -az --delete -e "ssh ${SSH_OPTIONS[*]}" \
   --exclude='node_modules' --exclude='frontend/node_modules' --exclude='.git' --exclude='.env' --exclude='.env*.local' --exclude='tmp' --exclude='outputs' --exclude='backups' \
-  --exclude='voice_clone_env' --exclude='voice_clone_models' --exclude='tts_env' --exclude='asset' --exclude='src/models' \
-  --exclude='public/cleaned-audio' --exclude='public/local_audio' --exclude='public/local_voices' --exclude='public/tmp_local' \
-  --exclude='public/dialogues' --exclude='public/custom_voices' \
+  --exclude='asset' \
+  --exclude='public/cleaned-audio' \
+  --exclude='public/dialogues' \
   "$PROJECT_DIR/" root@"$VPS_IP":"$RELEASE_DIR/"
 
 echo "[6/9] Linking shared data and installing dependencies..."
 sshpass -p "$VPS_PASSWORD" ssh "${SSH_OPTIONS[@]}" root@"$VPS_IP" "
   set -e
   ln -s '$VPS_DIR/.env' '$RELEASE_DIR/.env'
-  for path in tts_env voice_clone_env voice_clone_models asset; do
+  for path in asset; do
     if [ -e '$VPS_DIR/'\"\$path\" ]; then ln -s '$VPS_DIR/'\"\$path\" '$RELEASE_DIR/'\"\$path\"; fi
   done
   mkdir -p '$RELEASE_DIR/src' '$RELEASE_DIR/public'
   if [ -d '$VPS_DIR/src/models' ]; then ln -s '$VPS_DIR/src/models' '$RELEASE_DIR/src/models'; fi
-  for path in cleaned-audio local_audio local_voices tmp_local dialogues custom_voices; do
+  for path in cleaned-audio dialogues; do
     mkdir -p '$VPS_DIR/public/'\"\$path\"
     ln -s '$VPS_DIR/public/'\"\$path\" '$RELEASE_DIR/public/'\"\$path\"
   done
