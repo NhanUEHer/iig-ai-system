@@ -18,6 +18,7 @@ LOCK_DIR="$DEPLOY_DIR/.deploy.lock"
 mkdir "$LOCK_DIR" 2>/dev/null || { echo "Another deployment is already running in $DEPLOY_DIR" >&2; exit 1; }
 
 rollback_file=""
+rollback_override=""
 activated=false
 cleanup() {
   rc=$?
@@ -25,8 +26,24 @@ cleanup() {
   if [ "$rc" -ne 0 ] && [ "$activated" = true ] && [ -n "$rollback_file" ] && [ -s "$rollback_file" ]; then
     echo "Health verification failed; restoring previous immutable release." >&2
     cp "$rollback_file" .env
-    compose up -d --remove-orphans --wait --wait-timeout 180 || true
+    rollback_override=".compose.rollback.$$.yml"
+    {
+      printf 'services:\n'
+      printf '  admin-api:\n    image: %s\n' "$previous_admin_api_image"
+      printf '  admin-web:\n    image: %s\n' "$previous_admin_web_image"
+      printf '  exam-web:\n    image: %s\n' "$previous_exam_web_image"
+    } > "$rollback_override"
+    if docker compose "${compose_files[@]}" -f "$rollback_override" up \
+      -d --no-deps --wait --wait-timeout 180 admin-api admin-web exam-web \
+      && verify_service admin-api "$previous_admin_api_image" \
+      && verify_service admin-web "$previous_admin_web_image" \
+      && verify_service exam-web "$previous_exam_web_image"; then
+      echo "Previous running images restored successfully." >&2
+    else
+      echo "CRITICAL: automatic restoration of the previous running images failed." >&2
+    fi
   fi
+  test -z "$rollback_override" || rm -f "$rollback_override"
   rmdir "$LOCK_DIR" 2>/dev/null || true
   exit "$rc"
 }
@@ -50,6 +67,44 @@ require_runtime_value() {
   }
 }
 
+running_image() {
+  service="$1"
+  container_id="$(compose ps -q "$service" 2>/dev/null || true)"
+  test -n "$container_id" || {
+    echo "Required service is not running before deployment: $service" >&2
+    exit 1
+  }
+  running="$(docker inspect --format '{{.State.Running}}' "$container_id" 2>/dev/null || true)"
+  image="$(docker inspect --format '{{.Config.Image}}' "$container_id" 2>/dev/null || true)"
+  test "$running" = true && test -n "$image" || {
+    echo "Could not capture the running image for $service" >&2
+    exit 1
+  }
+  case "$image" in
+    *[!A-Za-z0-9._/@:+-]*|'')
+      echo "Refusing unsafe running image reference for $service" >&2
+      exit 1
+      ;;
+  esac
+  printf '%s\n' "$image"
+}
+
+verify_service() {
+  service="$1"
+  expected_image="$2"
+  container_id="$(compose ps -q "$service" 2>/dev/null || true)"
+  actual_image=""
+  health=""
+  if [ -n "$container_id" ]; then
+    actual_image="$(docker inspect --format '{{.Config.Image}}' "$container_id" 2>/dev/null || true)"
+    health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_id" 2>/dev/null || true)"
+  fi
+  if [ "$actual_image" != "$expected_image" ] || [ "$health" != healthy ]; then
+    echo "Post-deploy verification failed for $service (image=$actual_image, expected=$expected_image, health=$health)" >&2
+    return 1
+  fi
+}
+
 if [ "$deploy_env" = beta ]; then
   test -s docker-compose.beta.yml || { echo "Missing Beta deployment override: $DEPLOY_DIR/docker-compose.beta.yml" >&2; exit 1; }
   test -s configure-beta-environment.sh || { echo "Missing Beta bootstrap: $DEPLOY_DIR/configure-beta-environment.sh" >&2; exit 1; }
@@ -70,6 +125,12 @@ HEALTH="$scoring_health" node -e '
   }
 '
 
+# Capture what is actually running before changing tags. The gateway exports the
+# new IMAGE_TAG, so restoring only .env would otherwise select the failed image.
+previous_admin_api_image="$(running_image admin-api)"
+previous_admin_web_image="$(running_image admin-web)"
+previous_exam_web_image="$(running_image exam-web)"
+
 previous_tag="$(sed -n 's/^IMAGE_TAG=//p' .env | head -1)"
 next_tag="${IMAGE_TAG:?IMAGE_TAG is required}"
 next_admin_api_tag="${ADMIN_API_IMAGE_TAG:-$next_tag}"
@@ -84,11 +145,14 @@ cp .env "$rollback_file"
 update_env() {
   key="$1"
   value="$2"
-  if grep -q "^${key}=" .env; then
-    sed -i "s|^${key}=.*|${key}=${value}|" .env
-  else
-    printf '%s=%s\n' "$key" "$value" >> .env
-  fi
+  temporary=".env.update.$$"
+  awk -v key="$key" -v value="$value" '
+    BEGIN { found = 0 }
+    index($0, key "=") == 1 { print key "=" value; found = 1; next }
+    { print }
+    END { if (!found) print key "=" value }
+  ' .env > "$temporary"
+  mv "$temporary" .env
 }
 
 update_env IMAGE_TAG "$next_tag"
@@ -101,6 +165,21 @@ activated=true
 
 compose pull
 compose up -d --remove-orphans --wait --wait-timeout 240
+
+expected_images="$(compose config --format json)"
+expected_image() {
+  service="$1"
+  COMPOSE_CONFIG="$expected_images" SERVICE="$service" node -e '
+    const config = JSON.parse(process.env.COMPOSE_CONFIG);
+    const image = config.services?.[process.env.SERVICE]?.image;
+    if (!image) process.exit(1);
+    process.stdout.write(image);
+  '
+}
+
+verify_service admin-api "$(expected_image admin-api)"
+verify_service admin-web "$(expected_image admin-web)"
+verify_service exam-web "$(expected_image exam-web)"
 
 if [ "$deploy_env" = beta ] && [ -s bootstrap-admin.env ]; then
   bootstrap_rc=0

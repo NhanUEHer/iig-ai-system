@@ -29,6 +29,15 @@ Verification:
 npm run check
 ```
 
+### Shared AI Scoring Admin API contract
+
+`contracts/ai-scoring-admin-api-v1.json` is the shared, machine-readable source
+of truth for the Admin BFF ↔ Scoring API boundary. An identical copy is kept in
+the Scoring repository so the systems can build independently. Admin CI checks
+frontend calls against this copy, while Scoring CI compares endpoints marked
+`implemented` with its NestJS controllers. A mismatch must fail CI, and contract
+changes must update both copies in the same delivery.
+
 This runs backend syntax checks and tests, frontend lint, and the production frontend build.
 
 ## Application structure
