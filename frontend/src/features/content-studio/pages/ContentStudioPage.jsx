@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FileText, RotateCcw, Save } from 'lucide-react';
+import { FileText, RotateCcw, Save, Upload } from 'lucide-react';
 import {
-  Alert, Badge, Button, FileDropzone, FormField, Input, PageFrame, PageHeader, Select, Surface, Textarea,
+  Alert, Badge, Button, FormField, Input, PageFrame, PageHeader, Select, Surface, Textarea,
 } from '../../../design-system-v2';
 import { createItem, detectDocx, detectText, errorMessage, listFolders } from '../../../services/contentStudioService';
 import FolderPanel from '../components/FolderPanel';
@@ -24,6 +24,7 @@ export default function ContentStudioPage({ showMsg, permissions = {} }) {
   const [targetFolder, setTargetFolder] = useState('');
   const [saving, setSaving] = useState(false);
   const detectSeq = useRef(0);
+  const fileInput = useRef(null);
   const showMsgRef = useRef(showMsg);
   useEffect(() => { showMsgRef.current = showMsg; }, [showMsg]);
 
@@ -113,15 +114,16 @@ export default function ContentStudioPage({ showMsg, permissions = {} }) {
             <strong>Nhập nội dung</strong>
             {source.kind === 'docx' && <Badge tone="info" icon={<FileText />}>{source.fileName}</Badge>}
             {hasContent && <Button variant="ghost" size="sm" icon={<RotateCcw />} onClick={reset}>Làm lại</Button>}
+            <input ref={fileInput} type="file" accept=".docx" hidden onChange={onDocx} />
+            <Button variant="outline" size="sm" icon={<Upload />} loading={detecting && source.kind !== 'paste'} onClick={() => fileInput.current?.click()}>Tải file DOCX</Button>
           </div>
           <Textarea
             aria-label="Nội dung đoạn văn và câu hỏi"
-            rows={hasContent ? 12 : 9}
+            rows={16}
             value={text}
             placeholder={'Dán đoạn văn, câu hỏi và đáp án vào đây…\n\nVí dụ:\nDear Miss Joseph, I am writing this letter…\n\n1. What is the purpose of the letter?\n(A) …  (B) …  (C) …  (D) …\nAnswer key: 1B'}
             onChange={event => { setText(event.target.value); if (source.kind === 'docx') setSource({ kind: 'paste', fileName: null }); }}
           />
-          {!hasContent && <FileDropzone title="Hoặc kéo thả file DOCX" description="Một file .docx, tối đa 10 MB" accept=".docx" onChange={onDocx} />}
 
           {hasContent && <DetectionPreview detection={detection} detecting={detecting} />}
 
