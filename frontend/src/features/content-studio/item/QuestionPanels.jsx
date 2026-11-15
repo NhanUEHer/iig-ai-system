@@ -1,17 +1,20 @@
 import React from 'react';
 import { CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
-import { FormField, Input, StatusBadge, Textarea } from '../../../design-system-v2';
+import { FormField, StatusBadge, Textarea } from '../../../design-system-v2';
 import ArtifactShell, { STATUS } from './ArtifactShell';
 import useArtifactDraft from './useArtifactDraft';
 
 const LETTERS = ['A', 'B', 'C', 'D'];
+
+// One free-text block (question + options); older content stored {stem, options}.
+const translationText = value => (typeof value === 'string' ? value
+  : value ? [value.stem, ...Object.entries(value.options || {}).map(([letter, text]) => `(${letter}) ${text}`)].filter(Boolean).join('\n') : '');
 
 export function QuestionEditor({ question, artifact, shell, open, onToggle }) {
   const { draft, update, dirty, saving, save, regenerate } = useArtifactDraft(artifact, shell);
   const issues = artifact?.validation?.issues || [];
   const flagged = field => issues.some(issue => issue.path === field);
   const set = patch => update({ ...draft, ...patch });
-  const setTranslation = patch => set({ translation: { ...draft.translation, ...patch } });
   const letters = LETTERS.filter(letter => question.options?.[letter]);
   const status = artifact ? STATUS[artifact.status] : null;
   return <section className={`cs-question${open ? ' is-open' : ''}`}>
@@ -27,9 +30,7 @@ export function QuestionEditor({ question, artifact, shell, open, onToggle }) {
     <ArtifactShell artifact={artifact} label="nội dung câu hỏi" dirty={dirty} saving={saving} onSave={save} onRegenerate={regenerate} compact {...shell}>
       {draft && <div className="cs-question__fields">
         <FormField label="Dịch câu hỏi & đáp án" className={flagged('translation') ? 'is-flagged' : ''}>
-          <Input value={draft.translation?.stem || ''} readOnly={!shell.canEdit} onChange={event => setTranslation({ stem: event.target.value })} />
-          <div className="cs-question__options">{letters.map(letter => <Input key={letter} prefix={`${letter}.`} value={draft.translation?.options?.[letter] || ''} readOnly={!shell.canEdit}
-            onChange={event => setTranslation({ options: { ...draft.translation?.options, [letter]: event.target.value } })} />)}</div>
+          <Textarea rows={letters.length + 1} value={translationText(draft.translation)} readOnly={!shell.canEdit} placeholder={'Câu hỏi dịch\n(A) …\n(B) …'} onChange={event => set({ translation: event.target.value })} />
         </FormField>
         <FormField label="Hint" description="Gợi ý chiến lược — không được lộ đáp án" className={flagged('hint') ? 'is-flagged' : ''}>
           <Textarea rows={2} value={draft.hint || ''} readOnly={!shell.canEdit} onChange={event => set({ hint: event.target.value })} />

@@ -5,6 +5,7 @@
 
 const STOP = new Set(('about above after again against because been before being below between both could does doing during each from further have having here into itself more most other ought same should some such than that their theirs them then there these they this those through under until very were what when where which while with would your yours will also only just like make made please let know').split(' '));
 const fixtures = require('./mockFixtures');
+const { translationText } = require('./validators');
 const words = text => (text.match(/[A-Za-z][A-Za-z'-]+/g) || []);
 const LETTERS = ['A', 'B', 'C', 'D'];
 
@@ -44,7 +45,10 @@ async function generate(type, input) {
   if (type === 'dictionary' && sample) {
     return { sentences: input.sentences.map((text, index) => ({ index: index + 1, text, entries: fixtures.DICTIONARY[index] || [] })) };
   }
-  if (type === 'question_pack' && fixtures.questionPackFor(input.question.stem)) return fixtures.questionPackFor(input.question.stem);
+  if (type === 'question_pack' && fixtures.questionPackFor(input.question.stem)) {
+    const pack = fixtures.questionPackFor(input.question.stem);
+    return { ...pack, translation: translationText(pack.translation) };
+  }
   if (type === 'vocab') {
     return {
       settings: { level: input.level || 650, mode: input.mode || 'balanced' },
@@ -73,10 +77,7 @@ async function generate(type, input) {
     const quote = bestSentence(sentences, `${question.stem} ${correct}`);
     const wrong = LETTERS.filter(letter => letter !== answer && question.options[letter]);
     return {
-      translation: {
-        stem: vi(question.stem),
-        options: Object.fromEntries(Object.entries(question.options).map(([letter, text]) => [letter, vi(text)])),
-      },
+      translation: translationText({ stem: vi(question.stem), options: Object.fromEntries(Object.entries(question.options).map(([letter, text]) => [letter, vi(text)])) }),
       hint: `Xác định từ khoá trong câu hỏi rồi tìm đoạn thông tin tương ứng trong bài để so sánh với từng phương án.`,
       explanation: answer
         ? `Đáp án đúng là (${answer}) ${correct}. Trong bài có đề cập: “${quote}” Các phương án còn lại không phù hợp: ${wrong.map(letter => `(${letter}) ${question.options[letter]} không được nhắc tới hoặc sai thông tin`).join('; ')}.`

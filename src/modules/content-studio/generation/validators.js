@@ -7,6 +7,12 @@ const LETTERS = ['A', 'B', 'C', 'D'];
 const BANNED_NOTE_WORDS = ['bẫy', 'đánh lừa', 'lừa'];
 const norm = text => String(text || '').toLowerCase().replace(/[“”"‘’']/g, '').replace(/\s+/g, ' ').trim();
 const digits = text => (String(text || '').match(/\d+(?:[.:,]\d+)*/g) || []);
+// Question translation is one free-text block (question + options); older content stored {stem, options}.
+function translationText(value) {
+  if (typeof value === 'string') return value;
+  if (!value || typeof value !== 'object') return '';
+  return [value.stem, ...Object.entries(value.options || {}).map(([letter, text]) => `(${letter}) ${text}`)].filter(Boolean).join('\n');
+}
 const issue = (code, message, path) => ({ code, message, ...(path ? { path } : {}) });
 
 function validatePassageTranslation(content, { sentences }) {
@@ -31,10 +37,7 @@ function validateQuestionPack(content, { question, passage }) {
   for (const field of ['hint', 'explanation', 'note']) {
     if (!String(content?.[field] || '').trim()) issues.push(issue('EMPTY_FIELD', `Câu ${question.number}: thiếu ${field === 'hint' ? 'Hint' : field === 'explanation' ? 'Explanation' : 'Note'}.`, field));
   }
-  if (!String(content?.translation?.stem || '').trim()) issues.push(issue('EMPTY_FIELD', `Câu ${question.number}: thiếu bản dịch câu hỏi.`, 'translation'));
-  for (const letter of Object.keys(question.options || {})) {
-    if (!String(content?.translation?.options?.[letter] || '').trim()) issues.push(issue('EMPTY_FIELD', `Câu ${question.number}: thiếu bản dịch đáp án (${letter}).`, 'translation'));
-  }
+  if (!translationText(content?.translation).trim()) issues.push(issue('EMPTY_FIELD', `Câu ${question.number}: thiếu bản dịch câu hỏi & đáp án.`, 'translation'));
   if (!answer) {
     issues.push(issue('NO_ANSWER_KEY', `Câu ${question.number}: chưa có đáp án đúng để kiểm tra Explanation.`, 'explanation'));
     return issues;
@@ -100,4 +103,4 @@ function validate(type, content, context) {
   return { issues, checkedAt: new Date().toISOString() };
 }
 
-module.exports = { validate };
+module.exports = { validate, translationText };
