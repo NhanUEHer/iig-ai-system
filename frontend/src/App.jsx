@@ -28,6 +28,7 @@ import ChangePasswordPage from './features/auth/pages/ChangePasswordPage';
 import AccountProfileModal from './features/auth/components/AccountProfileModal';
 import BulkSyncPanel from './components/sync/BulkSyncPanel';
 import KeyVocabPage from './features/key-vocab/pages/KeyVocabPage';
+import ContentStudioPage from './features/content-studio/pages/ContentStudioPage';
 import ContentSourcePage from './features/content-sources/pages/ContentSourcePage';
 import ContentSourceDetailPage from './features/content-sources/pages/ContentSourceDetailPage';
 import ContentDevelopmentPage from './features/content-sources/pages/ContentDevelopmentPage';
@@ -93,6 +94,7 @@ function App() {
   else if (path.startsWith('/roles')) activeTab = 'roles';
   else if (path.startsWith('/content-development')) activeTab = 'content-development';
   else if (path.startsWith('/content-sources')) activeTab = 'content-sources';
+  else if (path.startsWith('/content-studio')) activeTab = 'content-studio';
   else if (path.startsWith('/key-vocab')) activeTab = 'key-vocab';
   else if (path.startsWith('/dictionary')) activeTab = 'key-vocab';
   else if (path.startsWith('/logs')) activeTab = 'logs';
@@ -540,6 +542,7 @@ function App() {
 
 
 
+              <Route path="/content-studio" element={['content_studio.view','content_studio.edit','content_studio.generate'].some(hasPermission) ? <ContentStudioPage showMsg={showMsg} permissions={{ edit: hasPermission('content_studio.edit'), manageFolders: hasPermission('content_studio.manage_folders') }} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/key-vocab" element={['key_vocab.view','key_vocab.generate','key_vocab.manage','dictionary.view','dictionary.generate','dictionary.manage'].some(hasPermission) ? <KeyVocabPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/dictionary" element={<Navigate to="/key-vocab" replace />} />
 

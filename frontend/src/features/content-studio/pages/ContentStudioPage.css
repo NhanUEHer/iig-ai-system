@@ -1,0 +1,41 @@
+.cs-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: var(--iig3-space-4); align-items: start; }
+.cs-main { display: flex; flex-direction: column; gap: var(--iig3-space-4); min-width: 0; }
+@media (max-width: 1080px) { .cs-layout { grid-template-columns: minmax(0, 1fr); } .cs-folders { order: -1; } }
+
+.cs-input { display: flex; flex-direction: column; gap: var(--iig3-space-3); }
+.cs-input__head { display: flex; align-items: center; gap: var(--iig3-space-2); }
+.cs-input__head > strong { flex: 1; font-size: 15px; }
+.cs-input textarea { width: 100%; min-height: 180px; font-size: 14px; line-height: 1.6; resize: vertical; }
+.cs-input__save { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: var(--iig3-space-3); align-items: end; padding-top: var(--iig3-space-3); border-top: 1px solid var(--iig3-border); }
+@media (max-width: 720px) { .cs-input__save { grid-template-columns: minmax(0, 1fr); } }
+
+.cs-detect { display: flex; flex-direction: column; gap: var(--iig3-space-3); padding: var(--iig3-space-3); border: 1px solid var(--iig3-border); border-radius: 8px; background: var(--iig3-color-surface-muted); }
+.cs-detect.is-pending { flex-direction: row; color: var(--iig3-text-muted); font-size: 13px; }
+.cs-detect.is-pending span { display: inline-flex; align-items: center; gap: 6px; }
+.cs-detect svg { width: 16px; height: 16px; }
+.cs-detect > header { display: flex; align-items: center; gap: var(--iig3-space-2); flex-wrap: wrap; }
+.cs-detect > header > strong { margin-right: auto; font-size: 13px; }
+.cs-detect__list { display: flex; flex-direction: column; gap: var(--iig3-space-2); margin: 0; padding: 0; list-style: none; }
+.cs-detect__segment { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: var(--iig3-space-3); padding: var(--iig3-space-3); border-radius: 6px; background: var(--iig3-surface); border: 1px solid var(--iig3-border); }
+.cs-detect__kind { display: inline-flex; align-items: flex-start; gap: 6px; font-size: 12px; font-weight: 600; color: var(--iig3-text-muted); }
+.cs-detect__segment p { margin: 0; font-size: 13px; line-height: 1.55; white-space: pre-line; }
+.cs-detect__segment small { color: var(--iig3-text-muted); font-size: 12px; }
+.cs-detect__segment ul { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.cs-detect__segment ul li { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.cs-detect__options { display: inline-flex; gap: 4px; }
+.cs-detect__options span { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--iig3-border); font-size: 11px; font-weight: 600; }
+.cs-detect__options .is-answer { background: var(--iig3-color-success-soft); border-color: var(--iig3-color-success); color: var(--iig3-color-success); }
+.cs-detect__options .is-missing { border-style: dashed; color: var(--iig3-color-danger); }
+.cs-detect__warnings { margin: 0; padding-left: 18px; }
+@media (max-width: 720px) { .cs-detect__segment { grid-template-columns: minmax(0, 1fr); } }
+
+.cs-items__head { display: flex; align-items: center; gap: var(--iig3-space-2); padding: var(--iig3-space-3) var(--iig3-space-4); border-bottom: 1px solid var(--iig3-border); }
+.cs-items__head svg { width: 16px; height: 16px; color: var(--iig3-text-muted); }
+.cs-item-cell { display: flex; flex-direction: column; gap: 2px; }
+.cs-item-cell small { color: var(--iig3-text-muted); font-size: 12px; }
+
+.cs-folders { position: sticky; top: var(--iig3-space-4); display: flex; flex-direction: column; }
+.cs-folders__head { display: flex; align-items: center; justify-content: space-between; padding: var(--iig3-space-3) var(--iig3-space-4); border-bottom: 1px solid var(--iig3-border); }
+.cs-folders__tree { padding: var(--iig3-space-2); max-height: 60vh; overflow: auto; }
+.cs-folders__actions { display: flex; gap: var(--iig3-space-1); padding: var(--iig3-space-2) var(--iig3-space-3); border-top: 1px solid var(--iig3-border); }
+.cs-folder-form { display: flex; flex-direction: column; gap: var(--iig3-space-3); }

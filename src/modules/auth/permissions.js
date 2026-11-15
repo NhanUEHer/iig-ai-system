@@ -43,6 +43,11 @@ const PERMISSION_GROUPS = [
     ['dictionary.view', 'Xem lịch sử Dictionary'], ['dictionary.generate', 'Tạo Dictionary bằng AI'],
     ['dictionary.manage', 'Chỉnh sửa và lưu Dictionary']
   ] },
+  { key: 'content_studio', label: 'Content Studio', permissions: [
+    ['content_studio.view', 'Xem Content Studio'], ['content_studio.generate', 'Tạo học liệu bằng AI'],
+    ['content_studio.edit', 'Nhập và chỉnh sửa nội dung'], ['content_studio.manage_folders', 'Quản lý thư mục'],
+    ['content_studio.export', 'Export học liệu']
+  ] },
   { key: 'content_sources', label: 'Nguồn học liệu', permissions: [
     ['content_sources.view', 'Xem nguồn đã thu thập'], ['content_sources.create', 'Tải lên và nhận diện nguồn'],
     ['content_sources.analyze', 'Phân tích nguồn bằng AI']
