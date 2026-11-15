@@ -174,6 +174,13 @@ export function Pagination({ page = 1, pageCount = 1, pageSize = 10, pageSizeOpt
   return <footer className="iig3-pagination" aria-busy={loading}><span>{visibleRange}</span><div>{showPageSize && <label>{pageSizeLabel}<Select aria-label={pageSizeLabel} value={pageSize} disabled={loading} onChange={event => onPageSize?.(Number(event.target.value))}>{pageSizeOptions.map(option => <option value={option} key={option}>{option}</option>)}</Select></label>}<small>Trang {safePage} / {safePageCount}</small><IconButton size="sm" label={previousLabel} disabled={loading || safePage <= 1} onClick={() => onPage?.(safePage - 1)}><ChevronLeft /></IconButton><IconButton size="sm" label={nextLabel} disabled={loading || safePage >= safePageCount} onClick={() => onPage?.(safePage + 1)}><ChevronRight /></IconButton></div></footer>;
 }
 
+// Cursor-based pager for APIs without total counts (AI Scoring Admin API v1).
+export function CursorPagination({ page = 1, pageSize = 10, pageSizeOptions = [10, 25, 50], rowCount = 0, hasPrevious = false, hasNext = false, onPrevious, onNext, onPageSize, loading = false, showPageSize = true, pageSizeLabel = 'Số hàng mỗi trang', previousLabel = 'Trang trước', nextLabel = 'Trang sau' }) {
+  if (!loading && rowCount === 0 && !hasPrevious) return null;
+  const from = rowCount ? (page - 1) * pageSize + 1 : 0; const to = (page - 1) * pageSize + rowCount;
+  return <footer className="iig3-pagination" aria-busy={loading}><span>{`${from}–${to}`}</span><div>{showPageSize && <label>{pageSizeLabel}<Select aria-label={pageSizeLabel} value={pageSize} disabled={loading} onChange={event => onPageSize?.(Number(event.target.value))}>{pageSizeOptions.map(option => <option value={option} key={option}>{option}</option>)}</Select></label>}<small>Trang {page}</small><IconButton size="sm" label={previousLabel} disabled={loading || !hasPrevious} onClick={() => onPrevious?.()}><ChevronLeft /></IconButton><IconButton size="sm" label={nextLabel} disabled={loading || !hasNext} onClick={() => onNext?.()}><ChevronRight /></IconButton></div></footer>;
+}
+
 export function DataView({ title, count, toolbar, children, pagination }) {
   return <section className="iig3-data-view">{title && <header><strong>{title}</strong>{count != null && <Badge>{count}</Badge>}</header>}{toolbar}{children}{pagination}</section>;
 }

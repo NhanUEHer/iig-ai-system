@@ -1,0 +1,229 @@
+{
+  "contract": "ai-scoring-admin-api-v1",
+  "source": "docs/ai-scoring-admin-api-webhook-contract-v1.md sections 4 and 10",
+  "conventions": {
+    "tenant": "Every request carries the target tenant as ?tenantId=<uuid>; the Admin BFF fills it from server-side scope.",
+    "idempotency": "Every mutating POST/PATCH carries an Idempotency-Key header (8-128 chars); read-only POST queries such as jobs/lookup do not.",
+    "pagination": "List endpoints use an opaque durable cursor: ?cursor=&limit= (default 50, max 200); responses carry nextCursor."
+  },
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/facets",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/export",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/result",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/available-actions",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/attempts",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/plan",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/questions",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/questions/:questionId",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/groups/:groupId",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/timeline",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/pipeline",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/:jobId/model-executions",
+      "status": "implemented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/jobs/:jobId/retry",
+      "status": "implemented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/jobs/:jobId/cancel",
+      "status": "implemented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/jobs/:jobId/rescore",
+      "status": "pending",
+      "note": "Deferred: needs a plan-driven design in the Scoring core; available-actions reports it as unsupported."
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/jobs/:jobId/reconcile",
+      "status": "implemented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/jobs/:jobId/pipeline/:stepId/retry",
+      "status": "pending",
+      "note": "Deferred: needs a plan-driven design in the Scoring core; available-actions reports it as unsupported."
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/tenants",
+      "status": "implemented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/tenants",
+      "status": "pending",
+      "note": "Deferred: a single-tenant Admin service credential cannot own a new tenant; requires an approved all_tenants authorization design."
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/tenants/:tenantId",
+      "status": "implemented"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/v1/tenants/:tenantId",
+      "status": "implemented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/tenants/:tenantId/activate",
+      "status": "implemented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/tenants/:tenantId/suspend",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/tenants/:tenantId/audit-events",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/tenants/:tenantId/credentials",
+      "status": "implemented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/tenants/:tenantId/credentials",
+      "status": "implemented"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/v1/credentials/:credentialId",
+      "status": "implemented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/credentials/:credentialId/rotate",
+      "status": "implemented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/credentials/:credentialId/revoke",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/tenants/:tenantId/webhooks",
+      "status": "implemented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/tenants/:tenantId/webhooks",
+      "status": "implemented"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/v1/webhooks/:webhookId",
+      "status": "implemented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/webhooks/:webhookId/rotate-secret",
+      "status": "implemented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/webhooks/:webhookId/test",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/webhook-deliveries",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/webhook-deliveries/:deliveryId",
+      "status": "implemented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/webhook-deliveries/:deliveryId/replay",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/audit-events",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/audit-events/:eventId",
+      "status": "implemented"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/v1/jobs/changes",
+      "status": "implemented"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/v1/jobs/lookup",
+      "status": "implemented"
+    }
+  ]
+}

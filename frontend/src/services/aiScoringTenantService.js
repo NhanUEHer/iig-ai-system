@@ -1,3 +1,4 @@
+import { idempotencyConfig } from './aiScoringIdempotency';
 import api from './api';
 
 const unwrap = response => response.data.data;
@@ -11,15 +12,15 @@ export async function getTenant(id) {
 }
 
 export async function createTenant(payload) {
-  return unwrap(await api.post('/ai-scoring/tenants', payload));
+  return unwrap(await api.post('/ai-scoring/tenants', payload, idempotencyConfig()));
 }
 
 export async function updateTenant(id, payload) {
-  return unwrap(await api.patch(`/ai-scoring/tenants/${id}`, payload));
+  return unwrap(await api.patch(`/ai-scoring/tenants/${id}`, payload, idempotencyConfig()));
 }
 
 export async function changeTenantStatus(id, action, reason) {
-  return unwrap(await api.post(`/ai-scoring/tenants/${id}/${action}`, { reason }));
+  return unwrap(await api.post(`/ai-scoring/tenants/${id}/${action}`, { reason }, idempotencyConfig()));
 }
 
 export async function listTenantAudit(id, params = {}) {
@@ -31,19 +32,19 @@ export async function listTenantCredentials(tenantId) {
 }
 
 export async function createTenantCredential(tenantId, payload) {
-  return unwrap(await api.post(`/ai-scoring/tenants/${tenantId}/credentials`, payload));
+  return unwrap(await api.post(`/ai-scoring/tenants/${tenantId}/credentials`, payload, idempotencyConfig()));
 }
 
 export async function updateTenantCredential(credentialId, payload) {
-  return unwrap(await api.patch(`/ai-scoring/credentials/${credentialId}`, payload));
+  return unwrap(await api.patch(`/ai-scoring/credentials/${credentialId}`, payload, idempotencyConfig()));
 }
 
 export async function rotateTenantCredential(credentialId, payload) {
-  return unwrap(await api.post(`/ai-scoring/credentials/${credentialId}/rotate`, payload));
+  return unwrap(await api.post(`/ai-scoring/credentials/${credentialId}/rotate`, payload, idempotencyConfig()));
 }
 
 export async function revokeTenantCredential(credentialId, reason) {
-  return unwrap(await api.post(`/ai-scoring/credentials/${credentialId}/revoke`, { reason }));
+  return unwrap(await api.post(`/ai-scoring/credentials/${credentialId}/revoke`, { reason }, idempotencyConfig()));
 }
 
 export async function listTenantWebhooks(tenantId) {
@@ -51,19 +52,19 @@ export async function listTenantWebhooks(tenantId) {
 }
 
 export async function createTenantWebhook(tenantId, payload) {
-  return unwrap(await api.post(`/ai-scoring/tenants/${tenantId}/webhooks`, payload));
+  return unwrap(await api.post(`/ai-scoring/tenants/${tenantId}/webhooks`, payload, idempotencyConfig()));
 }
 
 export async function updateTenantWebhook(webhookId, payload) {
-  return unwrap(await api.patch(`/ai-scoring/webhooks/${webhookId}`, payload));
+  return unwrap(await api.patch(`/ai-scoring/webhooks/${webhookId}`, payload, idempotencyConfig()));
 }
 
 export async function rotateTenantWebhookSecret(webhookId) {
-  return unwrap(await api.post(`/ai-scoring/webhooks/${webhookId}/rotate-secret`));
+  return unwrap(await api.post(`/ai-scoring/webhooks/${webhookId}/rotate-secret`, undefined, idempotencyConfig()));
 }
 
 export async function testTenantWebhook(webhookId) {
-  return unwrap(await api.post(`/ai-scoring/webhooks/${webhookId}/test`));
+  return unwrap(await api.post(`/ai-scoring/webhooks/${webhookId}/test`, undefined, idempotencyConfig()));
 }
 
 export async function listWebhookDeliveries(params) {
@@ -75,5 +76,5 @@ export async function getWebhookDelivery(deliveryId, tenantId) {
 }
 
 export async function replayWebhookDelivery(deliveryId, tenantId, reason) {
-  return unwrap(await api.post(`/ai-scoring/webhook-deliveries/${deliveryId}/replay`, { tenantId, reason }));
+  return unwrap(await api.post(`/ai-scoring/webhook-deliveries/${deliveryId}/replay`, { tenantId, reason }, idempotencyConfig()));
 }
