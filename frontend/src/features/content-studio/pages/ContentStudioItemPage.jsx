@@ -4,7 +4,7 @@ import { ArrowLeft, CheckCircle2, Save, Sparkles } from 'lucide-react';
 import { Button, ErrorState, PageFrame, Skeleton, StatusBadge, Tabs } from '../../../design-system-v2';
 import { errorMessage, generateItem, getItem, regenerateArtifact, saveArtifact, updateItemContent } from '../../../services/contentStudioService';
 import { STATUS, isBusy } from '../item/ArtifactShell';
-import { DictionaryView, SourceEditor, TranslationView, VocabView } from '../item/PassagePanels';
+import { DictionaryView, SourceEditor, TranslationView, VocabView, highlight } from '../item/PassagePanels';
 import { QuestionEditor } from '../item/QuestionPanels';
 import './ContentStudioPage.css';
 import './ContentStudioItemPage.css';
@@ -22,6 +22,7 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   const [drafts, setDrafts] = useState({});           // artifactId -> edited content
   const [sourceDraft, setSourceDraft] = useState(EMPTY_SOURCE);
   const [saving, setSaving] = useState(false);
+  const [activeWord, setActiveWord] = useState(null); // [passageId, index]
   const [generating, setGenerating] = useState(false);
   const showMsgRef = useRef(showMsg);
   useEffect(() => { showMsgRef.current = showMsg; }, [showMsg]);
@@ -132,6 +133,17 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
     ...(questions.length ? [{ value: 'questions', label: `Câu hỏi · ${readyQuestions}/${questions.length}` }] : []),
   ];
   const activeTab = tabs.some(entry => entry.value === tab) ? tab : tabs[1]?.value || 'source';
+  // Vocab / dictionary terms are highlighted in the fixed source on the left.
+  const termsFor = passage => {
+    if (activeTab === 'vocab') { const artifact = artifactFor('vocab', passage.id); return ((artifact && (drafts[artifact.id] ?? artifact.content))?.items || []).map(word => word.inText); }
+    if (activeTab === 'dictionary') { const artifact = artifactFor('dictionary', passage.id); return ((artifact && (drafts[artifact.id] ?? artifact.content))?.sentences || []).flatMap(sentence => (sentence.entries || []).map(entry => entry.inText)); }
+    return [];
+  };
+  const activeTerm = passage => {
+    if (activeTab !== 'vocab' || activeWord?.[0] !== passage.id) return null;
+    const artifact = artifactFor('vocab', passage.id);
+    return (artifact && (drafts[artifact.id] ?? artifact.content))?.items?.[activeWord[1]]?.inText;
+  };
 
   return <div className="iig3-list-screen cs-screen"><PageFrame
     className="cs-page cs-item-page"
@@ -151,7 +163,7 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
       <section className="cs-hub__col cs-hub__source" aria-label="Nội dung gốc">
         <header className="cs-hub__head"><strong>Nội dung gốc</strong></header>
         <div className="cs-hub__body">
-          {passages.map(passage => <p key={passage.id} className="cs-source">{passage.text}</p>)}
+          {passages.map(passage => <p key={passage.id} className="cs-source">{highlight(passage.text, termsFor(passage), activeTerm(passage))}</p>)}
           {questions.length > 0 && <ol className="cs-source-q">
             {questions.map(question => <li key={question.id}>
               <strong>{question.number}. {question.stem}</strong>
@@ -169,7 +181,8 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
             <TranslationView {...editorProps(artifactFor('passage_translation', passage.id))} shell={passageShell('translation')} />
           </div>)}
           {activeTab === 'vocab' && passages.map(passage => <div key={passage.id} className="cs-hub__block">
-            <VocabView {...editorProps(artifactFor('vocab', passage.id))} segment={passage} shell={passageShell('vocab')} />
+            <VocabView {...editorProps(artifactFor('vocab', passage.id))} shell={passageShell('vocab')}
+              activeIndex={activeWord?.[0] === passage.id ? activeWord[1] : null} onActivate={index => setActiveWord(index == null ? null : [passage.id, index])} />
           </div>)}
           {activeTab === 'dictionary' && passages.map(passage => <div key={passage.id} className="cs-hub__block">
             <DictionaryView {...editorProps(artifactFor('dictionary', passage.id))} shell={passageShell('dictionary')} />

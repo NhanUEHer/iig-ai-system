@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { ChevronLeft, Plus, X } from 'lucide-react';
-import { Button, FormField, IconButton, Input, Textarea } from '../../../design-system-v2';
+import { Button, FormField, Input, Textarea } from '../../../design-system-v2';
 import ArtifactShell from './ArtifactShell';
 
 const POS = ['Noun', 'Verb', 'Adjective', 'Adverb', 'Noun Phrase', 'Verb Phrase', 'Phrasal Verb', 'Prepositional Phrase', 'Idiom', 'Preposition', 'Conjunction', 'Phrase'];
 const pad = value => String(value).padStart(2, '0');
 
-function highlight(text, terms) {
+export function highlight(text, terms, active) {
   const list = terms.filter(Boolean).sort((a, b) => b.length - a.length).map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   if (!list.length) return text;
-  return text.split(new RegExp(`(${list.join('|')})`, 'gi')).map((part, index) => (index % 2 ? <mark key={index}>{part}</mark> : part));
+  const current = String(active || '').toLowerCase();
+  return text.split(new RegExp(`(${list.join('|')})`, 'gi')).map((part, index) => (index % 2 ? <mark key={index} className={current && part.toLowerCase() === current ? 'is-active' : ''}>{part}</mark> : part));
 }
 
 const LETTERS = ['A', 'B', 'C', 'D'];
@@ -58,26 +59,37 @@ export function TranslationView({ artifact, draft, dirty, onChange: update, shel
   </ArtifactShell>;
 }
 
-export function VocabView({ artifact, segment, draft, dirty, onChange: update, shell }) {
+export function VocabView({ artifact, draft, dirty, onChange: update, shell, activeIndex, onActivate }) {
   const items = draft?.items || [];
   const setItem = (index, patch) => update({ ...draft, items: items.map((item, i) => (i === index ? { ...item, ...patch } : item)) });
-  const remove = index => update({ ...draft, items: items.filter((_, i) => i !== index) });
-  const add = () => update({ ...draft, items: [...items, { inText: '', lemma: '', pos: 'Noun', ipa: '', meaningVi: '' }] });
+  const remove = index => { update({ ...draft, items: items.filter((_, i) => i !== index) }); onActivate(null); };
+  const add = () => { update({ ...draft, items: [...items, { inText: '', lemma: '', pos: 'Noun', ipa: '', meaningVi: '' }] }); onActivate(items.length); };
   const ro = !shell.canEdit;
   return <ArtifactShell artifact={artifact} label="từ vựng" dirty={dirty} shell={shell}>
-    <p className="cs-source is-compact">{highlight(segment.text, items.map(item => item.inText))}</p>
-    <ul className="cs-vocab">
-      {items.map((item, index) => <li key={index}>
-        <span className="cs-num">{pad(index + 1)}</span>
-        <div className="cs-vocab__grid">
-          <Input aria-label="Dạng trong bài" placeholder="Dạng trong bài" value={item.inText || ''} readOnly={ro} onChange={event => setItem(index, { inText: event.target.value })} />
-          <Input aria-label="Dạng từ điển" placeholder="Dạng từ điển" className="is-strong" value={item.lemma || ''} readOnly={ro} onChange={event => setItem(index, { lemma: event.target.value })} />
-          <select className="cs-select" aria-label="Loại từ" value={item.pos || 'Noun'} disabled={ro} onChange={event => setItem(index, { pos: event.target.value })}>{POS.map(pos => <option key={pos}>{pos}</option>)}</select>
-          <Input aria-label="IPA" placeholder="IPA" value={item.ipa || ''} readOnly={ro} onChange={event => setItem(index, { ipa: event.target.value })} />
-          <Input aria-label="Nghĩa" placeholder="Nghĩa tiếng Việt" className="cs-vocab__meaning" value={item.meaningVi || ''} readOnly={ro} onChange={event => setItem(index, { meaningVi: event.target.value })} />
-        </div>
-        {!ro && <IconButton size="sm" variant="ghost" label="Xoá từ" onClick={() => remove(index)}><X /></IconButton>}
-      </li>)}
+    <ul className="cs-words">
+      {items.map((item, index) => {
+        const active = activeIndex === index;
+        return <li key={index} className={active ? 'is-active' : ''}>
+          <button type="button" className="cs-words__row" onClick={() => onActivate(active ? null : index)} aria-expanded={active}>
+            <span className="cs-num">{pad(index + 1)}</span>
+            <span className="cs-words__main">
+              <strong>{item.lemma || <em>Từ mới</em>}</strong>
+              {item.pos && <span className="cs-tag">{item.pos}</span>}
+              {item.ipa && <small>{item.ipa}</small>}
+              {item.inText && item.inText.toLowerCase() !== String(item.lemma || '').toLowerCase() && <small>· trong bài: “{item.inText}”</small>}
+            </span>
+            <span className="cs-words__meaning">{item.meaningVi}</span>
+          </button>
+          {active && <div className="cs-words__edit">
+            <FormField label="Dạng trong bài"><Input value={item.inText || ''} readOnly={ro} onChange={event => setItem(index, { inText: event.target.value })} /></FormField>
+            <FormField label="Dạng từ điển"><Input value={item.lemma || ''} readOnly={ro} onChange={event => setItem(index, { lemma: event.target.value })} /></FormField>
+            <FormField label="Loại từ"><select className="cs-select" value={item.pos || 'Noun'} disabled={ro} onChange={event => setItem(index, { pos: event.target.value })}>{POS.map(pos => <option key={pos}>{pos}</option>)}</select></FormField>
+            <FormField label="IPA"><Input value={item.ipa || ''} readOnly={ro} onChange={event => setItem(index, { ipa: event.target.value })} /></FormField>
+            <FormField label="Nghĩa tiếng Việt" className="cs-words__wide"><Input value={item.meaningVi || ''} readOnly={ro} onChange={event => setItem(index, { meaningVi: event.target.value })} /></FormField>
+            {!ro && <Button variant="ghost" size="sm" icon={<X />} onClick={() => remove(index)}>Xoá từ</Button>}
+          </div>}
+        </li>;
+      })}
     </ul>
     {!ro && <Button variant="outline" size="sm" icon={<Plus />} onClick={add}>Thêm từ</Button>}
   </ArtifactShell>;

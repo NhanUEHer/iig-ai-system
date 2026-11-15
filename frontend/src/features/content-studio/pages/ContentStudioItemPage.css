@@ -96,3 +96,20 @@
 .cs-source-edit__opts label.is-answer .iig3-control { border-color: var(--iig3-color-success); }
 .cs-source-edit__opts input[type="radio"] { accent-color: var(--iig3-color-success); }
 @media (max-width: 720px) { .cs-source-q ul, .cs-source-edit__opts { grid-template-columns: minmax(0, 1fr); } }
+
+/* Vocab list: readable rows, click to edit */
+.cs-words { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; border: 1px solid var(--iig3-border); border-radius: 10px; overflow: hidden; }
+.cs-words > li + li { border-top: 1px solid var(--iig3-border); }
+.cs-words > li.is-active { background: var(--iig3-color-surface-muted); }
+.cs-words__row { display: grid; grid-template-columns: 24px minmax(0, 1.3fr) minmax(0, 1fr); gap: 12px; align-items: baseline; width: 100%; padding: 10px 14px; border: 0; background: transparent; font: inherit; text-align: left; cursor: pointer; }
+.cs-words__row:hover { background: var(--iig3-color-surface-muted); }
+.cs-words__main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; min-width: 0; }
+.cs-words__main strong { font-size: 14px; }
+.cs-words__main small { color: var(--iig3-text-muted); font-size: 12px; }
+.cs-words__meaning { font-size: 14px; color: var(--iig3-color-info); }
+.cs-tag { padding: 1px 8px; border-radius: 999px; background: var(--iig3-color-info-soft); color: var(--iig3-color-info); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.cs-words__edit { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; padding: 4px 14px 14px 50px; align-items: end; }
+.cs-words__wide { grid-column: span 2; }
+.cs-words__edit .cs-select { width: 100%; height: 36px; }
+.cs-source mark.is-active { background: var(--iig3-color-accent); color: #fff; }
+@media (max-width: 720px) { .cs-words__row { grid-template-columns: 24px minmax(0, 1fr); } .cs-words__meaning { grid-column: 2; } .cs-words__edit { grid-template-columns: minmax(0, 1fr); padding-left: 14px; } .cs-words__wide { grid-column: auto; } }
