@@ -1,7 +1,8 @@
 import { idempotencyConfig } from './aiScoringIdempotency';
+import { aiScoringListQuery } from './aiScoringListQuery';
 import api from './api';
 const unwrap = response => response.data.data;
-export async function listScoringJobs(params) { return unwrap(await api.get('/ai-scoring/jobs', { params })); }
+export async function listScoringJobs(params) { return unwrap(await api.get('/ai-scoring/jobs', { params: aiScoringListQuery('jobs', params) })); }
 export async function getScoringJobFacets() { return unwrap(await api.get('/ai-scoring/jobs/facets')); }
 export async function exportScoringJobs(params) { return api.get('/ai-scoring/jobs/export', { params, responseType: 'blob' }); }
 export async function getScoringJob(jobId) { return unwrap(await api.get(`/ai-scoring/jobs/${jobId}`)); }

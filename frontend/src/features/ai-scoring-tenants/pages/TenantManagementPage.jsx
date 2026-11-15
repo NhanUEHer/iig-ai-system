@@ -3,7 +3,7 @@ import { Ban, Boxes, Eye, Pencil, Plus, Power, RefreshCw } from 'lucide-react';
 import {
   Alert, Badge, Button, Checkbox, CodeText, ColumnVisibilityMenu, DataTable, DateTimeDisplay,
   DetailsList, Drawer, FilterBar, FormField, Input, ListPage, Modal, MultiSelectFilter,
-  Pagination, Select, StatusBadge, Surface, TableToolbar, Tabs, Textarea,
+  CursorPagination, Select, StatusBadge, Surface, TableToolbar, Tabs, Textarea,
   Timeline,
 } from '../../../design-system-v2';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
@@ -25,6 +25,7 @@ const ENVIRONMENT = { PRODUCTION: 'Production', BETA: 'Beta', DEVELOPMENT: 'Deve
 const STATUS_OPTIONS = Object.entries(STATUS).map(([value, item]) => ({ value, label: item.label }));
 const ENVIRONMENT_OPTIONS = Object.entries(ENVIRONMENT).map(([value, label]) => ({ value, label }));
 const ALL_COLUMN_KEYS = ['stt', 'code', 'name', 'environment', 'status', 'rateLimit', 'activeCredentialCount', 'webhookCount', 'updatedAt'];
+const EMPTY_CURSORS = Object.freeze([]);
 const ACTION_LABEL = { TENANT_CREATED: 'Đã tạo tenant', TENANT_UPDATED: 'Đã cập nhật tenant', TENANT_SUSPENDED: 'Đã tạm khóa tenant', TENANT_ACTIVATED: 'Đã kích hoạt tenant' };
 const formatDate = value => value ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : '—';
 
@@ -62,8 +63,12 @@ export default function TenantManagementPage({ currentUser, showMsg }) {
   const canViewAudit = currentUser?.permissions?.includes('ai_scoring.audit.view');
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search);
-  const [filters, setFilters] = useState({ status: '', environment: '', page: 1, pageSize: 25 });
-  const [result, setResult] = useState({ items: [], total: 0, page: 1, pageSize: 25 });
+  const [filters, setFilters] = useState({ status: '', environment: '' });
+  const [limit, setLimit] = useState(25);
+  const [result, setResult] = useState({ items: [], nextCursor: null });
+  const criteriaKey = `${debouncedSearch}\u0000${filters.status}\u0000${filters.environment}`;
+  const [cursorState, setCursorState] = useState({ criteriaKey, cursors: [] });
+  const cursors = cursorState.criteriaKey === criteriaKey ? cursorState.cursors : EMPTY_CURSORS;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState(null);
@@ -78,13 +83,13 @@ export default function TenantManagementPage({ currentUser, showMsg }) {
   const [reason, setReason] = useState('');
   const [visibleColumnKeys, setVisibleColumnKeys] = useState(ALL_COLUMN_KEYS);
 
-  const setFilter = (key, value) => setFilters(current => ({ ...current, [key]: value, ...(key === 'page' ? {} : { page: 1 }) }));
+  const setFilter = (key, value) => setFilters(current => ({ ...current, [key]: value }));
   const load = useCallback(async () => {
     setLoading(true); setError('');
-    try { setResult(await listTenants({ search: debouncedSearch || undefined, status: filters.status || undefined, environment: filters.environment || undefined, page: filters.page, pageSize: filters.pageSize })); }
+    try { setResult(await listTenants({ search: debouncedSearch || undefined, status: filters.status || undefined, environment: filters.environment || undefined, limit, cursor: cursors.at(-1) })); }
     catch (requestError) { setError(requestError.response?.data?.error || 'Không thể tải danh sách tenant.'); }
     finally { setLoading(false); }
-  }, [debouncedSearch, filters]);
+  }, [debouncedSearch, filters, limit, cursors]);
   useEffect(() => { load(); }, [load]);
 
   const openDetail = async tenant => {
@@ -136,7 +141,7 @@ export default function TenantManagementPage({ currentUser, showMsg }) {
   };
 
   const allColumns = useMemo(() => [
-    { key: 'stt', label: 'STT', align: 'center', width: 64, render: (_row, index) => ((result.page || 1) - 1) * (result.pageSize || 25) + index + 1 },
+    { key: 'stt', label: 'STT', align: 'center', width: 64, render: (_row, index) => cursors.length * limit + index + 1 },
     { key: 'code', label: 'Code', sortable: true, width: 160, render: row => <CodeText className="iig3-list-code">{row.code}</CodeText> },
     { key: 'name', label: 'Tên tenant', sortable: true, width: 260, render: row => <span className="tenant-identity"><strong>{row.name}</strong><small>{row.contactEmail || 'Chưa có email liên hệ'}</small></span> },
     { key: 'environment', label: 'Môi trường', sortable: true, width: 140, render: row => <Badge tone={row.environment === 'PRODUCTION' ? 'info' : 'neutral'}>{ENVIRONMENT[row.environment] || row.environment}</Badge> },
@@ -145,24 +150,23 @@ export default function TenantManagementPage({ currentUser, showMsg }) {
     { key: 'activeCredentialCount', label: 'Credential', align: 'center', width: 120 },
     { key: 'webhookCount', label: 'Webhook', align: 'center', width: 110 },
     { key: 'updatedAt', label: 'Ngày cập nhật', sortable: true, sortType: 'date', width: 170, render: row => <DateTimeDisplay value={row.updatedAt} /> },
-  ], [result.page, result.pageSize]);
+  ], [cursors.length, limit]);
   const columns = allColumns.filter(column => visibleColumnKeys.includes(column.key));
 
   const rowActions = row => [
     { label: 'Xem chi tiết', icon: <Eye />, onClick: () => openDetail(row) },
     ...(canManage ? [{ label: 'Chỉnh sửa', icon: <Pencil />, onClick: () => { setForm(toForm(row)); setFormErrors({}); setFormMode({ editing: true, tenant: row }); } }, row.status === 'ACTIVE' ? { label: 'Tạm khóa', icon: <Ban />, danger: true, onClick: () => { setReason(''); setStatusAction({ action: 'suspend', tenant: row }); } } : { label: 'Kích hoạt', icon: <Power />, onClick: () => { setReason(''); setStatusAction({ action: 'activate', tenant: row }); } }] : []),
   ];
-  const pageCount = Math.max(1, Math.ceil(result.total / result.pageSize));
   const appliedCount = Number(Boolean(filters.status)) + Number(Boolean(filters.environment));
-  const clearFilters = () => { setSearch(''); setFilters(current => ({ ...current, status: '', environment: '', page: 1 })); };
+  const clearFilters = () => { setSearch(''); setFilters({ status: '', environment: '' }); };
   const createButton = canManage ? <Button size="sm" icon={<Plus />} onClick={() => { setForm({ ...EMPTY_FORM }); setFormErrors({}); setFormMode({ editing: false }); }}>Thêm mới</Button> : null;
 
   return <div className="iig3-list-screen tenant-management-page"><ListPage
     breadcrumb={[{ label: 'AI Scoring' }, { label: 'Danh sách tenant' }]}
     title="Danh sách tenant"
-    toolbar={<><TableToolbar title="Tất cả tenant" count={result.total} loading={loading} actions={createButton} view={<ColumnVisibilityMenu columns={allColumns} visibleKeys={visibleColumnKeys} requiredKeys={['name']} onChange={setVisibleColumnKeys} />} /><FilterBar search={search} onSearch={event => setSearch(event.target.value)} placeholder="Tìm theo code hoặc tên tenant…" loading={loading} filters={<><MultiSelectFilter label="Trạng thái" options={STATUS_OPTIONS} value={filters.status ? [filters.status] : []} onChange={value => setFilter('status', value.at(-1) || '')} placeholder="Tất cả trạng thái" searchPlaceholder="Tìm trạng thái…" /><MultiSelectFilter label="Môi trường" options={ENVIRONMENT_OPTIONS} value={filters.environment ? [filters.environment] : []} onChange={value => setFilter('environment', value.at(-1) || '')} placeholder="Tất cả môi trường" searchPlaceholder="Tìm môi trường…" /></>} appliedCount={appliedCount} onClear={clearFilters} /> </>}
+    toolbar={<><TableToolbar title="Tất cả tenant" count={result.items.length} loading={loading} actions={createButton} view={<ColumnVisibilityMenu columns={allColumns} visibleKeys={visibleColumnKeys} requiredKeys={['name']} onChange={setVisibleColumnKeys} />} /><FilterBar search={search} onSearch={event => setSearch(event.target.value)} placeholder="Tìm theo code hoặc tên tenant…" loading={loading} filters={<><MultiSelectFilter label="Trạng thái" options={STATUS_OPTIONS} value={filters.status ? [filters.status] : []} onChange={value => setFilter('status', value.at(-1) || '')} placeholder="Tất cả trạng thái" searchPlaceholder="Tìm trạng thái…" /><MultiSelectFilter label="Môi trường" options={ENVIRONMENT_OPTIONS} value={filters.environment ? [filters.environment] : []} onChange={value => setFilter('environment', value.at(-1) || '')} placeholder="Tất cả môi trường" searchPlaceholder="Tìm môi trường…" /></>} appliedCount={appliedCount} onClear={clearFilters} /> </>}
     table={<DataTable ariaLabel="Danh sách tenant AI Scoring" columns={columns} rows={result.items || []} rowKey="id" loading={loading} error={error} errorAction={<Button variant="outline" size="sm" icon={<RefreshCw />} onClick={load}>Thử lại</Button>} emptyIcon={<Boxes />} emptyTitle="Chưa có tenant" emptyDescription="Không có tenant phù hợp với bộ lọc hiện tại." emptyAction={appliedCount || search ? <Button variant="outline" size="sm" onClick={clearFilters}>Xóa bộ lọc</Button> : createButton} onRowClick={openDetail} getRowActions={rowActions} />}
-    pagination={<Pagination page={result.page} pageCount={pageCount} pageSize={result.pageSize} total={result.total} loading={loading} pageSizeOptions={[10, 25, 50, 100]} onPage={page => setFilter('page', page)} onPageSize={pageSize => setFilter('pageSize', pageSize)} />}
+    pagination={<CursorPagination rowCount={result.items.length} page={cursors.length + 1} pageSize={limit} loading={loading} pageSizeOptions={[10, 25, 50, 100]} hasPrevious={cursors.length > 0} hasNext={Boolean(result.nextCursor)} onPrevious={() => setCursorState({ criteriaKey, cursors: cursors.slice(0, -1) })} onNext={() => setCursorState({ criteriaKey, cursors: [...cursors, result.nextCursor] })} onPageSize={value => { setLimit(value); setCursorState({ criteriaKey, cursors: [] }); }} />}
   />
 
   <Modal open={Boolean(formMode)} title={formMode?.editing ? 'Chỉnh sửa tenant' : 'Tạo tenant mới'} description={formMode?.editing ? `Cập nhật cấu hình cho ${formMode.tenant.code}.` : undefined} size="lg" onClose={() => !saving && setFormMode(null)} footer={<><Button variant="outline" disabled={saving} onClick={() => setFormMode(null)}>Hủy</Button><Button loading={saving} onClick={save}>{formMode?.editing ? 'Lưu thay đổi' : 'Tạo tenant'}</Button></>}><TenantForm value={form} onChange={setForm} editing={formMode?.editing} errors={formErrors} /></Modal>

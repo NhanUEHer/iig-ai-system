@@ -144,6 +144,13 @@ test('BFF drops empty filter values so Scoring strict validation does not reject
   assert.deepEqual(query, { search: 'KEY1', limit: '25', tenantId: TENANT });
 });
 
+test('BFF drops legacy offset pagination keys before forwarding list queries', () => {
+  const { query } = forwardedRequest({
+    query: { page: '2', pageSize: '25', limit: '50', cursor: 'opaque-cursor' },
+  }, [TENANT]);
+  assert.deepEqual(query, { limit: '50', cursor: 'opaque-cursor', tenantId: TENANT });
+});
+
 test('BFF lifts a legacy body idempotencyKey into the Idempotency-Key header', async () => {
   const calls = [];
   const client = { request: async config => { calls.push(config); return { status: 202, data: {}, headers: {} }; } };
