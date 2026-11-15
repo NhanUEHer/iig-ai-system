@@ -4,7 +4,7 @@
 // Content Studio flow (queue → validate → review → edit) can be exercised without Dify.
 
 const STOP = new Set(('about above after again against because been before being below between both could does doing during each from further have having here into itself more most other ought same should some such than that their theirs them then there these they this those through under until very were what when where which while with would your yours will also only just like make made please let know').split(' '));
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const fixtures = require('./mockFixtures');
 const words = text => (text.match(/[A-Za-z][A-Za-z'-]+/g) || []);
 const LETTERS = ['A', 'B', 'C', 'D'];
 
@@ -35,10 +35,16 @@ function bestSentence(sentences, text) {
 const vi = text => `(Bản dịch mẫu) ${text}`;
 
 async function generate(type, input) {
-  await delay(400 + Math.floor(Math.random() * 900));
+  // No artificial delay: the mock behaves as if the AI step was bypassed and results go straight to the database.
+  const sample = fixtures.isSamplePassage(input.sentences || []);
   if (type === 'passage_translation') {
-    return { sentences: input.sentences.map(en => ({ en, vi: vi(en) })) };
+    return { sentences: input.sentences.map(en => ({ en, vi: fixtures.translationFor(en) || vi(en) })) };
   }
+  if (type === 'vocab' && sample) return { settings: { level: 650, mode: 'balanced' }, items: fixtures.VOCAB };
+  if (type === 'dictionary' && sample) {
+    return { sentences: input.sentences.map((text, index) => ({ index: index + 1, text, entries: fixtures.DICTIONARY[index] || [] })) };
+  }
+  if (type === 'question_pack' && fixtures.questionPackFor(input.question.stem)) return fixtures.questionPackFor(input.question.stem);
   if (type === 'vocab') {
     return {
       settings: { level: input.level || 650, mode: input.mode || 'balanced' },

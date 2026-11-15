@@ -6,15 +6,12 @@ import useArtifactDraft from './useArtifactDraft';
 
 const POS = ['Noun', 'Verb', 'Adjective', 'Adverb', 'Noun Phrase', 'Verb Phrase', 'Phrasal Verb', 'Prepositional Phrase', 'Idiom', 'Preposition', 'Conjunction', 'Phrase'];
 
-export function SourcePanel({ segment }) {
-  return <Surface className="cs-panel cs-source" padding="lg"><p>{segment.text}</p></Surface>;
-}
-
 export function TranslationPanel({ artifact, shell }) {
   const { draft, update, dirty, saving, save, regenerate } = useArtifactDraft(artifact, shell);
   const rows = draft?.sentences || [];
   const setVi = (index, vi) => update({ ...draft, sentences: rows.map((row, i) => (i === index ? { ...row, vi } : row)) });
   return <Surface className="cs-panel" padding="lg">
+    <h2 className="cs-panel__title">Đoạn văn · Dịch</h2>
     <ArtifactShell artifact={artifact} label="bản dịch" dirty={dirty} saving={saving} onSave={save} onRegenerate={regenerate} {...shell}>
       <ol className="cs-translation">
         {rows.map((row, index) => <li key={index}>
@@ -27,7 +24,6 @@ export function TranslationPanel({ artifact, shell }) {
           </div>
         </li>)}
       </ol>
-      <details className="cs-translation__preview"><summary>Xem định dạng export</summary><p>{rows.map(row => `${row.en} (${row.vi})`).join(' ')}</p></details>
     </ArtifactShell>
   </Surface>;
 }

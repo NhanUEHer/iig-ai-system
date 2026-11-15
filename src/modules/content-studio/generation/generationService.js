@@ -69,7 +69,12 @@ async function enqueue(itemId, tasks) {
   return db.transaction(async client => {
     const { rows: [item] } = await client.query('SELECT id, tasks FROM cs_items WHERE id = $1 FOR UPDATE', [itemId]);
     if (!item) throw new HttpError('Không tìm thấy học liệu.', 404, 'ITEM_NOT_FOUND');
-    const requested = tasks || item.tasks || {};
+    // Items saved before task selection existed have no task groups: default to everything.
+    const defaults = { passage: Object.keys(PASSAGE_TYPES), question: QUESTION_TASKS };
+    const requested = tasks || {
+      passage: item.tasks?.passage ?? defaults.passage,
+      question: item.tasks?.question ?? defaults.question,
+    };
     const passageTasks = (requested.passage || []).filter(task => PASSAGE_TYPES[task]);
     const wantsQuestions = (requested.question || []).some(task => QUESTION_TASKS.includes(task));
     const { rows: segments } = await client.query('SELECT id, kind FROM cs_segments WHERE item_id = $1', [itemId]);

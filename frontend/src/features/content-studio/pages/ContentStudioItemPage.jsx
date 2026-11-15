@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Sparkles } from 'lucide-react';
-import { Button, EmptyState, ErrorState, PageFrame, PageHeader, SegmentedControl, Skeleton, StatusBadge, Tabs } from '../../../design-system-v2';
+import { Button, ErrorState, PageFrame, Skeleton, StatusBadge, Tabs } from '../../../design-system-v2';
 import { errorMessage, generateItem, getItem } from '../../../services/contentStudioService';
 import { STATUS, isBusy } from '../item/ArtifactShell';
-import { DictionaryPanel, SourcePanel, TranslationPanel, VocabPanel } from '../item/PassagePanels';
-import { LearnerPreview, QuestionEditor } from '../item/QuestionPanels';
+import { DictionaryPanel, TranslationPanel, VocabPanel } from '../item/PassagePanels';
+import { QuestionEditor } from '../item/QuestionPanels';
 import './ContentStudioPage.css';
 import './ContentStudioItemPage.css';
 
@@ -15,9 +15,7 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   const { id } = useParams();
   const [item, setItem] = useState(null);
   const [error, setError] = useState('');
-  const [view, setView] = useState(null);
-  const [passageTab, setPassageTab] = useState('translation');
-  const [mode, setMode] = useState('edit');
+  const [activeTab, setActiveTab] = useState(null);
   const [generating, setGenerating] = useState(false);
   const showMsgRef = useRef(showMsg);
   useEffect(() => { showMsgRef.current = showMsg; }, [showMsg]);
@@ -40,7 +38,6 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   const questions = useMemo(() => (item?.segments || []).flatMap(segment => segment.questions || []), [item]);
   const artifactFor = useCallback((type, segmentId) => item?.artifacts?.find(artifact => artifact.type === type && artifact.segmentId === segmentId && !artifact.questionId), [item]);
   const artifactsByQuestion = useMemo(() => Object.fromEntries((item?.artifacts || []).filter(artifact => artifact.questionId).map(artifact => [artifact.questionId, artifact])), [item]);
-  const activeView = view || (passages.length ? 'passage' : 'questions');
 
   const generate = async tasks => {
     setGenerating(true);
@@ -64,47 +61,43 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   const range = item.detection?.summary?.questionRange;
   const back = item.folderPath?.at(-1);
 
+  const hasPassage = passages.length > 0;
+  const hasQuestions = questions.length > 0;
+  const tab = activeTab || 'main';
+  const passageShell = task => ({ ...shell, onGenerate: () => generate({ passage: [task], question: [] }) });
+  const questionShell = { ...shell, onGenerate: () => generate({ passage: [], question: tasks.question?.length ? tasks.question : ['translation', 'hint', 'explanation', 'note'] }) };
+
   return <div className="iig3-list-screen cs-screen"><PageFrame
-    className="cs-page"
-    breadcrumb={[{ label: 'Content Studio', href: '/content-studio' }, ...(item.folderPath || []).map(folder => ({ label: folder.name })), { label: item.title }]}
-    header={<PageHeader
-      eyebrow={<Link className="cs-back" to="/content-studio"><ArrowLeft /> {back ? back.name : 'Content Studio'}</Link>}
-      title={item.title}
-      metadata={<StatusBadge status={ITEM_STATUS[item.status]?.tone} label={ITEM_STATUS[item.status]?.label} />}
-      actions={permissions.generate && <Button icon={<Sparkles />} loading={generating} disabled={busy} onClick={() => generate(null)}>{busy ? 'Đang tạo…' : item.artifacts.length ? 'Tạo lại tất cả' : 'Tạo nội dung'}</Button>}
-    />}
+    className="cs-page cs-item-page"
+    breadcrumb={[{ label: 'Content Studio' }, ...(item.folderPath || []).map(folder => ({ label: folder.name })), { label: item.title }]}
+    header={<div className="cs-item-head">
+      <Link className="cs-back" to="/content-studio"><ArrowLeft /> {back ? back.name : 'Content Studio'}</Link>
+      <div className="cs-item-head__row">
+        <h1>{item.title}</h1>
+        <StatusBadge status={ITEM_STATUS[item.status]?.tone} label={ITEM_STATUS[item.status]?.label} />
+        <span className="cs-item-head__meta">{[hasPassage && `${passages.length} đoạn văn`, hasQuestions && `${questions.length} câu hỏi${range ? ` (${range.from}–${range.to})` : ''}`].filter(Boolean).join(' · ')}</span>
+        {permissions.generate && <Button icon={<Sparkles />} loading={generating} disabled={busy} onClick={() => generate(null)}>{busy ? 'Đang tạo…' : item.artifacts.length ? 'Tạo lại tất cả' : 'Tạo nội dung'}</Button>}
+      </div>
+    </div>}
   >
-    <div className="cs-item-toolbar">
-      <SegmentedControl value={activeView} onChange={setView} options={[
-        ...(passages.length ? [{ value: 'passage', label: 'Đoạn văn' }] : []),
-        ...(questions.length ? [{ value: 'questions', label: `Câu hỏi ${range ? (range.from === range.to ? range.from : `${range.from}–${range.to}`) : ''}` }] : []),
-      ]} />
-      {activeView === 'questions' && <SegmentedControl value={mode} onChange={setMode} options={[{ value: 'edit', label: 'Sửa' }, { value: 'learner', label: 'Xem như học viên' }]} />}
-    </div>
+    <Tabs value={tab} onChange={setActiveTab} items={[
+      { value: 'main', label: hasPassage && hasQuestions ? 'Dịch & câu hỏi' : hasPassage ? 'Dịch' : 'Câu hỏi' },
+      ...(hasPassage ? [
+        { value: 'vocab', label: `Từ vựng${counts.vocab ? ` · ${counts.vocab}` : ''}` },
+        { value: 'dictionary', label: `Từ điển${counts.dictionary ? ` · ${counts.dictionary}` : ''}` },
+      ] : []),
+    ]} />
 
-    {activeView === 'passage' && passages.map(passage => {
-      const tabArtifact = { translation: artifactFor('passage_translation', passage.id), vocab: artifactFor('vocab', passage.id), dictionary: artifactFor('dictionary', passage.id) };
-      const onGenerate = task => generate({ passage: [task], question: [] });
-      return <div key={passage.id} className="cs-item-section">
-        <Tabs value={passageTab} onChange={setPassageTab} items={[
-          { value: 'source', label: 'Gốc' },
-          { value: 'translation', label: 'Dịch' },
-          { value: 'vocab', label: `Từ vựng${counts.vocab ? ` · ${counts.vocab}` : ''}` },
-          { value: 'dictionary', label: `Từ điển${counts.dictionary ? ` · ${counts.dictionary}` : ''}` },
-        ]} />
-        {passageTab === 'source' && <SourcePanel segment={passage} />}
-        {passageTab === 'translation' && <TranslationPanel key={tabArtifact.translation?.id || 'none'} artifact={tabArtifact.translation} shell={{ ...shell, onGenerate: () => onGenerate('translation') }} />}
-        {passageTab === 'vocab' && <VocabPanel key={tabArtifact.vocab?.id || 'none'} artifact={tabArtifact.vocab} segment={passage} shell={{ ...shell, onGenerate: () => onGenerate('vocab') }} />}
-        {passageTab === 'dictionary' && <DictionaryPanel key={tabArtifact.dictionary?.id || 'none'} artifact={tabArtifact.dictionary} shell={{ ...shell, onGenerate: () => onGenerate('dictionary') }} />}
-      </div>;
-    })}
+    {tab === 'main' && <div className={`cs-workspace${hasPassage && hasQuestions ? ' is-split' : ''}`}>
+      {hasPassage && <div className="cs-workspace__passage">
+        {passages.map(passage => <TranslationPanel key={artifactFor('passage_translation', passage.id)?.id || passage.id} artifact={artifactFor('passage_translation', passage.id)} shell={passageShell('translation')} />)}
+      </div>}
+      {hasQuestions && <div className="cs-workspace__questions">
+        {questions.map(question => <QuestionEditor key={question.id} question={question} artifact={artifactsByQuestion[question.id]} shell={questionShell} />)}
+      </div>}
+    </div>}
 
-    {activeView === 'questions' && (mode === 'learner'
-      ? <LearnerPreview questions={questions} artifactsByQuestion={artifactsByQuestion} />
-      : <div className="cs-item-section">
-        {!Object.keys(artifactsByQuestion).length && !permissions.generate && <EmptyState title="Chưa có nội dung câu hỏi" />}
-        {questions.map(question => <QuestionEditor key={question.id} question={question} artifact={artifactsByQuestion[question.id]}
-          shell={{ ...shell, onGenerate: () => generate({ passage: [], question: tasks.question?.length ? tasks.question : ['translation', 'hint', 'explanation', 'note'] }) }} />)}
-      </div>)}
+    {tab === 'vocab' && passages.map(passage => <VocabPanel key={artifactFor('vocab', passage.id)?.id || passage.id} artifact={artifactFor('vocab', passage.id)} segment={passage} shell={passageShell('vocab')} />)}
+    {tab === 'dictionary' && passages.map(passage => <DictionaryPanel key={artifactFor('dictionary', passage.id)?.id || passage.id} artifact={artifactFor('dictionary', passage.id)} shell={passageShell('dictionary')} />)}
   </PageFrame></div>;
 }

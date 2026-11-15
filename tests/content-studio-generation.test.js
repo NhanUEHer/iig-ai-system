@@ -31,3 +31,21 @@ test('translation validator checks sentence count and preserved numbers', () => 
   const issues = validate('passage_translation', { sentences: [{ en: sentences[0], vi: 'Ông Howard đề xuất ngày tháng Ba.' }] }, { sentences }).issues.map(issue => issue.code);
   assert.deepEqual(issues.sort(), ['NUMBER_MISMATCH', 'SENTENCE_COUNT']);
 });
+
+test('sample letter fixtures pass every validator', async () => {
+  const { detectContent } = require('../src/modules/content-studio/detect/detectContent');
+  const fs = require('node:fs');
+  const text = fs.readFileSync(require('node:path').join(__dirname, 'fixtures/content-studio-letter.txt'), 'utf8');
+  const result = detectContent(text);
+  const passageText = result.segments[0].text;
+  const ctx = { passage: passageText, sentences: splitSentences(passageText) };
+  for (const type of ['passage_translation', 'vocab', 'dictionary']) {
+    const content = await mock.generate(type, ctx);
+    assert.doesNotMatch(JSON.stringify(content), /Bản dịch mẫu|nghĩa của/, type);
+    assert.deepEqual(validate(type, content, ctx).issues, [], type);
+  }
+  for (const question of result.segments[1].questions) {
+    const content = await mock.generate('question_pack', { ...ctx, question });
+    assert.deepEqual(validate('question_pack', content, { question, passage: passageText }).issues, [], `Q${question.number}`);
+  }
+});
