@@ -1,10 +1,11 @@
 import { idempotencyConfig } from './aiScoringIdempotency';
+import { aiScoringListQuery } from './aiScoringListQuery';
 import api from './api';
 
 const unwrap = response => response.data.data;
 
 export async function listTenants(params = {}) {
-  return unwrap(await api.get('/ai-scoring/tenants', { params }));
+  return unwrap(await api.get('/ai-scoring/tenants', { params: aiScoringListQuery('tenants', params) }));
 }
 
 export async function getTenant(id) {
@@ -24,7 +25,7 @@ export async function changeTenantStatus(id, action, reason) {
 }
 
 export async function listTenantAudit(id, params = {}) {
-  return unwrap(await api.get(`/ai-scoring/tenants/${id}/audit-events`, { params }));
+  return unwrap(await api.get(`/ai-scoring/tenants/${id}/audit-events`, { params: aiScoringListQuery('tenantAudit', params) }));
 }
 
 export async function listTenantCredentials(tenantId) {
@@ -68,7 +69,7 @@ export async function testTenantWebhook(webhookId) {
 }
 
 export async function listWebhookDeliveries(params) {
-  return unwrap(await api.get('/ai-scoring/webhook-deliveries', { params }));
+  return unwrap(await api.get('/ai-scoring/webhook-deliveries', { params: aiScoringListQuery('webhookDeliveries', params) }));
 }
 
 export async function getWebhookDelivery(deliveryId, tenantId) {

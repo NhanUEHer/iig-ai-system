@@ -49,7 +49,7 @@ export default function TenantWebhooksPanel({ tenant, canManage, canReplay, show
     setLoading(true); setError('');
     try {
       const [endpointResult, deliveryResult] = await Promise.all([
-        listTenantWebhooks(tenant.id), listWebhookDeliveries({ tenantId: tenant.id, pageSize: 10 }),
+        listTenantWebhooks(tenant.id), listWebhookDeliveries({ tenantId: tenant.id, limit: 10 }),
       ]);
       setEndpoints(endpointResult.items || []); setDeliveries(deliveryResult.items || []);
     } catch (requestError) { setError(requestError.response?.data?.error || 'Không thể tải webhook.'); }

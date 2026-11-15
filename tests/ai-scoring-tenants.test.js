@@ -62,3 +62,25 @@ test('tenant service returns stable not-found error', async () => {
   const service = new tenantServiceModule.TenantService({ findById: async () => null });
   await assert.rejects(() => service.detail('0b732271-9d67-4b47-93da-aea671df0f20'), error => error.code === 'TENANT_NOT_FOUND' && error.statusCode === 404);
 });
+
+test('tenant frontend uses the Admin API cursor contract and page-local counts', () => {
+  const source = fs.readFileSync(path.join(
+    __dirname,
+    '../frontend/src/features/ai-scoring-tenants/pages/TenantManagementPage.jsx'
+  ), 'utf8');
+  assert.match(source, /CursorPagination/);
+  assert.match(source, /listTenants\(\{[\s\S]*?limit,[\s\S]*?cursor: cursors\.at\(-1\)/);
+  assert.match(source, /cursors\.length \* limit \+ index \+ 1/);
+  assert.match(source, /count=\{result\.items\.length\}/);
+  assert.match(source, /hasNext=\{Boolean\(result\.nextCursor\)\}/);
+  assert.doesNotMatch(source, /pageSize:|result\.pageSize|result\.total|pageCount/);
+});
+
+test('tenant webhook delivery preview requests a cursor-compatible limit', () => {
+  const source = fs.readFileSync(path.join(
+    __dirname,
+    '../frontend/src/features/ai-scoring-tenants/components/TenantWebhooksPanel.jsx'
+  ), 'utf8');
+  assert.match(source, /listWebhookDeliveries\(\{ tenantId: tenant\.id, limit: 10 \}\)/);
+  assert.doesNotMatch(source, /listWebhookDeliveries\([^\n]*pageSize/);
+});
