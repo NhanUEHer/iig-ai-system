@@ -24,3 +24,4 @@ export const errorMessage = (error, fallback) => error?.response?.data?.error ||
 export const generateItem = (id, tasks) => api.post(`/content-studio/items/${id}/generate`, tasks ? { tasks } : {}).then(data);
 export const regenerateArtifact = id => api.post(`/content-studio/artifacts/${id}/regenerate`).then(data);
 export const saveArtifact = (id, content) => api.put(`/content-studio/artifacts/${id}`, { content }).then(data);
+export const updateItemContent = (id, body) => api.put(`/content-studio/items/${id}/content`, body).then(data);

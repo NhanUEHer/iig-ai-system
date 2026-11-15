@@ -1,7 +1,7 @@
 'use strict';
 const db = require('../../config/db');
 const HttpError = require('../../http/httpError');
-const { detectContent } = require('./detect/detectContent');
+const { detectContent, countSentences } = require('./detect/detectContent');
 
 const MAX_SOURCE_CHARS = 60000;
 const MAX_FOLDER_DEPTH = 6;
@@ -234,6 +234,36 @@ async function updateItem(id, { title, folderId }) {
   return getItem(id);
 }
 
+// Edit the original passage text and questions without re-importing the item.
+async function updateContent(id, { segments = [], questions = [] } = {}) {
+  requireId(id);
+  return db.transaction(async client => {
+    const { rowCount } = await client.query('SELECT 1 FROM cs_items WHERE id = $1 FOR UPDATE', [id]);
+    if (!rowCount) throw new HttpError('Không tìm thấy học liệu.', 404, 'ITEM_NOT_FOUND');
+    for (const segment of segments) {
+      requireId(segment.id, 'segmentId');
+      const text = String(segment.text || '').trim();
+      if (!text) throw new HttpError('Đoạn văn không được để trống.', 400, 'VALIDATION_ERROR');
+      const result = await client.query(`
+        UPDATE cs_segments SET text = $3, meta = meta || jsonb_build_object('sentenceCount', $4::int)
+        WHERE id = $1 AND item_id = $2 AND kind = 'passage'`, [segment.id, id, text, countSentences(text)]);
+      if (!result.rowCount) throw new HttpError('Đoạn văn không thuộc học liệu này.', 400, 'INVALID_SEGMENT');
+    }
+    for (const question of questions) {
+      requireId(question.id, 'questionId');
+      const [normalized] = normalizeSegments([{ kind: 'question_set', questions: [{ ...question, number: question.number || 1 }] }])[0].questions;
+      if (!normalized.stem) throw new HttpError('Câu hỏi không được để trống.', 400, 'VALIDATION_ERROR');
+      const result = await client.query(`
+        UPDATE cs_questions q SET stem = $3, options = $4, answer_key = $5
+        FROM cs_segments s WHERE q.id = $1 AND s.id = q.segment_id AND s.item_id = $2`,
+      [question.id, id, normalized.stem, JSON.stringify(normalized.options), normalized.answerKey]);
+      if (!result.rowCount) throw new HttpError('Câu hỏi không thuộc học liệu này.', 400, 'INVALID_QUESTION');
+    }
+    await client.query('UPDATE cs_items SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [id]);
+    return getItem(id, client);
+  });
+}
+
 async function deleteItem(id) {
   requireId(id);
   const { rowCount } = await db.query('DELETE FROM cs_items WHERE id = $1', [id]);
@@ -243,5 +273,5 @@ async function deleteItem(id) {
 
 module.exports = {
   listFolders, createFolder, updateFolder, deleteFolder,
-  detect, listItems, createItem, getItem, updateItem, deleteItem, normalizeSegments, normalizeTasks, TASKS,
+  detect, listItems, createItem, getItem, updateItem, updateContent, deleteItem, normalizeSegments, normalizeTasks, TASKS,
 };

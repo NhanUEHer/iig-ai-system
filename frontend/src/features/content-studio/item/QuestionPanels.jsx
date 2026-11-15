@@ -2,7 +2,6 @@ import React from 'react';
 import { CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
 import { FormField, StatusBadge, Textarea } from '../../../design-system-v2';
 import ArtifactShell, { STATUS } from './ArtifactShell';
-import useArtifactDraft from './useArtifactDraft';
 
 const LETTERS = ['A', 'B', 'C', 'D'];
 
@@ -10,8 +9,7 @@ const LETTERS = ['A', 'B', 'C', 'D'];
 const translationText = value => (typeof value === 'string' ? value
   : value ? [value.stem, ...Object.entries(value.options || {}).map(([letter, text]) => `(${letter}) ${text}`)].filter(Boolean).join('\n') : '');
 
-export function QuestionEditor({ question, artifact, shell, open, onToggle }) {
-  const { draft, update, dirty, saving, save, regenerate } = useArtifactDraft(artifact, shell);
+export function QuestionEditor({ question, artifact, draft, dirty, onChange: update, shell, open, onToggle }) {
   const issues = artifact?.validation?.issues || [];
   const flagged = field => issues.some(issue => issue.path === field);
   const set = patch => update({ ...draft, ...patch });
@@ -27,7 +25,7 @@ export function QuestionEditor({ question, artifact, shell, open, onToggle }) {
     </button>
     {open && <div className="cs-question__body">
       <ul className="cs-question__opts">{letters.map(letter => <li key={letter} className={question.answerKey === letter ? 'is-answer' : ''}>({letter}) {question.options[letter]}{question.answerKey === letter && <CheckCircle2 />}</li>)}</ul>
-    <ArtifactShell artifact={artifact} label="nội dung câu hỏi" dirty={dirty} saving={saving} onSave={save} onRegenerate={regenerate} compact {...shell}>
+    <ArtifactShell artifact={artifact} label="nội dung câu hỏi" shell={shell}>
       {draft && <div className="cs-question__fields">
         <FormField label="Dịch câu hỏi & đáp án" className={flagged('translation') ? 'is-flagged' : ''}>
           <Textarea rows={letters.length + 1} value={translationText(draft.translation)} readOnly={!shell.canEdit} placeholder={'Câu hỏi dịch\n(A) …\n(B) …'} onChange={event => set({ translation: event.target.value })} />

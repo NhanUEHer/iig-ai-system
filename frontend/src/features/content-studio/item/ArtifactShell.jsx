@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, Save, Sparkles } from 'lucide-react';
+import { RefreshCw, Sparkles } from 'lucide-react';
 import { Alert, Button, EmptyState, Spinner, StatusBadge } from '../../../design-system-v2';
 
 export const STATUS = {
@@ -11,23 +11,23 @@ export const STATUS = {
 };
 export const isBusy = artifact => ['queued', 'generating'].includes(artifact?.status);
 
-// Shared frame for one artifact: status, validation issues, save / regenerate actions.
-export default function ArtifactShell({ artifact, label, dirty, saving, onSave, onRegenerate, onGenerate, canEdit, canGenerate, children, compact = false }) {
+// Frame for one artifact: status, validation issues and regenerate. Saving is global for the page.
+export default function ArtifactShell({ artifact, label, dirty, shell, children }) {
   if (!artifact) {
     return <EmptyState icon={<Sparkles />} title={`Chưa tạo ${label}`} description="Nội dung này chưa được tạo cho học liệu."
-      action={canGenerate ? <Button size="sm" icon={<Sparkles />} onClick={onGenerate}>Tạo {label}</Button> : null} />;
+      action={shell.canGenerate ? <Button size="sm" icon={<Sparkles />} onClick={shell.onGenerate}>Tạo {label}</Button> : null} />;
   }
   if (isBusy(artifact) && !artifact.content) {
     return <div className="cs-artifact__busy"><Spinner label={`${STATUS[artifact.status].label} ${label}…`} /></div>;
   }
   const issues = artifact.validation?.issues || [];
-  return <div className={`cs-artifact${compact ? ' is-compact' : ''}`}>
+  return <div className="cs-artifact">
     <div className="cs-artifact__bar">
       <StatusBadge status={STATUS[artifact.status]?.tone} label={STATUS[artifact.status]?.label} />
       {artifact.source && <small>{artifact.source === 'human' ? 'Đã chỉnh tay' : `AI · ${artifact.provider || ''}`}</small>}
+      {dirty && <em className="cs-dirty">Chưa lưu</em>}
       <span className="cs-artifact__spacer" />
-      {canGenerate && <Button variant="ghost" size="sm" icon={<RefreshCw />} disabled={isBusy(artifact) || saving} onClick={onRegenerate}>Tạo lại</Button>}
-      {canEdit && onSave && <Button size="sm" icon={<Save />} loading={saving} disabled={!dirty || isBusy(artifact)} onClick={onSave}>Lưu thay đổi</Button>}
+      {shell.canGenerate && <Button variant="ghost" size="sm" icon={<RefreshCw />} disabled={isBusy(artifact)} onClick={() => shell.onRegenerate(artifact)}>Tạo lại</Button>}
     </div>
     {artifact.status === 'failed' && <Alert tone="danger" compact title="Tạo thất bại">{artifact.error || 'Không rõ lỗi.'}</Alert>}
     {issues.length > 0 && <Alert tone="warning" compact title={`${issues.length} điểm cần xem lại`}>

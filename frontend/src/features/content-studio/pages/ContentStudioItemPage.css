@@ -75,3 +75,24 @@
 .cs-question__options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
 .cs-question__fields .is-flagged .iig3-control, .cs-question__fields .is-flagged textarea { border-color: var(--iig3-color-warning); }
 @media (max-width: 720px) { .cs-question__opts, .cs-question__options, .cs-vocab__grid, .cs-entry__grid { grid-template-columns: minmax(0, 1fr); } .cs-vocab__meaning { grid-column: auto; } .cs-question__body { padding-left: 14px; } }
+
+/* Fixed source (left) + 5-tab editor (right) */
+.cs-hub.is-split { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); }
+.cs-hub__tabs { padding: 0 12px; border-bottom: 1px solid var(--iig3-border); }
+.cs-hub__tabs .iig3-tabs { border-bottom: 0; }
+.cs-dirty { font-style: normal; font-size: 12px; color: var(--iig3-color-warning); }
+.cs-source-q { display: flex; flex-direction: column; gap: 12px; margin: 4px 0 0; padding: 12px 0 0; border-top: 1px dashed var(--iig3-border); list-style: none; font-size: 13px; }
+.cs-source-q > li > strong { display: block; margin-bottom: 4px; font-size: 14px; }
+.cs-source-q ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 14px; margin: 0; padding: 0 0 0 16px; list-style: none; color: var(--iig3-text-secondary); }
+.cs-source-q li.is-answer { color: var(--iig3-color-success); font-weight: 600; }
+.cs-source-q li svg { width: 13px; height: 13px; margin-left: 4px; vertical-align: -2px; }
+.cs-source-edit { display: flex; flex-direction: column; gap: 14px; }
+.cs-source-edit textarea { width: 100%; font-size: 14px; line-height: 1.7; }
+.cs-source-edit__q { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 10px 12px; border: 1px solid var(--iig3-border); border-radius: 8px; }
+.cs-source-edit__q legend { padding: 0 4px; font-size: 12px; font-weight: 600; color: var(--iig3-text-muted); }
+.cs-source-edit__opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.cs-source-edit__opts label { display: flex; align-items: center; gap: 6px; }
+.cs-source-edit__opts label > span { flex: 1; }
+.cs-source-edit__opts label.is-answer .iig3-control { border-color: var(--iig3-color-success); }
+.cs-source-edit__opts input[type="radio"] { accent-color: var(--iig3-color-success); }
+@media (max-width: 720px) { .cs-source-q ul, .cs-source-edit__opts { grid-template-columns: minmax(0, 1fr); } }

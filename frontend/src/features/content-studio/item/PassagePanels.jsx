@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { ChevronLeft, Plus, X } from 'lucide-react';
 import { Button, FormField, IconButton, Input, Textarea } from '../../../design-system-v2';
 import ArtifactShell from './ArtifactShell';
-import useArtifactDraft from './useArtifactDraft';
 
 const POS = ['Noun', 'Verb', 'Adjective', 'Adverb', 'Noun Phrase', 'Verb Phrase', 'Phrasal Verb', 'Prepositional Phrase', 'Idiom', 'Preposition', 'Conjunction', 'Phrase'];
 const pad = value => String(value).padStart(2, '0');
@@ -13,15 +12,38 @@ function highlight(text, terms) {
   return text.split(new RegExp(`(${list.join('|')})`, 'gi')).map((part, index) => (index % 2 ? <mark key={index}>{part}</mark> : part));
 }
 
-export function SourceView({ segment }) {
-  return <p className="cs-source">{segment.text}</p>;
+const LETTERS = ['A', 'B', 'C', 'D'];
+
+// Edit the original passage(s) and questions. Value: { segments: {id: text}, questions: {id: {stem, options, answerKey}} }.
+export function SourceEditor({ passages, questions, draft, onChange, readOnly }) {
+  const segmentText = passage => draft.segments?.[passage.id] ?? passage.text;
+  const questionValue = question => draft.questions?.[question.id] ?? { stem: question.stem, options: question.options, answerKey: question.answerKey };
+  const setSegment = (passage, text) => onChange({ ...draft, segments: { ...draft.segments, [passage.id]: text } });
+  const setQuestion = (question, patch) => onChange({ ...draft, questions: { ...draft.questions, [question.id]: { ...questionValue(question), ...patch } } });
+  return <div className="cs-source-edit">
+    {passages.map((passage, index) => <FormField key={passage.id} label={passages.length > 1 ? `Đoạn văn ${index + 1}` : 'Đoạn văn'}>
+      <Textarea rows={12} value={segmentText(passage)} readOnly={readOnly} onChange={event => setSegment(passage, event.target.value)} />
+    </FormField>)}
+    {questions.map(question => {
+      const value = questionValue(question);
+      return <fieldset key={question.id} className="cs-source-edit__q">
+        <legend>Câu {question.number}</legend>
+        <Input aria-label="Câu hỏi" value={value.stem} readOnly={readOnly} onChange={event => setQuestion(question, { stem: event.target.value })} />
+        <div className="cs-source-edit__opts">
+          {LETTERS.filter(letter => question.options?.[letter] != null).map(letter => <label key={letter} className={value.answerKey === letter ? 'is-answer' : ''}>
+            <input type="radio" name={`answer-${question.id}`} checked={value.answerKey === letter} disabled={readOnly} onChange={() => setQuestion(question, { answerKey: letter })} aria-label={`Đáp án đúng ${letter}`} />
+            <Input prefix={`${letter}.`} value={value.options?.[letter] || ''} readOnly={readOnly} onChange={event => setQuestion(question, { options: { ...value.options, [letter]: event.target.value } })} />
+          </label>)}
+        </div>
+      </fieldset>;
+    })}
+  </div>;
 }
 
-export function TranslationView({ artifact, shell }) {
-  const { draft, update, dirty, saving, save, regenerate } = useArtifactDraft(artifact, shell);
+export function TranslationView({ artifact, draft, dirty, onChange: update, shell }) {
   const rows = draft?.sentences || [];
   const setVi = (index, vi) => update({ ...draft, sentences: rows.map((row, i) => (i === index ? { ...row, vi } : row)) });
-  return <ArtifactShell artifact={artifact} label="bản dịch" dirty={dirty} saving={saving} onSave={save} onRegenerate={regenerate} {...shell}>
+  return <ArtifactShell artifact={artifact} label="bản dịch" dirty={dirty} shell={shell}>
     <ol className="cs-translation">
       {rows.map((row, index) => <li key={index}>
         <span className="cs-num">{pad(index + 1)}</span>
@@ -36,14 +58,13 @@ export function TranslationView({ artifact, shell }) {
   </ArtifactShell>;
 }
 
-export function VocabView({ artifact, segment, shell }) {
-  const { draft, update, dirty, saving, save, regenerate } = useArtifactDraft(artifact, shell);
+export function VocabView({ artifact, segment, draft, dirty, onChange: update, shell }) {
   const items = draft?.items || [];
   const setItem = (index, patch) => update({ ...draft, items: items.map((item, i) => (i === index ? { ...item, ...patch } : item)) });
   const remove = index => update({ ...draft, items: items.filter((_, i) => i !== index) });
   const add = () => update({ ...draft, items: [...items, { inText: '', lemma: '', pos: 'Noun', ipa: '', meaningVi: '' }] });
   const ro = !shell.canEdit;
-  return <ArtifactShell artifact={artifact} label="từ vựng" dirty={dirty} saving={saving} onSave={save} onRegenerate={regenerate} {...shell}>
+  return <ArtifactShell artifact={artifact} label="từ vựng" dirty={dirty} shell={shell}>
     <p className="cs-source is-compact">{highlight(segment.text, items.map(item => item.inText))}</p>
     <ul className="cs-vocab">
       {items.map((item, index) => <li key={index}>
@@ -81,8 +102,7 @@ function EntryDetail({ entry, onChange, readOnly, onBack }) {
   </div>;
 }
 
-export function DictionaryView({ artifact, shell }) {
-  const { draft, update, dirty, saving, save, regenerate } = useArtifactDraft(artifact, shell);
+export function DictionaryView({ artifact, draft, dirty, onChange: update, shell }) {
   const sentences = draft?.sentences || [];
   const [selected, setSelected] = useState(null); // [sentenceIndex, entryIndex]
   const total = sentences.reduce((sum, sentence) => sum + (sentence.entries?.length || 0), 0);
@@ -91,7 +111,7 @@ export function DictionaryView({ artifact, shell }) {
     ...draft,
     sentences: sentences.map((sentence, si) => (si !== selected[0] ? sentence : { ...sentence, entries: sentence.entries.map((item, ei) => (ei === selected[1] ? next : item)) })),
   });
-  return <ArtifactShell artifact={artifact} label="từ điển" dirty={dirty} saving={saving} onSave={save} onRegenerate={regenerate} {...shell}>
+  return <ArtifactShell artifact={artifact} label="từ điển" dirty={dirty} shell={shell}>
     {entry
       ? <EntryDetail entry={entry} onChange={setEntry} readOnly={!shell.canEdit} onBack={() => setSelected(null)} />
       : <>
