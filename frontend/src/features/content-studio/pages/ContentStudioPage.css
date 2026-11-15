@@ -29,12 +29,8 @@
 .cs-detect__warnings { margin: 0; padding-left: 18px; }
 @media (max-width: 720px) { .cs-detect__segment { grid-template-columns: minmax(0, 1fr); } }
 
-.cs-items__head { display: flex; align-items: center; gap: var(--iig3-space-2); padding: var(--iig3-space-3) var(--iig3-space-4); border-bottom: 1px solid var(--iig3-border); }
-.cs-items__head svg { width: 16px; height: 16px; color: var(--iig3-text-muted); }
-.cs-item-cell { display: flex; flex-direction: column; gap: 2px; }
-.cs-item-cell small { color: var(--iig3-text-muted); font-size: 12px; }
 
-.cs-folders { position: sticky; top: var(--iig3-space-4); display: flex; flex-direction: column; }
+.cs-folders { position: sticky; top: 0; display: flex; flex-direction: column; }
 .cs-folders__head { display: flex; align-items: center; justify-content: space-between; padding: var(--iig3-space-3) var(--iig3-space-4); border-bottom: 1px solid var(--iig3-border); }
 .cs-folders__tree { padding: var(--iig3-space-2); max-height: 60vh; overflow: auto; }
 .cs-folders__actions { display: flex; gap: var(--iig3-space-1); padding: var(--iig3-space-2) var(--iig3-space-3); border-top: 1px solid var(--iig3-border); }

@@ -1,34 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FileText, ListChecks, RotateCcw, Save } from 'lucide-react';
+import { FileText, RotateCcw, Save } from 'lucide-react';
 import {
-  Alert, Badge, Button, ConfirmDialog, DataTable, DateTimeDisplay, FileDropzone, FormField, Input, PageFrame, PageHeader,
-  Select, StatusBadge, Surface, Textarea,
+  Alert, Badge, Button, FileDropzone, FormField, Input, PageFrame, PageHeader, Select, Surface, Textarea,
 } from '../../../design-system-v2';
-import { createItem, deleteItem, detectDocx, detectText, errorMessage, listFolders, listItems } from '../../../services/contentStudioService';
+import { createItem, detectDocx, detectText, errorMessage, listFolders } from '../../../services/contentStudioService';
 import FolderPanel from '../components/FolderPanel';
 import { ALL_FOLDERS, UNFILED, buildFolderPath, flattenFolders } from '../folderTree';
 import DetectionPreview from '../components/DetectionPreview';
 import './ContentStudioPage.css';
 
-const STATUS = {
-  draft: { tone: 'draft', label: 'Nháp' }, generating: { tone: 'processing', label: 'Đang tạo' },
-  needs_review: { tone: 'warning', label: 'Cần xem lại' }, ready: { tone: 'completed', label: 'Hoàn tất' }, failed: { tone: 'failed', label: 'Lỗi' },
-};
-const summaryLabel = summary => {
-  if (!summary) return '—';
-  const parts = [];
-  if (summary.passageCount) parts.push(`${summary.passageCount} đoạn văn`);
-  if (summary.questionCount) parts.push(`${summary.questionCount} câu hỏi${summary.questionRange ? ` (${summary.questionRange.from}–${summary.questionRange.to})` : ''}`);
-  return parts.join(' · ') || '—';
-};
 
 export default function ContentStudioPage({ showMsg, permissions = {} }) {
   const [folders, setFolders] = useState([]);
   const [unfiledCount, setUnfiledCount] = useState(0);
   const [selectedFolder, setSelectedFolder] = useState(ALL_FOLDERS);
-  const [items, setItems] = useState([]);
-  const [itemsLoading, setItemsLoading] = useState(true);
-  const [itemsError, setItemsError] = useState('');
 
   const [text, setText] = useState('');
   const [source, setSource] = useState({ kind: 'paste', fileName: null });
@@ -48,14 +33,7 @@ export default function ContentStudioPage({ showMsg, permissions = {} }) {
       setFolders(result.folders); setUnfiledCount(result.unfiledCount);
     } catch (error) { showMsgRef.current?.(errorMessage(error, 'Không thể tải thư mục.'), 'error'); }
   }, []);
-  const loadItems = useCallback(async () => {
-    setItemsLoading(true); setItemsError('');
-    try { setItems(await listItems(selectedFolder === ALL_FOLDERS ? {} : { folderId: selectedFolder })); }
-    catch (error) { setItemsError(errorMessage(error, 'Không thể tải danh sách học liệu.')); }
-    finally { setItemsLoading(false); }
-  }, [selectedFolder]);
   useEffect(() => { loadFolders(); }, [loadFolders]);
-  useEffect(() => { loadItems(); }, [loadItems]);
   // New content is saved into the folder the user is browsing.
   useEffect(() => { setTargetFolder(selectedFolder === ALL_FOLDERS || selectedFolder === UNFILED ? '' : selectedFolder); }, [selectedFolder]);
 
@@ -109,36 +87,21 @@ export default function ContentStudioPage({ showMsg, permissions = {} }) {
       });
       showMsg?.('Đã lưu học liệu.', 'success');
       reset();
-      await Promise.all([loadItems(), loadFolders()]);
+      await loadFolders();
     } catch (error) { showMsg?.(errorMessage(error, 'Không thể lưu học liệu.'), 'error'); }
     finally { setSaving(false); }
   };
 
-  const [pendingDelete, setPendingDelete] = useState(null);
-  const [deleting, setDeleting] = useState(false);
-  const removeItem = async () => {
-    setDeleting(true);
-    try { await deleteItem(pendingDelete.id); setPendingDelete(null); showMsg?.('Đã xoá học liệu.', 'success'); await Promise.all([loadItems(), loadFolders()]); }
-    catch (error) { showMsg?.(errorMessage(error, 'Không thể xoá học liệu.'), 'error'); }
-    finally { setDeleting(false); }
-  };
 
   const folderOptions = useMemo(() => flattenFolders(folders), [folders]);
   const folderPath = useMemo(() => buildFolderPath(folders, selectedFolder), [folders, selectedFolder]);
   const folderLabel = selectedFolder === ALL_FOLDERS ? 'Tất cả học liệu' : selectedFolder === UNFILED ? 'Chưa phân loại' : folderPath.at(-1)?.name || 'Thư mục';
-  const folderNames = useMemo(() => Object.fromEntries(folders.map(folder => [folder.id, folder.name])), [folders]);
 
-  const columns = useMemo(() => [
-    { key: 'title', label: 'Học liệu', render: row => <span className="cs-item-cell"><strong>{row.title}</strong>{selectedFolder === ALL_FOLDERS && <small>{row.folderId ? folderNames[row.folderId] || '—' : 'Chưa phân loại'}</small>}</span> },
-    { key: 'summary', label: 'Nội dung', width: 240, render: row => summaryLabel(row.summary) },
-    { key: 'status', label: 'Trạng thái', width: 140, render: row => <StatusBadge status={STATUS[row.status]?.tone} label={STATUS[row.status]?.label || row.status} /> },
-    { key: 'updatedAt', label: 'Cập nhật', width: 170, render: row => <span className="cs-item-cell"><DateTimeDisplay value={row.updatedAt} /><small>{row.createdByName || ''}</small></span> },
-  ], [folderNames, selectedFolder]);
 
   const canEdit = permissions.edit;
   const hasContent = Boolean(text.trim());
 
-  return <PageFrame
+  return <div className="iig3-list-screen cs-screen"><PageFrame
     className="cs-page"
     breadcrumb={[{ label: 'Content Studio' }, ...(folderPath.length ? folderPath.map(folder => ({ label: folder.name })) : [{ label: folderLabel }])]}
     header={<PageHeader title="Content Studio" description="Dán đoạn văn và câu hỏi TOEIC LR hoặc tải file DOCX — hệ thống tự nhận diện, bạn xác nhận rồi lưu." />}
@@ -177,33 +140,7 @@ export default function ContentStudioPage({ showMsg, permissions = {} }) {
         </Surface>}
         {!canEdit && <Alert tone="info" title="Chế độ chỉ xem">Bạn cần quyền "Nhập và chỉnh sửa nội dung" để thêm học liệu.</Alert>}
 
-        <Surface className="cs-items" padding="none">
-          <div className="cs-items__head"><ListChecks /><strong>{folderLabel}</strong><Badge>{items.length}</Badge></div>
-          <DataTable
-            ariaLabel={`Học liệu trong ${folderLabel}`}
-            columns={columns}
-            rows={items}
-            loading={itemsLoading}
-            error={itemsError}
-            errorAction={<Button variant="outline" size="sm" icon={<RotateCcw />} onClick={loadItems}>Thử lại</Button>}
-            emptyTitle="Chưa có học liệu"
-            emptyDescription={canEdit ? 'Dán nội dung ở trên để tạo học liệu đầu tiên trong thư mục này.' : 'Thư mục này chưa có học liệu.'}
-            getRowActions={canEdit ? row => [{ label: 'Xoá', danger: true, onClick: () => setPendingDelete(row) }] : undefined}
-            density="compact"
-          />
-        </Surface>
       </div>
-
-      <ConfirmDialog
-        open={Boolean(pendingDelete)}
-        danger
-        loading={deleting}
-        title={`Xoá "${pendingDelete?.title || ''}"?`}
-        description="Học liệu và nội dung đã nhận diện sẽ bị xoá vĩnh viễn."
-        confirmLabel="Xoá học liệu"
-        onConfirm={removeItem}
-        onClose={() => setPendingDelete(null)}
-      />
 
       <FolderPanel
         folders={folders}
@@ -211,9 +148,9 @@ export default function ContentStudioPage({ showMsg, permissions = {} }) {
         selected={selectedFolder}
         onSelect={setSelectedFolder}
         canManage={permissions.manageFolders}
-        onChanged={async () => { await loadFolders(); await loadItems(); }}
+        onChanged={loadFolders}
         showMsg={showMsg}
       />
     </div>
-  </PageFrame>;
+  </PageFrame></div>;
 }
