@@ -1,0 +1,69 @@
+name: Roll back Production
+
+# Redeploys the exact images recorded in a previous release (v<version>) to Production.
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: Release tag to restore (e.g. v1.4.0)
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: iig-admin-production
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Read release manifest
+        id: m
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE: ${{ inputs.release }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "release must be vX.Y.Z" >&2; exit 1; }
+          manifest="$(gh release view "$RELEASE" -R "$GITHUB_REPOSITORY" --json body -q .body | sed -n '/^{/,$p')"
+          commit="$(jq -r .commit <<<"$manifest")"; version="$(jq -r .version <<<"$manifest")"
+          [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || { echo "invalid manifest" >&2; exit 1; }
+          { echo "commit=$commit"; echo "version=$version"; echo "manifest=$(jq -c . <<<"$manifest")"; } >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.m.outputs.commit }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Re-point prod-<commit> tags at the recorded digests
+        env:
+          MANIFEST: ${{ steps.m.outputs.manifest }}
+          COMMIT: ${{ steps.m.outputs.commit }}
+        run: |
+          set -euo pipefail
+          for svc in admin-api admin-web exam-web; do
+            ref="$(jq -r --arg s "$svc" '.[$s]' <<<"$MANIFEST")"
+            [[ "$ref" == *@sha256:* ]] || { echo "manifest missing $svc" >&2; exit 1; }
+            docker buildx imagetools create -t "${ref%@*}:prod-$COMMIT" "$ref"
+          done
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+      - name: Trust deployment host
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' '${{ secrets.VPS_KNOWN_HOSTS }}' > ~/.ssh/known_hosts
+      - name: Deploy recorded release
+        env:
+          COMMIT: ${{ steps.m.outputs.commit }}
+          VERSION: ${{ steps.m.outputs.version }}
+        run: |
+          scp -O deploy/docker-compose.yml scripts/deploy-containers.sh root@${{ secrets.VPS_HOST }}:/opt/iig-admin/prod/
+          ssh root@${{ secrets.VPS_HOST }} "deploy production prod-$COMMIT $VERSION $COMMIT admin-api,admin-web,exam-web"

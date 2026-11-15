@@ -18,6 +18,7 @@ FROM nginx:1.27-alpine
 COPY --from=build /workspace/frontend/dist /usr/share/nginx/html
 COPY deploy/docker/admin.nginx.conf /etc/nginx/conf.d/default.conf
 COPY deploy/docker/proxy_params /etc/nginx/proxy_params
+COPY deploy/docker/40-runtime-config.sh /docker-entrypoint.d/40-runtime-config.sh
 EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=3 \
   CMD wget -q -O - http://127.0.0.1:8080/health >/dev/null || exit 1

@@ -144,15 +144,26 @@ previous_exam_web_image="$(running_image exam-web)"
 
 previous_tag="$(sed -n 's/^IMAGE_TAG=//p' .env | head -1)"
 next_tag="${IMAGE_TAG:?IMAGE_TAG is required}"
-next_admin_api_tag="${ADMIN_API_IMAGE_TAG:-$next_tag}"
-next_admin_web_tag="${ADMIN_WEB_IMAGE_TAG:-$next_tag}"
-next_exam_web_tag="${EXAM_WEB_IMAGE_TAG:-$next_tag}"
 next_version="${APP_VERSION:?APP_VERSION is required}"
 next_commit="${APP_COMMIT:?APP_COMMIT is required}"
+# CI/CD v2: only the listed components move to next_tag; the others keep their image
+# (and release identity), so unchanged containers are not recreated.
+deploy_components="${DEPLOY_COMPONENTS:-admin-api,admin-web,exam-web}"
+changed_services=()
+IFS=',' read -r -a requested_components <<< "$deploy_components"
+for component in "${requested_components[@]}"; do
+  case "$component" in
+    admin-api|admin-web|exam-web) changed_services+=("$component") ;;
+    *) echo "Unknown component: $component" >&2; exit 1 ;;
+  esac
+done
+test "${#changed_services[@]}" -gt 0 || { echo "No components to deploy" >&2; exit 1; }
+component_changed() { case ",$deploy_components," in *",$1,"*) return 0 ;; *) return 1 ;; esac; }
 
 rollback_file=".env.rollback.$(date -u +%Y%m%dT%H%M%SZ)"
 cp .env "$rollback_file"
 
+read_env() { sed -n "s/^$1=//p" .env | head -1; }
 update_env() {
   key="$1"
   value="$2"
@@ -165,16 +176,36 @@ update_env() {
   ' .env > "$temporary"
   mv "$temporary" .env
 }
+ensure_env() { [ -n "$(read_env "$1")" ] || update_env "$1" "$2"; }
 
-update_env IMAGE_TAG "$next_tag"
-update_env ADMIN_API_IMAGE_TAG "$next_admin_api_tag"
-update_env ADMIN_WEB_IMAGE_TAG "$next_admin_web_tag"
-update_env EXAM_WEB_IMAGE_TAG "$next_exam_web_tag"
-update_env APP_VERSION "$next_version"
-update_env APP_COMMIT "$next_commit"
+# Pin every component to what it runs today before moving only the changed ones.
+current_tag="${previous_tag:-$next_tag}"
+current_version="$(read_env APP_VERSION)"; current_commit="$(read_env APP_COMMIT)"
+ensure_env ADMIN_API_IMAGE_TAG "$current_tag"
+ensure_env ADMIN_WEB_IMAGE_TAG "$current_tag"
+ensure_env EXAM_WEB_IMAGE_TAG "$current_tag"
+ensure_env ADMIN_API_APP_VERSION "${current_version:-$next_version}"
+ensure_env ADMIN_API_APP_COMMIT "${current_commit:-$next_commit}"
+ensure_env ADMIN_WEB_APP_VERSION "${current_version:-$next_version}"
+ensure_env ADMIN_WEB_APP_COMMIT "${current_commit:-$next_commit}"
+
+if component_changed admin-api; then
+  update_env ADMIN_API_IMAGE_TAG "$next_tag"
+  update_env ADMIN_API_APP_VERSION "$next_version"
+  update_env ADMIN_API_APP_COMMIT "$next_commit"
+fi
+if component_changed admin-web; then
+  update_env ADMIN_WEB_IMAGE_TAG "$next_tag"
+  update_env ADMIN_WEB_APP_VERSION "$next_version"
+  update_env ADMIN_WEB_APP_COMMIT "$next_commit"
+fi
+if component_changed exam-web; then update_env EXAM_WEB_IMAGE_TAG "$next_tag"; fi
+if [ "${#changed_services[@]}" -eq 3 ]; then
+  update_env IMAGE_TAG "$next_tag"; update_env APP_VERSION "$next_version"; update_env APP_COMMIT "$next_commit"
+fi
 activated=true
 
-compose pull
+compose pull "${changed_services[@]}"
 # The renamed service binds the same host port as the legacy `api` container;
 # remove the legacy container right before activation (its image is captured above).
 legacy_container="$(legacy_api_container)"
@@ -182,7 +213,7 @@ if [ -n "$legacy_container" ]; then
   echo "Removing legacy api container before activating admin-api" >&2
   docker rm -f "$legacy_container" >/dev/null
 fi
-compose up -d --remove-orphans --wait --wait-timeout 240
+compose up -d --remove-orphans --wait --wait-timeout 240 "${changed_services[@]}"
 
 expected_images="$(compose config --format json)"
 expected_image() {
@@ -195,9 +226,9 @@ expected_image() {
   '
 }
 
-verify_service admin-api "$(expected_image admin-api)"
-verify_service admin-web "$(expected_image admin-web)"
-verify_service exam-web "$(expected_image exam-web)"
+for service in admin-api admin-web exam-web; do
+  verify_service "$service" "$(expected_image "$service")"
+done
 
 if [ "$deploy_env" = beta ] && [ -s bootstrap-admin.env ]; then
   bootstrap_rc=0
@@ -211,7 +242,7 @@ admin_port="$(sed -n 's/^ADMIN_PORT=//p' .env | head -1)"
 exam_port="$(sed -n 's/^EXAM_PORT=//p' .env | head -1)"
 
 api_health="$(curl -fsS "http://127.0.0.1:${api_port}/health/ready")"
-HEALTH="$api_health" EXPECTED_VERSION="$next_version" EXPECTED_COMMIT="$next_commit" node -e '
+HEALTH="$api_health" EXPECTED_VERSION="$(read_env ADMIN_API_APP_VERSION)" EXPECTED_COMMIT="$(read_env ADMIN_API_APP_COMMIT)" node -e '
   const value = JSON.parse(process.env.HEALTH);
   if (value.status !== "ready" || value.build?.version !== process.env.EXPECTED_VERSION || value.build?.commit !== process.env.EXPECTED_COMMIT) process.exit(1);
 '

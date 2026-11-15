@@ -1,0 +1,132 @@
+name: Build and deploy containers
+
+# CI/CD v2 Beta release: push to develop → build ONLY changed images (arm64, native runner),
+# deploy ONLY those services. Tests are not re-run (PR CI is the gate). Production is
+# promoted from Beta by promote.yml with the exact same images (no rebuild).
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+    inputs:
+      force_all:
+        description: Rebuild and redeploy every component
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+  actions: read
+
+concurrency:
+  group: iig-admin-beta
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      owner: ${{ steps.meta.outputs.owner }}
+      version: ${{ steps.meta.outputs.version }}
+      matrix: ${{ steps.c.outputs.matrix }}
+      components: ${{ steps.c.outputs.components }}
+      has_changes: ${{ steps.c.outputs.has_changes }}
+      deploy_defs: ${{ steps.c.outputs.deploy_defs }}
+    steps:
+      - run: test "$GITHUB_REF_NAME" = develop || { echo "Beta releases run from develop only" >&2; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: meta
+        run: |
+          echo "owner=$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p 'require("./package.json").version')" >> "$GITHUB_OUTPUT"
+      - id: base
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          base="$(gh run list -R "$GITHUB_REPOSITORY" -w release.yml -b develop --status success -L 1 --json headSha -q '.[0].headSha' || true)"
+          if [ -z "$base" ]; then base="${{ github.event.before }}"; fi
+          echo "Diff base: ${base:-none}"; echo "sha=$base" >> "$GITHUB_OUTPUT"
+      - id: c
+        env:
+          BASE: ${{ steps.base.outputs.sha }}
+          FORCE: ${{ inputs.force_all }}
+        run: |
+          if [ "$FORCE" = true ]; then BASE=""; fi
+          node scripts/ci/changed-components.mjs "$BASE" "$GITHUB_SHA" | tee -a "$GITHUB_OUTPUT"
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.has_changes == 'true'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    strategy:
+      fail-fast: true
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    name: Build ${{ matrix.name }} (arm64)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          target: ${{ matrix.target }}
+          push: true
+          platforms: linux/arm64
+          tags: ghcr.io/${{ needs.plan.outputs.owner }}/${{ matrix.image }}:beta-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.name }}-arm64
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}-arm64
+
+  deploy-beta:
+    needs: [plan, build]
+    if: always() && needs.plan.result == 'success' && (needs.build.result == 'success' || (needs.build.result == 'skipped' && needs.plan.outputs.deploy_defs == 'true'))
+    runs-on: ubuntu-latest
+    environment: beta
+    steps:
+      - uses: actions/checkout@v4
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+      - name: Trust deployment host
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' '${{ secrets.VPS_KNOWN_HOSTS }}' > ~/.ssh/known_hosts
+      - name: Prepare one-time Beta admin bootstrap
+        env:
+          BOOTSTRAP_ADMIN_NAME: ${{ secrets.BOOTSTRAP_ADMIN_NAME }}
+          BOOTSTRAP_ADMIN_EMAIL: ${{ secrets.BOOTSTRAP_ADMIN_EMAIL }}
+          BOOTSTRAP_ADMIN_PASSWORD: ${{ secrets.BOOTSTRAP_ADMIN_PASSWORD }}
+        run: |
+          install -m 600 /dev/null bootstrap-admin.env
+          if [ -n "$BOOTSTRAP_ADMIN_EMAIL" ] && [ -n "$BOOTSTRAP_ADMIN_PASSWORD" ]; then
+            printf 'BOOTSTRAP_ADMIN_NAME=%s\n' "${BOOTSTRAP_ADMIN_NAME:-Beta Administrator}" >> bootstrap-admin.env
+            printf 'BOOTSTRAP_ADMIN_EMAIL=%s\n' "$BOOTSTRAP_ADMIN_EMAIL" >> bootstrap-admin.env
+            printf 'BOOTSTRAP_ADMIN_PASSWORD=%s\n' "$BOOTSTRAP_ADMIN_PASSWORD" >> bootstrap-admin.env
+          fi
+      - name: Upload deployment definition
+        run: |
+          scp -O bootstrap-admin.env deploy/docker-compose.yml deploy/docker-compose.beta.yml deploy/nginx-beta.conf \
+            scripts/configure-beta-environment.sh scripts/deploy-containers.sh \
+            root@${{ secrets.VPS_HOST }}:/opt/iig-admin/beta/
+      - name: Deploy changed services
+        env:
+          COMPONENTS: ${{ needs.plan.outputs.components }}
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          # Definitions-only change: re-apply the running API image (no rebuild) so compose converges.
+          components="${COMPONENTS:-admin-api}"
+          tag="beta-${GITHUB_SHA}"
+          if [ -z "$COMPONENTS" ]; then
+            tag="$(ssh root@${{ secrets.VPS_HOST }} "manifest beta" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const m=JSON.parse(s);process.stdout.write("beta-"+m.commit)})')"
+          fi
+          ssh root@${{ secrets.VPS_HOST }} "deploy beta $tag $VERSION ${tag#beta-} $components"
