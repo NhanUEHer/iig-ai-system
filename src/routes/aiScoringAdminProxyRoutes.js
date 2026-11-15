@@ -4,6 +4,7 @@ const { createAiScoringAdminClient } = require('../clients/aiScoringAdminClient'
 const HttpError = require('../http/httpError');
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const LEGACY_PAGE_QUERY_KEYS = new Set(['page', 'pageSize']);
 
 // Tenant scope is server-side deployment configuration bound to the Admin service
 // credential; it is never read from the incoming browser request.
@@ -46,8 +47,10 @@ function resolveTenant(req, tenantIds) {
 
 function forwardedRequest(req, tenantIds) {
   const tenantId = resolveTenant(req, tenantIds);
-  // Drop empty filters (`status=`): Scoring validates every present field strictly.
-  const query = Object.fromEntries(Object.entries(req.query || {}).filter(([, value]) => value !== '' && value != null));
+  // Drop empty filters and legacy offset pagination: Scoring validates every present field strictly.
+  const query = Object.fromEntries(Object.entries(req.query || {}).filter(([key, value]) => (
+    !LEGACY_PAGE_QUERY_KEYS.has(key) && value !== '' && value != null
+  )));
   query.tenantId = tenantId;
   let body = req.body;
   let idempotencyKey;
