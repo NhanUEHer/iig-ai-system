@@ -83,22 +83,18 @@ test('submission detail returns teacher notes', () => {
   assert.match(repository, /ai\.teacher_note/);
 });
 
-test('submission API exposes answer detail and bulk audio cleaning routes', () => {
+test('submission API exposes answer detail routes', () => {
   const coreRoutes = read('src/routes/submissions/coreRoutes.js');
-  const scoringRoutes = read('src/routes/submissions/scoringRoutes.js');
   assert.match(coreRoutes, /:\id\/answers/);
   assert.match(coreRoutes, /:\id\/answers\/:answerId/);
-  assert.match(scoringRoutes, /bulk-clean-audio/);
 });
 
 test('source does not contain known hard-coded service credentials', () => {
   const iigClient = read('src/clients/iigClient.js');
-  const difyClient = read('src/clients/difyClient.js');
   const deployScript = read('deploy.sh');
   const authController = read('src/controllers/authController.js');
 
   assert.doesNotMatch(iigClient, /IIG_API_KEY\s*\|\|\s*['"][^'"]+/);
-  assert.doesNotMatch(difyClient, /const DIFY_API_KEY\s*=\s*['"][^'"]+/);
   assert.doesNotMatch(deployScript, /^VPS_PASSWORD=['"][^$]/m);
   assert.doesNotMatch(authController, /password="\$\{password\}"/);
 });
@@ -125,14 +121,6 @@ test('production deploy is locked, immutable, identity-verified and rollback-cap
   assert.match(backupScript,/\.partial-/);
   assert.match(backupScript,/SHA256SUMS/);
   assert.match(backupScript,/NR>3/);
-});
-
-test('audio cleaner preserves natural pauses and validates output duration', () => {
-  const pythonSource = read('src/services/audioCleaner.py');
-  const serviceSource = read('src/services/audioCleanerService.js');
-  assert.doesNotMatch(pythonSource, /silenceremove=/);
-  assert.match(serviceSource, /ensureSafeDuration/);
-  assert.match(serviceSource, /inputDuration \* 0\.8/);
 });
 
 test('production nginx serves generated Local TTS media before the SPA fallback', () => {

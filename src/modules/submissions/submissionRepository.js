@@ -123,48 +123,14 @@ class SubmissionRepository {
     );
   }
 
-  async findAnswerById(answerId) {
-    const result = await this.db.query('SELECT * FROM submission_answers WHERE id = $1', [answerId]);
-    return result.rows[0] || null;
-  }
-
-  async findSubmissionIdByAnswerId(answerId) {
-    const result = await this.db.query(
-      'SELECT submission_id FROM submission_answers WHERE id = $1',
-      [answerId]
-    );
-    return result.rows[0]?.submission_id || null;
-  }
-
-  async updateAnswerStatus(answerId, status) {
+  async upsertTeacherNote(answerId, teacherNote) {
     await this.db.query(
-      'UPDATE submission_answers SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-      [status, answerId]
-    );
-  }
-
-  async tryStartScoring(answerId) {
-    const result = await this.db.query(
-      `UPDATE submission_answers
-       SET status = 'scoring', updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1 AND status IS DISTINCT FROM 'scoring'
-       RETURNING id`,
-      [answerId]
-    );
-    return result.rowCount === 1;
-  }
-
-  async updateContextText(answerId, contextText) {
-    await this.db.query(
-      'UPDATE submission_answers SET context_text = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-      [contextText, answerId]
-    );
-  }
-
-  async updateQuestionName(answerId, questionName) {
-    await this.db.query(
-      'UPDATE submission_answers SET question_name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-      [questionName, answerId]
+      `INSERT INTO ai_evaluation_results (answer_id, teacher_note, updated_at)
+       VALUES ($1, $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (answer_id) DO UPDATE SET
+         teacher_note = EXCLUDED.teacher_note,
+         updated_at = CURRENT_TIMESTAMP`,
+      [answerId, teacherNote || null]
     );
   }
 }
