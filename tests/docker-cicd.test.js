@@ -150,6 +150,12 @@ test('deployment verifies external Scoring readiness, API identity and both fron
   assert.match(deploy, /exam_port/);
   assert.match(deploy, /\.env\.rollback/);
   assert.match(deploy, /restoring previous immutable release/);
+  assert.match(deploy, /previous_admin_api_image="\$\(running_image admin-api\)"/);
+  assert.match(deploy, /previous_admin_web_image="\$\(running_image admin-web\)"/);
+  assert.match(deploy, /previous_exam_web_image="\$\(running_image exam-web\)"/);
+  assert.match(deploy, /verify_service admin-api/);
+  assert.match(deploy, /verify_service admin-web/);
+  assert.match(deploy, /verify_service exam-web/);
   assert.doesNotMatch(deploy, /docker image prune/);
 });
 
