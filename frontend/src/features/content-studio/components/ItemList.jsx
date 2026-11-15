@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, EmptyState, Skeleton } from '../../../design-system-v2';
 import { TASK_LABELS } from './TaskPanel';
 
@@ -27,28 +28,39 @@ function describe(item) {
   return parts.join(' · ');
 }
 
+const PASSAGE_TYPE = { translation: 'passage_translation', vocab: 'vocab', dictionary: 'dictionary' };
+const CHIP_STATE = {
+  ready: { state: 'ready', suffix: ' ✓', hint: 'Hoàn tất' }, needs_review: { state: 'review', suffix: ' · cần xem', hint: 'Cần xem lại' },
+  generating: { state: 'running', suffix: ' · đang tạo', hint: 'Đang tạo' }, failed: { state: 'failed', suffix: ' · lỗi', hint: 'Tạo thất bại' },
+};
+
 function chips(item) {
   const tasks = item.tasks || {};
+  const status = item.artifactStatus || {};
   const list = [
-    ...(tasks.question || []).map(task => ({ key: `q-${task}`, label: TASK_LABELS.question[task] })),
-    ...(tasks.passage || []).map(task => ({ key: `p-${task}`, label: task === 'translation' ? 'Dịch đoạn văn' : TASK_LABELS.passage[task] })),
+    ...(tasks.question || []).map(task => ({ key: `q-${task}`, label: TASK_LABELS.question[task], status: status.question_pack })),
+    ...(tasks.passage || []).map(task => ({ key: `p-${task}`, label: task === 'translation' ? 'Dịch đoạn văn' : TASK_LABELS.passage[task], status: status[PASSAGE_TYPE[task]] })),
   ];
-  // Generation is not wired yet: every requested task is shown as waiting.
-  return list.map(chip => ({ ...chip, state: 'waiting', text: chip.label, hint: 'Chờ tạo' }));
+  return list.map(chip => {
+    const meta = CHIP_STATE[chip.status] || { state: 'waiting', suffix: '', hint: 'Chưa tạo' };
+    return { ...chip, state: meta.state, text: `${chip.label}${meta.suffix}`, hint: meta.hint };
+  });
 }
 
 export default function ItemList({ title, items, loading, highlightId }) {
+  const navigate = useNavigate();
   return <section className="cs-list" aria-label={title}>
     <header><h2>{title}</h2><span>· {items.length} mục</span></header>
     {loading && !items.length ? <Skeleton lines={3} />
       : !items.length ? <EmptyState title="Chưa có học liệu" description="Dán nội dung ở trên và bấm Lưu để thêm vào thư mục này." />
         : <ul>{items.map(item => {
           const isQuestion = Boolean(item.summary?.questionCount);
-          return <li key={item.id} className={item.id === highlightId ? 'is-new' : ''}>
+          const open = () => navigate(`/content-studio/items/${item.id}`);
+          return <li key={item.id} className={`is-clickable${item.id === highlightId ? ' is-new' : ''}`} onClick={open}>
             <span className={`cs-list__kind ${isQuestion ? 'is-q' : 'is-p'}`}>{isQuestion ? 'Q' : 'P'}</span>
             <div className="cs-list__body"><strong>{item.title}</strong><small>{describe(item)}</small></div>
             <div className="cs-list__chips">{chips(item).map(chip => <span key={chip.key} className={`cs-chip is-${chip.state}`} title={chip.hint}>{chip.text}</span>)}</div>
-            <Button variant="ghost" size="sm" disabled title="Màn kết quả sẽ có ở bước tiếp theo">Mở</Button>
+            <Button variant="ghost" size="sm" onClick={event => { event.stopPropagation(); open(); }}>Mở</Button>
           </li>;
         })}</ul>}
   </section>;

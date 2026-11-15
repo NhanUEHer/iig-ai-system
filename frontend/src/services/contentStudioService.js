@@ -20,3 +20,7 @@ export const updateItem = (id, body) => api.patch(`/content-studio/items/${id}`,
 export const deleteItem = id => api.delete(`/content-studio/items/${id}`).then(data);
 
 export const errorMessage = (error, fallback) => error?.response?.data?.error || error?.response?.data?.message || fallback;
+
+export const generateItem = (id, tasks) => api.post(`/content-studio/items/${id}/generate`, tasks ? { tasks } : {}).then(data);
+export const regenerateArtifact = id => api.post(`/content-studio/artifacts/${id}/regenerate`).then(data);
+export const saveArtifact = (id, content) => api.put(`/content-studio/artifacts/${id}`, { content }).then(data);

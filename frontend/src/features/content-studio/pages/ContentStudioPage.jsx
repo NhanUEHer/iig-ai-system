@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FileText, RotateCcw, Save, Upload } from 'lucide-react';
+import { FileText, RotateCcw, Save, Sparkles, Upload } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert, Badge, Button, FormField, Input, PageFrame, PageHeader, Select, Surface, Textarea,
 } from '../../../design-system-v2';
-import { createItem, detectDocx, detectText, errorMessage, listFolders, listItems } from '../../../services/contentStudioService';
+import { createItem, detectDocx, detectText, errorMessage, generateItem, listFolders, listItems } from '../../../services/contentStudioService';
 import FolderPanel from '../components/FolderPanel';
 import { ALL_FOLDERS, UNFILED, buildFolderPath, flattenFolders } from '../folderTree';
 import DetectionPreview from '../components/DetectionPreview';
@@ -48,6 +49,12 @@ export default function ContentStudioPage({ showMsg, permissions = {} }) {
     finally { setItemsLoading(false); }
   }, [selectedFolder]);
   useEffect(() => { loadItems(); }, [loadItems]);
+  const anyGenerating = items.some(item => item.status === 'generating');
+  useEffect(() => {
+    if (!anyGenerating) return undefined;
+    const timer = setInterval(loadItems, 3000);
+    return () => clearInterval(timer);
+  }, [anyGenerating, loadItems]);
   // New content is saved into the folder the user is browsing.
   useEffect(() => { setTargetFolder(selectedFolder === ALL_FOLDERS || selectedFolder === UNFILED ? '' : selectedFolder); }, [selectedFolder]);
 
@@ -91,7 +98,8 @@ export default function ContentStudioPage({ showMsg, permissions = {} }) {
     setText(''); setSource({ kind: 'paste', fileName: null }); setDetection(null); setTitle(''); setTitleTouched(false);
   };
 
-  const save = async () => {
+  const navigate = useNavigate();
+  const save = async ({ andGenerate = false } = {}) => {
     if (!detection?.segments?.length || saving) return;
     setSaving(true);
     try {
@@ -99,6 +107,12 @@ export default function ContentStudioPage({ showMsg, permissions = {} }) {
         title: title.trim() || detection.title, folderId: targetFolder || null, sourceText: text,
         sourceKind: source.kind, sourceFileName: source.fileName, segments: detection.segments, tasks,
       });
+      if (andGenerate) {
+        await generateItem(saved.id);
+        showMsg?.('Đã lưu, đang tạo nội dung.', 'success');
+        navigate(`/content-studio/items/${saved.id}`);
+        return;
+      }
       showMsg?.('Đã lưu học liệu.', 'success');
       reset();
       setLastSavedId(saved.id);
@@ -156,7 +170,8 @@ export default function ContentStudioPage({ showMsg, permissions = {} }) {
                 {folderOptions.map(folder => <option key={folder.id} value={folder.id}>{`${'— '.repeat(folder.depth)}${folder.name}`}</option>)}
               </Select>
             </FormField>
-            <Button icon={<Save />} loading={saving} disabled={detecting || !title.trim()} onClick={save}>Lưu học liệu</Button>
+            <Button variant="outline" icon={<Save />} loading={saving} disabled={detecting || !title.trim()} onClick={() => save()}>Lưu</Button>
+            {permissions.generate && <Button icon={<Sparkles />} loading={saving} disabled={detecting || !title.trim() || !(tasks.passage.length || tasks.question.length)} onClick={() => save({ andGenerate: true })}>Lưu & tạo nội dung</Button>}
           </div>}
         </Surface>}
         {!canEdit && <Alert tone="info" title="Chế độ chỉ xem">Bạn cần quyền "Nhập và chỉnh sửa nội dung" để thêm học liệu.</Alert>}

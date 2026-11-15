@@ -80,3 +80,7 @@
 .cs-chip.is-ready { background: var(--iig3-color-success-soft); color: var(--iig3-color-success); }
 .cs-chip.is-review { background: var(--iig3-color-warning-soft); color: var(--iig3-color-warning); }
 .cs-chip.is-running { background: var(--iig3-color-info-soft); color: var(--iig3-color-info); }
+.cs-list li.is-clickable { cursor: pointer; }
+.cs-list li.is-clickable:hover { border-color: var(--iig3-color-border-strong); }
+.cs-chip.is-failed { background: var(--iig3-color-danger-soft); color: var(--iig3-color-danger); }
+.cs-input__save { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto auto; }

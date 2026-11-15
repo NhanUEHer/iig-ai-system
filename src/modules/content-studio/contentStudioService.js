@@ -124,7 +124,11 @@ async function listItems({ folderId, search, limit = 50 } = {}) {
     SELECT i.id, i.folder_id AS "folderId", i.title, i.status, i.source_kind AS "sourceKind",
            i.detection->'summary' AS summary, i.tasks,
            (SELECT (s.meta->>'part')::int FROM cs_segments s WHERE s.item_id = i.id AND s.kind = 'question_set' AND s.meta->>'part' IS NOT NULL ORDER BY s.position LIMIT 1) AS part,
-           (SELECT COALESCE(SUM((s.meta->>'sentenceCount')::int), 0)::int FROM cs_segments s WHERE s.item_id = i.id AND s.kind = 'passage') AS "sentenceCount", i.updated_at AS "updatedAt", COALESCE(u.name, u.username) AS "createdByName"
+           (SELECT COALESCE(SUM((s.meta->>'sentenceCount')::int), 0)::int FROM cs_segments s WHERE s.item_id = i.id AND s.kind = 'passage') AS "sentenceCount",
+           (SELECT jsonb_object_agg(type, status) FROM (
+              SELECT type, CASE WHEN bool_or(status IN ('queued','generating')) THEN 'generating' WHEN bool_or(status = 'failed') THEN 'failed'
+                                WHEN bool_or(status = 'needs_review') THEN 'needs_review' ELSE 'ready' END AS status
+              FROM cs_artifacts a WHERE a.item_id = i.id GROUP BY type) agg) AS "artifactStatus", i.updated_at AS "updatedAt", COALESCE(u.name, u.username) AS "createdByName"
     FROM cs_items i LEFT JOIN users u ON u.id = i.created_by
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
     ORDER BY i.updated_at DESC LIMIT $${params.length}`, params);
@@ -204,7 +208,15 @@ async function getItem(id, client = db) {
   const { rows: questions } = await client.query(`
     SELECT q.id, q.segment_id AS "segmentId", q.number, q.stem, q.options, q.answer_key AS "answerKey"
     FROM cs_questions q JOIN cs_segments s ON s.id = q.segment_id WHERE s.item_id = $1 ORDER BY q.number`, [id]);
-  return { ...item, segments: segments.map(segment => ({ ...segment, questions: questions.filter(question => question.segmentId === segment.id) })) };
+  const { rows: artifacts } = await client.query(`
+    SELECT id, segment_id AS "segmentId", question_id AS "questionId", type, status, content, validation, source, provider, error, attempts, updated_at AS "updatedAt"
+    FROM cs_artifacts WHERE item_id = $1`, [id]);
+  const { rows: path } = await client.query(`
+    WITH RECURSIVE chain AS (
+      SELECT id, parent_id, name, 0 AS depth FROM cs_folders WHERE id = $1
+      UNION ALL SELECT f.id, f.parent_id, f.name, c.depth + 1 FROM cs_folders f JOIN chain c ON f.id = c.parent_id WHERE c.depth < 20
+    ) SELECT id, name FROM chain ORDER BY depth DESC`, [item.folderId]);
+  return { ...item, folderPath: path, artifacts, segments: segments.map(segment => ({ ...segment, questions: questions.filter(question => question.segmentId === segment.id) })) };
 }
 
 async function updateItem(id, { title, folderId }) {
