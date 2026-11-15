@@ -15,8 +15,8 @@ ENV NODE_ENV=production PORT=3001 ADMIN_API_PORT=3001
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl ffmpeg gosu python3 tini \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p public/cleaned-audio public/local_audio public/local_voices public/tmp_local \
-       public/dialogues public/custom_voices public/question-bank-media \
+    && mkdir -p public/cleaned-audio \
+       public/dialogues public/question-bank-media \
     && chmod 755 /usr/local/bin/api-entrypoint \
     && chown -R node:node /app
 EXPOSE 3001

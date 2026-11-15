@@ -20,21 +20,6 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         secure: false,
       },
-      '/local_audio': {
-        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:5005',
-        changeOrigin: true,
-        secure: false,
-      },
-      '/tmp_local': {
-        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:5005',
-        changeOrigin: true,
-        secure: false,
-      },
-      '/local_voices': {
-        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:5005',
-        changeOrigin: true,
-        secure: false,
-      },
       '/question-bank-media': {
         target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:5005',
         changeOrigin: true,

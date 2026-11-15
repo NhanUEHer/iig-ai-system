@@ -52,19 +52,6 @@ test('multi-role migration creates assignments, audit history, and legacy backfi
   assert.match(migration, /ON CONFLICT \(user_id, role_id\)/);
 });
 
-test('voice cloning uses the local OpenVoice engine and requires a successful preview draft', () => {
-  const cloneService = read('src/services/voiceCloneService.js');
-  const controller = read('src/controllers/localTtsController.js');
-  const migration = read('src/database/migrations/009_voice_clone_engine.sql');
-
-  assert.match(cloneService, /openvoice_bridge\.py/);
-  assert.match(cloneService, /consent/);
-  assert.match(controller, /saveClonedVoice/);
-  assert.match(controller, /VOICE_CLONE_ENGINE_UNAVAILABLE/);
-  assert.match(migration, /ADD COLUMN IF NOT EXISTS engine/);
-  assert.doesNotMatch(controller, /edge_tts/);
-});
-
 test('mapping routes support create, update, and delete', () => {
   const routes = read('src/routes/submissions/mappingRoutes.js');
   const scheduleMigration = read('src/database/migrations/010_mapping_sync_schedule.sql');
@@ -121,15 +108,6 @@ test('production deploy is locked, immutable, identity-verified and rollback-cap
   assert.match(backupScript,/\.partial-/);
   assert.match(backupScript,/SHA256SUMS/);
   assert.match(backupScript,/NR>3/);
-});
-
-test('production nginx serves generated Local TTS media before the SPA fallback', () => {
-  const nginx = read('deploy/nginx-ai-scoring.conf');
-  const localAudio = nginx.indexOf('location /local_audio/');
-  const spaFallback = nginx.indexOf('location / {');
-  assert.ok(localAudio >= 0 && localAudio < spaFallback);
-  assert.match(nginx, /location \/local_voices\//);
-  assert.match(nginx, /location \/tmp_local\//);
 });
 
 test('production nginx serves PDF.js module workers with a JavaScript MIME type', () => {

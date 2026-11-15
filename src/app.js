@@ -3,7 +3,6 @@ const cors = require('cors');
 const submissionRoutes = require('./routes/submissionRoutes');
 const authRoutes = require('./routes/authRoutes');
 const agentRoutes = require('./routes/agentRoutes');
-const localTtsRoutes = require('./routes/localTtsRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const expenseRoutes = require('./routes/expenseRoutes');
 const keyVocabRoutes = require('./routes/keyVocabRoutes');
@@ -35,9 +34,6 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Serve static directories
-app.use('/local_audio', express.static(path.join(__dirname, '../public/local_audio')));
-app.use('/local_voices', express.static(path.join(__dirname, '../public/local_voices')));
-app.use('/tmp_local', express.static(path.join(__dirname, '../public/tmp_local')));
 app.use('/question-bank-media', express.static(path.join(__dirname, '../public/question-bank-media')));
 
 // Public candidate routes
@@ -47,7 +43,6 @@ app.use('/api/public/exams', publicExamCatalogRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/submissions', authenticate, submissionRoutes);
 app.use('/api/agents', authenticate, agentRoutes);
-app.use('/api/local-tts', authenticate, localTtsRoutes);
 app.use('/api/reports', authenticate, reportRoutes);
 app.use('/api/expenses', authenticate, expenseRoutes);
 app.use('/api/key-vocab', authenticate, keyVocabRoutes);

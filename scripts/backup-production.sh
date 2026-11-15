@@ -32,7 +32,7 @@ sshpass -p "$VPS_PASSWORD" ssh "${SSH_OPTIONS[@]}" root@"$VPS_IP" "
   pg_dump --format=custom --no-owner --no-acl --file='$REMOTE_PARTIAL/database.dump' \"\$DB_URL\"
   pg_dump --format=custom --no-owner --no-acl --data-only --table=keycode_mappings --table=mocktest_submissions --table=submission_answers --table=ai_evaluation_results --file='$REMOTE_PARTIAL/scoring-data.dump' \"\$DB_URL\"
   psql \"\$DB_URL\" -Atc \"SELECT 'keycode_mappings='||COUNT(*) FROM keycode_mappings UNION ALL SELECT 'mocktest_submissions='||COUNT(*) FROM mocktest_submissions UNION ALL SELECT 'submission_answers='||COUNT(*) FROM submission_answers UNION ALL SELECT 'ai_evaluation_results='||COUNT(*) FROM ai_evaluation_results\" > '$REMOTE_PARTIAL/counts.txt'
-  tar -czf '$REMOTE_PARTIAL/media.tar.gz' public/cleaned-audio public/local_audio public/local_voices
+  tar -czf '$REMOTE_PARTIAL/media.tar.gz' public/cleaned-audio
   pg_restore --list '$REMOTE_PARTIAL/database.dump' > '$REMOTE_PARTIAL/database.contents.txt'
   pg_restore --list '$REMOTE_PARTIAL/scoring-data.dump' > '$REMOTE_PARTIAL/scoring-data.contents.txt'
   version=\$(node -p \"require('./package.json').version\")

@@ -48,7 +48,6 @@ export const applicationNavigation = [
     items: [
       { id: 'content-sources', label: 'Nguồn học liệu', to: '/content-sources', icon: Archive, permissions: ['content_sources.view', 'content_sources.create'] },
       { id: 'content-development', label: 'Phát triển học liệu', to: '/content-development', icon: BookOpen, permissions: ['content_sources.view', 'content_sources.analyze'] },
-      { id: 'local-tts', label: 'Audio Studio', to: '/local-tts', icon: Sparkles, permission: 'audio.view' },
       { id: 'key-vocab', label: 'Tạo học liệu', to: '/key-vocab', icon: GraduationCap, permissions: ['key_vocab.view', 'key_vocab.generate', 'key_vocab.manage', 'dictionary.view', 'dictionary.generate', 'dictionary.manage'] },
     ],
   },
