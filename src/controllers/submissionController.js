@@ -3,7 +3,6 @@
 const syncController = require('./syncController');
 const mappingController = require('./mappingController');
 const coreController = require('./coreSubmissionController');
-const scoringController = require('./scoringController');
 const exportController = require('./exportController');
 
 module.exports = {
@@ -17,9 +16,6 @@ module.exports = {
   listMappings: mappingController.list,
   saveMapping: mappingController.save,
   deleteMapping: mappingController.remove,
-  gradeAnswerWithAI: scoringController.gradeAnswer,
-  transcribeAnswerWithAI: scoringController.transcribeAnswer,
-  cleanAnswerAudio: scoringController.cleanAudio,
-  saveTeacherNote: scoringController.teacherNote,
+  saveTeacherNote: coreController.teacherNote,
   exportSubmissionsExcel: exportController.exportSubmissions
 };

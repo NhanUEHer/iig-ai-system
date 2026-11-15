@@ -6,17 +6,27 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 
-test('container topology keeps one shared API and two isolated web applications', () => {
+test('container topology owns Admin API and web applications but not isolated AI Scoring', () => {
   const compose = read('deploy/docker-compose.yml');
-  assert.match(compose, /^  api:/m);
+  assert.match(compose, /^  admin-api:/m);
+  assert.doesNotMatch(compose, /^  scoring-api:/m);
+  assert.doesNotMatch(compose, /^  scoring-worker:/m);
   assert.match(compose, /^  migrate:/m);
   assert.match(compose, /^  redis:/m);
   assert.match(compose, /^  admin-web:/m);
   assert.match(compose, /^  exam-web:/m);
+  assert.match(compose, /iig-admin-api/);
+  assert.doesNotMatch(compose, /iig-ai-scoring-api/);
+  assert.doesNotMatch(compose, /iig-ai-scoring-worker/);
   assert.match(compose, /iig-admin-admin-web/);
   assert.match(compose, /iig-admin-exam-web/);
   assert.doesNotMatch(compose, /\/iig-exam-web:/);
-  assert.equal((compose.match(/^  api:/gm) || []).length, 1);
+  assert.doesNotMatch(compose, /^  api:/m);
+  assert.match(compose, /ADMIN_API_IMAGE_TAG/);
+  assert.doesNotMatch(compose, /SCORING_API_IMAGE_TAG/);
+  assert.doesNotMatch(compose, /SCORING_WORKER_IMAGE_TAG/);
+  assert.match(compose, /ADMIN_WEB_IMAGE_TAG/);
+  assert.match(compose, /EXAM_WEB_IMAGE_TAG/);
   assert.match(compose, /condition: service_completed_successfully/);
   assert.match(compose, /condition: service_healthy/);
   assert.match(compose, /name: iig-admin-\$\{DEPLOY_ENV:-beta\}/);
@@ -26,8 +36,8 @@ test('container topology keeps one shared API and two isolated web applications'
   assert.doesNotMatch(compose, /^\s+- .*:6379:6379$/m);
   assert.match(compose, /127\.0\.0\.1:\$\{ADMIN_PORT/);
   assert.match(compose, /127\.0\.0\.1:\$\{EXAM_PORT/);
-  assert.match(compose, /driver: journald/);
-  assert.match(compose, /tag: "iig-admin-\{\{\.Name\}\}"/);
+  assert.equal((compose.match(/driver: journald/g) || []).length, 1);
+  assert.equal((compose.match(/tag: "iig-admin-\{\{\.Name\}\}"/g) || []).length, 1);
 });
 
 test('API observability uses structured request logs without sensitive query strings', () => {
@@ -55,6 +65,56 @@ test('container release uses immutable SHA tags and protected environments', () 
   assert.match(workflow, /platforms: linux\/arm64/);
   assert.match(workflow, /version="\$\(node -p 'require\("\.\/package\.json"\)\.version'\)"/);
   assert.doesNotMatch(workflow, /node -p \\"require\('\.\/package\.json'\)\.version\\"/);
+  assert.doesNotMatch(workflow, /scoring-api|scoring-worker|iig-ai-scoring/);
+});
+
+test('Beta deploy adds isolated PostgreSQL and dedicated Admin and Exam domains only', () => {
+  const baseCompose = read('deploy/docker-compose.yml');
+  const betaCompose = read('deploy/docker-compose.beta.yml');
+  const betaNginx = read('deploy/nginx-beta.conf');
+  const deploy = read('scripts/deploy-containers.sh');
+  const workflow = read('.github/workflows/release-containers.yml');
+
+  assert.doesNotMatch(baseCompose, /^  postgres:/m);
+  assert.match(betaCompose, /^  postgres:/m);
+  assert.match(betaCompose, /iig-admin-beta-postgres-data/);
+  assert.match(betaCompose, /condition: service_healthy/);
+  assert.match(betaNginx, /server_name admin-beta\.iigvn\.site/);
+  assert.match(betaNginx, /proxy_pass http:\/\/127\.0\.0\.1:3212/);
+  assert.match(betaNginx, /server_name exam-beta\.iigvn\.site/);
+  assert.match(betaNginx, /proxy_pass http:\/\/127\.0\.0\.1:3213/);
+  assert.match(deploy, /compose_files\+=\(-f docker-compose\.beta\.yml\)/);
+  assert.match(workflow, /deploy\/docker-compose\.beta\.yml/);
+  assert.match(workflow, /deploy\/nginx-beta\.conf/);
+  assert.match(workflow, /scripts\/configure-beta-environment\.sh/);
+  assert.match(workflow, /environment: beta/);
+  assert.match(workflow, /secrets\.BOOTSTRAP_ADMIN_EMAIL/);
+  assert.match(workflow, /secrets\.BOOTSTRAP_ADMIN_PASSWORD/);
+  assert.match(workflow, /install -m 600 \/dev\/null bootstrap-admin\.env/);
+  assert.match(workflow, /bootstrap-admin\.env/);
+  assert.doesNotMatch(workflow, /\/opt\/iig-admin\/beta\/\.bootstrap-admin\.env/);
+  assert.match(deploy, /configure-beta-environment\.sh/);
+  assert.match(deploy, /compose --profile bootstrap run --rm bootstrap-admin/);
+  assert.match(deploy, /rm -f bootstrap-admin\.env/);
+
+  const betaBootstrap = read('scripts/configure-beta-environment.sh');
+  assert.match(betaBootstrap, /bootstrap-admin\.env/);
+  assert.match(betaBootstrap, /chmod 600 "\$BOOTSTRAP_ENV"/);
+  assert.match(betaBootstrap, /read_env WEBHOOK_SECRET_ENCRYPTION_KEY/);
+  assert.match(betaBootstrap, /openssl rand -hex 32/);
+  assert.match(betaBootstrap, /upsert_env WEBHOOK_SECRET_ENCRYPTION_KEY/);
+  assert.match(
+    betaBootstrap,
+    /upsert_env AI_SCORING_ADMIN_URL https:\/\/ai-scoring-beta\.iigvn\.site/,
+  );
+  assert.doesNotMatch(betaBootstrap, /upsert_env AI_SCORING_ADMIN_SERVICE_TOKEN/);
+  assert.doesNotMatch(betaBootstrap, /Configure BOOTSTRAP_ADMIN_EMAIL/);
+
+  const betaEnvironment = read('deploy/.env.container.beta.example');
+  assert.match(betaEnvironment, /^WEBHOOK_SECRET_ENCRYPTION_KEY=CHANGE_ME_AT_LEAST_32_RANDOM_CHARACTERS$/m);
+
+  const productionUpload = workflow.slice(workflow.indexOf('deploy-production:'));
+  assert.doesNotMatch(productionUpload, /docker-compose\.beta\.yml|nginx-beta\.conf|configure-beta-environment|BOOTSTRAP_ADMIN/);
 });
 
 test('runtime secrets and mutable data are excluded from images', () => {
@@ -69,15 +129,43 @@ test('runtime secrets and mutable data are excluded from images', () => {
   assert.match(compose, /MODEL_ROOT is required/);
 });
 
-test('deployment verifies API identity and both frontend health endpoints', () => {
+test('deployment requires the isolated Scoring URL and credential without generating secrets', () => {
   const deploy = read('scripts/deploy-containers.sh');
+  assert.match(deploy, /require_runtime_value AI_SCORING_ADMIN_URL/);
+  assert.match(deploy, /require_runtime_value AI_SCORING_ADMIN_SERVICE_TOKEN/);
+  assert.match(deploy, /Missing required isolated-service configuration/);
+  assert.doesNotMatch(deploy, /openssl rand|generated_secret|ensure_runtime_secret/);
+});
+
+test('deployment verifies external Scoring readiness, API identity and both frontend health endpoints', () => {
+  const deploy = read('scripts/deploy-containers.sh');
+  assert.match(deploy, /scoring_admin_url/);
+  assert.match(deploy, /health\/ready/);
+  assert.match(deploy, /value\.status !== "ok"/);
+  assert.match(deploy, /value\.database !== "ready"/);
+  assert.match(deploy, /AI Scoring readiness check failed/);
   assert.match(deploy, /EXPECTED_VERSION/);
   assert.match(deploy, /EXPECTED_COMMIT/);
   assert.match(deploy, /admin_port/);
   assert.match(deploy, /exam_port/);
   assert.match(deploy, /\.env\.rollback/);
   assert.match(deploy, /restoring previous immutable release/);
+  assert.match(deploy, /previous_admin_api_image="\$\(running_image admin-api\)"/);
+  assert.match(deploy, /previous_admin_web_image="\$\(running_image admin-web\)"/);
+  assert.match(deploy, /previous_exam_web_image="\$\(running_image exam-web\)"/);
+  assert.match(deploy, /verify_service admin-api/);
+  assert.match(deploy, /verify_service admin-web/);
+  assert.match(deploy, /verify_service exam-web/);
   assert.doesNotMatch(deploy, /docker image prune/);
+});
+
+test('browser AI Scoring routes stay behind the Admin BFF', () => {
+  for (const file of ['deploy/docker/admin.nginx.conf', 'deploy/docker/exam.nginx.conf']) {
+    const nginx = read(file);
+    assert.match(nginx, /location \^~ \/api\/ai-scoring\//);
+    assert.match(nginx, /proxy_pass http:\/\/admin-api:3001;/);
+    assert.doesNotMatch(nginx, /scoring-api/);
+  }
 });
 
 test('GitHub deployment credential is constrained by a forced-command gateway', () => {

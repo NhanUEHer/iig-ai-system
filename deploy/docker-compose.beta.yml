@@ -1,0 +1,48 @@
+services:
+  postgres:
+    restart: unless-stopped
+    mem_limit: 512m
+    memswap_limit: 1g
+    cpus: 1
+    image: postgres:16-alpine
+    init: true
+    env_file: [.env.container]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    networks: [app]
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  migrate:
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  bootstrap-admin:
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-admin-api:${ADMIN_API_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
+    restart: "no"
+    profiles: [bootstrap]
+    command:
+      - node
+      - -e
+      - require('./src/config/initDb')().then(() => process.exit(0)).catch((error) => { console.error(error); process.exit(1); })
+    env_file: [.env.container, bootstrap-admin.env]
+    environment:
+      NODE_ENV: production
+      APP_ENV: beta
+      APP_VERSION: ${APP_VERSION:?APP_VERSION is required}
+      APP_COMMIT: ${APP_COMMIT:?APP_COMMIT is required}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      postgres: { condition: service_healthy }
+    networks: [app]
+
+volumes:
+  postgres-data:
+    name: iig-admin-beta-postgres-data
