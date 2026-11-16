@@ -24,7 +24,8 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   const [saving, setSaving] = useState(false);
   const [editingSource, setEditingSource] = useState(false);
   const [activeWord, setActiveWord] = useState(null); // [passageId, index]
-  const [activeEntry, setActiveEntry] = useState(null); // [passageId, sentenceIndex, entryIndex]
+  const [activeEntry, setActiveEntry] = useState(null);
+  const [activeSentence, setActiveSentence] = useState(null); // [passageId, sentenceIndex, entryIndex]
   const [generating, setGenerating] = useState(false);
   const showMsgRef = useRef(showMsg);
   useEffect(() => { showMsgRef.current = showMsg; }, [showMsg]);
@@ -137,11 +138,13 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   const activeTab = tabs.some(entry => entry.value === tab) ? tab : tabs[0]?.value;
   // Vocab / dictionary terms are highlighted in the fixed source on the left.
   const termsFor = passage => {
+    if (activeTab === 'translation') return activeSentence ? [activeSentence] : [];
     if (activeTab === 'vocab') { const artifact = artifactFor('vocab', passage.id); return ((artifact && (drafts[artifact.id] ?? artifact.content))?.items || []).map(word => word.inText); }
     if (activeTab === 'dictionary') { const artifact = artifactFor('dictionary', passage.id); return ((artifact && (drafts[artifact.id] ?? artifact.content))?.sentences || []).flatMap(sentence => (sentence.entries || []).map(entry => entry.inText)); }
     return [];
   };
   const activeTerm = passage => {
+    if (activeTab === 'translation') return activeSentence;
     if (activeTab === 'dictionary' && activeEntry?.[0] === passage.id) {
       const artifact = artifactFor('dictionary', passage.id);
       return (artifact && (drafts[artifact.id] ?? artifact.content))?.sentences?.[activeEntry[1]]?.entries?.[activeEntry[2]]?.inText;
@@ -189,7 +192,7 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
         <div className="cs-hub__tabs"><Tabs value={activeTab} onChange={setTab} items={tabs} /></div>
         <div className="cs-hub__body">
           {activeTab === 'translation' && passages.map(passage => <div key={passage.id} className="cs-hub__block">
-            <TranslationView {...editorProps(artifactFor('passage_translation', passage.id))} shell={passageShell('translation')} />
+            <TranslationView {...editorProps(artifactFor('passage_translation', passage.id))} shell={passageShell('translation')} onFocusSentence={setActiveSentence} />
           </div>)}
           {activeTab === 'vocab' && passages.map(passage => <div key={passage.id} className="cs-hub__block">
             <VocabView {...editorProps(artifactFor('vocab', passage.id))} shell={passageShell('vocab')}
