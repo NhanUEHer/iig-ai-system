@@ -107,6 +107,9 @@ export function VocabView({ artifact, draft, dirty, onChange: update, shell, act
   </ArtifactShell>;
 }
 
+// Comma-separated list fields; trailing comma is kept while typing.
+const splitList = value => value.split(',').map(word => word.trimStart());
+
 function DocField({ label, value, onChange, placeholder }) {
   return <label className="cs-entry-field"><span>{label}</span>
     <textarea rows={1} value={value || ''} placeholder={placeholder}
@@ -147,7 +150,9 @@ export function DictionaryView({ artifact, draft, dirty, onChange: update, shell
                       <DocField label="Ngữ cảnh" value={item.context} placeholder="Nghĩa của từ trong câu này" onChange={value => set({ context: value })} />
                       <DocField label="Ví dụ" value={item.example?.en} placeholder="Example sentence" onChange={value => set({ example: { ...item.example, en: value } })} />
                       <DocField label="Dịch ví dụ" value={item.example?.vi} placeholder="Câu ví dụ tiếng Việt" onChange={value => set({ example: { ...item.example, vi: value } })} />
-                      <DocField label="Đồng nghĩa" value={(item.synonyms || []).join(', ')} placeholder="cách nhau bằng dấu phẩy" onChange={value => set({ synonyms: value.split(',').map(word => word.trim()).filter(Boolean) })} />
+                      <DocField label="Đồng nghĩa" value={(item.synonyms || []).join(', ')} placeholder="cách nhau bằng dấu phẩy" onChange={value => set({ synonyms: splitList(value) })} />
+                      <DocField label="Collocations" value={(item.collocations || []).join(', ')} placeholder="cụm từ đi kèm, cách nhau bằng dấu phẩy" onChange={value => set({ collocations: splitList(value) })} />
+                      <DocField label="Word family" value={(item.wordFamily || []).join(', ')} placeholder="VD: propose (v), proposal (n)" onChange={value => set({ wordFamily: splitList(value) })} />
                     </div>
                   </div>
                   <span className="cs-words__actions"><button type="button" className="cs-icon-btn" title="Thu gọn" aria-label="Thu gọn" onClick={() => onActivate(null)}><Check /></button></span>

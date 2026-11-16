@@ -111,6 +111,15 @@ async function regenerate(artifactId) {
   return { id: artifactId };
 }
 
+// Editors keep empty items while typing comma lists; drop them before storing.
+function cleanDictionaryLists(content) {
+  const clean = list => (Array.isArray(list) ? list.map(value => String(value).trim()).filter(Boolean) : []);
+  return { ...content, sentences: (content.sentences || []).map(sentence => ({
+    ...sentence,
+    entries: (sentence.entries || []).map(entry => ({ ...entry, synonyms: clean(entry.synonyms), collocations: clean(entry.collocations), wordFamily: clean(entry.wordFamily) })),
+  })) };
+}
+
 async function saveEdit(artifactId, content, userId) {
   requireId(artifactId, 'id');
   if (!content || typeof content !== 'object') throw new HttpError('Nội dung không hợp lệ.', 400, 'INVALID_CONTENT');
@@ -118,6 +127,7 @@ async function saveEdit(artifactId, content, userId) {
     const { rows: [artifact] } = await client.query('SELECT * FROM cs_artifacts WHERE id = $1 FOR UPDATE', [artifactId]);
     if (!artifact) throw new HttpError('Không tìm thấy nội dung.', 404, 'ARTIFACT_NOT_FOUND');
     if (['queued', 'generating'].includes(artifact.status)) throw new HttpError('Nội dung đang được tạo, hãy chờ xong rồi sửa.', 409, 'ARTIFACT_BUSY');
+    if (artifact.type === 'dictionary') content = cleanDictionaryLists(content);
     const validation = validate(artifact.type, content, await loadContext(client, artifact));
     const status = validation.issues.length ? 'needs_review' : 'ready';
     await client.query(`
