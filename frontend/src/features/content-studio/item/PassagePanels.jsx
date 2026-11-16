@@ -16,28 +16,31 @@ export function highlight(text, terms, active) {
 const LETTERS = ['A', 'B', 'C', 'D'];
 
 // Edit the original passage(s) and questions. Value: { segments: {id: text}, questions: {id: {stem, options, answerKey}} }.
-export function SourceEditor({ passages, questions, draft, onChange, readOnly }) {
+const autoSize = event => { const el = event.target; el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px`; };
+
+// Document-style editing of the original passage + questions: looks like the read view, every line is editable in place.
+export function SourceEditor({ passages, questions, draft, onChange }) {
   const segmentText = passage => draft.segments?.[passage.id] ?? passage.text;
   const questionValue = question => draft.questions?.[question.id] ?? { stem: question.stem, options: question.options, answerKey: question.answerKey };
   const setSegment = (passage, text) => onChange({ ...draft, segments: { ...draft.segments, [passage.id]: text } });
   const setQuestion = (question, patch) => onChange({ ...draft, questions: { ...draft.questions, [question.id]: { ...questionValue(question), ...patch } } });
-  return <div className="cs-source-edit">
-    {passages.map((passage, index) => <FormField key={passage.id} label={passages.length > 1 ? `Đoạn văn ${index + 1}` : 'Đoạn văn'}>
-      <Textarea rows={12} value={segmentText(passage)} readOnly={readOnly} onChange={event => setSegment(passage, event.target.value)} />
-    </FormField>)}
-    {questions.map(question => {
-      const value = questionValue(question);
-      return <fieldset key={question.id} className="cs-source-edit__q">
-        <legend>Câu {question.number}</legend>
-        <Input aria-label="Câu hỏi" value={value.stem} readOnly={readOnly} onChange={event => setQuestion(question, { stem: event.target.value })} />
-        <div className="cs-source-edit__opts">
-          {LETTERS.filter(letter => question.options?.[letter] != null).map(letter => <label key={letter} className={value.answerKey === letter ? 'is-answer' : ''}>
-            <input type="radio" name={`answer-${question.id}`} checked={value.answerKey === letter} disabled={readOnly} onChange={() => setQuestion(question, { answerKey: letter })} aria-label={`Đáp án đúng ${letter}`} />
-            <Input prefix={`${letter}.`} value={value.options?.[letter] || ''} readOnly={readOnly} onChange={event => setQuestion(question, { options: { ...value.options, [letter]: event.target.value } })} />
-          </label>)}
-        </div>
-      </fieldset>;
-    })}
+  return <div className="cs-doc">
+    <p className="cs-doc__hint">Bấm vào chữ để sửa · bấm chữ cái A–D để đổi đáp án đúng</p>
+    {passages.map(passage => <textarea key={passage.id} className="cs-doc__passage" aria-label="Đoạn văn" value={segmentText(passage)}
+      ref={el => { if (el) { el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px`; } }}
+      onInput={autoSize} onChange={event => setSegment(passage, event.target.value)} />)}
+    {questions.length > 0 && <ol className="cs-doc__questions">
+      {questions.map(question => {
+        const value = questionValue(question);
+        return <li key={question.id}>
+          <div className="cs-doc__stem"><span>{question.number}.</span><input aria-label={`Câu hỏi ${question.number}`} value={value.stem} onChange={event => setQuestion(question, { stem: event.target.value })} /></div>
+          {LETTERS.filter(letter => question.options?.[letter] != null).map(letter => <div key={letter} className={`cs-doc__opt${value.answerKey === letter ? ' is-answer' : ''}`}>
+            <button type="button" title="Đặt làm đáp án đúng" aria-pressed={value.answerKey === letter} onClick={() => setQuestion(question, { answerKey: letter })}>{letter}</button>
+            <input aria-label={`Đáp án ${letter} câu ${question.number}`} value={value.options?.[letter] || ''} onChange={event => setQuestion(question, { options: { ...value.options, [letter]: event.target.value } })} />
+          </div>)}
+        </li>;
+      })}
+    </ol>}
   </div>;
 }
 

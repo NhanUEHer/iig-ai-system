@@ -173,7 +173,7 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
           {permissions.edit && <Button variant={editingSource ? 'outline' : 'ghost'} size="sm" icon={editingSource ? <Check /> : <Pencil />} onClick={() => setEditingSource(value => !value)}>{editingSource ? 'Xong' : 'Sửa'}</Button>}
         </header>
         {editingSource ? <div className="cs-hub__body">
-          <SourceEditor passages={passages} questions={questions} draft={sourceDraft} onChange={setSourceDraft} readOnly={false} />
+          <SourceEditor passages={passages} questions={questions} draft={sourceDraft} onChange={setSourceDraft} />
         </div> : <div className="cs-hub__body">
           {passages.map(passage => <p key={passage.id} className="cs-source">{highlight(sourceDraft.segments[passage.id] ?? passage.text, termsFor(passage), activeTerm(passage))}</p>)}
           {questions.length > 0 && <ol className="cs-source-q">
