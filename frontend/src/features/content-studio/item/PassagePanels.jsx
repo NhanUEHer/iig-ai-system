@@ -1,6 +1,6 @@
 import React from 'react';
 import { Check, Plus, Trash2 } from 'lucide-react';
-import { Button, FormField, Input, Textarea } from '../../../design-system-v2';
+import { Button } from '../../../design-system-v2';
 import ArtifactShell from './ArtifactShell';
 
 const POS = ['Noun', 'Verb', 'Adjective', 'Adverb', 'Noun Phrase', 'Verb Phrase', 'Phrasal Verb', 'Prepositional Phrase', 'Idiom', 'Preposition', 'Conjunction', 'Phrase'];
@@ -107,30 +107,22 @@ export function VocabView({ artifact, draft, dirty, onChange: update, shell, act
   </ArtifactShell>;
 }
 
-function EntryEditor({ entry, onChange, readOnly }) {
-  const set = patch => onChange({ ...entry, ...patch });
-  return <div className="cs-words__edit">
-    <FormField label="Từ"><Input value={entry.lemma || ''} readOnly={readOnly} onChange={event => set({ lemma: event.target.value })} /></FormField>
-    <FormField label="Dạng trong bài"><Input value={entry.inText || ''} readOnly={readOnly} onChange={event => set({ inText: event.target.value })} /></FormField>
-    <FormField label="Loại từ"><select className="cs-select" value={entry.pos || 'Noun'} disabled={readOnly} onChange={event => set({ pos: event.target.value })}>{POS.map(pos => <option key={pos}>{pos}</option>)}</select></FormField>
-    <FormField label="IPA"><Input value={entry.ipa || ''} readOnly={readOnly} onChange={event => set({ ipa: event.target.value })} /></FormField>
-    <FormField label="Nghĩa tiếng Việt" className="cs-words__wide"><Input value={entry.meaningVi || ''} readOnly={readOnly} onChange={event => set({ meaningVi: event.target.value })} /></FormField>
-    <FormField label="Định nghĩa tiếng Anh" className="cs-words__wide"><Textarea rows={2} value={entry.meaningEn || ''} readOnly={readOnly} onChange={event => set({ meaningEn: event.target.value })} /></FormField>
-    <FormField label="Ngữ cảnh trong bài" className="cs-words__wide"><Textarea rows={2} value={entry.context || ''} readOnly={readOnly} onChange={event => set({ context: event.target.value })} /></FormField>
-    <FormField label="Ví dụ"><Textarea rows={2} value={entry.example?.en || ''} readOnly={readOnly} onChange={event => set({ example: { ...entry.example, en: event.target.value } })} /></FormField>
-    <FormField label="Dịch ví dụ"><Textarea rows={2} value={entry.example?.vi || ''} readOnly={readOnly} onChange={event => set({ example: { ...entry.example, vi: event.target.value } })} /></FormField>
-    <FormField label="Từ đồng nghĩa" description="Ngăn cách bằng dấu phẩy" className="cs-words__wide"><Input value={(entry.synonyms || []).join(', ')} readOnly={readOnly} onChange={event => set({ synonyms: event.target.value.split(',').map(value => value.trim()).filter(Boolean) })} /></FormField>
-  </div>;
+function DocField({ label, value, onChange, placeholder }) {
+  return <label className="cs-entry-field"><span>{label}</span>
+    <textarea rows={1} value={value || ''} placeholder={placeholder}
+      ref={el => { if (el) { el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px`; } }}
+      onInput={autoSize} onChange={event => onChange(event.target.value)} />
+  </label>;
 }
 
-// Same pattern as the vocab list: compact rows grouped by sentence, click a row to edit; terms are highlighted on the left.
+// Dictionary: same inline pattern as vocab — click a word to edit it in its row, extra fields below, delete per row.
 export function DictionaryView({ artifact, draft, dirty, onChange: update, shell, active, onActivate }) {
   const sentences = draft?.sentences || [];
   const total = sentences.reduce((sum, sentence) => sum + (sentence.entries?.length || 0), 0);
-  const setEntry = (si, ei, next) => update({
-    ...draft,
-    sentences: sentences.map((sentence, index) => (index !== si ? sentence : { ...sentence, entries: sentence.entries.map((item, i) => (i === ei ? next : item)) })),
-  });
+  const ro = !shell.canEdit;
+  const mapEntries = (si, fn) => update({ ...draft, sentences: sentences.map((sentence, index) => (index !== si ? sentence : { ...sentence, entries: fn(sentence.entries || []) })) });
+  const setEntry = (si, ei, patch) => mapEntries(si, entries => entries.map((item, i) => (i === ei ? { ...item, ...patch } : item)));
+  const remove = (si, ei) => { mapEntries(si, entries => entries.filter((_, i) => i !== ei)); onActivate(null); };
   return <ArtifactShell artifact={artifact} label="từ điển" dirty={dirty} shell={shell}>
     <p className="cs-muted">{total} từ/cụm từ · {sentences.length} câu</p>
     <div className="cs-dict-groups">
@@ -139,17 +131,39 @@ export function DictionaryView({ artifact, draft, dirty, onChange: update, shell
         {(sentence.entries || []).length > 0 && <ul className="cs-words">
           {sentence.entries.map((item, ei) => {
             const isActive = active?.[0] === si && active?.[1] === ei;
+            const set = patch => setEntry(si, ei, patch);
             return <li key={ei} className={isActive ? 'is-active' : ''}>
-              <button type="button" className="cs-words__row" onClick={() => onActivate(isActive ? null : [si, ei])} aria-expanded={isActive}>
-                <span className="cs-num">{pad(ei + 1)}</span>
-                <span className="cs-words__main">
-                  <strong>{item.lemma}</strong>
-                  {item.pos && <span className="cs-tag">{item.pos}</span>}
-                  {item.ipa && <small>{item.ipa}</small>}
-                </span>
-                <span className="cs-words__meaning">{item.meaningVi}</span>
-              </button>
-              {isActive && <EntryEditor entry={item} readOnly={!shell.canEdit} onChange={next => setEntry(si, ei, next)} />}
+              {isActive && !ro
+                ? <div className="cs-doc cs-words__inline">
+                  <span className="cs-num">{pad(ei + 1)}</span>
+                  <div className="cs-words__main">
+                    <input className="cs-words__lemma" aria-label="Từ" placeholder="Từ" value={item.lemma || ''} onChange={event => set({ lemma: event.target.value })} />
+                    <select className="cs-tag cs-tag--select" aria-label="Loại từ" value={item.pos || 'Noun'} onChange={event => set({ pos: event.target.value })}>{POS.map(pos => <option key={pos}>{pos}</option>)}</select>
+                    <input className="cs-words__ipa" aria-label="IPA" placeholder="/IPA/" value={item.ipa || ''} onChange={event => set({ ipa: event.target.value })} />
+                    <input className="cs-words__meaning" aria-label="Nghĩa tiếng Việt" placeholder="Nghĩa tiếng Việt" value={item.meaningVi || ''} onChange={event => set({ meaningVi: event.target.value })} />
+                    <label className="cs-words__intext">trong bài: <input aria-label="Dạng trong bài" value={item.inText || ''} onChange={event => set({ inText: event.target.value })} /></label>
+                    <div className="cs-entry-fields">
+                      <DocField label="Định nghĩa" value={item.meaningEn} placeholder="English definition" onChange={value => set({ meaningEn: value })} />
+                      <DocField label="Ngữ cảnh" value={item.context} placeholder="Nghĩa của từ trong câu này" onChange={value => set({ context: value })} />
+                      <DocField label="Ví dụ" value={item.example?.en} placeholder="Example sentence" onChange={value => set({ example: { ...item.example, en: value } })} />
+                      <DocField label="Dịch ví dụ" value={item.example?.vi} placeholder="Câu ví dụ tiếng Việt" onChange={value => set({ example: { ...item.example, vi: value } })} />
+                      <DocField label="Đồng nghĩa" value={(item.synonyms || []).join(', ')} placeholder="cách nhau bằng dấu phẩy" onChange={value => set({ synonyms: value.split(',').map(word => word.trim()).filter(Boolean) })} />
+                    </div>
+                  </div>
+                  <span className="cs-words__actions"><button type="button" className="cs-icon-btn" title="Thu gọn" aria-label="Thu gọn" onClick={() => onActivate(null)}><Check /></button></span>
+                </div>
+                : <div className="cs-words__row" role="button" tabIndex={0} onClick={() => onActivate(isActive ? null : [si, ei])} onKeyDown={event => { if (event.key === 'Enter') onActivate([si, ei]); }}>
+                  <span className="cs-num">{pad(ei + 1)}</span>
+                  <span className="cs-words__main">
+                    <strong>{item.lemma}</strong>
+                    {item.pos && <span className="cs-tag">{item.pos}</span>}
+                    {item.ipa && <small>{item.ipa}</small>}
+                    {item.meaningEn && <small className="cs-words__intext">{item.meaningEn}</small>}
+                  </span>
+                  <span className="cs-words__meaning">{item.meaningVi}</span>
+                  <span className="cs-words__actions" />
+                </div>}
+              {!ro && <button type="button" className="cs-icon-btn cs-words__delete" title="Xoá mục" aria-label={`Xoá ${item.lemma || ''}`} onClick={() => remove(si, ei)}><Trash2 /></button>}
             </li>;
           })}
         </ul>}
