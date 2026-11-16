@@ -52,8 +52,7 @@ export function TranslationView({ artifact, draft, dirty, onChange: update, shel
       {rows.map((row, index) => <li key={index} onMouseEnter={() => onFocusSentence?.(row.en)} onMouseLeave={() => onFocusSentence?.(null)}>
         <span className="cs-num">{pad(index + 1)}</span>
         <div>
-          <p className="cs-trans__en">{row.en}</p>
-          <textarea rows={1} aria-label={`Bản dịch câu ${index + 1}`} value={row.vi || ''} readOnly={!shell.canEdit}
+          <textarea rows={1} title={row.en} aria-label={`Bản dịch câu ${index + 1}`} value={row.vi || ''} readOnly={!shell.canEdit}
             ref={el => { if (el) { el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px`; } }}
             onFocus={() => onFocusSentence?.(row.en)} onBlur={() => onFocusSentence?.(null)}
             onInput={autoSize} onChange={event => setVi(index, event.target.value)} />
