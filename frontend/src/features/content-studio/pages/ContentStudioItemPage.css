@@ -121,3 +121,5 @@
 .cs-dict-groups > section > header span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--iig3-text-muted); }
 .cs-dict-groups > section > header small { color: var(--iig3-text-muted); white-space: nowrap; }
 .cs-words__edit textarea { width: 100%; min-height: 0; }
+.cs-hub__source .cs-source-edit__opts { grid-template-columns: minmax(0, 1fr); }
+.cs-question .cs-artifact__bar > .iig3-badge { display: none; }

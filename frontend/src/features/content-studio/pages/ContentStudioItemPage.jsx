@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Save, Sparkles } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle2, Pencil, Save, Sparkles } from 'lucide-react';
 import { Button, ErrorState, PageFrame, Skeleton, StatusBadge, Tabs } from '../../../design-system-v2';
 import { errorMessage, generateItem, getItem, regenerateArtifact, saveArtifact, updateItemContent } from '../../../services/contentStudioService';
 import { STATUS, isBusy } from '../item/ArtifactShell';
@@ -22,6 +22,7 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   const [drafts, setDrafts] = useState({});           // artifactId -> edited content
   const [sourceDraft, setSourceDraft] = useState(EMPTY_SOURCE);
   const [saving, setSaving] = useState(false);
+  const [editingSource, setEditingSource] = useState(false);
   const [activeWord, setActiveWord] = useState(null); // [passageId, index]
   const [activeEntry, setActiveEntry] = useState(null); // [passageId, sentenceIndex, entryIndex]
   const [generating, setGenerating] = useState(false);
@@ -92,6 +93,7 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
           questions: Object.entries(sourceDraft.questions).map(([questionId, value]) => ({ id: questionId, ...value })),
         });
         setSourceDraft(EMPTY_SOURCE);
+        setEditingSource(false);
       } catch (requestError) { failed.push(errorMessage(requestError, 'Không thể lưu nội dung gốc.')); }
     }
     const saved = [];
@@ -125,7 +127,6 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   const readyQuestions = questions.filter(question => artifactsByQuestion[question.id]?.status === 'ready').length;
   const openQuestion = openQuestionId === undefined ? questions[0]?.id : openQuestionId;
   const tabs = [
-    { value: 'source', label: 'Gốc' },
     ...(passages.length ? [
       { value: 'translation', label: 'Dịch' },
       { value: 'vocab', label: `Từ vựng${counts.vocab ? ` · ${counts.vocab}` : ''}` },
@@ -133,7 +134,7 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
     ] : []),
     ...(questions.length ? [{ value: 'questions', label: `Câu hỏi · ${readyQuestions}/${questions.length}` }] : []),
   ];
-  const activeTab = tabs.some(entry => entry.value === tab) ? tab : tabs[1]?.value || 'source';
+  const activeTab = tabs.some(entry => entry.value === tab) ? tab : tabs[0]?.value;
   // Vocab / dictionary terms are highlighted in the fixed source on the left.
   const termsFor = passage => {
     if (activeTab === 'vocab') { const artifact = artifactFor('vocab', passage.id); return ((artifact && (drafts[artifact.id] ?? artifact.content))?.items || []).map(word => word.inText); }
@@ -166,22 +167,27 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   >
     <div className="cs-hub is-split">
       <section className="cs-hub__col cs-hub__source" aria-label="Nội dung gốc">
-        <header className="cs-hub__head"><strong>Nội dung gốc</strong></header>
-        <div className="cs-hub__body">
-          {passages.map(passage => <p key={passage.id} className="cs-source">{highlight(passage.text, termsFor(passage), activeTerm(passage))}</p>)}
+        <header className="cs-hub__head">
+          <strong>Nội dung gốc</strong>
+          {sourceDirty > 0 && <em className="cs-dirty">Chưa lưu</em>}
+          {permissions.edit && <Button variant={editingSource ? 'outline' : 'ghost'} size="sm" icon={editingSource ? <Check /> : <Pencil />} onClick={() => setEditingSource(value => !value)}>{editingSource ? 'Xong' : 'Sửa'}</Button>}
+        </header>
+        {editingSource ? <div className="cs-hub__body">
+          <SourceEditor passages={passages} questions={questions} draft={sourceDraft} onChange={setSourceDraft} readOnly={false} />
+        </div> : <div className="cs-hub__body">
+          {passages.map(passage => <p key={passage.id} className="cs-source">{highlight(sourceDraft.segments[passage.id] ?? passage.text, termsFor(passage), activeTerm(passage))}</p>)}
           {questions.length > 0 && <ol className="cs-source-q">
-            {questions.map(question => <li key={question.id}>
+            {questions.map(raw => { const question = { ...raw, ...sourceDraft.questions[raw.id] }; return <li key={question.id}>
               <strong>{question.number}. {question.stem}</strong>
               <ul>{LETTERS.filter(letter => question.options?.[letter]).map(letter => <li key={letter} className={question.answerKey === letter ? 'is-answer' : ''}>({letter}) {question.options[letter]}{question.answerKey === letter && <CheckCircle2 />}</li>)}</ul>
-            </li>)}
+            </li>; })}
           </ol>}
-        </div>
+        </div>}
       </section>
 
       <section className="cs-hub__col cs-hub__work" aria-label="Biên tập">
         <div className="cs-hub__tabs"><Tabs value={activeTab} onChange={setTab} items={tabs} /></div>
         <div className="cs-hub__body">
-          {activeTab === 'source' && <SourceEditor passages={passages} questions={questions} draft={sourceDraft} onChange={setSourceDraft} readOnly={!permissions.edit} />}
           {activeTab === 'translation' && passages.map(passage => <div key={passage.id} className="cs-hub__block">
             <TranslationView {...editorProps(artifactFor('passage_translation', passage.id))} shell={passageShell('translation')} />
           </div>)}

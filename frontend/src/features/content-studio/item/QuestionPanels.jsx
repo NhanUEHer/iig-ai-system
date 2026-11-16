@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { FormField, StatusBadge, Textarea } from '../../../design-system-v2';
 import ArtifactShell, { STATUS } from './ArtifactShell';
 
@@ -24,7 +24,6 @@ export function QuestionEditor({ question, artifact, draft, dirty, onChange: upd
       {status ? <StatusBadge status={status.tone} label={status.label} /> : <span className="cs-muted">Chưa tạo</span>}
     </button>
     {open && <div className="cs-question__body">
-      <ul className="cs-question__opts">{letters.map(letter => <li key={letter} className={question.answerKey === letter ? 'is-answer' : ''}>({letter}) {question.options[letter]}{question.answerKey === letter && <CheckCircle2 />}</li>)}</ul>
     <ArtifactShell artifact={artifact} label="nội dung câu hỏi" shell={shell}>
       {draft && <div className="cs-question__fields">
         <FormField label="Dịch câu hỏi & đáp án" className={flagged('translation') ? 'is-flagged' : ''}>
