@@ -155,3 +155,38 @@ main .cs-doc__opt button { min-height: 0 !important; }
 .cs-trans .cs-num { padding-top: 6px; }
 .cs-trans__en { margin: 0 0 2px; font-size: 13px; line-height: 1.55; color: var(--iig3-text-muted); }
 main .cs-trans textarea { resize: none; overflow: hidden; font-size: 14px !important; line-height: 1.6; color: var(--iig3-text); }
+
+/* Vocab rows: edit inline in the same row, delete icon per row */
+.cs-words > li { position: relative; }
+.cs-words__row, .cs-words__inline { display: grid; grid-template-columns: 24px minmax(0, 1.3fr) minmax(0, 1fr) 56px; gap: 12px; align-items: center; padding: 10px 14px; }
+.cs-words__row { cursor: pointer; }
+.cs-words__row:hover { background: var(--iig3-color-surface-muted); }
+.cs-words__row:focus-visible { outline: 2px solid var(--iig3-color-accent-soft); outline-offset: -2px; }
+.cs-words__intext { flex-basis: 100%; color: var(--iig3-text-muted); font-size: 12px; }
+.cs-words__inline { background: var(--iig3-surface); box-shadow: inset 3px 0 0 var(--iig3-color-accent); }
+.cs-words__inline .cs-words__main { gap: 2px 6px; }
+main .cs-words__inline input.cs-words__lemma { width: auto; min-width: 0; flex: 0 1 180px; font-weight: 700 !important; font-size: 14px !important; }
+main .cs-words__inline input.cs-words__ipa { width: auto; flex: 0 1 140px; font-size: 12px !important; color: var(--iig3-text-muted); }
+main .cs-words__inline input.cs-words__meaning { color: var(--iig3-color-info); font-size: 14px !important; }
+.cs-words__inline .cs-words__intext { display: flex; align-items: center; gap: 4px; }
+main .cs-words__inline .cs-words__intext input { flex: 1; font-size: 12px !important; }
+.cs-tag--select { border: 0; appearance: none; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; min-height: 0 !important; height: auto !important; padding: 2px 8px !important; }
+main .cs-words select.cs-tag--select { border: 0 !important; background: var(--iig3-color-info-soft) !important; color: var(--iig3-color-info); box-shadow: none !important; }
+.cs-words__actions { display: flex; justify-content: flex-end; }
+.cs-icon-btn { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: var(--iig3-text-muted); cursor: pointer; }
+.cs-icon-btn svg { width: 15px; height: 15px; }
+.cs-icon-btn:hover { background: var(--iig3-color-surface-muted); color: var(--iig3-text); }
+.cs-words__delete { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity .15s; }
+.cs-words > li:hover .cs-words__delete, .cs-words > li.is-active .cs-words__delete, .cs-words__delete:focus-visible { opacity: 1; }
+.cs-words__delete:hover { color: var(--iig3-color-danger); background: var(--iig3-color-danger-soft); }
+.cs-words > li.is-active .cs-words__actions { padding-right: 30px; }
+main .cs-words__inline input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) { border-bottom: 1px dashed var(--iig3-color-border-strong) !important; border-radius: 4px 4px 0 0 !important; }
+main .cs-words__inline input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus { border: 1px solid var(--iig3-color-accent) !important; border-radius: 6px !important; }
+/* Inline edit: stack into lines so it fits the narrow column */
+.cs-words__inline { grid-template-columns: 24px minmax(0, 1fr) 56px; align-items: start; }
+.cs-words__inline .cs-words__main { display: grid; grid-template-columns: minmax(0, 1.4fr) auto minmax(0, 1fr); gap: 6px; align-items: center; }
+main .cs-words__inline input.cs-words__lemma, main .cs-words__inline input.cs-words__ipa { width: 100%; flex: none; }
+main .cs-words__inline input.cs-words__meaning { grid-column: 1 / -1; }
+.cs-words__inline .cs-words__intext { grid-column: 1 / -1; }
+.cs-words__inline .cs-words__actions { grid-column: 3; grid-row: 1; }
+.cs-words__inline .cs-num { padding-top: 4px; }

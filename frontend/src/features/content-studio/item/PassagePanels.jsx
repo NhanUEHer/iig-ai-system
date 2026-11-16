@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, X } from 'lucide-react';
+import { Check, Plus, Trash2 } from 'lucide-react';
 import { Button, FormField, Input, Textarea } from '../../../design-system-v2';
 import ArtifactShell from './ArtifactShell';
 
@@ -72,25 +72,34 @@ export function VocabView({ artifact, draft, dirty, onChange: update, shell, act
     <ul className="cs-words">
       {items.map((item, index) => {
         const active = activeIndex === index;
+        const differs = item.inText && item.inText.toLowerCase() !== String(item.lemma || '').toLowerCase();
         return <li key={index} className={active ? 'is-active' : ''}>
-          <button type="button" className="cs-words__row" onClick={() => onActivate(active ? null : index)} aria-expanded={active}>
-            <span className="cs-num">{pad(index + 1)}</span>
-            <span className="cs-words__main">
-              <strong>{item.lemma || <em>Từ mới</em>}</strong>
-              {item.pos && <span className="cs-tag">{item.pos}</span>}
-              {item.ipa && <small>{item.ipa}</small>}
-              {item.inText && item.inText.toLowerCase() !== String(item.lemma || '').toLowerCase() && <small>· trong bài: “{item.inText}”</small>}
-            </span>
-            <span className="cs-words__meaning">{item.meaningVi}</span>
-          </button>
-          {active && <div className="cs-words__edit">
-            <FormField label="Dạng trong bài"><Input value={item.inText || ''} readOnly={ro} onChange={event => setItem(index, { inText: event.target.value })} /></FormField>
-            <FormField label="Dạng từ điển"><Input value={item.lemma || ''} readOnly={ro} onChange={event => setItem(index, { lemma: event.target.value })} /></FormField>
-            <FormField label="Loại từ"><select className="cs-select" value={item.pos || 'Noun'} disabled={ro} onChange={event => setItem(index, { pos: event.target.value })}>{POS.map(pos => <option key={pos}>{pos}</option>)}</select></FormField>
-            <FormField label="IPA"><Input value={item.ipa || ''} readOnly={ro} onChange={event => setItem(index, { ipa: event.target.value })} /></FormField>
-            <FormField label="Nghĩa tiếng Việt" className="cs-words__wide"><Input value={item.meaningVi || ''} readOnly={ro} onChange={event => setItem(index, { meaningVi: event.target.value })} /></FormField>
-            {!ro && <Button variant="ghost" size="sm" icon={<X />} onClick={() => remove(index)}>Xoá từ</Button>}
-          </div>}
+          {active && !ro
+            ? <div className="cs-doc cs-words__inline">
+              <span className="cs-num">{pad(index + 1)}</span>
+              <div className="cs-words__main">
+                <input className="cs-words__lemma" aria-label="Dạng từ điển" placeholder="Từ" value={item.lemma || ''} onChange={event => setItem(index, { lemma: event.target.value })} />
+                <select className="cs-tag cs-tag--select" aria-label="Loại từ" value={item.pos || 'Noun'} onChange={event => setItem(index, { pos: event.target.value })}>{POS.map(pos => <option key={pos}>{pos}</option>)}</select>
+                <input className="cs-words__ipa" aria-label="IPA" placeholder="/IPA/" value={item.ipa || ''} onChange={event => setItem(index, { ipa: event.target.value })} />
+                <input className="cs-words__meaning" aria-label="Nghĩa tiếng Việt" placeholder="Nghĩa tiếng Việt" value={item.meaningVi || ''} onChange={event => setItem(index, { meaningVi: event.target.value })} />
+                <label className="cs-words__intext">trong bài: <input aria-label="Dạng trong bài" placeholder="dạng xuất hiện trong bài" value={item.inText || ''} onChange={event => setItem(index, { inText: event.target.value })} /></label>
+              </div>
+              <span className="cs-words__actions">
+                <button type="button" className="cs-icon-btn" title="Thu gọn" aria-label="Thu gọn" onClick={() => onActivate(null)}><Check /></button>
+              </span>
+            </div>
+            : <div className="cs-words__row" role="button" tabIndex={0} onClick={() => onActivate(active ? null : index)} onKeyDown={event => { if (event.key === 'Enter') onActivate(index); }}>
+              <span className="cs-num">{pad(index + 1)}</span>
+              <span className="cs-words__main">
+                <strong>{item.lemma || <em>Từ mới</em>}</strong>
+                {item.pos && <span className="cs-tag">{item.pos}</span>}
+                {item.ipa && <small>{item.ipa}</small>}
+                {differs && <small className="cs-words__intext">trong bài: “{item.inText}”</small>}
+              </span>
+              <span className="cs-words__meaning">{item.meaningVi}</span>
+              <span className="cs-words__actions" />
+            </div>}
+          {!ro && <button type="button" className="cs-icon-btn cs-words__delete" title="Xoá từ" aria-label={`Xoá từ ${item.lemma || index + 1}`} onClick={() => remove(index)}><Trash2 /></button>}
         </li>;
       })}
     </ul>
