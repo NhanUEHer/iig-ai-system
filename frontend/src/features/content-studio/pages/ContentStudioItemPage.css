@@ -18,6 +18,8 @@
 .cs-hub__work { min-height: 640px; }
 .cs-hub__head { display: flex; align-items: center; gap: var(--iig3-space-3); padding: 10px 16px; border-bottom: 1px solid var(--iig3-border); flex-wrap: wrap; }
 .cs-hub__head > strong { flex: 1; font-size: 14px; }
+.cs-hub__head > strong small { color: #7f847d; font-size: 12px; font-weight: 500; }
+.cs-hub__head > strong small { color: #7f847d; font-size: 12px; font-weight: 500; }
 .cs-hub__body { flex: 1; overflow: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
 .cs-hub__work > .cs-hub__body { padding: 0; }
 .cs-hub__block + .cs-hub__block { border-top: 1px dashed var(--iig3-border); padding-top: 16px; }
@@ -232,3 +234,82 @@ main .cs-entry-field textarea { resize: none; overflow: hidden; font-size: 13px 
 .cs-dictionary-field { display: grid; grid-template-columns: 26px 150px minmax(0,1fr); gap: 10px; align-items: baseline; padding: 9px 0; border-top: 1px solid #f0efea; }.cs-dictionary-field > span { color: #a3a69f; font-size: 11px; }.cs-dictionary-field > strong { color: #656963; font-size: 12px; }.cs-dictionary-field p { margin: 0; color: #242521; font-size: 14px; line-height: 1.55; white-space: pre-wrap; }.cs-dictionary-field.is-accent p { color: #8a3a22; font-weight: 600; }.cs-dictionary-field textarea,.cs-dictionary-field select { width: 100%; min-height: 34px!important; padding: 6px 8px!important; border: 1px solid #deded8!important; border-radius: 6px!important; font: inherit!important; font-size: 14px!important; resize: vertical; }
 .cs-dictionary-detail > footer { display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px solid #ecebe6; }.cs-dictionary-detail > footer button { display: inline-flex; align-items: center; gap: 4px; height: 34px; padding: 0 10px; border: 0; background: transparent; color: #656963; font: inherit; font-size: 13px; }.cs-dictionary-detail > footer button:last-child { padding: 0 12px; border: 1px solid #deded8; border-radius: 8px; background: #fffefa; color: #242521; font-weight: 500; }.cs-dictionary-detail > footer svg { width: 14px; }
 @media (max-width: 1200px) { .cs-vocab-head,.cs-words__row { grid-template-columns: 30px minmax(0,1fr) 120px minmax(0,.8fr) 64px; gap: 8px; }.cs-dictionary-split { grid-template-columns: 1fr; }.cs-dictionary-split > aside { border-right: 0; border-bottom: 1px solid #ecebe6; }.cs-dictionary-split aside ul { max-height: 350px; } }
+
+/* T09 translation workspace. */
+.cs-hub__block--translation { padding: 0; }
+.cs-source-sentences { display: flex; flex-direction: column; gap: 2px; margin: -6px -8px; padding: 0; list-style: none; }
+.cs-source-sentences li { display: grid; grid-template-columns: 30px minmax(0,1fr); gap: 8px; padding: 8px 10px; border-radius: 8px; }
+.cs-source-sentences li.is-active { background: #fdf3ee; box-shadow: inset 3px 0 #d55f3d; }
+.cs-source-sentences strong { padding-top: 3px; color: #7f847d; font-size: 11px; }
+.cs-source-sentences li.is-active strong { color: #bd4f31; }
+.cs-source-sentences span { color: #3a3c38; font-size: 14px; line-height: 1.6; }
+.cs-translation-empty { padding: 16px 14px; }
+.cs-translation-toolbar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #ecebe6; flex-wrap: wrap; }
+.cs-translation-toolbar > button:not(.iig3-button) { height: 28px; padding: 0 10px; border: 1px solid #deded8; border-radius: 999px; background: #fffefa; color: #242521; font: inherit; font-size: 12px; }
+.cs-translation-toolbar > button.is-active { border-color: #d55f3d; background: #d55f3d; color: #fff; font-weight: 600; }
+.cs-translation-toolbar > span { flex: 1; }
+.cs-translation-toolbar small { color: #7f847d; font-size: 12px; }
+.cs-translation-cards { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 12px 14px 16px; list-style: none; }
+.cs-translation-cards > li { padding: 10px 12px; border: 1px solid #ecebe6; border-radius: 10px; background: #fffefa; }
+.cs-translation-cards > li.is-active { border-color: #d55f3d; box-shadow: 0 0 0 1px rgba(213,95,61,.08); }
+.cs-translation-cards > li.is-review { border-color: #d55f3d; background: #fbf6ea; }
+.cs-translation-card__head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.cs-translation-card__head > strong { padding: 1px 7px; border-radius: 5px; background: #f6f5f2; color: #4a4d48; font-size: 11px; }
+.cs-translation-cards > li.is-review .cs-translation-card__head > strong { background: #d55f3d; color: #fff; }
+.cs-translation-card__head > span { display: inline-flex; align-items: center; gap: 4px; color: #3f6650; font-size: 11px; font-weight: 600; }
+.cs-translation-card__head > span.is-review { color: #8a6a2c; }
+.cs-translation-card__head svg { width: 12px; height: 12px; }
+.cs-translation-card__head i { flex: 1; }
+.cs-translation-card__head em { color: #8a6a2c; font-size: 11px; font-style: normal; }
+main .cs-translation-cards textarea { width: 100%; min-height: 0!important; box-sizing: border-box; margin-left: -6px; padding: 4px 6px!important; border: 1px solid transparent!important; border-radius: 6px!important; background: transparent!important; box-shadow: none!important; color: #242521; font: inherit; font-size: 14px!important; line-height: 1.6; resize: none; }
+main .cs-translation-cards .is-review textarea { border-color: #d55f3d!important; }
+main .cs-translation-cards textarea:focus { border-color: #d55f3d!important; outline: none; }
+.cs-translation-card__issue { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 10px; border-radius: 6px; background: #f4ecd8; color: #6f5420; font-size: 12px; }
+.cs-translation-card__issue svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+/* T10 question workspace. */
+.cs-source mark.is-quote { padding: 2px 0; border-radius: 0; background: #fdf3ee; box-shadow: inset 0 -2px #d55f3d; color: #242521; }
+.cs-source mark.is-quote.is-active { color: #242521; }
+.cs-source-quote-note { display: flex; align-items: center; gap: 6px; margin: 8px -16px -14px; padding: 10px 16px 14px; border-top: 1px dashed #deded8; color: #656963; font-size: 12px; }
+.cs-source-quote-note i { width: 18px; height: 3px; border-radius: 2px; background: #d55f3d; }
+.cs-question-picker { display: flex; align-items: center; gap: 6px; padding: 12px 14px; border-bottom: 1px solid #ecebe6; flex-wrap: wrap; }
+.cs-question-picker button { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid #deded8; border-radius: 999px; background: #fffefa; color: #242521; font: inherit; font-size: 13px; font-weight: 500; }
+.cs-question-picker button.is-active { border-color: #d55f3d; background: #d55f3d; color: #fff; font-weight: 600; }
+.cs-question-picker button i { width: 7px; height: 7px; border-radius: 999px; background: #648b73; }
+.cs-question-picker button i.is-review,.cs-question-picker button i.is-failed { background: #b3503f; }
+.cs-question-picker button i.is-generating,.cs-question-picker button i.is-queued { background: #557da5; }
+.cs-question-picker button i.is-empty { background: #a3a69f; }
+.cs-question-picker button.is-active i { background: #fff; }
+.cs-question-picker > span { flex: 1; }
+.cs-question-picker small { color: #7f847d; font-size: 12px; }
+.cs-question-empty { padding: 30px 18px; }
+.cs-question-card { display: flex; flex-direction: column; gap: 14px; padding: 16px 18px; }
+.cs-question-card > header { display: flex; align-items: flex-start; gap: 12px; }
+.cs-question-card > header > span { display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 32px; border-radius: 9px; background: #d55f3d; color: #fff; font-weight: 700; }
+.cs-question-card h2 { flex: 1; margin: 4px 0 0; font-size: 17px; font-weight: 600; line-height: 1.4; }
+.cs-question-card header em { margin-top: 6px; color: #8a6a2c; font-size: 11px; font-style: normal; }
+.cs-question-card header b { margin-top: 3px; padding: 3px 10px; border-radius: 999px; background: #e7f0e9; color: #3f6650; font-size: 12px; white-space: nowrap; }
+.cs-question-card header b.is-review { background: #f4ecd8; color: #6f5420; }
+.cs-question-card > ul { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin: 0; padding: 12px 14px; border-radius: 10px; background: #f6f5f2; list-style: none; }
+.cs-question-card > ul li { display: flex; align-items: center; gap: 8px; color: #3a3c38; font-size: 14px; }
+.cs-question-card > ul li > span { display: inline-grid; place-items: center; flex-shrink: 0; width: 22px; height: 22px; border: 1px solid #deded8; border-radius: 999px; color: #7f847d; font-size: 11px; font-weight: 700; }
+.cs-question-card > ul li.is-answer { color: #2f5a41; font-weight: 600; }
+.cs-question-card > ul li.is-answer > span { border-color: #648b73; background: #648b73; color: #fff; }
+.cs-question-field { padding: 12px 0; border-top: 1px solid #ecebe6; }
+.cs-question-field > div { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.cs-question-field > div span { color: #a3a69f; font-size: 11px; }
+.cs-question-field > div strong { color: #242521; font-size: 13px; }
+.cs-question-field--hint > div strong { color: #7a5b1e; }.cs-question-field--explanation > div strong { color: #2d4f75; }.cs-question-field--note > div strong { color: #8f4337; }
+.cs-question-field > div small { color: #7f847d; font-size: 12px; }
+main .cs-question-field textarea { width: 100%; min-height: 0!important; box-sizing: border-box; padding: 8px 10px!important; border: 1px solid #ecebe6!important; border-radius: 8px!important; background: #fffefa!important; box-shadow: none!important; color: #242521; font: inherit; font-size: 14px!important; line-height: 1.65; resize: vertical; }
+main .cs-question-field.is-review textarea { border-color: #e2c98f!important; }
+main .cs-question-field textarea:focus { border-color: #d55f3d!important; outline: none; }
+.cs-question-field > p { display: flex; align-items: center; gap: 5px; margin: 6px 0 0; color: #8a6a2c; font-size: 12px; }
+.cs-question-field > p svg { width: 13px; height: 13px; }
+.cs-question-card > footer { display: flex; align-items: center; gap: 8px; padding-top: 4px; }
+.cs-question-card > footer > span { flex: 1; }
+.cs-question-card > footer > button:not(.iig3-button) { display: inline-flex; align-items: center; gap: 3px; height: 34px; padding: 0 10px; border: 0; background: transparent; color: #656963; font: inherit; font-size: 13px; }
+.cs-question-card > footer > button.is-next { padding: 0 12px; border: 1px solid #deded8; border-radius: 8px; background: #fffefa; color: #242521; font-weight: 500; }
+.cs-question-card > footer > button:disabled { opacity: .4; }
+.cs-question-card > footer svg { width: 14px; height: 14px; }
+@media (max-width: 720px) { .cs-question-card > ul { grid-template-columns: 1fr; }.cs-question-field > div { align-items: flex-start; flex-wrap: wrap; }.cs-question-field > div small { flex-basis: 100%; padding-left: 19px; } }

@@ -6,11 +6,11 @@ import ArtifactShell from './ArtifactShell';
 const POS = ['Noun', 'Verb', 'Adjective', 'Adverb', 'Noun Phrase', 'Verb Phrase', 'Phrasal Verb', 'Prepositional Phrase', 'Idiom', 'Preposition', 'Conjunction', 'Phrase'];
 const pad = value => String(value).padStart(2, '0');
 
-export function highlight(text, terms, active) {
+export function highlight(text, terms, active, className = '') {
   const list = terms.filter(Boolean).sort((a, b) => b.length - a.length).map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   if (!list.length) return text;
   const current = String(active || '').toLowerCase();
-  return text.split(new RegExp(`(${list.join('|')})`, 'gi')).map((part, index) => (index % 2 ? <mark key={index} className={current && part.toLowerCase() === current ? 'is-active' : ''}>{part}</mark> : part));
+  return text.split(new RegExp(`(${list.join('|')})`, 'gi')).map((part, index) => (index % 2 ? <mark key={index} className={[className, current && part.toLowerCase() === current ? 'is-active' : ''].filter(Boolean).join(' ')}>{part}</mark> : part));
 }
 
 const LETTERS = ['A', 'B', 'C', 'D'];
@@ -42,24 +42,6 @@ export function SourceEditor({ passages, questions, draft, onChange }) {
       })}
     </ol>}
   </div>;
-}
-
-export function TranslationView({ artifact, draft, dirty, onChange: update, shell, onFocusSentence }) {
-  const rows = draft?.sentences || [];
-  const setVi = (index, vi) => update({ ...draft, sentences: rows.map((row, i) => (i === index ? { ...row, vi } : row)) });
-  return <ArtifactShell artifact={artifact} label="bản dịch" dirty={dirty} shell={shell}>
-    <ol className="cs-doc cs-trans">
-      {rows.map((row, index) => <li key={index} onMouseEnter={() => onFocusSentence?.(row.en)} onMouseLeave={() => onFocusSentence?.(null)}>
-        <span className="cs-num">{pad(index + 1)}</span>
-        <div>
-          <textarea rows={1} title={row.en} aria-label={`Bản dịch câu ${index + 1}`} value={row.vi || ''} readOnly={!shell.canEdit}
-            ref={el => { if (el) { el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px`; } }}
-            onFocus={() => onFocusSentence?.(row.en)} onBlur={() => onFocusSentence?.(null)}
-            onInput={autoSize} onChange={event => setVi(index, event.target.value)} />
-        </div>
-      </li>)}
-    </ol>
-  </ArtifactShell>;
 }
 
 export function VocabView({ artifact, draft, dirty, onChange: update, shell, activeIndex, onActivate, settings, onSettingsChange, sourceText }) {

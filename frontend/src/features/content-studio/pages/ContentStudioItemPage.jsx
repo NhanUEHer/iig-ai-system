@@ -5,8 +5,9 @@ import { Button, ErrorState, PageFrame, Skeleton, StatusBadge } from '../../../d
 import { errorMessage, generateItem, getItem, regenerateArtifact, saveArtifact, saveDictionaryEntry, updateItemContent } from '../../../services/contentStudioService';
 import { STATUS, isBusy } from '../item/ArtifactShell';
 import DictionaryPanel from '../item/DictionaryPanel';
-import { SourceEditor, TranslationView, VocabView, highlight } from '../item/PassagePanels';
-import { QuestionEditor } from '../item/QuestionPanels';
+import { SourceEditor, VocabView, highlight } from '../item/PassagePanels';
+import TranslationPanel from '../item/TranslationPanel';
+import { QuestionWorkspace, explanationQuote } from '../item/QuestionPanels';
 import './ContentStudioItemPage.css';
 
 const ITEM_STATUS = {
@@ -152,13 +153,19 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   };
   const range = item.detection?.summary?.questionRange;
   const readyQuestions = questions.filter(question => artifactsByQuestion[question.id]?.status === 'ready').length;
-  const openQuestion = openQuestionId === undefined ? questions[0]?.id : openQuestionId;
+  const openQuestion = questions.some(question => question.id === openQuestionId) ? openQuestionId : questions[0]?.id;
   const taskStatus = item.taskStatus || {};
+  const translationCounts = passages.reduce((totals, passage) => {
+    const artifact = artifactFor('passage_translation', passage.id);
+    const total = artifact?.content?.sentences?.length || 0;
+    const review = new Set((artifact?.validation?.issues || []).map(issue => issue.path).filter(path => /^sentences\.\d+$/.test(path))).size;
+    return { total: totals.total + total, ready: totals.ready + Math.max(0, total - review) };
+  }, { total: 0, ready: 0 });
   const tabs = [
     ...(passages.length ? [
       { value: 'vocab', label: 'Từ vựng', detail: counts.vocab || '', status: taskStatus.vocab },
       { value: 'dictionary', label: 'Từ điển', detail: dictionaryState?.status === 'waiting_review' ? 'chờ duyệt' : (counts.dictionary || ''), status: dictionaryState?.status || taskStatus.dictionary },
-      { value: 'translation', label: 'Dịch', detail: taskStatus.translation === 'ready' ? 'xong' : '', status: taskStatus.translation },
+      { value: 'translation', label: 'Dịch', detail: translationCounts.total ? `${translationCounts.ready}/${translationCounts.total}` : '', status: taskStatus.translation },
     ] : []),
     ...(questions.length ? [{ value: 'questions', label: 'Câu hỏi', detail: `${readyQuestions}/${questions.length}`, status: taskStatus.questions }] : []),
   ];
@@ -178,6 +185,11 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
     const artifact = artifactFor('vocab', passage.id);
     return (artifact && (drafts[artifact.id] ?? artifact.content))?.items?.[activeWord[1]]?.inText;
   };
+  const selectedQuestionArtifact = artifactsByQuestion[openQuestion];
+  const selectedQuestionDraft = selectedQuestionArtifact && (drafts[selectedQuestionArtifact.id] ?? selectedQuestionArtifact.content);
+  const quotedSource = activeTab === 'questions'
+    ? explanationQuote(selectedQuestionDraft?.explanation, passages.map(passage => sourceDraft.segments[passage.id] ?? passage.text).join(' '))
+    : null;
 
   const changeTab = value => { setTab(value); setSearchParams(current => { const next = new URLSearchParams(current); next.set('tab', value); return next; }, { replace: true }); };
   const captureSelection = passage => {
@@ -214,7 +226,7 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
     <div className="cs-hub is-split">
       <section className="cs-hub__col cs-hub__source" aria-label="Nội dung gốc">
         <header className="cs-hub__head">
-          <BookOpen /><strong>Nội dung gốc</strong>
+          <BookOpen /><strong>Nội dung gốc{activeTab === 'translation' && translationCounts.total > 0 && <small> · {translationCounts.total} câu · {passages.reduce((sum, passage) => sum + String(passage.text || '').trim().split(/\s+/).filter(Boolean).length, 0)} từ</small>}</strong>
           {sourceDirty > 0 && <em className="cs-dirty">Chưa lưu</em>}
           {!editingSource && ['vocab', 'dictionary'].includes(activeTab) && <div className="cs-source-toggle"><button className={showHighlights ? 'is-active' : ''} onClick={() => setShowHighlights(true)}>{activeTab === 'vocab' ? 'Tô từ vựng' : 'Tô mục từ'}</button><button className={!showHighlights ? 'is-active' : ''} onClick={() => setShowHighlights(false)}>Văn bản sạch</button></div>}
           {permissions.edit && <Button variant={editingSource ? 'outline' : 'ghost'} size="sm" icon={editingSource ? <Check /> : <Pencil />} onClick={() => setEditingSource(value => !value)}>{editingSource ? 'Xong' : 'Sửa'}</Button>}
@@ -222,8 +234,16 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
         {editingSource ? <div className="cs-hub__body">
           <SourceEditor passages={passages} questions={questions} draft={sourceDraft} onChange={setSourceDraft} />
         </div> : <div className="cs-hub__body">
-          {passages.map(passage => <p key={passage.id} className="cs-source" onMouseUp={() => captureSelection(passage)}>{highlight(sourceDraft.segments[passage.id] ?? passage.text, termsFor(passage), activeTerm(passage))}</p>)}
-          {questions.length > 0 && <ol className="cs-source-q">
+          {activeTab === 'translation' ? passages.map(passage => {
+            const translation = artifactFor('passage_translation', passage.id);
+            const rows = (translation && (drafts[translation.id] ?? translation.content)?.sentences) || [];
+            return <ol key={passage.id} className="cs-source-sentences">{rows.map((row, index) => <li key={index} tabIndex={0} className={activeSentence === row.en ? 'is-active' : ''}
+              onMouseEnter={() => setActiveSentence(row.en)} onMouseLeave={() => setActiveSentence(null)} onFocus={() => setActiveSentence(row.en)} onBlur={() => setActiveSentence(null)}><strong>S{index + 1}</strong><span>{row.en}</span></li>)}</ol>;
+          }) : passages.map(passage => <p key={passage.id} className="cs-source" onMouseUp={() => captureSelection(passage)}>
+            {highlight(sourceDraft.segments[passage.id] ?? passage.text, activeTab === 'questions' && quotedSource ? [quotedSource] : termsFor(passage), activeTab === 'questions' ? quotedSource : activeTerm(passage), activeTab === 'questions' ? 'is-quote' : '')}
+          </p>)}
+          {activeTab === 'questions' && quotedSource && <div className="cs-source-quote-note"><i />Câu được trích dẫn trong Explanation của câu {questions.find(question => question.id === openQuestion)?.number}</div>}
+          {activeTab !== 'questions' && activeTab !== 'translation' && questions.length > 0 && <ol className="cs-source-q">
             {questions.map(raw => { const question = { ...raw, ...sourceDraft.questions[raw.id] }; return <li key={question.id}>
               <strong>{question.number}. {question.stem}</strong>
               <ul>{LETTERS.filter(letter => question.options?.[letter]).map(letter => <li key={letter} className={question.answerKey === letter ? 'is-answer' : ''}>({letter}) {question.options[letter]}{question.answerKey === letter && <CheckCircle2 />}</li>)}</ul>
@@ -235,8 +255,8 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
       <section className="cs-hub__col cs-hub__work" aria-label="Biên tập">
         <nav className="cs-hub__tabs">{tabs.map(entry => <button type="button" key={entry.value} className={activeTab === entry.value ? 'is-active' : ''} onClick={() => changeTab(entry.value)}><i className={`is-${entry.status || 'empty'}`} />{entry.label}{entry.detail !== '' && <span>{entry.detail}</span>}</button>)}</nav>
         <div className="cs-hub__body">
-          {activeTab === 'translation' && passages.map(passage => <div key={passage.id} className="cs-hub__block">
-            <TranslationView {...editorProps(artifactFor('passage_translation', passage.id))} shell={passageShell('translation')} onFocusSentence={setActiveSentence} />
+          {activeTab === 'translation' && passages.map(passage => <div key={passage.id} className="cs-hub__block cs-hub__block--translation">
+            <TranslationPanel {...editorProps(artifactFor('passage_translation', passage.id))} shell={passageShell('translation')} activeSentence={activeSentence} onFocusSentence={setActiveSentence} />
           </div>)}
           {activeTab === 'vocab' && passages.map(passage => <div key={passage.id} className="cs-hub__block">
             <VocabView {...editorProps(artifactFor('vocab', passage.id))} shell={passageShell('vocab')}
@@ -248,8 +268,8 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
             clearDraft={candidateId => setDictionaryDrafts(current => { const next = { ...current }; delete next[candidateId]; return next; })} reloadKey={dictionaryReloadKey}
             selectedText={selectedText} onConsumed={() => setSelectedText(null)} activeId={activeEntry} onActive={setActiveEntry}
             notify={(message, tone) => showMsgRef.current?.(message, tone)} onState={setDictionaryState} />}
-          {activeTab === 'questions' && questions.map(question => <QuestionEditor key={question.id} question={question} {...editorProps(artifactsByQuestion[question.id])} shell={questionShell}
-            open={openQuestion === question.id} onToggle={() => setOpenQuestion(current => ((current === undefined ? questions[0]?.id : current) === question.id ? null : question.id))} />)}
+          {activeTab === 'questions' && <QuestionWorkspace questions={questions} artifacts={artifactsByQuestion} drafts={drafts} selectedId={openQuestion}
+            onSelect={setOpenQuestion} onChange={(artifact, content) => setDrafts(current => ({ ...current, [artifact.id]: content }))} shell={questionShell} />}
         </div>
       </section>
     </div>
