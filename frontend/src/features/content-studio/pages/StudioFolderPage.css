@@ -1,7 +1,7 @@
-#root .iig3-theme .cs-library { width: 100%; height: 100%; overflow: auto; padding: 20px 28px 40px; background: #efefec; color: #242521; font-family: Inter, -apple-system, "Segoe UI", sans-serif; }
+#root .iig3-theme .cs-library { width: 100%; height: 100%; overflow: auto; padding: 20px clamp(20px, 2vw, 32px) 32px; background: #efefec; color: #242521; font-family: Inter, -apple-system, "Segoe UI", sans-serif; }
 .cs-library, .cs-library * { box-sizing: border-box; }
 .cs-library button, .cs-library input { font-family: inherit; }
-.cs-library__inner { display: flex; max-width: 1384px; margin: 0 auto; flex-direction: column; gap: 16px; }
+.cs-library__inner { display: flex; width: 100%; max-width: var(--iig3-content-wide); margin: 0 auto; flex-direction: column; gap: 16px; }
 .cs-library__header { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
 .cs-library__header > div { min-width: 260px; flex: 1; }
 .cs-library__header nav { display: flex; gap: 6px; color: #656963; font-size: 12px; }

@@ -1,4 +1,4 @@
-#root .iig3-theme .cs-home { width: 100%; height: 100%; max-width: 1180px; overflow: auto; padding: 22px 28px 40px; background: #efefec; color: #242521; font-family: Inter, -apple-system, "Segoe UI", sans-serif; }
+#root .iig3-theme .cs-home { width: 100%; height: 100%; max-width: var(--iig3-content-wide); margin-inline: auto; overflow: auto; padding: 20px clamp(20px, 2vw, 32px) 32px; background: #efefec; color: #242521; font-family: Inter, -apple-system, "Segoe UI", sans-serif; }
 .cs-home, .cs-home * { box-sizing: border-box; }
 .cs-home { display: flex; flex-direction: column; gap: 22px; }
 .cs-home button, .cs-home input, .cs-home select { font-family: inherit; }

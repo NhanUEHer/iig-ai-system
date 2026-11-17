@@ -132,6 +132,10 @@ export default function StudioHomePage() {
     ? a.name.localeCompare(b.name, 'vi')
     : new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()), [summary.folders, sort]);
   const isSearching = Boolean(query.trim());
+  const attentionParts = [
+    attention.dictionaryPending > 0 ? `${attention.dictionaryPending} bài chờ duyệt danh sách từ` : null,
+    attention.needsReview > 0 ? `${attention.needsReview} bài có nội dung cần xem lại` : null,
+  ].filter(Boolean);
 
   return <div className="cs-home">
     <div className="cs-home__title-row">
@@ -142,9 +146,9 @@ export default function StudioHomePage() {
     </div>
 
     {loadError && !loading ? <ErrorState title="Không thể tải Content Studio" description={loadError} action={<Button variant="outline" onClick={loadHome}>Thử lại</Button>} /> : <>
-      {!isSearching && attention.total > 0 && <div className="cs-home-attention" role="status">
+      {!isSearching && attention.total > 0 && attentionParts.length > 0 && <div className="cs-home-attention" role="status">
         <span><ClipboardCheck /></span>
-        <p><strong>{attention.total} bài cần xử lý:</strong> {attention.dictionaryPending} bài chờ duyệt danh sách từ, {attention.needsReview} bài có nội dung cần xem lại.</p>
+        <p><strong>{attention.total} bài cần xử lý:</strong> {attentionParts.join(', ')}.</p>
         <button type="button" onClick={() => navigate('/content-studio/folders/all?status=attention')}>Xem bài cần xử lý<ArrowRight /></button>
       </div>}
 
