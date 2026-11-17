@@ -26,3 +26,21 @@
 .cs-create-checks { display: flex; flex-direction: column; gap: 4px; padding: 14px; border: 1px solid #deded8; border-radius: 12px; background: #fffefa; color: #656963; font-size: 12px; line-height: 1.6; }.cs-create-checks > strong { margin-bottom: 2px; color: #242521; font-size: 13px; }.cs-create-checks span { display: flex; align-items: center; gap: 6px; }.cs-create-checks svg { width: 14px; }.cs-create-checks .is-good { color: #3f6650; }.cs-create-checks .is-warn { color: #8a6a2c; }
 @media (max-width: 950px) { .cs-create-review-grid { grid-template-columns: 1fr; }.cs-create-review-grid > aside { position: static; } }
 @media (max-width: 680px) { .cs-create > main { padding: 0 16px 32px; }.cs-create__topbar > i, .cs-create__library-link { display: none; }.cs-create-tasks { align-items: flex-start; }.cs-create-tasks__options { justify-content: flex-start; }.cs-create-tasks__item.is-vocab { flex-wrap: wrap; }.cs-create-sticky { align-items: stretch; flex-wrap: wrap; padding: 10px 16px; }.cs-create-sticky > span { min-width: 100%; }.cs-create-sticky .iig3-button { flex: 1; }.cs-create-review-results ul { grid-template-columns: 1fr; }.cs-create__review-title .cs-create__folder { width: 100%; }.cs-create-collapsed-source summary strong small { display: none; } }
+
+/* Page header + highlighted title field */
+.cs-create__head { display: grid; gap: 6px; margin-bottom: 18px; }
+.cs-create__crumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #8a8980; }
+.cs-create__crumb button { all: unset; cursor: pointer; color: #6b6a62; }
+.cs-create__crumb button:hover { color: #d55f3d; text-decoration: underline; }
+.cs-create__head-row { display: flex; align-items: center; gap: 10px; }
+.cs-create__head-row h1 { margin: 0; font-size: 28px; line-height: 1.2; }
+.cs-create__head-row > i { flex: 1; }
+.cs-create__head-row .cs-create__folder { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border: 1px solid #deded8; border-radius: 8px; background: #fff; font-size: 14px; color: #6b6a62; cursor: pointer; }
+.cs-create__head-row .cs-create__folder strong { color: #1f1e1b; }
+.cs-create__head-row svg { width: 16px; height: 16px; }
+.cs-create-source > header { align-items: flex-end; }
+.cs-create-source > header label.cs-create__title-field { display: grid; height: auto; gap: 6px; padding: 0; background: none; }
+.cs-create__title-field > span { font-size: 13px; font-weight: 600; color: #1f1e1b; }
+.cs-create__title-field em { color: #d14343; font-style: normal; }
+#root .iig3-theme .cs-create-source > header .cs-create__title-field input { height: 40px !important; padding: 0 12px !important; border: 1px solid #d8d7d0 !important; border-radius: 8px !important; background: #fff !important; font-size: 15px !important; font-weight: 600 !important; width: 100%; box-sizing: border-box; }
+#root .iig3-theme .cs-create-source > header .cs-create__title-field input:focus { outline: none !important; border-color: #d55f3d !important; box-shadow: 0 0 0 3px #f8e7df !important; }
