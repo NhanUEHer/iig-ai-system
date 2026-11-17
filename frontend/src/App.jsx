@@ -30,6 +30,7 @@ import BulkSyncPanel from './components/sync/BulkSyncPanel';
 import KeyVocabPage from './features/key-vocab/pages/KeyVocabPage';
 import ContentStudioPage from './features/content-studio/pages/ContentStudioPage';
 import ContentStudioItemPage from './features/content-studio/pages/ContentStudioItemPage';
+import StudioHomePage from './features/content-studio/pages/StudioHomePage';
 import ContentSourcePage from './features/content-sources/pages/ContentSourcePage';
 import ContentSourceDetailPage from './features/content-sources/pages/ContentSourceDetailPage';
 import ContentDevelopmentPage from './features/content-sources/pages/ContentDevelopmentPage';
@@ -543,7 +544,9 @@ function App() {
 
 
 
-              <Route path="/content-studio" element={['content_studio.view','content_studio.edit','content_studio.generate'].some(hasPermission) ? <ContentStudioPage showMsg={showMsg} permissions={{ edit: hasPermission('content_studio.edit'), manageFolders: hasPermission('content_studio.manage_folders'), generate: hasPermission('content_studio.generate') }} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/content-studio" element={['content_studio.view','content_studio.edit','content_studio.generate'].some(hasPermission) ? <StudioHomePage /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/content-studio/new" element={['content_studio.view','content_studio.edit','content_studio.generate'].some(hasPermission) ? <ContentStudioPage showMsg={showMsg} permissions={{ edit: hasPermission('content_studio.edit'), manageFolders: hasPermission('content_studio.manage_folders'), generate: hasPermission('content_studio.generate') }} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/content-studio/folders/:folderId" element={['content_studio.view','content_studio.edit','content_studio.generate'].some(hasPermission) ? <ContentStudioPage showMsg={showMsg} permissions={{ edit: hasPermission('content_studio.edit'), manageFolders: hasPermission('content_studio.manage_folders'), generate: hasPermission('content_studio.generate') }} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/content-studio/items/:id" element={['content_studio.view','content_studio.edit','content_studio.generate'].some(hasPermission) ? <ContentStudioItemPage showMsg={showMsg} permissions={{ edit: hasPermission('content_studio.edit'), generate: hasPermission('content_studio.generate') }} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/key-vocab" element={['key_vocab.view','key_vocab.generate','key_vocab.manage','dictionary.view','dictionary.generate','dictionary.manage'].some(hasPermission) ? <KeyVocabPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/dictionary" element={<Navigate to="/key-vocab" replace />} />

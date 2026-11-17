@@ -1,0 +1,64 @@
+.cs-folder-dialog { display: flex; flex-direction: column; gap: 16px; color: #242521; }
+.cs-folder-dialog__field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.cs-folder-dialog__field > strong, .cs-folder-dialog__location legend { font-size: 13px; font-weight: 600; }
+.cs-folder-dialog__field > small { color: #7f847d; font-size: 12px; font-weight: 400; }
+.cs-folder-dialog__field .iig3-control { height: 42px; }
+.cs-folder-dialog__field .iig3-control:focus-within { border-color: #d55f3d; box-shadow: 0 0 0 3px #f8e7df; }
+.cs-folder-dialog__location { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; border: 0; }
+.cs-folder-dialog__location > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.cs-folder-dialog__location label { display: inline-flex; height: 34px; align-items: center; gap: 6px; padding: 0 12px; border: 1px solid #deded8; border-radius: 999px; font-size: 13px; }
+.cs-folder-dialog__location label.is-selected { border-color: #d55f3d; background: #fdf3ee; font-weight: 600; }
+.cs-folder-dialog__location input { width: auto !important; margin: 0 !important; accent-color: #d55f3d; }
+.cs-folder-dialog__error { margin: -8px 0 0; color: #b3503f; font-size: 12px; }
+.cs-folder-dialog__preview { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px; background: #f6f5f2; color: #4a4d48; font-size: 13px; }
+.cs-folder-dialog__preview svg { width: 15px; flex: 0 0 15px; }
+.cs-folder-dialog__preview strong { color: #242521; }
+
+.cs-folder-tree { max-height: 260px; margin: 0; padding: 6px; overflow: auto; border: 1px solid #deded8; border-radius: 10px; list-style: none; }
+.cs-folder-tree ul { margin: 0; padding: 0; list-style: none; }
+.cs-folder-tree__row { display: flex; width: 100%; height: 38px; align-items: center; gap: 8px; padding: 0 10px 0 calc(10px + var(--cs-tree-depth, 0) * 20px); border: 0; border-radius: 8px; background: transparent; color: #242521; font: 500 14px Inter, -apple-system, "Segoe UI", sans-serif; text-align: left; }
+.cs-folder-tree__row:hover { background: #f6f5f2; }
+.cs-folder-tree__row.is-selected { background: #f8e7df; font-weight: 600; }
+.cs-folder-tree__toggle { display: grid; width: 14px; flex: 0 0 14px; place-items: center; color: #7f847d; }
+.cs-folder-tree__toggle svg { width: 14px; height: 14px; }
+.cs-folder-tree__icon { width: 16px; height: 16px; flex: 0 0 16px; color: #656963; }
+.cs-folder-tree__row.is-selected .cs-folder-tree__icon, .cs-folder-tree__check { color: #bd4f31; }
+.cs-folder-tree__name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-folder-tree__count { flex: none; color: #7f847d; font-size: 12px; font-weight: 400; }
+.cs-folder-tree__check { width: 16px; height: 16px; flex: none; }
+
+.cs-create-folder-dialog__title { display: flex; align-items: flex-start; gap: 12px; }
+.cs-create-folder-dialog__title > i { display: grid; width: 40px; height: 40px; flex: 0 0 40px; place-items: center; border-radius: 10px; background: #f8e7df; color: #bd4f31; }
+.cs-create-folder-dialog__title > i svg { width: 20px; }
+.cs-create-folder-dialog__title > span { display: flex; flex-direction: column; gap: 2px; padding-top: 1px; }
+.cs-create-folder-dialog__title strong { font-size: 18px; }
+.cs-create-folder-dialog__title small { color: #656963; font-size: 13px; font-weight: 400; }
+
+.cs-pick-folder-dialog { gap: 10px; }
+.cs-pick-folder-dialog__search { display: flex; height: 40px; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid #deded8; border-radius: 8px; color: #656963; }
+.cs-pick-folder-dialog__search:focus-within { border-color: #d55f3d; box-shadow: 0 0 0 3px #f8e7df; }
+.cs-pick-folder-dialog__search svg { width: 16px; }
+.cs-pick-folder-dialog__search input { min-width: 0; flex: 1; padding: 0 !important; border: 0 !important; outline: 0; background: transparent !important; box-shadow: none !important; font: 14px Inter, -apple-system, "Segoe UI", sans-serif !important; }
+.cs-pick-folder-dialog__recent { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: #656963; font-size: 12px; }
+.cs-pick-folder-dialog__recent > span { padding: 4px 0; }
+.cs-pick-folder-dialog__recent button { height: 28px; max-width: 190px; overflow: hidden; padding: 0 10px; border: 1px solid #deded8; border-radius: 999px; background: #fffefa; font: 12px Inter, -apple-system, "Segoe UI", sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.cs-pick-folder-dialog .cs-folder-tree { max-height: 360px; }
+.cs-pick-folder-dialog__create { display: flex; width: 100%; height: 38px; align-items: center; gap: 8px; padding: 0 10px 0 calc(10px + var(--cs-tree-depth, 0) * 20px); border: 0; border-radius: 8px; background: transparent; color: #bd4f31; font: 400 13px Inter, -apple-system, "Segoe UI", sans-serif; text-align: left; }
+.cs-pick-folder-dialog__create:hover { background: #fdf3ee; }
+.cs-pick-folder-dialog__create svg { width: 15px; }
+.cs-pick-folder-dialog__footer-path { display: flex; min-width: 0; flex: 1; align-items: center; gap: 6px; color: #4a4d48; font-size: 13px; }
+.cs-pick-folder-dialog__footer-path svg { width: 15px; flex: none; }
+.cs-pick-folder-dialog__footer-path span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.iig3-modal:has(.cs-create-folder-dialog) { width: min(520px, 100%); background: #fffefa; }
+.iig3-modal:has(.cs-pick-folder-dialog) { width: min(560px, 100%); background: #fffefa; }
+.iig3-modal:has(.cs-folder-dialog) > header { padding: 18px 20px 12px; border-bottom: 0; }
+.iig3-modal:has(.cs-folder-dialog) > main { padding: 0 20px 18px; }
+.iig3-modal:has(.cs-pick-folder-dialog) > main { padding-bottom: 14px; }
+.iig3-modal:has(.cs-folder-dialog) > footer { min-height: 68px; align-items: center; padding: 14px 20px; background: #f6f5f2; }
+.iig3-modal:has(.cs-folder-dialog) > footer .iig3-button { height: 40px; font-size: 14px; }
+
+@media (max-width: 620px) {
+  .cs-folder-dialog__location > div { align-items: stretch; flex-direction: column; }
+  .cs-pick-folder-dialog__footer-path { display: none; }
+}

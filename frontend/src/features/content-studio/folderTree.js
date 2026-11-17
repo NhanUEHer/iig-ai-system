@@ -19,3 +19,23 @@ export function buildFolderPath(folders, id) {
   for (let current = byId.get(id); current && path.length < 20; current = byId.get(current.parentId)) path.unshift(current);
   return path;
 }
+
+export function folderPathLabel(folders, id, fallback = 'Chưa phân loại') {
+  const path = buildFolderPath(folders, id);
+  return path.length ? path.map(folder => folder.name).join(' › ') : fallback;
+}
+
+export function subtreeItemCount(node) {
+  return Number(node.itemCount || 0) + (node.children || []).reduce((total, child) => total + subtreeItemCount(child), 0);
+}
+
+export function filterFolderTree(nodes, query) {
+  const normalized = String(query || '').trim().toLocaleLowerCase('vi');
+  if (!normalized) return nodes;
+  return nodes.flatMap(node => {
+    const children = filterFolderTree(node.children || [], normalized);
+    return node.name.toLocaleLowerCase('vi').includes(normalized) || children.length
+      ? [{ ...node, children }]
+      : [];
+  });
+}
