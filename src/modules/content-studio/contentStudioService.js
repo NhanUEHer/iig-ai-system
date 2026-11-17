@@ -2,6 +2,7 @@
 const db = require('../../config/db');
 const HttpError = require('../../http/httpError');
 const { detectContent, countSentences } = require('./detect/detectContent');
+const summaryService = require('./summaryService');
 
 const MAX_SOURCE_CHARS = 60000;
 const MAX_FOLDER_DEPTH = 6;
@@ -131,11 +132,13 @@ async function listItems({ folderId, search, limit = 50 } = {}) {
            (SELECT jsonb_object_agg(type, status) FROM (
               SELECT type, CASE WHEN bool_or(status IN ('queued','generating')) THEN 'generating' WHEN bool_or(status = 'failed') THEN 'failed'
                                 WHEN bool_or(status = 'needs_review') THEN 'needs_review' ELSE 'ready' END AS status
-              FROM cs_artifacts a WHERE a.item_id = i.id GROUP BY type) agg) AS "artifactStatus", i.updated_at AS "updatedAt", COALESCE(u.name, u.username) AS "createdByName"
+              FROM cs_artifacts a WHERE a.item_id = i.id GROUP BY type) agg) AS "artifactStatus",
+           COALESCE((SELECT jsonb_agg(jsonb_build_object('type', a.type, 'status', a.status)) FROM cs_artifacts a WHERE a.item_id = i.id), '[]'::jsonb) AS "_artifacts",
+           i.updated_at AS "updatedAt", COALESCE(u.name, u.username) AS "createdByName"
     FROM cs_items i LEFT JOIN users u ON u.id = i.created_by
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
     ORDER BY i.updated_at DESC LIMIT $${params.length}`, params);
-  return rows;
+  return rows.map(summaryService.decorateItem);
 }
 
 function normalizeSegments(segments) {
@@ -274,4 +277,5 @@ async function deleteItem(id) {
 module.exports = {
   listFolders, createFolder, updateFolder, deleteFolder,
   detect, listItems, createItem, getItem, updateItem, updateContent, deleteItem, normalizeSegments, normalizeTasks, TASKS,
+  folderSummary: summaryService.folderSummary, recentItems: summaryService.recentItems, attention: summaryService.attention,
 };

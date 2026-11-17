@@ -15,6 +15,7 @@ const FOLDERS = ['content_studio.manage_folders'];
 const GENERATE = ['content_studio.generate'];
 
 router.get('/folders', requirePermission(...VIEW), asyncHandler(async (req, res) => res.json({ success: true, data: await service.listFolders() })));
+router.get('/folders/summary', requirePermission(...VIEW), asyncHandler(async (req, res) => res.json({ success: true, data: await service.folderSummary() })));
 router.post('/folders', requirePermission(...FOLDERS), asyncHandler(async (req, res) => res.status(201).json({ success: true, data: await service.createFolder(req.body, req.user.id) })));
 router.patch('/folders/:id', requirePermission(...FOLDERS), asyncHandler(async (req, res) => res.json({ success: true, data: await service.updateFolder(req.params.id, req.body) })));
 router.delete('/folders/:id', requirePermission(...FOLDERS), asyncHandler(async (req, res) => res.json({ success: true, data: await service.deleteFolder(req.params.id) })));
@@ -28,6 +29,8 @@ router.post('/detect/docx', requirePermission(...EDIT), upload, asyncHandler(asy
 }));
 
 router.get('/items', requirePermission(...VIEW), asyncHandler(async (req, res) => res.json({ success: true, data: await service.listItems(req.query) })));
+router.get('/items/recent', requirePermission(...VIEW), asyncHandler(async (req, res) => res.json({ success: true, data: await service.recentItems(req.query) })));
+router.get('/attention', requirePermission(...VIEW), asyncHandler(async (_req, res) => res.json({ success: true, data: await service.attention() })));
 router.post('/items', requirePermission(...EDIT), asyncHandler(async (req, res) => res.status(201).json({ success: true, data: await service.createItem(req.body, req.user.id) })));
 router.get('/items/:id', requirePermission(...VIEW), asyncHandler(async (req, res) => res.json({ success: true, data: await service.getItem(req.params.id) })));
 router.patch('/items/:id', requirePermission(...EDIT), asyncHandler(async (req, res) => res.json({ success: true, data: await service.updateItem(req.params.id, req.body) })));

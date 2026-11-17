@@ -2,6 +2,7 @@ import api from './api';
 
 const data = response => response.data.data;
 export const listFolders = () => api.get('/content-studio/folders').then(data);
+export const getFolderSummary = () => api.get('/content-studio/folders/summary').then(data);
 export const createFolder = body => api.post('/content-studio/folders', body).then(data);
 export const updateFolder = (id, body) => api.patch(`/content-studio/folders/${id}`, body).then(data);
 export const deleteFolder = id => api.delete(`/content-studio/folders/${id}`).then(data);
@@ -14,6 +15,8 @@ export const detectDocx = file => {
 };
 
 export const listItems = params => api.get('/content-studio/items', { params }).then(data);
+export const getRecentItems = params => api.get('/content-studio/items/recent', { params }).then(data);
+export const getAttention = () => api.get('/content-studio/attention').then(data);
 export const getItem = id => api.get(`/content-studio/items/${id}`).then(data);
 export const createItem = body => api.post('/content-studio/items', body).then(data);
 export const updateItem = (id, body) => api.patch(`/content-studio/items/${id}`, body).then(data);
