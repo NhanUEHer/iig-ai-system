@@ -25,31 +25,25 @@ const DEFAULT_SELECTION = { vocab: true, dictionary: true, translation: true, qu
 const wordCount = text => text.trim() ? text.trim().split(/\s+/).length : 0;
 const selectedCount = selection => Object.values(selection).filter(Boolean).length;
 
-function TaskCards({ selection, setSelection, vocab, setVocab, compact = false, detection }) {
-  const passage = detection?.segments?.find(segment => segment.kind === 'passage');
-  const questions = detection?.segments?.flatMap(segment => segment.questions || []) || [];
-  const sentenceCount = passage?.meta?.sentenceCount || 0;
-  const toggleAll = event => {
-    const checked = event.target.checked;
-    setSelection({ vocab: checked, dictionary: checked, translation: checked, questions: checked });
-  };
+function TaskCards({ selection, setSelection, vocab, setVocab }) {
   const cards = [
-    { key: 'vocab', title: 'Từ vựng', description: compact ? 'Cân bằng · đổi trong trang bài' : 'Từ trọng tâm theo level', count: `TOEIC ${vocab.level}` },
-    { key: 'dictionary', title: 'Từ điển', description: 'Bóc từ → bạn duyệt → tạo', count: compact && sentenceCount ? `${sentenceCount} câu` : null },
-    { key: 'translation', title: 'Dịch đoạn văn', description: compact ? '' : 'Câu tiếng Anh (câu tiếng Việt)', count: compact && sentenceCount ? `${sentenceCount} câu` : null },
-    { key: 'questions', title: 'Câu hỏi', description: compact ? 'Dịch · Hint · Explanation · Note' : 'Dịch · Hint · Explanation · Note', count: compact && questions.length ? `${questions.length} câu` : null },
+    { key: 'vocab', title: 'Từ vựng' },
+    { key: 'dictionary', title: 'Từ điển' },
+    { key: 'translation', title: 'Dịch đoạn văn' },
+    { key: 'questions', title: 'Câu hỏi' },
   ];
-  return <section className={`cs-create-tasks${compact ? ' is-compact' : ''}`} aria-label="Nội dung cần tạo">
-    <header><div><strong>Nội dung cần tạo</strong>{!compact && <span>Các phần chạy song song, độc lập</span>}</div>{compact && <label><input type="checkbox" checked={selectedCount(selection) === 4} onChange={toggleAll} />Chọn tất cả</label>}</header>
-    <div>{cards.map(card => <label key={card.key} className={selection[card.key] ? 'is-selected' : ''}>
-      <input type="checkbox" checked={selection[card.key]} onChange={() => setSelection(current => ({ ...current, [card.key]: !current[card.key] }))} />
-      <span><strong>{card.title}</strong>{card.description && <small>{card.description}</small>}
-        {!compact && card.key === 'vocab' && <span className="cs-create-tasks__vocab" onClick={event => event.stopPropagation()}>
-          <select aria-label="Level" value={vocab.level} onChange={event => setVocab(current => ({ ...current, level: Number(event.target.value) }))}>{LEVELS.map(level => <option key={level} value={level}>TOEIC {level}</option>)}</select>
-          <select aria-label="Mode" value={vocab.mode} onChange={event => setVocab(current => ({ ...current, mode: event.target.value }))}>{MODES.map(mode => <option key={mode.value} value={mode.value}>{mode.label}</option>)}</select>
-        </span>}
-      </span>{card.count && <b>{card.count}</b>}
-    </label>)}</div>
+  return <section className="cs-create-tasks" aria-label="Nội dung cần tạo">
+    <strong className="cs-create-tasks__title">Nội dung cần tạo</strong>
+    <div className="cs-create-tasks__options">{cards.map(card => <div key={card.key} className={`cs-create-tasks__item${card.key === 'vocab' ? ' is-vocab' : ''}`}>
+      <label className={`cs-create-tasks__pill${selection[card.key] ? ' is-selected' : ''}`}>
+        <input type="checkbox" checked={selection[card.key]} onChange={() => setSelection(current => ({ ...current, [card.key]: !current[card.key] }))} />
+        <span>{card.title}</span>
+      </label>
+      {card.key === 'vocab' && selection.vocab && <span className="cs-create-tasks__vocab">
+        <select aria-label="Level" value={vocab.level} onChange={event => setVocab(current => ({ ...current, level: Number(event.target.value) }))}>{LEVELS.map(level => <option key={level} value={level}>TOEIC {level}</option>)}</select>
+        <select aria-label="Mode" value={vocab.mode} onChange={event => setVocab(current => ({ ...current, mode: event.target.value }))}>{MODES.map(mode => <option key={mode.value} value={mode.value}>{mode.label}</option>)}</select>
+      </span>}
+    </div>)}</div>
   </section>;
 }
 
@@ -172,15 +166,14 @@ export default function StudioCreatePage({ showMsg, permissions = {} }) {
         <section className={`cs-create-source${dragging ? ' is-dragging' : ''}`} aria-label="Nội dung" onDragOver={event => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={event => { event.preventDefault(); setDragging(false); processDocx(event.dataTransfer.files?.[0]); }}>
           <header><label><span>Tên</span><input aria-label="Tên học liệu" placeholder="Tự đặt theo nội dung khi bạn dán" maxLength={240} value={title} onChange={event => { setTitle(event.target.value); setTitleTouched(true); }} /></label><input ref={fileInput} hidden type="file" accept=".docx" onChange={onFileInput} /><Button variant="outline" icon={<Upload />} loading={detecting && source.kind === 'docx'} onClick={() => fileInput.current?.click()}>Tải DOCX</Button></header>
           <textarea aria-label="Đoạn văn và câu hỏi" value={text} onChange={changeText} placeholder="Dán đoạn văn, câu hỏi và đáp án vào đây… hoặc kéo thả file .docx vào khung này" />
-          <footer><span>{chars.toLocaleString('vi-VN')} ký tự · {words.toLocaleString('vi-VN')} từ</span>{source.fileName && <span><FileText />{source.fileName}</span>}<i /><span>Hỗ trợ:</span><b>Part 5</b><b>Part 6</b><b>Part 7 (đơn / kép)</b></footer>
+          <footer><span>{chars.toLocaleString('vi-VN')} ký tự · {words.toLocaleString('vi-VN')} từ</span></footer>
         </section>
-        <section className="cs-create-guides" aria-label="Cách dán nội dung"><div><strong>1 · Đoạn văn</strong>Dán nguyên văn. Có thể kèm dòng “Questions 1-4 refer to the following letter.” để hệ thống tự đặt tên.</div><div><strong>2 · Câu hỏi</strong>Mỗi câu bắt đầu bằng số (1. hoặc 147.), phương án (A)–(D) trên từng dòng hoặc cùng một dòng.</div><div><strong>3 · Đáp án</strong>“Answer key: 1B 2D 3B 4C” ở cuối, hoặc “Answer: B” dưới mỗi câu. Thiếu đáp án vẫn lưu được, sẽ có cảnh báo.</div></section>
         <TaskCards selection={selection} setSelection={setSelection} vocab={vocab} setVocab={setVocab} />
       </> : <>
         <div className="cs-create__review-crumb"><button type="button" onClick={() => navigate('/content-studio')}><ArrowLeft />Content Studio</button><span>/</span><span>Tạo học liệu mới</span><b>Bước 2/2 · Kiểm tra nhận diện</b></div>
         <div className="cs-create__review-title"><input aria-label="Tên học liệu" value={title} maxLength={240} onChange={event => { setTitle(event.target.value); setTitleTouched(true); }} /><button type="button" className="cs-create__folder" onClick={() => setPickerOpen(true)}><Folder />{folderLabel}<ChevronDown /></button></div>
         <details className="cs-create-collapsed-source"><summary><span><FileText /></span><strong>Văn bản đã {source.kind === 'docx' ? 'tải' : 'dán'} <small>· {chars.toLocaleString('vi-VN')} ký tự · {words.toLocaleString('vi-VN')} từ</small></strong><button type="button" onClick={event => { event.preventDefault(); setStep(1); }}><Pencil />Sửa văn bản</button></summary><pre>{text}</pre></details>
-        <div className="cs-create-review-grid"><ReviewResults detection={detection} onAnswer={setAnswer} /><aside><TaskCards compact detection={detection} selection={selection} setSelection={setSelection} vocab={vocab} setVocab={setVocab} /><section className="cs-create-checks"><strong>Kiểm tra trước khi tạo</strong>{passage && <span className="is-good"><Check />Đoạn văn tách đúng {passage.meta?.sentenceCount || 0} câu</span>}{allQuestions.length > 0 && <span className={completeOptions === allQuestions.length ? 'is-good' : 'is-warn'}>{completeOptions === allQuestions.length ? <Check /> : <AlertTriangle />}{completeOptions}/{allQuestions.length} câu hỏi đủ 4 phương án</span>}{missingAnswers.length ? missingAnswers.map(question => <span className="is-warn" key={question.number}><AlertTriangle />Câu {question.number} chưa có đáp án đúng</span>) : allQuestions.length > 0 && <span className="is-good"><Check />Tất cả câu hỏi đã có đáp án</span>}</section></aside></div>
+        <div className="cs-create-review-grid"><ReviewResults detection={detection} onAnswer={setAnswer} /><aside><TaskCards selection={selection} setSelection={setSelection} vocab={vocab} setVocab={setVocab} /><section className="cs-create-checks"><strong>Kiểm tra trước khi tạo</strong>{passage && <span className="is-good"><Check />Đoạn văn tách đúng {passage.meta?.sentenceCount || 0} câu</span>}{allQuestions.length > 0 && <span className={completeOptions === allQuestions.length ? 'is-good' : 'is-warn'}>{completeOptions === allQuestions.length ? <Check /> : <AlertTriangle />}{completeOptions}/{allQuestions.length} câu hỏi đủ 4 phương án</span>}{missingAnswers.length ? missingAnswers.map(question => <span className="is-warn" key={question.number}><AlertTriangle />Câu {question.number} chưa có đáp án đúng</span>) : allQuestions.length > 0 && <span className="is-good"><Check />Tất cả câu hỏi đã có đáp án</span>}</section></aside></div>
       </>}
     </main>
     <footer className="cs-create-sticky">{step === 1 ? <><span>{text.trim() ? 'Sẵn sàng phân tách để kiểm tra cấu trúc' : 'Dán nội dung để hệ thống nhận diện trước khi lưu'}</span><button type="button" onClick={() => navigate('/content-studio')}>Huỷ</button><Button icon={<Sparkles />} loading={detecting} disabled={!canDetect} onClick={detect}>Phân tách nội dung</Button></> : <><button type="button" onClick={() => setStep(1)}><ArrowLeft />Quay lại sửa văn bản</button><span>Lưu vào <strong>{folderLabel}</strong> · tạo <strong>{selectedCount(selection)} nội dung</strong>{selection.dictionary && ' · Từ điển dừng ở bước duyệt danh sách từ'}</span><Button variant="outline" loading={saving} disabled={!title.trim()} onClick={() => save(false)}>Chỉ lưu</Button><Button icon={<Sparkles />} loading={saving} disabled={!title.trim() || selectedCount(selection) === 0 || missingAnswers.length > 0 || permissions.generate === false} onClick={() => save(true)}>Xác nhận &amp; tạo nội dung</Button></>}
