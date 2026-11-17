@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Content Studio – Tạo học liệu mới (trống)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,-apple-system,"Segoe UI",sans-serif;color:#242521;background:#efefec}
+a{color:#bd4f31}a:hover{color:#9c3f26}
+</style>
+</helmet>
+<div style="display: flex; min-height: 1100px; background: #efefec; font-family: Inter, -apple-system, 'Segoe UI', sans-serif; color: #242521">
+  <aside aria-label="Menu hệ thống" style="width: 248px; flex-shrink: 0; min-height: 1100px; box-sizing: border-box; padding: 16px 12px; background: #e9e9e5; border-right: 1px solid #deded8; display: flex; flex-direction: column; gap: 18px">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 4px"><span style="width: 36px; height: 36px; border-radius: 9px; background: #fffefa; border: 1px solid #deded8; display: grid; place-items: center; font-weight: 800; font-size: 13px; color: #bd4f31">IIG</span><strong style="font-size: 14px">I - Agentic</strong></div>
+    <div style="display: flex; flex-direction: column; gap: 2px"><span style="padding: 0 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: #7f847d">NỘI DUNG</span><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Ngân hàng câu hỏi</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Nhóm câu hỏi</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Đề thi</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Thí sinh</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Thang điểm</a></div>
+    <div style="display: flex; flex-direction: column; gap: 2px"><span style="padding: 0 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: #7f847d">TẠO &amp; PHÁT TRIỂN</span><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Nguồn học liệu</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Phát triển học liệu</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; background: #fffefa; box-shadow: 0 1px 2px rgba(0,0,0,.06); color: #242521; font-weight: 600"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Content Studio</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #a3a69f"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Tạo học liệu (cũ)</a></div>
+    <div style="display: flex; flex-direction: column; gap: 2px"><span style="padding: 0 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: #7f847d">AI SCORING</span><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Quản lý bài chấm</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Scoring jobs</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Cấu hình AI Agents</a></div>
+    <div style="display: flex; flex-direction: column; gap: 2px"><span style="padding: 0 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: #7f847d">QUẢN TRỊ</span><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Tài khoản</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Vai trò &amp; phân quyền</a></div>
+  </aside>
+  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 12px; height: 60px; padding: 0 24px; background: #f6f5f2; border-bottom: 1px solid #deded8">
+      <label style="display: flex; align-items: center; gap: 8px; height: 38px; width: 420px; max-width: 50%; padding: 0 12px; background: #fffefa; border: 1px solid #deded8; border-radius: 8px; font-size: 13px; color: #656963"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><input aria-label="Tìm kiếm hoặc chuyển nhanh" placeholder="Tìm kiếm hoặc chuyển nhanh…" style="flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit"><kbd style="font: inherit; font-size: 11px; padding: 1px 6px; border: 1px solid #deded8; border-radius: 4px">⌘K</kbd></label>
+      <span style="flex: 1"></span>
+      <span style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: #e7f0e9; color: #3f6650; font-size: 12px; font-weight: 600; white-space: nowrap"><i style="width: 6px; height: 6px; border-radius: 999px; background: #648b73"></i>Hoạt động</span>
+      <button aria-label="Thông báo" style="width: 38px; height: 38px; border: 1px solid #deded8; border-radius: 8px; background: #fffefa; display: grid; place-items: center; color: #4a4d48"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4z"></path><path d="M10 20a2 2 0 0 0 4 0"></path></svg></button>
+      <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600"><span style="width: 32px; height: 32px; border-radius: 999px; background: #eaf0f5; color: #3f5d7d; display: grid; place-items: center; font-size: 11px">CT</span>[Tên người dùng]</span>
+    </header>
+    <main style="padding: 0 28px 120px; display: flex; flex-direction: column; gap: 18px; max-width: 1180px; width: 100%; box-sizing: border-box">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 14px 0; border-bottom: 1px solid #deded8; flex-wrap: wrap">
+        <a href="#" style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #656963; text-decoration: none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>Content Studio</a>
+        <span style="color: #b0b3ac">/</span>
+        <span style="font-size: 13px; color: #656963">Lưu vào</span>
+        <button style="display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border: 1px solid #deded8; border-radius: 8px; background: #fffefa; font: inherit; font-size: 13px; font-weight: 600; color: #242521"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>TOEIC LR 650+ › Unit 3 › Lesson 2<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+        <span style="flex: 1"></span>
+        <a href="#" style="display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 8px; background: #f6f5f2; font-size: 13px; font-weight: 500; color: #242521; text-decoration: none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16"></path></svg>Học liệu trong Lesson 2<span style="padding: 0 7px; border-radius: 999px; background: #f8e7df; color: #9c3f26; font-size: 12px; font-weight: 600">3</span></a>
+      </div>
+
+      <div><h1 style="margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.01em">Tạo học liệu mới</h1>
+        <p style="margin: 6px 0 0; font-size: 14px; color: #656963">Dán đoạn văn và câu hỏi (kèm đáp án) hoặc tải file DOCX. Hệ thống tự nhận diện cấu trúc để bạn kiểm tra trước khi lưu.</p></div>
+
+      <section aria-label="Nội dung" style="background: #fffefa; border: 1px solid #deded8; border-radius: 12px; overflow: hidden">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid #ecebe6; flex-wrap: wrap">
+          <label style="flex: 1 1 320px; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; background: #f6f5f2; border-radius: 8px; font-size: 13px; color: #656963">Tên<input value="" placeholder="Tự đặt theo nội dung khi bạn dán" aria-label="Tên học liệu" style="flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 15px; font-weight: 600; color: #242521"></label>
+          <button style="display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border: 1px solid #deded8; border-radius: 8px; background: #fffefa; font: inherit; font-size: 13px; font-weight: 500"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5"></path><path d="M5 15v4a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4"></path></svg>Tải DOCX</button>
+        </div>
+        <textarea aria-label="Đoạn văn và câu hỏi" placeholder="Dán đoạn văn, câu hỏi và đáp án vào đây… hoặc kéo thả file .docx vào khung này" style="display: block; width: 100%; box-sizing: border-box; min-height: 260px; border: 0; outline: 0; resize: vertical; padding: 16px; background: #fffefa; font: 13px/1.7 ui-monospace, 'SF Mono', Menlo, monospace; color: #242521"></textarea>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid #ecebe6; font-size: 12px; color: #656963; flex-wrap: wrap">
+          <span>0 ký tự · 0 từ</span><span style="flex: 1"></span>
+          <span>Hỗ trợ:</span><span style="padding: 2px 8px; border-radius: 6px; background: #f6f5f2">Part 5</span><span style="padding: 2px 8px; border-radius: 6px; background: #f6f5f2">Part 6</span><span style="padding: 2px 8px; border-radius: 6px; background: #f6f5f2">Part 7 (đơn / kép)</span>
+        </div>
+      </section>
+
+      <section aria-label="Cách dán nội dung" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div style="padding: 14px 16px; border: 1px dashed #d4d3cc; border-radius: 12px; font-size: 13px; color: #4a4d48; line-height: 1.6"><strong style="display: block; color: #242521; margin-bottom: 4px">1 · Đoạn văn</strong>Dán nguyên văn. Có thể kèm dòng “Questions 1-4 refer to the following letter.” để hệ thống tự đặt tên.</div>
+        <div style="padding: 14px 16px; border: 1px dashed #d4d3cc; border-radius: 12px; font-size: 13px; color: #4a4d48; line-height: 1.6"><strong style="display: block; color: #242521; margin-bottom: 4px">2 · Câu hỏi</strong>Mỗi câu bắt đầu bằng số (1. hoặc 147.), phương án (A)–(D) trên từng dòng hoặc cùng một dòng.</div>
+        <div style="padding: 14px 16px; border: 1px dashed #d4d3cc; border-radius: 12px; font-size: 13px; color: #4a4d48; line-height: 1.6"><strong style="display: block; color: #242521; margin-bottom: 4px">3 · Đáp án</strong>“Answer key: 1B 2D 3B 4C” ở cuối, hoặc “Answer: B” dưới mỗi câu. Thiếu đáp án vẫn lưu được, sẽ có cảnh báo.</div>
+      </section>
+
+      <section aria-label="Nội dung cần tạo" style="background: #fffefa; border: 1px solid #deded8; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; align-items: baseline; gap: 8px"><strong style="font-size: 15px">Nội dung cần tạo</strong><span style="font-size: 12px; color: #656963">Các phần chạy song song, độc lập</span></div>
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+          <label style="display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid #d55f3d; background: #fdf3ee; border-radius: 10px; font-size: 13px">
+            <input type="checkbox" checked style="accent-color: #d55f3d; width: 16px; height: 16px; margin: 2px 0 0">
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><strong>Từ vựng</strong><span style="font-size: 12px; color: #656963">Từ trọng tâm theo level</span><span style="display: flex; gap: 6px; margin-top: 6px"><select aria-label="Level" style="height: 28px; border: 1px solid #deded8; border-radius: 6px; background: #fffefa; font: inherit; font-size: 12px; padding: 0 6px"><option>TOEIC 650</option></select><select aria-label="Mode" style="height: 28px; border: 1px solid #deded8; border-radius: 6px; background: #fffefa; font: inherit; font-size: 12px; padding: 0 6px"><option>Cân bằng</option></select></span></span></label>
+          <label style="display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid #d55f3d; background: #fdf3ee; border-radius: 10px; font-size: 13px">
+            <input type="checkbox" checked style="accent-color: #d55f3d; width: 16px; height: 16px; margin: 2px 0 0">
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><strong>Từ điển</strong><span style="font-size: 12px; color: #656963">Bóc từ → bạn duyệt → tạo</span></span></label>
+          <label style="display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid #d55f3d; background: #fdf3ee; border-radius: 10px; font-size: 13px">
+            <input type="checkbox" checked style="accent-color: #d55f3d; width: 16px; height: 16px; margin: 2px 0 0">
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><strong>Dịch đoạn văn</strong><span style="font-size: 12px; color: #656963">Câu tiếng Anh (câu tiếng Việt)</span></span></label>
+          <label style="display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid #d55f3d; background: #fdf3ee; border-radius: 10px; font-size: 13px">
+            <input type="checkbox" checked style="accent-color: #d55f3d; width: 16px; height: 16px; margin: 2px 0 0">
+            <span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><strong>Câu hỏi</strong><span style="font-size: 12px; color: #656963">Dịch · Hint · Explanation · Note</span></span></label>
+        </div>
+      </section>
+    </main>
+    <div style="position: sticky; bottom: 0; display: flex; align-items: center; gap: 10px; padding: 12px 28px; background: #fffefa; border-top: 1px solid #deded8; box-shadow: 0 -4px 12px rgba(0,0,0,.04)">
+      <span style="flex: 1; font-size: 13px; color: #7f847d">Dán nội dung để hệ thống nhận diện trước khi lưu</span>
+      <button style="height: 40px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; font: inherit; font-size: 14px; color: #656963">Huỷ</button>
+      <button style="height: 40px; padding: 0 16px; border: 1px solid #deded8; border-radius: 8px; background: #fffefa; font: inherit; font-size: 14px; font-weight: 500; color: #a3a69f" disabled>Chỉ lưu</button>
+      <button style="display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 18px; border: 0; border-radius: 8px; background: #ecc3b5; color: #fff; font: inherit; font-size: 14px; font-weight: 600" disabled><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l1.8 4.6L18 9.4l-4.2 1.8L12 16l-1.8-4.8L6 9.4l4.2-1.8z"></path></svg>Lưu &amp; tạo nội dung</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

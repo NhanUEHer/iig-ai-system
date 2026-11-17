@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Content Studio – Học liệu trong thư mục</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,-apple-system,"Segoe UI",sans-serif;color:#242521;background:#efefec}
+a{color:#bd4f31}a:hover{color:#9c3f26}
+</style>
+</helmet>
+<div style="display: flex; min-height: 900px; background: #efefec; font-family: Inter, -apple-system, 'Segoe UI', sans-serif; color: #242521">
+  <aside aria-label="Menu hệ thống" style="width: 248px; flex-shrink: 0; min-height: 900px; box-sizing: border-box; padding: 16px 12px; background: #e9e9e5; border-right: 1px solid #deded8; display: flex; flex-direction: column; gap: 18px">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 4px"><span style="width: 36px; height: 36px; border-radius: 9px; background: #fffefa; border: 1px solid #deded8; display: grid; place-items: center; font-weight: 800; font-size: 13px; color: #bd4f31">IIG</span><strong style="font-size: 14px">I - Agentic</strong></div>
+    <div style="display: flex; flex-direction: column; gap: 2px"><span style="padding: 0 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: #7f847d">NỘI DUNG</span><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Ngân hàng câu hỏi</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Nhóm câu hỏi</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Đề thi</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Thí sinh</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Thang điểm</a></div>
+    <div style="display: flex; flex-direction: column; gap: 2px"><span style="padding: 0 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: #7f847d">TẠO &amp; PHÁT TRIỂN</span><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Nguồn học liệu</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Phát triển học liệu</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; background: #fffefa; box-shadow: 0 1px 2px rgba(0,0,0,.06); color: #242521; font-weight: 600"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Content Studio</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #a3a69f"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Tạo học liệu (cũ)</a></div>
+    <div style="display: flex; flex-direction: column; gap: 2px"><span style="padding: 0 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: #7f847d">AI SCORING</span><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Quản lý bài chấm</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Scoring jobs</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Cấu hình AI Agents</a></div>
+    <div style="display: flex; flex-direction: column; gap: 2px"><span style="padding: 0 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: #7f847d">QUẢN TRỊ</span><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Tài khoản</a><a href="#" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-decoration: none; font-size: 13px; color: #4a4d48"><span style="width: 16px; height: 16px; border: 1.6px solid currentColor; border-radius: 4px; opacity: .7"></span>Vai trò &amp; phân quyền</a></div>
+  </aside>
+  <div style="flex: 1; min-width: 0; padding: 20px 28px 40px; box-sizing: border-box">
+  <div style="max-width: 1384px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px">
+
+    <!-- Page header -->
+    <header style="display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap">
+      <div style="flex: 1; min-width: 260px">
+        <nav aria-label="Breadcrumb" style="font-size: 12px; color: #656963; display: flex; gap: 6px">
+          <span>Content Studio</span><span aria-hidden="true">/</span><span>TOEIC LR 650+</span><span aria-hidden="true">/</span><span>Unit 3</span><span aria-hidden="true">/</span><strong style="color: #242521; font-weight: 600">Lesson 2</strong>
+        </nav>
+        <h1 style="margin: 6px 0 0; font-size: 28px; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em">Content Studio</h1>
+      </div>
+      <label style="display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; width: 320px; max-width: 100%; box-sizing: border-box; background: #fffefa; border: 1px solid #deded8; border-radius: 8px; font-size: 13px; color: #656963">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <input aria-label="Tìm học liệu" placeholder="Tìm học liệu trong mọi thư mục…" style="flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; color: #242521">
+        <kbd style="font: inherit; font-size: 11px; padding: 1px 6px; border: 1px solid #deded8; border-radius: 4px; background: #f6f5f2">⌘K</kbd>
+      </label>
+    </header>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 256px; gap: 16px; align-items: start">
+
+
+      <main style="display: flex; flex-direction: column; gap: 16px; min-width: 0">
+
+        <nav aria-label="Chế độ" style="display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #deded8">
+          <a href="#" aria-current="false" style="display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; text-decoration: none; font-size: 14px; border: 0; border-bottom: 2px solid transparent; color: #656963">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Nhập mới</a>
+          <a href="#" aria-current="true" style="display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; text-decoration: none; font-size: 14px; border: 0; border-bottom: 2px solid #d55f3d; color: #242521; font-weight: 600">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16"></path></svg>Học liệu trong Lesson 2<span style="padding: 1px 8px; border-radius: 999px; background: #f8e7df; color: #9c3f26; font-size: 12px; font-weight: 600">3</span><span style="padding: 1px 8px; border-radius: 999px; background: #f4ecd8; color: #6f5420; font-size: 12px; font-weight: 600">2 cần xử lý</span></a>
+        </nav>
+        <!-- Items in folder -->
+        <section aria-label="Học liệu trong Lesson 2" style="display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+            <label style="display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; width: 280px; background: #fffefa; border: 1px solid #deded8; border-radius: 8px; font-size: 13px; color: #656963"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><input aria-label="Tìm trong Lesson 2" placeholder="Tìm trong Lesson 2…" style="flex: 1; border: 0; outline: 0; background: transparent; font: inherit"></label>
+            <span style="flex: 1"></span>
+            <div role="group" aria-label="Lọc theo trạng thái" style="display: flex; gap: 4px; padding: 3px; background: #f6f5f2; border: 1px solid #deded8; border-radius: 8px">
+              <button aria-pressed="true" style="height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: #fffefa; box-shadow: 0 1px 2px rgba(0,0,0,.08); font: inherit; font-size: 12px; font-weight: 600">Tất cả 3</button>
+              <button aria-pressed="false" style="height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 12px; color: #656963">Cần xử lý 2</button>
+              <button aria-pressed="false" style="height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 12px; color: #656963">Đang tạo 1</button>
+              <button aria-pressed="false" style="height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 12px; color: #656963">Hoàn tất 1</button>
+            </div>
+          </div>
+
+          <!-- Column legend -->
+          <div style="display: grid; grid-template-columns: 40px minmax(0, 1fr) repeat(4, 112px) 132px; gap: 12px; padding: 0 16px; font-size: 11px; font-weight: 600; letter-spacing: .04em; color: #7f847d">
+            <span></span><span>HỌC LIỆU</span><span>TỪ VỰNG</span><span>TỪ ĐIỂN</span><span>DỊCH</span><span>CÂU HỎI</span><span></span>
+          </div>
+
+          <!-- Card: needs review -->
+          <article style="display: grid; grid-template-columns: 40px minmax(0, 1fr) repeat(4, 112px) 132px; gap: 12px; align-items: center; padding: 14px 16px; background: #fffefa; border: 1px solid #d55f3d; border-radius: 12px">
+            <span style="width: 40px; height: 40px; border-radius: 8px; background: #f8e7df; color: #bd4f31; display: grid; place-items: center; font-weight: 700; font-size: 14px">Q</span>
+            <div style="min-width: 0">
+              <strong style="display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Letter · HF Manufacturers</strong>
+              <span style="font-size: 12px; color: #656963">Part 7 · Q1–4 · 8 câu văn · vừa xong</span>
+            </div>
+            <span style="font-size: 12px; font-weight: 600; color: #3f6650; display: flex; align-items: center; gap: 6px"><i style="width: 8px; height: 8px; border-radius: 999px; background: #648b73"></i>12 từ</span>
+            <span style="font-size: 12px; font-weight: 600; color: #7a5b1e; display: flex; align-items: center; gap: 6px"><i style="width: 8px; height: 8px; border-radius: 999px; background: #c99a3a"></i>Chờ duyệt</span>
+            <span style="font-size: 12px; font-weight: 600; color: #3f6650; display: flex; align-items: center; gap: 6px"><i style="width: 8px; height: 8px; border-radius: 999px; background: #648b73"></i>Xong</span>
+            <span style="font-size: 12px; font-weight: 600; color: #3f5d7d; display: flex; align-items: center; gap: 6px"><i style="width: 8px; height: 8px; border-radius: 999px; background: #5b7fa6"></i>2/4</span>
+            <a href="#" style="justify-self: end; display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 8px; background: #d55f3d; color: #fff; font-size: 13px; font-weight: 600; text-decoration: none">Duyệt 51 từ</a>
+          </article>
+
+          <!-- Card: needs review issues -->
+          <article style="display: grid; grid-template-columns: 40px minmax(0, 1fr) repeat(4, 112px) 132px; gap: 12px; align-items: center; padding: 14px 16px; background: #fffefa; border: 1px solid #deded8; border-radius: 12px">
+            <span style="width: 40px; height: 40px; border-radius: 8px; background: #f8e7df; color: #bd4f31; display: grid; place-items: center; font-weight: 700; font-size: 14px">Q</span>
+            <div style="min-width: 0">
+              <strong style="display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Email · Nerdy Clothing order</strong>
+              <span style="font-size: 12px; color: #656963">Part 6 · Q131–134 · 6 câu văn · 2 ngày trước</span>
+            </div>
+            <span style="font-size: 12px; font-weight: 600; color: #3f6650; display: flex; align-items: center; gap: 6px"><i style="width: 8px; height: 8px; border-radius: 999px; background: #648b73"></i>10 từ</span>
+            <span style="font-size: 12px; font-weight: 600; color: #3f6650; display: flex; align-items: center; gap: 6px"><i style="width: 8px; height: 8px; border-radius: 999px; background: #648b73"></i>38 mục</span>
+            <span style="font-size: 12px; font-weight: 600; color: #3f6650; display: flex; align-items: center; gap: 6px"><i style="width: 8px; height: 8px; border-radius: 999px; background: #648b73"></i>Xong</span>
+            <span style="font-size: 12px; font-weight: 600; color: #8f4337; display: flex; align-items: center; gap: 6px"><i style="width: 8px; height: 8px; border-radius: 999px; background: #b3503f"></i>1 cần xem</span>
+            <a href="#" style="justify-self: end; display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #deded8; color: #242521; font-size: 13px; font-weight: 500; text-decoration: none">Xem lại câu 132</a>
+          </article>
+
+          <!-- Card: done -->
+          <article style="display: grid; grid-template-columns: 40px minmax(0, 1fr) repeat(4, 112px) 132px; gap: 12px; align-items: center; padding: 14px 16px; background: #fffefa; border: 1px solid #deded8; border-radius: 12px">
+            <span style="width: 40px; height: 40px; border-radius: 8px; background: #eaf0f5; color: #3f5d7d; display: grid; place-items: center; font-weight: 700; font-size: 14px">P</span>
+            <div style="min-width: 0">
+              <strong style="display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Economic Recovery Shows Promise</strong>
+              <span style="font-size: 12px; color: #656963">Đoạn văn · 9 câu văn · hôm qua</span>
+            </div>
+            <span style="font-size: 12px; font-weight: 600; color: #3f6650; display: flex; align-items: center; gap: 6px"><i style="width: 8px; height: 8px; border-radius: 999px; background: #648b73"></i>14 từ</span>
+            <span style="font-size: 12px; font-weight: 600; color: #3f6650; display: flex; align-items: center; gap: 6px"><i style="width: 8px; height: 8px; border-radius: 999px; background: #648b73"></i>46 mục</span>
+            <span style="font-size: 12px; font-weight: 600; color: #3f6650; display: flex; align-items: center; gap: 6px"><i style="width: 8px; height: 8px; border-radius: 999px; background: #648b73"></i>Xong</span>
+            <span style="font-size: 12px; color: #9a9e97">—</span>
+            <a href="#" style="justify-self: end; display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #deded8; color: #242521; font-size: 13px; font-weight: 500; text-decoration: none">Mở</a>
+          </article>
+        </section>
+      </main>
+      <div style="display: flex; flex-direction: column; gap: 16px; position: sticky; top: 20px">
+      <!-- Folder rail -->
+      <aside aria-label="Thư mục" style="background: #fffefa; border: 1px solid #deded8; border-radius: 12px; overflow: hidden; ">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid #deded8">
+          <strong style="flex: 1; font-size: 13px">Thư mục</strong>
+          <button aria-label="Thư mục mới" style="width: 30px; height: 30px; border: 0; border-radius: 6px; background: transparent; color: #656963; display: grid; place-items: center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><path d="M12 11v5M9.5 13.5h5"></path></svg>
+          </button>
+        </div>
+        <div style="padding: 8px; display: flex; flex-direction: column; gap: 2px; font-size: 13px">
+          <button style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; color: #4a4d48; text-align: left">
+            <span style="width: 14px"></span><span style="flex: 1">Tất cả</span><span style="font-size: 11px; color: #7f847d">48</span>
+          </button>
+          <button style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; color: #4a4d48; text-align: left">
+            <span style="width: 14px; color: #7f847d">▾</span><span style="flex: 1; font-weight: 600">TOEIC LR 650+</span><span style="font-size: 11px; color: #7f847d">32</span>
+          </button>
+          <button style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px 0 28px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; color: #4a4d48; text-align: left">
+            <span style="width: 14px; color: #7f847d">▸</span><span style="flex: 1">Unit 1</span><span style="font-size: 11px; color: #7f847d">9</span>
+          </button>
+          <button style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px 0 28px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; color: #4a4d48; text-align: left">
+            <span style="width: 14px; color: #7f847d">▾</span><span style="flex: 1">Unit 3</span><span style="font-size: 11px; color: #7f847d">11</span>
+          </button>
+          <button style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px 0 46px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; color: #4a4d48; text-align: left">
+            <span style="flex: 1">Lesson 1</span><span style="font-size: 11px; color: #7f847d">4</span>
+          </button>
+          <button aria-current="true" style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px 0 46px; border: 0; border-radius: 6px; background: #f8e7df; font: inherit; font-size: 13px; font-weight: 600; color: #242521; text-align: left">
+            <span style="flex: 1">Lesson 2</span><span style="font-size: 11px; color: #9c3f26">3</span>
+          </button>
+          <button style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px 0 46px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; color: #4a4d48; text-align: left">
+            <span style="flex: 1">Lesson 3</span><span style="font-size: 11px; color: #7f847d">4</span>
+          </button>
+          <button style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; color: #4a4d48; text-align: left">
+            <span style="width: 14px; color: #7f847d">▸</span><span style="flex: 1">TOEIC LR 800+</span><span style="font-size: 11px; color: #7f847d">12</span>
+          </button>
+          <div style="height: 1px; background: #ecebe6; margin: 6px 4px"></div>
+          <button style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; color: #4a4d48; text-align: left">
+            <span style="width: 14px"></span><span style="flex: 1">Chưa phân loại</span><span style="font-size: 11px; color: #7f847d">4</span>
+          </button>
+        </div>
+        <div style="margin: 4px 12px 12px; padding: 10px 12px; border-radius: 8px; background: #f4ecd8; font-size: 12px; color: #6f5420; line-height: 1.5">
+          <strong style="display: block; font-size: 12px">2 bài chờ duyệt danh sách từ</strong>
+          Trong TOEIC LR 650+ · <a href="#">Xem</a>
+        </div>
+      </aside>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
