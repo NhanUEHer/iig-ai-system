@@ -30,11 +30,22 @@ const requireName = (value, max, label) => {
   return name;
 };
 const TASKS = { passage: ['translation', 'vocab', 'dictionary'], question: ['translation', 'hint', 'explanation', 'note'] };
+const VOCAB_LEVELS = [450, 500, 650, 700, 800];
+const VOCAB_MODES = ['balanced', 'phrase_focused', 'single_word_focused'];
 function normalizeTasks(tasks, segments) {
   const hasPassage = segments.some(segment => segment.kind === 'passage');
   const hasQuestions = segments.some(segment => segment.questions.length);
   const pick = (group, enabled) => (enabled ? [...new Set((tasks?.[group] || []).map(String))].filter(task => TASKS[group].includes(task)) : []);
-  return { passage: pick('passage', hasPassage), question: pick('question', hasQuestions) };
+  const level = Number(tasks?.vocab?.level);
+  const mode = String(tasks?.vocab?.mode || '');
+  return {
+    passage: pick('passage', hasPassage),
+    question: pick('question', hasQuestions),
+    vocab: {
+      level: VOCAB_LEVELS.includes(level) ? level : 650,
+      mode: VOCAB_MODES.includes(mode) ? mode : 'balanced',
+    },
+  };
 }
 
 const requireSource = value => {

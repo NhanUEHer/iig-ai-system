@@ -95,7 +95,12 @@ Daniel Brooks
   assert.equal(result.segments[0].meta.sentenceCount, 2);
 });
 
-test('keeps only known generation tasks that match detected content', () => {
+test('keeps only known generation tasks that match detected content and normalizes vocab settings', () => {
   const segments = service.normalizeSegments([{ kind: 'passage', text: 'Hi.' }]);
-  assert.deepEqual(service.normalizeTasks({ passage: ['translation', 'vocab', 'x', 'vocab'], question: ['hint'] }, segments), { passage: ['translation', 'vocab'], question: [] });
+  assert.deepEqual(service.normalizeTasks({ passage: ['translation', 'vocab', 'x', 'vocab'], question: ['hint'], vocab: { level: 700, mode: 'phrase_focused' } }, segments), {
+    passage: ['translation', 'vocab'], question: [], vocab: { level: 700, mode: 'phrase_focused' },
+  });
+  assert.deepEqual(service.normalizeTasks({ passage: ['vocab'], vocab: { level: 999, mode: 'unknown' } }, segments), {
+    passage: ['vocab'], question: [], vocab: { level: 650, mode: 'balanced' },
+  });
 });

@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Check, CheckCircle2, Pencil, Save, Sparkles } from 'lucide-react';
 import { Button, ErrorState, PageFrame, Skeleton, StatusBadge, Tabs } from '../../../design-system-v2';
 import { errorMessage, generateItem, getItem, regenerateArtifact, saveArtifact, updateItemContent } from '../../../services/contentStudioService';
 import { STATUS, isBusy } from '../item/ArtifactShell';
 import { DictionaryView, SourceEditor, TranslationView, VocabView, highlight } from '../item/PassagePanels';
 import { QuestionEditor } from '../item/QuestionPanels';
-import './ContentStudioPage.css';
 import './ContentStudioItemPage.css';
 
 const ITEM_STATUS = { draft: { tone: 'draft', label: 'Chưa tạo' }, ...STATUS };
@@ -15,9 +14,10 @@ const EMPTY_SOURCE = { segments: {}, questions: {} };
 
 export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const [item, setItem] = useState(null);
   const [error, setError] = useState('');
-  const [tab, setTab] = useState('translation');
+  const [tab, setTab] = useState(() => searchParams.get('tab') || 'translation');
   const [openQuestionId, setOpenQuestion] = useState(undefined);
   const [drafts, setDrafts] = useState({});           // artifactId -> edited content
   const [sourceDraft, setSourceDraft] = useState(EMPTY_SOURCE);
@@ -35,6 +35,10 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
     catch (requestError) { setError(errorMessage(requestError, 'Không thể tải học liệu.')); }
   }, [id]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const requested = searchParams.get('tab');
+    if (requested && ['vocab', 'dictionary', 'translation', 'questions'].includes(requested)) setTab(requested);
+  }, [searchParams]);
 
   const busy = Boolean(item?.artifacts?.some(isBusy));
   useEffect(() => {

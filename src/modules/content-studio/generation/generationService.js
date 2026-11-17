@@ -98,6 +98,7 @@ async function enqueue(itemId, tasks) {
       const merge = (group, list) => [...new Set([...(item.tasks?.[group] || []), ...list])];
       await client.query('UPDATE cs_items SET tasks = $2 WHERE id = $1', [itemId, JSON.stringify({
         passage: merge('passage', requestedPassageTasks), question: merge('question', (requested.question || []).filter(task => QUESTION_TASKS.includes(task))),
+        vocab: requested.vocab || item.tasks?.vocab || { level: 650, mode: 'balanced' },
       })]);
     }
     await refreshItemStatus(client, itemId);
