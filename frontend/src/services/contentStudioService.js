@@ -28,3 +28,11 @@ export const generateItem = (id, tasks) => api.post(`/content-studio/items/${id}
 export const regenerateArtifact = id => api.post(`/content-studio/artifacts/${id}/regenerate`).then(data);
 export const saveArtifact = (id, content) => api.put(`/content-studio/artifacts/${id}`, { content }).then(data);
 export const updateItemContent = (id, body) => api.put(`/content-studio/items/${id}/content`, body).then(data);
+
+export const extractDictionary = id => api.post(`/content-studio/items/${id}/dictionary/extract`).then(data);
+export const getDictionary = id => api.get(`/content-studio/items/${id}/dictionary`).then(data);
+export const saveDictionaryList = (id, sentences) => api.put(`/content-studio/items/${id}/dictionary/list`, { sentences }).then(data);
+export const generateDictionary = (id, selection = {}) => api.post(`/content-studio/items/${id}/dictionary/generate`, selection).then(data);
+export const saveDictionaryEntry = (candidateId, content) => api.put(`/content-studio/dictionary/entries/${candidateId}`, { content }).then(data);
+export const regenerateDictionaryEntry = candidateId => api.post(`/content-studio/dictionary/entries/${candidateId}/regenerate`).then(data);
+export const deleteDictionaryCandidate = candidateId => api.delete(`/content-studio/dictionary/candidates/${candidateId}`).then(data);

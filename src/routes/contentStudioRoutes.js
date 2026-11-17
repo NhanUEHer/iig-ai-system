@@ -6,6 +6,7 @@ const { requirePermission } = require('../middleware/authenticate');
 const service = require('../modules/content-studio/contentStudioService');
 const { docxToText } = require('../modules/content-studio/detect/docxText');
 const generation = require('../modules/content-studio/generation/generationService');
+const dictionary = require('../modules/content-studio/dictionary/dictionaryService');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } }).single('file');
@@ -38,6 +39,13 @@ router.put('/items/:id/content', requirePermission(...EDIT), asyncHandler(async 
 router.delete('/items/:id', requirePermission(...EDIT), asyncHandler(async (req, res) => res.json({ success: true, data: await service.deleteItem(req.params.id) })));
 
 router.post('/items/:id/generate', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.status(202).json({ success: true, data: await generation.enqueue(req.params.id, req.body?.tasks) })));
+router.post('/items/:id/dictionary/extract', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.status(202).json({ success: true, data: await dictionary.extract(req.params.id) })));
+router.get('/items/:id/dictionary', requirePermission(...VIEW), asyncHandler(async (req, res) => res.json({ success: true, data: await dictionary.getState(req.params.id) })));
+router.put('/items/:id/dictionary/list', requirePermission(...EDIT), asyncHandler(async (req, res) => res.json({ success: true, data: await dictionary.saveList(req.params.id, req.body?.sentences) })));
+router.post('/items/:id/dictionary/generate', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.status(202).json({ success: true, data: await dictionary.generate(req.params.id, req.body || {}) })));
+router.put('/dictionary/entries/:candidateId', requirePermission(...EDIT), asyncHandler(async (req, res) => res.json({ success: true, data: await dictionary.saveEntry(req.params.candidateId, req.body?.content || req.body) })));
+router.post('/dictionary/entries/:candidateId/regenerate', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.status(202).json({ success: true, data: await dictionary.regenerateEntry(req.params.candidateId) })));
+router.delete('/dictionary/candidates/:candidateId', requirePermission(...EDIT), asyncHandler(async (req, res) => res.json({ success: true, data: await dictionary.removeCandidate(req.params.candidateId) })));
 router.post('/artifacts/:id/regenerate', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.status(202).json({ success: true, data: await generation.regenerate(req.params.id) })));
 router.put('/artifacts/:id', requirePermission(...EDIT), asyncHandler(async (req, res) => res.json({ success: true, data: await generation.saveEdit(req.params.id, req.body?.content, req.user.id) })));
 

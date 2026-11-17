@@ -40,7 +40,6 @@ function requestedTasks(tasks = {}) {
   };
 }
 
-// T02 only needs to replace this dictionary branch with its cs_dict_* roll-up.
 function deriveTaskStatus(tasks, artifacts = [], { dictionaryStatus } = {}) {
   const requested = requestedTasks(tasks);
   const byType = artifacts.reduce((result, artifact) => {
@@ -66,9 +65,9 @@ function deriveNextAction(taskStatus = {}) {
 }
 
 function decorateItem(row) {
-  const taskStatus = deriveTaskStatus(row.tasks, row._artifacts || []);
+  const taskStatus = deriveTaskStatus(row.tasks, row._artifacts || [], { dictionaryStatus: row._dictionaryStatus });
   const { nextAction, nextLabel } = deriveNextAction(taskStatus);
-  const { _artifacts, ...item } = row;
+  const { _artifacts, _dictionaryStatus, ...item } = row;
   return { ...item, taskStatus, nextAction, nextLabel };
 }
 
@@ -105,6 +104,19 @@ const ARTIFACTS_SQL = `COALESCE((
   FROM cs_artifacts a WHERE a.item_id = i.id
 ), '[]'::jsonb)`;
 
+const DICTIONARY_STATUS_SQL = `(CASE
+  WHEN NOT EXISTS (SELECT 1 FROM cs_dict_sentences ds WHERE ds.item_id = i.id) THEN NULL
+  WHEN EXISTS (SELECT 1 FROM cs_dict_sentences ds WHERE ds.item_id = i.id AND ds.status = 'failed')
+    OR EXISTS (SELECT 1 FROM cs_dict_candidates dc WHERE dc.item_id = i.id AND dc.status = 'failed') THEN 'failed'
+  WHEN EXISTS (SELECT 1 FROM cs_dict_sentences ds WHERE ds.item_id = i.id AND ds.status IN ('queued','generating'))
+    OR EXISTS (SELECT 1 FROM cs_dict_candidates dc WHERE dc.item_id = i.id AND dc.status IN ('queued','generating')) THEN 'generating'
+  WHEN EXISTS (SELECT 1 FROM cs_dict_sentences ds WHERE ds.item_id = i.id AND ds.status = 'draft')
+    OR EXISTS (SELECT 1 FROM cs_dict_candidates dc WHERE dc.item_id = i.id AND dc.status = 'draft') THEN 'draft'
+  WHEN EXISTS (SELECT 1 FROM cs_dict_sentences ds WHERE ds.item_id = i.id AND ds.status = 'needs_review')
+    OR EXISTS (SELECT 1 FROM cs_dict_candidates dc WHERE dc.item_id = i.id AND dc.status = 'needs_review') THEN 'needs_review'
+  WHEN EXISTS (SELECT 1 FROM cs_dict_candidates dc WHERE dc.item_id = i.id) THEN 'ready'
+  ELSE 'draft' END)`;
+
 async function loadSummaryItems({ limit } = {}) {
   const params = [];
   let limitSql = '';
@@ -121,7 +133,8 @@ async function loadSummaryItems({ limit } = {}) {
            (SELECT s.meta->>'header' FROM cs_segments s
             WHERE s.item_id = i.id AND s.meta->>'header' IS NOT NULL
             ORDER BY s.position LIMIT 1) AS "documentHeader",
-           i.updated_at AS "updatedAt", ${ARTIFACTS_SQL} AS "_artifacts"
+           i.updated_at AS "updatedAt", ${ARTIFACTS_SQL} AS "_artifacts",
+           ${DICTIONARY_STATUS_SQL} AS "_dictionaryStatus"
     FROM cs_items i ORDER BY i.updated_at DESC ${limitSql}`, params);
   return rows.map(decorateItem);
 }
@@ -210,6 +223,7 @@ module.exports = {
   decorateItem,
   deriveNextAction,
   deriveTaskStatus,
+  DICTIONARY_STATUS_SQL,
   folderSummary,
   recentItems,
   rollupStatus,

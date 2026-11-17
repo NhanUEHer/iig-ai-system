@@ -38,6 +38,50 @@ const vi = text => `(Bản dịch mẫu) ${text}`;
 async function generate(type, input) {
   // No artificial delay: the mock behaves as if the AI step was bypassed and results go straight to the database.
   const sample = fixtures.isSamplePassage(input.sentences || []);
+  if (type === 'dictionary_extract') {
+    const rows = sample
+      ? input.sentences.map((sentence, index) => ({
+        sentence_text: sentence,
+        items: (fixtures.DICTIONARY[index] || []).map(entry => ({ original_chunk: entry.inText })),
+      }))
+      : input.sentences.map(sentence => ({
+        sentence_text: sentence,
+        items: keywords(sentence, 3).map(item => ({ original_chunk: item.inText })),
+      }));
+    return { sentences: rows };
+  }
+  if (type === 'dictionary_entries') {
+    const fixtureRow = sample
+      ? fixtures.DICTIONARY[input.sentences.findIndex(sentence => sentence === input.sentence)] || []
+      : [];
+    return {
+      dictionary_entries: input.targetChunks.map(chunk => {
+        const fixture = fixtureRow.find(entry => entry.inText.toLocaleLowerCase() === chunk.toLocaleLowerCase());
+        const entry = fixture || {
+          inText: chunk, lemma: chunk.toLocaleLowerCase(), pos: 'Phrase', ipa: '',
+          meaningVi: `nghĩa của “${chunk}”`, meaningEn: `Definition of “${chunk}”.`,
+          context: `Trong câu này, “${chunk}” được dùng theo ngữ cảnh của bài.`,
+          example: { en: `This is an example with ${chunk}.`, vi: `Đây là ví dụ với ${chunk}.` },
+          collocations: [], synonyms: [], wordFamily: [],
+        };
+        return {
+          original_chunk: chunk,
+          canonical: entry.lemma,
+          pos: entry.pos,
+          ipa: entry.ipa,
+          meaning_vn: entry.meaningVi,
+          meaning_en: entry.meaningEn,
+          context_analysis: { original_sentence: input.sentence, explanation: entry.context },
+          usage: {
+            example: { en: entry.example.en, vn: entry.example.vi },
+            collocations: entry.collocations,
+            synonyms: entry.synonyms,
+            word_family: entry.wordFamily.join(' - '),
+          },
+        };
+      }),
+    };
+  }
   if (type === 'passage_translation') {
     return { sentences: input.sentences.map(en => ({ en, vi: fixtures.translationFor(en) || vi(en) })) };
   }

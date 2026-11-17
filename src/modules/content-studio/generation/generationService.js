@@ -4,11 +4,13 @@ const HttpError = require('../../../http/httpError');
 const { splitSentences } = require('../detect/detectContent');
 const { validate } = require('./validators');
 const mockProvider = require('./mockProvider');
+const dictionary = require('../dictionary/dictionaryService');
 
 const PROVIDERS = { mock: mockProvider };
 const MAX_ATTEMPTS = 3;
 const STALE_LOCK_MINUTES = 10;
-const PASSAGE_TYPES = { translation: 'passage_translation', vocab: 'vocab', dictionary: 'dictionary' };
+const PASSAGE_TYPES = { translation: 'passage_translation', vocab: 'vocab' };
+const PASSAGE_TASKS = [...Object.keys(PASSAGE_TYPES), 'dictionary'];
 const QUESTION_TASKS = ['translation', 'hint', 'explanation', 'note'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -70,18 +72,21 @@ async function enqueue(itemId, tasks) {
     const { rows: [item] } = await client.query('SELECT id, tasks FROM cs_items WHERE id = $1 FOR UPDATE', [itemId]);
     if (!item) throw new HttpError('Không tìm thấy học liệu.', 404, 'ITEM_NOT_FOUND');
     // Items saved before task selection existed have no task groups: default to everything.
-    const defaults = { passage: Object.keys(PASSAGE_TYPES), question: QUESTION_TASKS };
+    const defaults = { passage: PASSAGE_TASKS, question: QUESTION_TASKS };
     const requested = tasks || {
       passage: item.tasks?.passage ?? defaults.passage,
       question: item.tasks?.question ?? defaults.question,
     };
-    const passageTasks = (requested.passage || []).filter(task => PASSAGE_TYPES[task]);
+    const requestedPassageTasks = (requested.passage || []).filter(task => PASSAGE_TASKS.includes(task));
+    const passageTasks = requestedPassageTasks.filter(task => PASSAGE_TYPES[task]);
+    const wantsDictionary = requestedPassageTasks.includes('dictionary');
     const wantsQuestions = (requested.question || []).some(task => QUESTION_TASKS.includes(task));
     const { rows: segments } = await client.query('SELECT id, kind FROM cs_segments WHERE item_id = $1', [itemId]);
     let count = 0;
     for (const segment of segments.filter(row => row.kind === 'passage')) {
       for (const task of passageTasks) { await upsertQueued(client, itemId, { segmentId: segment.id, type: PASSAGE_TYPES[task] }); count += 1; }
     }
+    if (wantsDictionary && segments.some(row => row.kind === 'passage')) count += 1;
     if (wantsQuestions) {
       const { rows: questions } = await client.query(
         'SELECT q.id, q.segment_id FROM cs_questions q JOIN cs_segments s ON s.id = q.segment_id WHERE s.item_id = $1', [itemId]);
@@ -92,12 +97,16 @@ async function enqueue(itemId, tasks) {
       // Partial runs (one tab, one group) add to the item's task list instead of replacing it.
       const merge = (group, list) => [...new Set([...(item.tasks?.[group] || []), ...list])];
       await client.query('UPDATE cs_items SET tasks = $2 WHERE id = $1', [itemId, JSON.stringify({
-        passage: merge('passage', passageTasks), question: merge('question', (requested.question || []).filter(task => QUESTION_TASKS.includes(task))),
+        passage: merge('passage', requestedPassageTasks), question: merge('question', (requested.question || []).filter(task => QUESTION_TASKS.includes(task))),
       })]);
     }
     await refreshItemStatus(client, itemId);
-    return { queued: count };
-  }).then(result => { kickWorker(); return result; });
+    return { queued: count, wantsDictionary };
+  }).then(async result => {
+    if (result.wantsDictionary) await dictionary.extract(itemId);
+    kickWorker();
+    return { queued: result.queued };
+  });
 }
 
 async function regenerate(artifactId) {

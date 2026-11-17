@@ -7,8 +7,15 @@ const summaryService = require('./summaryService');
 const MAX_SOURCE_CHARS = 60000;
 const MAX_FOLDER_DEPTH = 6;
 // Item status is derived from its artifacts at read time so concurrent workers can never leave it stale.
-const ITEM_STATUS_SQL = `COALESCE((SELECT CASE WHEN bool_or(a.status IN ('queued','generating')) THEN 'generating' WHEN bool_or(a.status = 'failed') THEN 'failed'
-             WHEN bool_or(a.status = 'needs_review') THEN 'needs_review' ELSE 'ready' END FROM cs_artifacts a WHERE a.item_id = i.id), 'draft')`;
+const ITEM_STATUS_SQL = `(SELECT CASE WHEN COUNT(*) = 0 THEN 'draft'
+             WHEN bool_or(work.status IN ('queued','generating')) THEN 'generating'
+             WHEN bool_or(work.status = 'failed') THEN 'failed'
+             WHEN bool_or(work.status IN ('needs_review','draft')) THEN 'needs_review' ELSE 'ready' END
+  FROM (
+    SELECT a.status FROM cs_artifacts a WHERE a.item_id = i.id
+    UNION ALL SELECT ds.status FROM cs_dict_sentences ds WHERE ds.item_id = i.id
+    UNION ALL SELECT dc.status FROM cs_dict_candidates dc WHERE dc.item_id = i.id
+  ) work)`;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const requireId = (value, label = 'id') => {
@@ -134,6 +141,7 @@ async function listItems({ folderId, search, limit = 50 } = {}) {
                                 WHEN bool_or(status = 'needs_review') THEN 'needs_review' ELSE 'ready' END AS status
               FROM cs_artifacts a WHERE a.item_id = i.id GROUP BY type) agg) AS "artifactStatus",
            COALESCE((SELECT jsonb_agg(jsonb_build_object('type', a.type, 'status', a.status)) FROM cs_artifacts a WHERE a.item_id = i.id), '[]'::jsonb) AS "_artifacts",
+           ${summaryService.DICTIONARY_STATUS_SQL} AS "_dictionaryStatus",
            i.updated_at AS "updatedAt", COALESCE(u.name, u.username) AS "createdByName"
     FROM cs_items i LEFT JOIN users u ON u.id = i.created_by
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
@@ -217,12 +225,14 @@ async function getItem(id, client = db) {
   const { rows: artifacts } = await client.query(`
     SELECT id, segment_id AS "segmentId", question_id AS "questionId", type, status, content, validation, source, provider, error, attempts, updated_at AS "updatedAt"
     FROM cs_artifacts WHERE item_id = $1`, [id]);
+  const { rows: [dictionary] } = await client.query(`SELECT ${summaryService.DICTIONARY_STATUS_SQL} AS status FROM cs_items i WHERE i.id = $1`, [id]);
   const { rows: path } = await client.query(`
     WITH RECURSIVE chain AS (
       SELECT id, parent_id, name, 0 AS depth FROM cs_folders WHERE id = $1
       UNION ALL SELECT f.id, f.parent_id, f.name, c.depth + 1 FROM cs_folders f JOIN chain c ON f.id = c.parent_id WHERE c.depth < 20
     ) SELECT id, name FROM chain ORDER BY depth DESC`, [item.folderId]);
-  return { ...item, folderPath: path, artifacts, segments: segments.map(segment => ({ ...segment, questions: questions.filter(question => question.segmentId === segment.id) })) };
+  const taskStatus = summaryService.deriveTaskStatus(item.tasks, artifacts, { dictionaryStatus: dictionary?.status });
+  return { ...item, taskStatus, folderPath: path, artifacts, segments: segments.map(segment => ({ ...segment, questions: questions.filter(question => question.segmentId === segment.id) })) };
 }
 
 async function updateItem(id, { title, folderId }) {
