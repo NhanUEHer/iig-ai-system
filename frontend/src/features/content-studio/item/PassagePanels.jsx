@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Plus, Trash2 } from 'lucide-react';
+import { Check, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button } from '../../../design-system-v2';
 import ArtifactShell from './ArtifactShell';
 
@@ -62,13 +62,19 @@ export function TranslationView({ artifact, draft, dirty, onChange: update, shel
   </ArtifactShell>;
 }
 
-export function VocabView({ artifact, draft, dirty, onChange: update, shell, activeIndex, onActivate }) {
+export function VocabView({ artifact, draft, dirty, onChange: update, shell, activeIndex, onActivate, settings, onSettingsChange, sourceText }) {
   const items = draft?.items || [];
   const setItem = (index, patch) => update({ ...draft, items: items.map((item, i) => (i === index ? { ...item, ...patch } : item)) });
   const remove = index => { update({ ...draft, items: items.filter((_, i) => i !== index) }); onActivate(null); };
   const add = () => { update({ ...draft, items: [...items, { inText: '', lemma: '', pos: 'Noun', ipa: '', meaningVi: '' }] }); onActivate(items.length); };
   const ro = !shell.canEdit;
+  const inPassage = items.filter(item => item.inText && sourceText.toLocaleLowerCase().includes(item.inText.toLocaleLowerCase())).length;
   return <ArtifactShell artifact={artifact} label="từ vựng" dirty={dirty} shell={shell}>
+    <div className="cs-vocab-toolbar"><span>AI · {inPassage}/{items.length} từ có trong bài</span><span />
+      <label>Level<select value={settings.level} onChange={event => onSettingsChange(current => ({ ...current, level: Number(event.target.value) }))}>{[450, 500, 650, 700, 800].map(level => <option key={level} value={level}>TOEIC {level}</option>)}</select></label>
+      <label>Chọn từ<select value={settings.mode} onChange={event => onSettingsChange(current => ({ ...current, mode: event.target.value }))}><option value="balanced">Cân bằng</option><option value="phrase_focused">Ưu tiên cụm từ</option><option value="single_word_focused">Ưu tiên từ đơn</option></select></label>
+    </div>
+    <div className="cs-vocab-head"><span>#</span><span>TỪ · IPA</span><span>LOẠI TỪ</span><span>NGHĨA</span><span /></div>
     <ul className="cs-words">
       {items.map((item, index) => {
         const active = activeIndex === index;
@@ -92,12 +98,12 @@ export function VocabView({ artifact, draft, dirty, onChange: update, shell, act
               <span className="cs-num">{pad(index + 1)}</span>
               <span className="cs-words__main">
                 <strong>{item.lemma || <em>Từ mới</em>}</strong>
-                {item.pos && <span className="cs-tag">{item.pos}</span>}
                 {item.ipa && <small>{item.ipa}</small>}
                 {differs && <small className="cs-words__intext">trong bài: “{item.inText}”</small>}
               </span>
+              <span>{item.pos && <span className="cs-tag">{item.pos}</span>}</span>
               <span className="cs-words__meaning">{item.meaningVi}</span>
-              <span className="cs-words__actions" />
+              <span className="cs-words__actions">{!ro && <button type="button" className="cs-icon-btn" title="Sửa" onClick={event => { event.stopPropagation(); onActivate(index); }}><Pencil /></button>}</span>
             </div>}
           {!ro && <button type="button" className="cs-icon-btn cs-words__delete" title="Xoá từ" aria-label={`Xoá từ ${item.lemma || index + 1}`} onClick={() => remove(index)}><Trash2 /></button>}
         </li>;

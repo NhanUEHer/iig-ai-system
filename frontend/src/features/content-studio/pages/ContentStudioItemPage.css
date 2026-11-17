@@ -1,20 +1,25 @@
 .cs-back { display: inline-flex; align-items: center; gap: 4px; color: var(--iig3-color-accent-hover); font-size: 13px; text-decoration: none; }
 .cs-back svg { width: 14px; height: 14px; }
+.cs-item-path { display: flex; align-items: center; gap: 6px; color: #656963; font-size: 12px; }
+.cs-item-path svg { width: 13px; height: 13px; }
 .cs-item-page button:focus:not(:focus-visible) { outline: none; box-shadow: none; }
 .cs-item-head { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--iig3-space-4); }
 .cs-item-head__row { display: flex; align-items: center; gap: var(--iig3-space-3); flex-wrap: wrap; }
-.cs-item-head__row h1 { margin: 0; font-size: 24px; line-height: 1.2; }
+.cs-item-head__row h1 { margin: 0; font-size: 22px; line-height: 1.2; }
 .cs-item-head__meta { flex: 1; color: var(--iig3-text-muted); font-size: 13px; }
 .cs-muted { color: var(--iig3-text-muted); font-size: 12px; }
 .cs-num { color: var(--iig3-text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 
 /* Workspace: passage (left) + questions (right), each scrolls on its own. */
 .cs-hub { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--iig3-space-4); }
-.cs-hub.is-split { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
-.cs-hub__col { display: flex; flex-direction: column; min-width: 0; height: calc(100vh - 210px); min-height: 480px; background: var(--iig3-surface); border: 1px solid var(--iig3-border); border-radius: 12px; overflow: hidden; }
+.cs-hub.is-split { grid-template-columns: minmax(0, .9fr) minmax(0, 1.25fr); align-items: start; }
+.cs-hub__col { display: flex; flex-direction: column; min-width: 0; min-height: 480px; background: var(--iig3-surface); border: 1px solid var(--iig3-border); border-radius: 12px; overflow: hidden; }
+.cs-hub__source { position: sticky; top: 16px; max-height: calc(100vh - 32px); }
+.cs-hub__work { min-height: 640px; }
 .cs-hub__head { display: flex; align-items: center; gap: var(--iig3-space-3); padding: 10px 16px; border-bottom: 1px solid var(--iig3-border); flex-wrap: wrap; }
 .cs-hub__head > strong { flex: 1; font-size: 14px; }
-.cs-hub__body { flex: 1; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.cs-hub__body { flex: 1; overflow: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.cs-hub__work > .cs-hub__body { padding: 0; }
 .cs-hub__block + .cs-hub__block { border-top: 1px dashed var(--iig3-border); padding-top: 16px; }
 @media (max-width: 1100px) { .cs-hub.is-split { grid-template-columns: minmax(0, 1fr); } .cs-hub__col { height: auto; min-height: 0; } }
 
@@ -27,7 +32,11 @@
 
 .cs-source { margin: 0; white-space: pre-line; font-size: 14px; line-height: 1.85; }
 .cs-source.is-compact { font-size: 13px; line-height: 1.75; padding: 12px; border-radius: 8px; background: var(--iig3-color-surface-muted); }
-.cs-source mark, .cs-dict__sentence mark { background: var(--iig3-color-accent-soft); color: var(--iig3-color-accent-hover); padding: 0 2px; border-radius: 3px; }
+.cs-source mark, .cs-dict__sentence mark { background: #f8e7df; color: #9c3f26; padding: 0 3px; border-radius: 4px; }
+.cs-source mark.is-active { background: #d55f3d; color: #fff; }
+.cs-source-toggle { display: flex; gap: 2px; padding: 2px; border: 1px solid #deded8; border-radius: 7px; background: #f6f5f2; }
+.cs-source-toggle button { height: 26px; padding: 0 10px; border: 0; border-radius: 5px; background: transparent; color: #656963; font: inherit; font-size: 12px; }
+.cs-source-toggle button.is-active { background: #fffefa; color: #242521; box-shadow: 0 1px 2px rgba(0,0,0,.08); font-weight: 600; }
 
 .cs-translation { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }
 .cs-translation li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px; }
@@ -196,3 +205,30 @@ main .cs-words__inline input.cs-words__meaning { grid-column: 1 / -1; }
 .cs-entry-field { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 8px; align-items: start; }
 .cs-entry-field > span { padding-top: 4px; font-size: 12px; color: var(--iig3-text-muted); }
 main .cs-entry-field textarea { resize: none; overflow: hidden; font-size: 13px !important; line-height: 1.55; }
+
+/* T07 item tabs and vocabulary table. */
+.cs-hub__tabs { display: flex; gap: 2px; min-height: 49px; padding: 0 10px; border-bottom: 1px solid #deded8; flex-wrap: wrap; }
+.cs-hub__tabs button { display: inline-flex; align-items: center; gap: 8px; height: 49px; padding: 0 14px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #656963; font: inherit; font-size: 14px; font-weight: 500; }
+.cs-hub__tabs button.is-active { border-bottom-color: #d55f3d; color: #242521; font-weight: 600; }
+.cs-hub__tabs i { width: 7px; height: 7px; border-radius: 50%; background: #a3a69f; }
+.cs-hub__tabs i.is-ready { background: #648b73; }.cs-hub__tabs i.is-generating,.cs-hub__tabs i.is-queued { background: #557da5; }.cs-hub__tabs i.is-waiting_review,.cs-hub__tabs i.is-needs_review,.cs-hub__tabs i.is-draft { background: #c99a3a; }.cs-hub__tabs i.is-failed { background: #b3503f; }
+.cs-hub__tabs span { font-size: 12px; color: #3f6650; font-weight: 600; }
+.cs-hub__block { padding: 12px 14px 0; }
+.cs-vocab-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: -4px; }.cs-vocab-toolbar > span:first-child { color: #7f847d; font-size: 12px; }.cs-vocab-toolbar > span:nth-child(2) { flex: 1; }
+.cs-vocab-toolbar label { display: flex; align-items: center; gap: 6px; color: #656963; font-size: 12px; }.cs-vocab-toolbar select { height: 32px!important; padding: 0 8px!important; border: 1px solid #deded8!important; border-radius: 8px!important; background: #fffefa!important; font: inherit!important; font-size: 13px!important; }
+.cs-vocab-head,.cs-words__row { display: grid; grid-template-columns: 34px minmax(0,1.2fr) 150px minmax(0,1fr) 68px; gap: 12px; align-items: center; }.cs-vocab-head { margin: 0 -14px; padding: 8px 14px; border-top: 1px solid #ecebe6; background: #f6f5f2; color: #7f847d; font-size: 11px; font-weight: 600; letter-spacing: .04em; }
+.cs-words { margin: 0 -14px!important; gap: 0!important; }.cs-words > li { position: relative; display: block!important; padding: 0!important; border: 0!important; border-top: 1px solid #ecebe6!important; border-radius: 0!important; }.cs-words > li.is-active { background: #fdf3ee!important; box-shadow: inset 3px 0 #d55f3d; }.cs-words__row { padding: 10px 14px; min-height: 52px; }.cs-words__main { min-width: 0; }.cs-words__main strong { font-size: 14px; }.cs-words__main small { margin-left: 5px; color: #7f847d; font-size: 12px; }.cs-words__main .cs-words__intext { display: block; margin: 2px 0 0; color: #656963; }.cs-words__meaning { color: #3f5d7d; font-size: 14px; }.cs-words__actions { display: flex; justify-content: flex-end; }.cs-words__delete { right: 8px; }.cs-words__row .cs-words__actions { padding-right: 30px; }.cs-words__inline { margin: 8px 44px 8px 14px; }
+
+/* T08 dictionary review and entry workspace. */
+.cs-pill { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }.cs-pill.is-warning { background: #f4ecd8; color: #6f5420; }.cs-pill.is-success { background: #e7f0e9; color: #3f6650; }
+.cs-dictionary-empty,.cs-dictionary-generating { min-height: 430px; display: grid; place-items: center; align-content: center; gap: 10px; padding: 30px; text-align: center; }.cs-dictionary-generating p { margin: 0; color: #656963; font-size: 13px; }
+.cs-dictionary-review__intro,.cs-dictionary-entries__bar { display: flex; align-items: center; gap: 10px; padding: 12px 14px; color: #7f847d; font-size: 12px; }.cs-dictionary-review__intro small { margin-left: auto; }.cs-dictionary-entries__bar > span:nth-child(3) { flex: 1; }
+.cs-dictionary-review__groups { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 10px; }.cs-dictionary-review__groups section { border: 1px solid #ecebe6; border-radius: 10px; overflow: hidden; }.cs-dictionary-review__groups header { display: grid; grid-template-columns: 54px minmax(0,1fr) auto; gap: 10px; align-items: start; padding: 10px 12px; background: #f6f5f2; }.cs-dictionary-review__groups header span { color: #bd4f31; font-size: 11px; font-weight: 700; text-transform: uppercase; }.cs-dictionary-review__groups header p { margin: 0; font-size: 13px; line-height: 1.45; }.cs-dictionary-review__groups header small { color: #7f847d; }
+.cs-dictionary-chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 12px; }.cs-dictionary-chips button { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 8px 0 10px; border: 1px solid #e3c0b4; border-radius: 999px; background: #fdf3ee; color: #8a3a22; font: inherit; font-size: 12px; }.cs-dictionary-chips button.is-warning { border-style: dashed; border-color: #c99a3a; background: #fbf6ea; color: #6f5420; }.cs-dictionary-chips button svg { width: 13px; }.cs-dictionary-chips input { width: 150px; height: 30px!important; padding: 0 10px!important; border: 1px solid #d55f3d!important; border-radius: 999px!important; font-size: 12px!important; }.cs-dictionary-chips .cs-dictionary-chip-add { border-style: dashed; border-color: #deded8; background: #fffefa; color: #656963; }.cs-dictionary-review > footer { position: sticky; bottom: 0; display: flex; justify-content: flex-end; gap: 8px; padding: 12px 14px; border-top: 1px solid #ecebe6; background: #fffefa; }
+.cs-dictionary-split { display: grid; grid-template-columns: minmax(250px,.9fr) minmax(0,1.25fr); border-top: 1px solid #ecebe6; }.cs-dictionary-split > aside { padding: 12px; border-right: 1px solid #ecebe6; }.cs-dictionary-search { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px; border: 1px solid #deded8; border-radius: 8px; color: #656963; }.cs-dictionary-search svg { width: 15px; }.cs-dictionary-search input { flex: 1; min-width: 0; height: auto!important; padding: 0!important; border: 0!important; background: transparent!important; font-size: 13px!important; }
+.cs-dictionary-filters { display: flex; gap: 4px; flex-wrap: wrap; margin: 10px 0; }.cs-dictionary-filters button { height: 28px; padding: 0 10px; border: 1px solid #deded8; border-radius: 999px; background: #fffefa; font: inherit; font-size: 12px; }.cs-dictionary-filters button.is-active { border-color: #d55f3d; background: #d55f3d; color: #fff; font-weight: 600; }
+.cs-dictionary-split aside ul { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; max-height: 720px; overflow: auto; }.cs-dictionary-split aside li > button { display: flex; flex-direction: column; gap: 3px; width: 100%; padding: 10px 12px; border: 1px solid #ecebe6; border-radius: 10px; background: #fffefa; color: #242521; font: inherit; text-align: left; }.cs-dictionary-split aside li > button.is-active { border-color: #d55f3d; background: #fdf3ee; }.cs-dictionary-split aside li > button.is-warning { border-color: #e2c98f; background: #fbf6ea; }.cs-dictionary-split aside li span { display: flex; align-items: center; gap: 7px; width: 100%; }.cs-dictionary-split aside li strong { font-size: 14px; }.cs-dictionary-split aside li em { color: #3f5d7d; font-size: 10px; font-style: normal; font-weight: 600; text-transform: uppercase; }.cs-dictionary-split aside li i { display: flex; align-items: center; gap: 3px; margin-left: auto; color: #3f6650; font-size: 11px; font-style: normal; font-weight: 600; }.cs-dictionary-split aside li i.is-needs_review,.cs-dictionary-split aside li i.is-failed { color: #8a6a2c; }.cs-dictionary-split aside li i svg { width: 12px; }.cs-dictionary-split aside li small { color: #7f847d; font-size: 12px; }.cs-dictionary-split aside li p { margin: 0; color: #3f5d7d; font-size: 13px; }
+.cs-dictionary-detail { padding: 16px 18px; }.cs-dictionary-detail > header { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }.cs-dictionary-detail > header > div { display: flex; align-items: center; gap: 8px; }.cs-dictionary-detail h2 { margin: 0; font-size: 24px; }.cs-dictionary-detail header span { padding: 2px 8px; border-radius: 6px; background: #eaf0f5; color: #3f5d7d; font-size: 11px; font-weight: 700; text-transform: uppercase; }.cs-dictionary-detail header em { padding: 2px 8px; border-radius: 999px; background: #e7f0e9; color: #3f6650; font-size: 11px; font-style: normal; font-weight: 600; }.cs-dictionary-detail header small { color: #656963; font-size: 13px; }.cs-dictionary-detail header div > span:nth-child(2) { flex: 1; padding: 0; background: none; }
+.cs-dictionary-field { display: grid; grid-template-columns: 26px 150px minmax(0,1fr); gap: 10px; align-items: baseline; padding: 9px 0; border-top: 1px solid #f0efea; }.cs-dictionary-field > span { color: #a3a69f; font-size: 11px; }.cs-dictionary-field > strong { color: #656963; font-size: 12px; }.cs-dictionary-field p { margin: 0; color: #242521; font-size: 14px; line-height: 1.55; white-space: pre-wrap; }.cs-dictionary-field.is-accent p { color: #8a3a22; font-weight: 600; }.cs-dictionary-field textarea,.cs-dictionary-field select { width: 100%; min-height: 34px!important; padding: 6px 8px!important; border: 1px solid #deded8!important; border-radius: 6px!important; font: inherit!important; font-size: 14px!important; resize: vertical; }
+.cs-dictionary-detail > footer { display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px solid #ecebe6; }.cs-dictionary-detail > footer button { display: inline-flex; align-items: center; gap: 4px; height: 34px; padding: 0 10px; border: 0; background: transparent; color: #656963; font: inherit; font-size: 13px; }.cs-dictionary-detail > footer button:last-child { padding: 0 12px; border: 1px solid #deded8; border-radius: 8px; background: #fffefa; color: #242521; font-weight: 500; }.cs-dictionary-detail > footer svg { width: 14px; }
+@media (max-width: 1200px) { .cs-vocab-head,.cs-words__row { grid-template-columns: 30px minmax(0,1fr) 120px minmax(0,.8fr) 64px; gap: 8px; }.cs-dictionary-split { grid-template-columns: 1fr; }.cs-dictionary-split > aside { border-right: 0; border-bottom: 1px solid #ecebe6; }.cs-dictionary-split aside ul { max-height: 350px; } }
