@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Check, Pencil, Plus, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 import { Button } from '../../../design-system-v2';
 import ArtifactShell from './ArtifactShell';
 
@@ -44,7 +44,7 @@ export function SourceEditor({ passages, questions, draft, onChange }) {
   </div>;
 }
 
-export function VocabView({ artifact, draft, dirty, onChange: update, shell, activeIndex, onActivate, settings, onSettingsChange, sourceText }) {
+export function VocabView({ artifact, draft, dirty, onChange: update, shell, activeIndex, onActivate, settings, onSettingsChange, sourceText, onFill, fillingIndex }) {
   const items = draft?.items || [];
   const setItem = (index, patch) => update({ ...draft, items: items.map((item, i) => (i === index ? { ...item, ...patch } : item)) });
   const remove = index => { update({ ...draft, items: items.filter((_, i) => i !== index) }); onActivate(null); };
@@ -61,6 +61,8 @@ export function VocabView({ artifact, draft, dirty, onChange: update, shell, act
       {items.map((item, index) => {
         const active = activeIndex === index;
         const differs = item.inText && item.inText.toLowerCase() !== String(item.lemma || '').toLowerCase();
+        const canFill = Boolean(item.inText || item.lemma);
+        const fillLabel = item.lemma && item.meaningVi ? 'Tạo lại từ này' : 'AI điền';
         return <li key={index} className={active ? 'is-active' : ''}>
           {active && !ro
             ? <div className="cs-doc cs-words__inline">
@@ -73,6 +75,7 @@ export function VocabView({ artifact, draft, dirty, onChange: update, shell, act
                 <label className="cs-words__intext">trong bài: <input aria-label="Dạng trong bài" placeholder="dạng xuất hiện trong bài" value={item.inText || ''} onChange={event => setItem(index, { inText: event.target.value })} /></label>
               </div>
               <span className="cs-words__actions">
+                {shell.canGenerate && <Button variant="ghost" size="sm" icon={<Sparkles />} loading={fillingIndex === index} disabled={!canFill || fillingIndex != null} onClick={() => onFill(index)}>{fillLabel}</Button>}
                 <button type="button" className="cs-icon-btn" title="Thu gọn" aria-label="Thu gọn" onClick={() => onActivate(null)}><Check /></button>
               </span>
             </div>
@@ -85,7 +88,10 @@ export function VocabView({ artifact, draft, dirty, onChange: update, shell, act
               </span>
               <span>{item.pos && <span className="cs-tag">{item.pos}</span>}</span>
               <span className="cs-words__meaning">{item.meaningVi}</span>
-              <span className="cs-words__actions">{!ro && <button type="button" className="cs-icon-btn" title="Sửa" onClick={event => { event.stopPropagation(); onActivate(index); }}><Pencil /></button>}</span>
+              <span className="cs-words__actions">
+                {shell.canGenerate && <Button variant="ghost" size="sm" icon={<RefreshCw />} loading={fillingIndex === index} disabled={!canFill || fillingIndex != null} onClick={event => { event.stopPropagation(); onFill(index); }}>Tạo lại từ này</Button>}
+                {!ro && <button type="button" className="cs-icon-btn" title="Sửa" onClick={event => { event.stopPropagation(); onActivate(index); }}><Pencil /></button>}
+              </span>
             </div>}
           {!ro && <button type="button" className="cs-icon-btn cs-words__delete" title="Xoá từ" aria-label={`Xoá từ ${item.lemma || index + 1}`} onClick={() => remove(index)}><Trash2 /></button>}
         </li>;

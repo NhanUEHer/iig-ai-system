@@ -59,6 +59,8 @@ router.put('/dictionary/entries/:candidateId', requirePermission(...EDIT), async
 router.post('/dictionary/entries/:candidateId/regenerate', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.status(202).json({ success: true, data: await dictionary.regenerateEntry(req.params.candidateId) })));
 router.delete('/dictionary/candidates/:candidateId', requirePermission(...EDIT), asyncHandler(async (req, res) => res.json({ success: true, data: await dictionary.removeCandidate(req.params.candidateId) })));
 router.post('/artifacts/:id/regenerate', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.status(202).json({ success: true, data: await generation.regenerate(req.params.id) })));
+router.post('/artifacts/:id/vocab/fill', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.json({ success: true, data: await generation.fillVocab(req.params.id, req.body?.index) })));
+router.post('/artifacts/:id/translation/sentence', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.json({ success: true, data: await generation.regenerateTranslationSentence(req.params.id, req.body?.index) })));
 router.put('/artifacts/:id', requirePermission(...EDIT), asyncHandler(async (req, res) => res.json({ success: true, data: await generation.saveEdit(req.params.id, req.body?.content, req.user.id) })));
 
 module.exports = router;

@@ -127,6 +127,11 @@ async function enqueue(itemId, tasks) {
 
 async function regenerate(artifactId) {
   requireId(artifactId, 'id');
+  const { rows: [current] } = await db.query('SELECT * FROM cs_artifacts WHERE id = $1', [artifactId]);
+  if (!current) throw new HttpError('Không tìm thấy nội dung.', 404, 'ARTIFACT_NOT_FOUND');
+  if (current.type === 'question_pack') {
+    return regenerateQuestion(current);
+  }
   const { rows: [artifact] } = await db.query(`
     UPDATE cs_artifacts SET status = 'queued', attempts = 0, error = NULL, locked_at = NULL, updated_at = CURRENT_TIMESTAMP
     WHERE id = $1 AND status NOT IN ('queued','generating') RETURNING item_id`, [artifactId]);
@@ -134,6 +139,92 @@ async function regenerate(artifactId) {
   await db.transaction(client => refreshItemStatus(client, artifact.item_id));
   kickWorker();
   return { id: artifactId };
+}
+
+async function claimSingle(artifactId, expectedType) {
+  const { rows: [artifact] } = await db.query(`
+    UPDATE cs_artifacts SET status = 'generating', error = NULL, locked_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1 AND type = $2 AND status NOT IN ('queued','generating') RETURNING *`, [artifactId, expectedType]);
+  if (artifact) return artifact;
+  const { rows: [existing] } = await db.query('SELECT type, status FROM cs_artifacts WHERE id = $1', [artifactId]);
+  if (!existing) throw new HttpError('Không tìm thấy nội dung.', 404, 'ARTIFACT_NOT_FOUND');
+  if (existing.type !== expectedType) throw new HttpError('Loại nội dung không hợp lệ.', 400, 'INVALID_ARTIFACT_TYPE');
+  throw new HttpError('Nội dung đang được tạo, hãy chờ hoàn tất.', 409, 'ARTIFACT_BUSY');
+}
+
+async function finishSingle(artifact, content, context, providerName = aiCoreProvider.name) {
+  const validation = validate(artifact.type, content, context);
+  const status = validation.issues.length ? 'needs_review' : 'ready';
+  await db.transaction(async client => {
+    await client.query(`
+      UPDATE cs_artifacts SET content = $2, validation = $3, status = $4, source = 'ai', provider = $5,
+        error = NULL, locked_at = NULL, source_hash = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+    [artifact.id, JSON.stringify(content), JSON.stringify(validation), status, providerName, artifactHash(artifact.type, context)]);
+    await client.query(`INSERT INTO cs_artifact_versions (artifact_id, content, validation, source, provider) VALUES ($1, $2, $3, 'ai', $4)`,
+      [artifact.id, JSON.stringify(content), JSON.stringify(validation), providerName]);
+    await refreshItemStatus(client, artifact.item_id);
+  });
+  return { id: artifact.id, status, validation, content };
+}
+
+async function failSingle(artifact, error) {
+  await db.query(`UPDATE cs_artifacts SET status = $2, error = $3, locked_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+    [artifact.id, artifact.content ? (artifact.validation?.issues?.length ? 'needs_review' : 'ready') : 'failed', String(error.message || error).slice(0, 500)]);
+  await db.transaction(client => refreshItemStatus(client, artifact.item_id));
+}
+
+async function fillVocab(artifactId, index) {
+  requireId(artifactId, 'id');
+  if (!Number.isInteger(index) || index < 0) throw new HttpError('Vị trí từ vựng không hợp lệ.', 400, 'INVALID_INDEX');
+  const artifact = await claimSingle(artifactId, 'vocab');
+  try {
+    const context = await loadContext(db, artifact);
+    const items = Array.isArray(artifact.content?.items) ? artifact.content.items : [];
+    const item = items[index];
+    if (!item) throw new HttpError('Không tìm thấy dòng từ vựng.', 404, 'VOCAB_ITEM_NOT_FOUND');
+    const word = String(item.inText || item.lemma || '').trim();
+    if (!word) throw new HttpError('Hãy nhập từ trong bài trước khi dùng AI điền.', 400, 'VOCAB_WORD_REQUIRED');
+    if (!context.passage.toLocaleLowerCase().includes(word.toLocaleLowerCase())) {
+      throw new HttpError(`Không tìm thấy “${word}” trong đoạn văn.`, 400, 'VOCAB_WORD_NOT_IN_PASSAGE');
+    }
+    const filled = await aiCoreProvider.fillVocabItem({ passage: context.passage, word, itemId: context.itemId });
+    const content = { ...artifact.content, items: items.map((value, itemIndex) => itemIndex === index ? { ...value, ...filled } : value) };
+    return await finishSingle(artifact, content, context);
+  } catch (error) {
+    await failSingle(artifact, error);
+    throw error;
+  }
+}
+
+async function regenerateTranslationSentence(artifactId, index) {
+  requireId(artifactId, 'id');
+  if (!Number.isInteger(index) || index < 0) throw new HttpError('Vị trí câu dịch không hợp lệ.', 400, 'INVALID_INDEX');
+  const artifact = await claimSingle(artifactId, 'passage_translation');
+  try {
+    const context = await loadContext(db, artifact);
+    const rows = Array.isArray(artifact.content?.sentences) ? artifact.content.sentences : [];
+    if (!rows[index] || !context.sentences[index]) throw new HttpError('Không tìm thấy câu dịch.', 404, 'TRANSLATION_SENTENCE_NOT_FOUND');
+    const generated = await aiCoreProvider.generate('passage_translation', { ...context, sentences: [context.sentences[index]] });
+    const vi = generated.sentences?.[0]?.vi || '';
+    const content = { ...artifact.content, sentences: rows.map((row, rowIndex) => rowIndex === index ? { ...row, en: context.sentences[index], vi } : row) };
+    return await finishSingle(artifact, content, context);
+  } catch (error) {
+    await failSingle(artifact, error);
+    throw error;
+  }
+}
+
+async function regenerateQuestion(knownArtifact) {
+  const artifact = await claimSingle(knownArtifact.id, 'question_pack');
+  try {
+    const context = await loadContext(db, artifact);
+    const singleContext = { ...context, setQuestions: [context.question], bypassSetCache: true };
+    const content = await aiCoreProvider.generate('question_pack', singleContext);
+    return await finishSingle(artifact, content, context);
+  } catch (error) {
+    await failSingle(artifact, error);
+    throw error;
+  }
 }
 
 // Editors keep empty items while typing comma lists; drop them before storing.
@@ -228,4 +319,4 @@ function startWorker() {
 
 function stopWorker() { if (timer) clearInterval(timer); timer = null; }
 
-module.exports = { enqueue, regenerate, saveEdit, startWorker, stopWorker, loadContext };
+module.exports = { enqueue, regenerate, fillVocab, regenerateTranslationSentence, saveEdit, startWorker, stopWorker, loadContext };

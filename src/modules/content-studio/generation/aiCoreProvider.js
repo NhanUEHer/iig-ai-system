@@ -5,6 +5,7 @@
 // Types without an agent fall back to the mock provider.
 const aiCore = require('../../ai-core');
 const mockProvider = require('./mockProvider');
+const { splitSentences } = require('../detect/detectContent');
 
 const AGENTS = {
   vocab: 'cs.vocab',
@@ -42,6 +43,13 @@ function questionSetCall(agentKey, input, ctx) {
   const questions = (input.setQuestions?.length ? input.setQuestions : [input.question]).map(question => ({
     n: question.number, stem: question.stem, options: question.options || {}, answer: question.answerKey || '',
   }));
+  if (input.bypassSetCache) {
+    return aiCore.run(agentKey, {
+      passage: input.passage,
+      passage_vi: input.passageVi || '(chưa có bản dịch)',
+      questions: JSON.stringify(questions),
+    }, ctx);
+  }
   const cacheKey = `${input.setId || input.question.id}:${JSON.stringify(questions)}:${input.passage}`;
   const cached = setCalls.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.promise;
@@ -54,6 +62,35 @@ function questionSetCall(agentKey, input, ctx) {
   promise.catch(() => setCalls.delete(cacheKey));
   for (const [key, value] of setCalls) if (value.expiresAt <= Date.now()) setCalls.delete(key);
   return promise;
+}
+
+function sentenceForWord(passage, word) {
+  const needle = String(word || '').trim().toLocaleLowerCase();
+  if (!needle) return '';
+  const text = String(passage || '');
+  return splitSentences(text).find(value => value.toLocaleLowerCase().includes(needle))
+    || text.split(/\n+/).map(value => value.trim()).find(value => value.toLocaleLowerCase().includes(needle))
+    || '';
+}
+
+// A vocabulary row uses the compact dictionary agent so one manual word can be
+// completed without paying for (or replacing) the full cs.vocab list.
+async function fillVocabItem({ passage, word, itemId }) {
+  const sentence = sentenceForWord(passage, word);
+  if (!sentence) throw new Error(`Không tìm thấy “${word}” trong đoạn văn.`);
+  const result = await aiCore.run(AGENTS.dictionary_entries, {
+    passage,
+    sentence,
+    target_chunk: JSON.stringify([word]),
+  }, { feature: 'content-studio', refType: 'cs_item', refId: itemId || null });
+  const row = Array.isArray(result.data?.dictionary_entries) ? result.data.dictionary_entries[0] : null;
+  if (!row) throw new Error('AI không trả kết quả cho từ vựng này.');
+  return {
+    lemma: String(row.canonical || word).trim(),
+    pos: String(row.pos || '').trim(),
+    ipa: String(row.ipa || '').trim(),
+    meaningVi: String(row.meaning_vn || '').trim(),
+  };
 }
 
 // cs.vocab returns { w: [{ o, t, p, i, m }] } (Key Vocab flow) → Content Studio vocab artifact.
@@ -116,4 +153,4 @@ async function generate(type, input = {}, options = {}) {
   return result.data; // { dictionary_entries: [...] } in request order — mapped by dictionary/normalize.js
 }
 
-module.exports = { name: 'ai-core', generate, mapVocab, mergeTranslation, mapQuestion, AGENTS };
+module.exports = { name: 'ai-core', generate, fillVocabItem, mapVocab, mergeTranslation, mapQuestion, AGENTS };

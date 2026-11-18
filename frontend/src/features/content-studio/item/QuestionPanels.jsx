@@ -77,7 +77,7 @@ export function QuestionWorkspace({ questions, artifacts, drafts, selectedId, on
             onChange={value => set({ [definition.value]: value })} />)}
         </div>
         <footer>
-          {shell.canGenerate && <Button variant="outline" size="sm" icon={<RefreshCw />} disabled={isBusy(artifact)} onClick={() => shell.onRegenerate(artifact)}>Tạo lại câu này</Button>}
+          {shell.canGenerate && <Button variant="outline" size="sm" icon={<RefreshCw />} loading={shell.isRegenerating?.(artifact)} disabled={isBusy(artifact) || shell.isRegenerating?.(artifact)} onClick={() => shell.onRegenerate(artifact)}>Tạo lại câu này</Button>}
           <span />
           <button type="button" disabled={!previous} onClick={() => previous && onSelect(previous.id)}><ChevronLeft />{previous ? `Câu ${previous.number}` : 'Câu trước'}</button>
           <button type="button" className="is-next" disabled={!next} onClick={() => next && onSelect(next.id)}>{next ? `Câu ${next.number}` : 'Câu sau'}<ChevronRight /></button>

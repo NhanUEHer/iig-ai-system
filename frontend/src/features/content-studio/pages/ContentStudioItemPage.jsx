@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { BookOpen, Check, CheckCircle2, Pencil, RefreshCw, Save, TriangleAlert } from 'lucide-react';
-import { Button, ErrorState, PageFrame, Skeleton, StatusBadge } from '../../../design-system-v2';
-import { errorMessage, generateItem, getDictionary, regenerateStale, getItem, regenerateArtifact, saveArtifact, saveDictionaryEntry, updateItemContent } from '../../../services/contentStudioService';
+import { Button, ConfirmDialog, ErrorState, PageFrame, Skeleton, StatusBadge } from '../../../design-system-v2';
+import { errorMessage, fillVocabItem, generateItem, getDictionary, regenerateStale, getItem, regenerateArtifact, regenerateTranslationSentence, saveArtifact, saveDictionaryEntry, updateItemContent } from '../../../services/contentStudioService';
 import { STATUS, isBusy } from '../item/ArtifactShell';
 import DictionaryPanel from '../item/DictionaryPanel';
 import { SourceEditor, VocabView, highlight } from '../item/PassagePanels';
@@ -40,6 +40,8 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   const [vocabSettings, setVocabSettings] = useState({ level: 650, mode: 'balanced' });
   const [activeSentence, setActiveSentence] = useState(null); // [passageId, sentenceIndex, entryIndex]
   const [generating, setGenerating] = useState(false);
+  const [singleBusy, setSingleBusy] = useState(null);
+  const [confirmVocab, setConfirmVocab] = useState(null);
   const showMsgRef = useRef(showMsg);
   useEffect(() => { showMsgRef.current = showMsg; }, [showMsg]);
 
@@ -95,11 +97,43 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
     finally { setGenerating(false); }
   };
   const regenerate = async artifact => {
+    setSingleBusy(`artifact:${artifact.id}`);
     try {
       await regenerateArtifact(artifact.id);
       setDrafts(current => { const next = { ...current }; delete next[artifact.id]; return next; });
       await load();
     } catch (requestError) { showMsg?.(errorMessage(requestError, 'Không thể tạo lại.'), 'error'); }
+    finally { setSingleBusy(null); }
+  };
+
+  const persistDraft = async artifact => {
+    const content = drafts[artifact.id];
+    if (!content) return;
+    await saveArtifact(artifact.id, content);
+  };
+
+  const fillVocabRow = async (artifact, index) => {
+    setSingleBusy(`vocab:${artifact.id}:${index}`);
+    try {
+      await persistDraft(artifact);
+      await fillVocabItem(artifact.id, index);
+      setDrafts(current => { const next = { ...current }; delete next[artifact.id]; return next; });
+      await load();
+      showMsg?.('AI đã điền từ vựng.', 'success');
+    } catch (requestError) { showMsg?.(errorMessage(requestError, 'Không thể điền từ vựng.'), 'error'); }
+    finally { setSingleBusy(null); }
+  };
+
+  const regenerateSentence = async (artifact, index) => {
+    setSingleBusy(`translation:${artifact.id}:${index}`);
+    try {
+      await persistDraft(artifact);
+      await regenerateTranslationSentence(artifact.id, index);
+      setDrafts(current => { const next = { ...current }; delete next[artifact.id]; return next; });
+      await load();
+      showMsg?.(`Đã tạo lại câu ${index + 1}.`, 'success');
+    } catch (requestError) { showMsg?.(errorMessage(requestError, 'Không thể tạo lại câu dịch.'), 'error'); }
+    finally { setSingleBusy(null); }
   };
 
   const saveAll = async () => {
@@ -146,10 +180,17 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   if (!item) return <div className="iig3-list-screen"><Skeleton lines={6} /></div>;
 
   const tasks = item.tasks || {};
-  const shellFor = onGenerate => ({ canEdit: permissions.edit, canGenerate: permissions.generate, onGenerate, onRegenerate: regenerate });
+  const shellFor = onGenerate => ({ canEdit: permissions.edit, canGenerate: permissions.generate, onGenerate, onRegenerate: regenerate, isRegenerating: artifact => singleBusy === `artifact:${artifact?.id}` });
+  const regenerateVocab = artifact => {
+    if (artifact?.source === 'human') setConfirmVocab(artifact);
+    else {
+      setDrafts(current => { const next = { ...current }; delete next[artifact.id]; return next; });
+      generate({ passage: ['vocab'], question: [], vocab: vocabSettings });
+    }
+  };
   const passageShell = task => ({
     ...shellFor(() => generate({ passage: [task], question: [], ...(task === 'vocab' ? { vocab: vocabSettings } : {}) })),
-    ...(task === 'vocab' ? { onRegenerate: () => generate({ passage: ['vocab'], question: [], vocab: vocabSettings }) } : {}),
+    ...(task === 'vocab' ? { onRegenerate: regenerateVocab } : {}),
   });
   const questionShell = shellFor(() => generate({ passage: [], question: tasks.question?.length ? tasks.question : ['translation', 'hint', 'explanation', 'note'] }));
   const counts = {
@@ -285,11 +326,15 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
         <nav className="cs-hub__tabs">{tabs.map(entry => <button type="button" key={entry.value} className={activeTab === entry.value ? 'is-active' : ''} onClick={() => changeTab(entry.value)}><i className={`is-${entry.status || 'empty'}`} />{entry.label}{entry.detail !== '' && <span>{entry.detail}</span>}{entry.stale && <b className="cs-stale-tag">Lỗi thời</b>}</button>)}</nav>
         <div className="cs-hub__body">
           {activeTab === 'translation' && passages.map(passage => <div key={passage.id} className="cs-hub__block cs-hub__block--translation">
-            <TranslationPanel {...editorProps(artifactFor('passage_translation', passage.id))} shell={passageShell('translation')} activeSentence={activeSentence} onFocusSentence={setActiveSentence} />
+            <TranslationPanel {...editorProps(artifactFor('passage_translation', passage.id))} shell={passageShell('translation')} activeSentence={activeSentence} onFocusSentence={setActiveSentence}
+              onRegenerateSentence={index => regenerateSentence(artifactFor('passage_translation', passage.id), index)}
+              regeneratingIndex={singleBusy?.startsWith(`translation:${artifactFor('passage_translation', passage.id)?.id}:`) ? Number(singleBusy.split(':').at(-1)) : null} />
           </div>)}
           {activeTab === 'vocab' && passages.map(passage => <div key={passage.id} className="cs-hub__block">
             <VocabView {...editorProps(artifactFor('vocab', passage.id))} shell={passageShell('vocab')}
               settings={vocabSettings} onSettingsChange={setVocabSettings} sourceText={passage.text}
+              onFill={index => fillVocabRow(artifactFor('vocab', passage.id), index)}
+              fillingIndex={singleBusy?.startsWith(`vocab:${artifactFor('vocab', passage.id)?.id}:`) ? Number(singleBusy.split(':').at(-1)) : null}
               activeIndex={activeWord?.[0] === passage.id ? activeWord[1] : null} onActivate={index => setActiveWord(index == null ? null : [passage.id, index])} />
           </div>)}
           {activeTab === 'dictionary' && <DictionaryPanel itemId={id} canEdit={permissions.edit} canGenerate={permissions.generate}
@@ -302,5 +347,6 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
         </div>
       </section>
     </div>
+    <ConfirmDialog open={Boolean(confirmVocab)} danger title="Tạo lại toàn bộ từ vựng?" description="Danh sách này đã được chỉnh tay. Tạo lại sẽ thay thế toàn bộ danh sách và các chỉnh sửa thủ công sẽ bị mất." confirmLabel="Tạo lại" onClose={() => setConfirmVocab(null)} onConfirm={() => { const artifact = confirmVocab; setConfirmVocab(null); setDrafts(current => { const next = { ...current }; delete next[artifact.id]; return next; }); generate({ passage: ['vocab'], question: [], vocab: vocabSettings }); }} />
   </PageFrame></div>;
 }

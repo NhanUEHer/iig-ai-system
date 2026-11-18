@@ -3,8 +3,6 @@ import { Check, RefreshCw, TriangleAlert } from 'lucide-react';
 import { Button } from '../../../design-system-v2';
 import ArtifactShell from './ArtifactShell';
 
-const sizeNode = node => { if (node) { node.style.height = 'auto'; node.style.height = `${node.scrollHeight + 2}px`; } };
-
 const FILTERS = [
   { value: 'all', label: 'Tất cả' },
   { value: 'review', label: 'Cần xem lại' },
@@ -17,7 +15,7 @@ const autoSize = event => {
   element.style.height = `${element.scrollHeight}px`;
 };
 
-export default function TranslationPanel({ artifact, draft, dirty, onChange, shell, activeSentence, onFocusSentence }) {
+export default function TranslationPanel({ artifact, draft, dirty, onChange, shell, activeSentence, onFocusSentence, onRegenerateSentence, regeneratingIndex }) {
   const [filter, setFilter] = useState('all');
   if (!artifact || (!artifact.content && ['queued', 'generating', 'failed'].includes(artifact.status))) {
     return <div className="cs-translation-empty"><ArtifactShell artifact={artifact} label="bản dịch" dirty={dirty} shell={shell} /></div>;
@@ -56,8 +54,9 @@ export default function TranslationPanel({ artifact, draft, dirty, onChange, she
             <span className={needsReview ? 'is-review' : 'is-ready'}>{needsReview ? <TriangleAlert /> : <Check />}{needsReview ? 'Cần xem lại' : 'Đạt'}</span>
             <i />
             {isRowDirty(index) && <em>Chưa lưu</em>}
+            {shell.canGenerate && <Button variant="ghost" size="sm" icon={<RefreshCw />} loading={regeneratingIndex === index} disabled={regeneratingIndex != null || ['queued', 'generating'].includes(artifact.status)} onClick={() => onRegenerateSentence(index)}>Tạo lại câu này</Button>}
           </div>
-          <textarea ref={sizeNode} rows={2} aria-label={`Bản dịch câu ${index + 1}`} value={row.vi || ''} readOnly={!shell.canEdit}
+          <textarea rows={2} aria-label={`Bản dịch câu ${index + 1}`} value={row.vi || ''} readOnly={!shell.canEdit}
             ref={element => { if (element) { element.style.height = 'auto'; element.style.height = `${element.scrollHeight}px`; } }}
             onInput={autoSize} onFocus={() => onFocusSentence?.(row.en)} onBlur={() => onFocusSentence?.(null)}
             onChange={event => setVietnamese(index, event.target.value)} />
