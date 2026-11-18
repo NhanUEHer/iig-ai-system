@@ -139,18 +139,13 @@ export default function StudioHomePage() {
 
   return <div className="cs-home">
     <div className="cs-home__title-row">
-      <div className="cs-home__title"><span>Tạo &amp; phát triển</span><h1>Content Studio</h1></div>
+      <div className="cs-home__title"><h1>Content Studio</h1></div>
       <label className="cs-home__search"><Search /><input aria-label="Tìm học liệu" placeholder="Tìm học liệu trong mọi thư mục…" value={query} onChange={event => setQuery(event.target.value)} /></label>
       <Button variant="outline" icon={<Folder />} onClick={() => setCreateOpen(true)}>Thêm thư mục</Button>
       <Button icon={<Plus />} onClick={() => navigate('/content-studio/new')}>Tạo học liệu mới</Button>
     </div>
 
     {loadError && !loading ? <ErrorState title="Không thể tải Content Studio" description={loadError} action={<Button variant="outline" onClick={loadHome}>Thử lại</Button>} /> : <>
-      {!isSearching && attention.total > 0 && attentionParts.length > 0 && <div className="cs-home-attention" role="status">
-        <span><ClipboardCheck /></span>
-        <p><strong>{attention.total} bài cần xử lý:</strong> {attentionParts.join(', ')}.</p>
-        <button type="button" onClick={() => navigate('/content-studio/folders/all?status=attention')}>Xem bài cần xử lý<ArrowRight /></button>
-      </div>}
 
       {isSearching ? <section className="cs-home-recent" aria-label="Kết quả tìm kiếm">
         <div className="cs-home-section-title"><div><h2>Kết quả tìm kiếm</h2><p>{debouncedQuery ? `${searchItems.length} học liệu phù hợp với “${debouncedQuery}”` : 'Đang tìm học liệu…'}</p></div></div>
