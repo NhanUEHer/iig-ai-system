@@ -14,13 +14,15 @@ const STATUS_LABEL = {
 const POS = ['Noun', 'Verb', 'Adjective', 'Adverb', 'Noun Phrase', 'Verb Phrase', 'Phrasal Verb', 'Prepositional Phrase', 'Idiom', 'Preposition', 'Conjunction', 'Phrase'];
 const splitList = value => value.split(',').map(part => part.trim()).filter(Boolean);
 
+const autoSize = node => { if (node) { node.style.height = 'auto'; node.style.height = `${node.scrollHeight}px`; } };
+
 function EntryField({ number, label, value, editing, tone, onChange, kind = 'text' }) {
   const display = Array.isArray(value) ? value.join(', ') : value;
   return <label className={`cs-dictionary-field${tone ? ` is-${tone}` : ''}`}>
     <span>{number}</span><strong>{label}</strong>
     {editing ? (kind === 'select'
       ? <select value={display || 'Phrase'} onChange={event => onChange(event.target.value)}>{POS.map(pos => <option key={pos}>{pos}</option>)}</select>
-      : <textarea rows={1} value={display || ''} onChange={event => onChange(kind === 'list' ? splitList(event.target.value) : event.target.value)} />)
+      : <textarea rows={1} ref={autoSize} value={display || ''} onChange={event => { autoSize(event.target); onChange(kind === 'list' ? splitList(event.target.value) : event.target.value); }} />)
       : <p>{display || '—'}</p>}
   </label>;
 }

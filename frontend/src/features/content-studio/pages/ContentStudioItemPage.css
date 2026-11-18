@@ -329,3 +329,9 @@ main .cs-question-field textarea:focus { border-color: #d55f3d!important; outlin
 .cs-vocab-head + .cs-words { border: 0 !important; border-radius: 0 !important; border-bottom: 1px solid #ecebe6 !important; }
 .cs-vocab-head + .cs-words > li:first-child { border-top: 0 !important; }
 .cs-vocab-head + .cs-words { margin-top: -12px !important; }
+
+/* Dictionary edit mode: inline like the vocab table */
+#root .iig3-theme .cs-dictionary-field textarea, #root .iig3-theme .cs-dictionary-field select { width: 100%; min-height: 0 !important; padding: 2px 0 !important; border: 0 !important; border-bottom: 1px dashed var(--iig3-color-border-strong, #c9c8c0) !important; border-radius: 4px 4px 0 0 !important; background: transparent !important; box-shadow: none !important; font: inherit !important; font-size: 14px !important; line-height: 1.55 !important; color: inherit; resize: none; overflow: hidden; field-sizing: content; height: auto !important; }
+#root .iig3-theme .cs-dictionary-field select { height: 28px !important; cursor: pointer; }
+#root .iig3-theme .cs-dictionary-field textarea:focus, #root .iig3-theme .cs-dictionary-field select:focus { outline: none !important; border-bottom: 1px solid #d55f3d !important; background: #fdf3ee !important; }
+#root .iig3-theme .cs-dictionary-field.is-accent textarea { color: #b4532f; font-weight: 600 !important; }
