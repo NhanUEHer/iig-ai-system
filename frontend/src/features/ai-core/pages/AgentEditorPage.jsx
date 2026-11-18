@@ -238,10 +238,10 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
   return <div className="aic-page aic-editor-page">
     <PageFrame breadcrumb={[{ label: 'AI Core', to: '/ai-core' }, { label: 'Agents', to: '/ai-core' }, { label: isNew && !agent ? 'Tạo agent' : identity.name || identity.key }]} breadcrumbLinkComponent={Link}>
       <div className="aic-editor-head">
-        <div><div className="aic-editor-title"><h1>{isNew && !agent ? 'Tạo agent' : identity.name || 'Agent chưa đặt tên'}</h1>{agent?.draft && <span className="aic-badge is-warning">Nháp v{agent.draft.version}{agent.published ? ` · sửa từ v${agent.published.version}` : ''}</span>}{agent?.published && <span className="aic-badge is-success">Đang chạy v{agent.published.version}</span>}</div><code>{identity.key || 'feature.agent_key'} · {identity.feature || 'Tính năng'}</code></div>
+        <div><div className="aic-editor-title"><h1>{isNew && !agent ? 'Tạo agent' : identity.name || 'Agent chưa đặt tên'}</h1>{agent?.draft && <span className="aic-badge is-warning">Nháp v{agent.draft.version}{agent.published ? ` · sửa từ v${agent.published.version}` : ''}</span>}{agent?.published && <span className="aic-badge is-success">Đang chạy v{agent.published.version}</span>}</div>{agent ? <code>{identity.key} · {identity.feature}</code> : <p className="aic-editor-sub">Điền thông tin, viết prompt, chạy thử đạt rồi phát hành.</p>}</div>
         <nav>
-          <Button variant="outline" icon={<History />} disabled={!agent} onClick={() => safeNavigate(`/ai-core/agents/${encodeURIComponent(agent?.key || '')}/versions`)}>Phiên bản</Button>
-          <Button variant="outline" icon={<FileClock />} disabled={!agent} onClick={() => safeNavigate(`/ai-core/logs?agentKey=${encodeURIComponent(agent?.key || '')}`)}>Nhật ký</Button>
+          {agent && <Button variant="outline" icon={<History />} onClick={() => safeNavigate(`/ai-core/agents/${encodeURIComponent(agent?.key || '')}/versions`)}>Phiên bản</Button>}
+          {agent && <Button variant="outline" icon={<FileClock />} onClick={() => safeNavigate(`/ai-core/logs?agentKey=${encodeURIComponent(agent?.key || '')}`)}>Nhật ký</Button>}
           {canManage && <Button variant="outline" icon={<Save />} loading={saving} onClick={() => persist()}>Lưu nháp</Button>}
           {canManage && <Tooltip content={canPublish ? `Phát hành v${draftVersion}` : 'Cần lưu và chạy thử bản nháp đạt schema trước khi phát hành'}><span><Button icon={<Send />} loading={publishing} disabled={!canPublish} onClick={publish}>Phát hành v{draftVersion}</Button></span></Tooltip>}
         </nav>
@@ -251,12 +251,15 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
 
       <div className="aic-editor-layout">
         <main>
-          <Card title="1 · Mô hình">
-            <div className="aic-grid aic-grid-3 aic-identity-fields">
-              <Field label="Tên agent"><input value={identity.name} onChange={updateIdentity('name')} disabled={!canManage} /></Field>
-              <Field label="Key" help="Không thể đổi sau khi tạo"><input className="is-mono" value={identity.key} onChange={updateIdentity('key')} disabled={!canManage || Boolean(agent)} placeholder="cs.agent_name" /></Field>
-              <Field label="Tính năng"><input value={identity.feature} onChange={updateIdentity('feature')} disabled={!canManage} /></Field>
+          <Card title="1 · Thông tin agent">
+            <div className="aic-grid aic-grid-3">
+              <Field label={<>Tên agent <i className="aic-req">*</i></>}><input value={identity.name} onChange={updateIdentity('name')} disabled={!canManage} placeholder="Ví dụ: Từ điển · định nghĩa" /></Field>
+              <Field label={<>Key <i className="aic-req">*</i></>} help="Dạng tính_năng.tên, không đổi được sau khi tạo"><input className="is-mono" value={identity.key} onChange={updateIdentity('key')} disabled={!canManage || Boolean(agent)} placeholder="cs.dict_define" /></Field>
+              <Field label={<>Tính năng <i className="aic-req">*</i></>}><input value={identity.feature} onChange={updateIdentity('feature')} disabled={!canManage} placeholder="Content Studio" /></Field>
             </div>
+          </Card>
+
+          <Card title="2 · Mô hình">
             <div className="aic-grid aic-grid-3">
               <Field label="Kết nối chính"><select value={draft.connectionId} onChange={event => { const connectionId = event.target.value; const connection = connections.find(item => item.id === connectionId); const model = models.find(item => item.status === 'active' && item.provider === connection?.provider); setDraft(current => ({ ...current, connectionId, model: model?.model || '' })); }} disabled={!canManage}><option value="">Chọn kết nối</option>{connections.filter(item => item.status === 'active').map(item => <option key={item.id} value={item.id}>{item.provider === 'gemini' ? 'Gemini' : 'DeepSeek'} · {item.name}</option>)}</select></Field>
               <Field label="Model"><select value={draft.model} onChange={updateDraft('model')} disabled={!canManage}><option value="">Chọn model</option>{mainModels.map(item => <option key={item.model} value={item.model}>{item.model}</option>)}</select></Field>
@@ -268,14 +271,14 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
             </div>
           </Card>
 
-          <Card title="2 · Prompt" tools={<div className="aic-variable-list"><span>Biến:</span>{variableNames.length ? variableNames.map(name => <code key={name}>{`{{${name}}}`}</code>) : <small>chưa phát hiện</small>}</div>}>
-            <Field label="System prompt"><textarea rows="5" value={draft.systemPrompt} onChange={updateDraft('systemPrompt')} disabled={!canManage} /></Field>
-            <Field label="User prompt (template)" help="Biến dùng cú pháp {{variable_name}}"><textarea rows="6" value={draft.userTemplate} onChange={updateDraft('userTemplate')} disabled={!canManage} /></Field>
+          <Card title="3 · Prompt" tools={<div className="aic-variable-list"><span>Biến:</span>{variableNames.length ? variableNames.map(name => <code key={name}>{`{{${name}}}`}</code>) : <small>chưa phát hiện</small>}</div>}>
+            <Field label="System prompt" help="Vai trò và quy tắc chung cho model"><textarea className="is-prose" rows="5" placeholder="You are … Return JSON only." value={draft.systemPrompt} onChange={updateDraft('systemPrompt')} disabled={!canManage} /></Field>
+            <Field label="User prompt (template)" help="Biến dùng cú pháp {{variable_name}}"><textarea className="is-prose" rows="5" placeholder="Translate this sentence into Vietnamese: {{sentence}}" value={draft.userTemplate} onChange={updateDraft('userTemplate')} disabled={!canManage} /></Field>
             <Field label="JSON schema đầu ra" error={schemaValidation.valid ? '' : schemaValidation.error}><textarea rows="10" value={schemaText} onChange={event => setSchemaText(event.target.value)} disabled={!canManage} /></Field>
             {schemaValidation.valid && <span className="aic-schema-ok"><Check /> JSON hợp lệ</span>}
           </Card>
 
-          <Card title="3 · Giới hạn token & thử lại">
+          <Card title="4 · Giới hạn token & thử lại">
             <div className="aic-grid aic-grid-3">
               <Field label="Max token đầu vào" help="Vượt → từ chối, mã INPUT_TOO_LARGE"><input type="number" min="1" value={draft.maxInputTokens} onChange={updateDraft('maxInputTokens')} disabled={!canManage} /></Field>
               <Field label="Max token đầu ra" help="Gồm cả token suy nghĩ của model"><input type="number" min="1" value={draft.maxOutputTokens} onChange={updateDraft('maxOutputTokens')} disabled={!canManage} /></Field>
@@ -288,7 +291,7 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
             </div>
           </Card>
 
-          <Card title="4 · Trần chi phí & cảnh báo (USD)">
+          <Card title="5 · Trần chi phí & cảnh báo (USD)">
             <div className="aic-grid aic-grid-3">
               <Field label="Trần mỗi lượt" help="Ước tính tối đa vượt → không gọi, mã COST_CEILING"><div className="aic-input-prefix"><span>$</span><input type="number" min="0" step="0.001" value={identity.maxCostPerCallUsd} onChange={updateIdentity('maxCostPerCallUsd')} disabled={!canManage} /></div></Field>
               <Field label="Ngân sách tháng" help="Hết → tạm dừng hàng đợi, mã QUOTA_EXCEEDED"><div className="aic-input-prefix"><span>$</span><input type="number" min="0" step="1" value={identity.monthlyBudgetUsd} onChange={updateIdentity('monthlyBudgetUsd')} disabled={!canManage} /></div></Field>

@@ -81,3 +81,13 @@
   .aic-editor-head > nav .iig3-button { justify-content: center; }
   .aic-variable-list { justify-content: flex-start; }
 }
+
+/* Create/edit polish */
+.aic-editor-sub { margin: 6px 0 0; color: var(--iig3-text-secondary); font-size: 13px; }
+.aic-editor-layout > aside { top: 16px; }
+.aic-editor-layout > main { gap: 14px; }
+.aic-editor-card { gap: 16px; padding: 20px; }
+.aic-editor-card > header h2 { font-size: 16px; }
+.aic-req { color: #d14343; font-style: normal; }
+#root .iig3-theme .aic-editor-page .aic-field textarea.is-prose { font-family: var(--iig3-font) !important; font-size: 14px !important; line-height: 1.6; }
+.aic-field > span:first-child, .aic-field > label { font-size: 13px; }
