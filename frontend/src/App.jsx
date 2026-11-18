@@ -32,6 +32,8 @@ import ContentStudioItemPage from './features/content-studio/pages/ContentStudio
 import StudioHomePage from './features/content-studio/pages/StudioHomePage';
 import StudioFolderPage from './features/content-studio/pages/StudioFolderPage';
 import StudioCreatePage from './features/content-studio/pages/StudioCreatePage';
+import AgentsPage from './features/ai-core/pages/AgentsPage';
+import AgentEditorPage from './features/ai-core/pages/AgentEditorPage';
 import ContentSourcePage from './features/content-sources/pages/ContentSourcePage';
 import ContentSourceDetailPage from './features/content-sources/pages/ContentSourceDetailPage';
 import ContentDevelopmentPage from './features/content-sources/pages/ContentDevelopmentPage';
@@ -60,6 +62,7 @@ const firstAllowedPath = user => {
   if (has('submissions.view')) return '/submissions';
   if (has('mappings.view')) return '/mappings';
   if (has('agents.view')) return '/ai';
+  if (has('ai_core.view') || has('ai_core.manage')) return '/ai-core';
   if (has('ai_scoring.jobs.view')) return '/ai-scoring/jobs';
   if (has('ai_scoring.tenants.view')) return '/ai-scoring/tenants';
   if (hasAny(['content_sources.view','content_sources.create'])) return '/content-sources';
@@ -90,6 +93,7 @@ function App() {
 
   let activeTab = 'submissions';
   if (path.startsWith('/mappings')) activeTab = 'mappings';
+  else if (path.startsWith('/ai-core')) activeTab = 'ai-core';
   else if (path.startsWith('/ai-scoring/jobs')) activeTab = 'ai-scoring-jobs';
   else if (path.startsWith('/ai-scoring/tenants')) activeTab = 'ai-scoring-tenants';
   else if (path.startsWith('/ai')) activeTab = 'ai';
@@ -509,6 +513,22 @@ function App() {
                 hasPermission('agents.view') ? (
                   <AIConfigPage showMsg={showMsg} />
                 ) : <Navigate to={defaultPath} replace />
+              } />
+
+              <Route path="/ai-core" element={
+                ['ai_core.view','ai_core.manage'].some(hasPermission)
+                  ? <AgentsPage canManage={hasPermission('ai_core.manage')} />
+                  : <Navigate to={defaultPath} replace />
+              } />
+              <Route path="/ai-core/agents/new" element={
+                hasPermission('ai_core.manage')
+                  ? <AgentEditorPage canManage showMsg={showMsg} />
+                  : <Navigate to={defaultPath} replace />
+              } />
+              <Route path="/ai-core/agents/:key" element={
+                ['ai_core.view','ai_core.manage'].some(hasPermission)
+                  ? <AgentEditorPage canManage={hasPermission('ai_core.manage')} showMsg={showMsg} />
+                  : <Navigate to={defaultPath} replace />
               } />
 
               <Route path="/ai-scoring/tenants" element={

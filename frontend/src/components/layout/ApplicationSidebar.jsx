@@ -62,6 +62,7 @@ export const applicationNavigation = [
       { id: 'ai-scoring-tenants', label: 'Tenant tích hợp', to: '/ai-scoring/tenants', icon: Boxes, permissions: ['ai_scoring.tenants.view', 'ai_scoring.tenants.manage'] },
       { id: 'mappings', label: 'Đồng bộ Keycode', to: '/mappings', icon: Webhook, permission: 'mappings.view' },
       { id: 'ai', label: 'Cấu hình AI Agents', to: '/ai', icon: Bot, permission: 'agents.view' },
+      { id: 'ai-core', label: 'AI Core', to: '/ai-core', icon: Sparkles, permission: 'ai_core.view' },
     ],
   },
   {
