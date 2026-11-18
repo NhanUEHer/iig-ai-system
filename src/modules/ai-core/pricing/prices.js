@@ -73,7 +73,7 @@ function createPriceStore(database = db, options = {}) {
            THEN CURRENT_TIMESTAMP ELSE aic_models.effective_from END,
          status=EXCLUDED.status
        RETURNING provider, model, price_in_per_m, price_cached_in_per_m, price_out_per_m,
-                 context_window, effective_from, status`,
+                 context_window, effective_from, status, provider_available, synced_at`,
       [
         data.provider,
         data.model,
