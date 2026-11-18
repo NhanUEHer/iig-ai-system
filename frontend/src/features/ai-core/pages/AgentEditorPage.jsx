@@ -12,7 +12,7 @@ import './AgentEditorPage.css';
 const DEFAULT_SCHEMA = { type: 'object', properties: {}, additionalProperties: false };
 const DEFAULT_DRAFT = {
   connectionId: '', model: '', fallbackConnectionId: '', fallbackModel: '', systemPrompt: '', userTemplate: '',
-  temperature: 0.2, maxInputTokens: 6000, maxOutputTokens: 2000, timeoutMs: 60000, maxRetries: 2,
+  temperature: 0.2, thinkingMode: 'off', maxInputTokens: 6000, maxOutputTokens: 2000, timeoutMs: 60000, maxRetries: 2,
   repairInvalidJson: true, changeNote: '',
 };
 const DEFAULT_IDENTITY = {
@@ -63,7 +63,7 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
   );
   const fallbackValue = draft.fallbackConnectionId && draft.fallbackModel ? `${draft.fallbackConnectionId}::${draft.fallbackModel}` : '';
   const activeModel = models.find(item => item.provider === selectedConnection?.provider && item.model === draft.model);
-  const estimatedTokens = estimateInputTokens(variables);
+  const estimatedTokens = estimateInputTokens({ system: draft.systemPrompt, user: draft.userTemplate, ...variables });
   const estimatedMaxCost = activeModel
     ? (estimatedTokens * Number(activeModel.priceIn || 0) + Number(draft.maxOutputTokens || 0) * Number(activeModel.priceOut || 0)) / 1_000_000
     : 0;
@@ -80,7 +80,7 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
     const nextDraft = version ? {
       connectionId: version.connectionId || '', model: version.model || '', fallbackConnectionId: version.fallbackConnectionId || '',
       fallbackModel: version.fallbackModel || '', systemPrompt: version.systemPrompt || '', userTemplate: version.userTemplate || '',
-      temperature: version.temperature, maxInputTokens: version.maxInputTokens, maxOutputTokens: version.maxOutputTokens,
+      temperature: version.temperature, thinkingMode: version.thinkingMode || 'off', maxInputTokens: version.maxInputTokens, maxOutputTokens: version.maxOutputTokens,
       timeoutMs: version.timeoutMs, maxRetries: version.maxRetries, repairInvalidJson: version.repairInvalidJson,
       changeNote: version.changeNote || '',
     } : { ...DEFAULT_DRAFT, connectionId: firstConnection?.id || '', model: firstModel?.model || '' };
@@ -297,6 +297,7 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
             <div className="aic-grid aic-grid-2">
               <Field className="is-wide" label="Kết nối chính"><select value={draft.connectionId} onChange={event => { const connectionId = event.target.value; const connection = connections.find(item => item.id === connectionId); const model = models.find(item => item.status === 'active' && item.provider === connection?.provider); setDraft(current => ({ ...current, connectionId, model: model?.model || '' })); }} disabled={!canManage}><option value="">Chọn kết nối</option>{connections.filter(item => item.status === 'active').map(item => <option key={item.id} value={item.id}>{item.provider === 'gemini' ? 'Gemini' : 'DeepSeek'} · {item.name}</option>)}</select></Field>
               <Field label="Model"><select value={draft.model} onChange={updateDraft('model')} disabled={!canManage}><option value="">Chọn model</option>{mainModels.map(item => <option key={item.model} value={item.model}>{item.model}</option>)}</select></Field>
+              <Field label="Suy nghĩ (thinking)" help={draft.thinkingMode === 'off' ? 'DeepSeek: tắt hẳn · Gemini 3: mức thấp nhất (minimal)' : 'Suy nghĩ dùng chung giới hạn token đầu ra và tính tiền như token ra'}><select value={draft.thinkingMode} onChange={updateDraft('thinkingMode')} disabled={!canManage}><option value="off">Tắt</option><option value="low">Thấp</option><option value="medium">Vừa</option><option value="high">Cao</option><option value="default">Mặc định của model</option></select></Field>
               <Field label="Temperature"><input type="number" min="0" max="2" step="0.1" value={draft.temperature} onChange={updateDraft('temperature')} disabled={!canManage} /></Field>
             </div>
             <div className="aic-grid aic-grid-2">

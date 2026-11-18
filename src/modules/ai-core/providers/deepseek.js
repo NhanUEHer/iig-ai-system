@@ -24,6 +24,10 @@ async function generate(options) {
     response_format: { type: 'json_object' },
   };
   if (options.temperature !== undefined) body.temperature = options.temperature;
+  // DeepSeek V4 thinks by default; 'off' disables it, any level keeps it on.
+  if (options.thinkingMode && options.thinkingMode !== 'default') {
+    body.thinking = { type: options.thinkingMode === 'off' ? 'disabled' : 'enabled' };
+  }
   if (options.maxOutputTokens !== undefined) body.max_tokens = options.maxOutputTokens;
 
   const raw = await fetchJson(joinUrl(options.baseUrl || DEFAULT_BASE_URL, 'chat/completions'), {

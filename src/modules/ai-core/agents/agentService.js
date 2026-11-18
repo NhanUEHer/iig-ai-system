@@ -14,7 +14,7 @@ const KEY_PATTERN = /^[a-z0-9]+(?:\.[a-z0-9_]+)+$/;
 const VARIABLE_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const DRAFT_FIELDS = [
   'connectionId', 'model', 'fallbackConnectionId', 'fallbackModel', 'systemPrompt',
-  'userTemplate', 'variables', 'outputSchema', 'temperature', 'maxInputTokens',
+  'userTemplate', 'variables', 'outputSchema', 'temperature', 'thinkingMode', 'maxInputTokens',
   'maxOutputTokens', 'timeoutMs', 'maxRetries', 'repairInvalidJson', 'changeNote',
 ];
 
@@ -44,7 +44,7 @@ function versionDto(row, prefix = '') {
     fallbackConnectionId: get('fallback_connection_id'), fallbackModel: get('fallback_model'),
     systemPrompt: get('system_prompt') || '', userTemplate: get('user_template') || '',
     variables: json(get('variables'), []), outputSchema: json(get('output_schema'), {}),
-    temperature: Number(get('temperature')), maxInputTokens: Number(get('max_input_tokens')),
+    temperature: Number(get('temperature')), thinkingMode: get('thinking_mode') || 'off', maxInputTokens: Number(get('max_input_tokens')),
     maxOutputTokens: Number(get('max_output_tokens')), timeoutMs: Number(get('timeout_ms')),
     maxRetries: Number(get('max_retries')), repairInvalidJson: Boolean(get('repair_invalid_json')),
     changeNote: get('change_note') || '', lastTestOkAt: get('last_test_ok_at'),
@@ -105,6 +105,7 @@ function normalizeDraft(input, base = {}) {
     })),
     outputSchema: merged.outputSchema,
     temperature: numberValue(merged.temperature ?? 0, 'temperature', { min: 0, max: 2 }),
+    thinkingMode: ['off', 'low', 'medium', 'high', 'default'].includes(merged.thinkingMode) ? merged.thinkingMode : 'off',
     maxInputTokens: numberValue(merged.maxInputTokens, 'maxInputTokens', { min: 1, integer: true }),
     maxOutputTokens: numberValue(merged.maxOutputTokens, 'maxOutputTokens', { min: 1, max: 65536, integer: true }),
     timeoutMs: numberValue(merged.timeoutMs ?? 60000, 'timeoutMs', { min: 1000, max: 600000, integer: true }),
@@ -133,7 +134,7 @@ function versionValues(agentId, version, draft, userId) {
     agentId, version, draft.connectionId, draft.model, draft.fallbackConnectionId, draft.fallbackModel,
     draft.systemPrompt, draft.userTemplate, JSON.stringify(draft.variables), JSON.stringify(draft.outputSchema),
     draft.temperature, draft.maxInputTokens, draft.maxOutputTokens, draft.timeoutMs, draft.maxRetries,
-    draft.repairInvalidJson, draft.changeNote, userId,
+    draft.repairInvalidJson, draft.changeNote, userId, draft.thinkingMode || 'off',
   ];
 }
 
@@ -207,8 +208,8 @@ function createAgentService(dependencies = {}) {
         `INSERT INTO aic_agent_versions (
            agent_id,version,status,connection_id,model,fallback_connection_id,fallback_model,
            system_prompt,user_template,variables,output_schema,temperature,max_input_tokens,
-           max_output_tokens,timeout_ms,max_retries,repair_invalid_json,change_note,created_by
-         ) VALUES ($1,$2,'draft',$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,$18)`,
+           max_output_tokens,timeout_ms,max_retries,repair_invalid_json,change_note,created_by,thinking_mode
+         ) VALUES ($1,$2,'draft',$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
         versionValues(inserted.id, 1, draft, userId),
       );
       await createAudit(client).write({ resourceType: 'agent', resourceId: input.key, action: 'agent.created', actorId: userId, fields: ['key', ...Object.keys(agent), 'draft'] });
@@ -255,7 +256,7 @@ function createAgentService(dependencies = {}) {
              connection_id=$2,model=$3,fallback_connection_id=$4,fallback_model=$5,system_prompt=$6,
              user_template=$7,variables=$8::jsonb,output_schema=$9::jsonb,temperature=$10,
              max_input_tokens=$11,max_output_tokens=$12,timeout_ms=$13,max_retries=$14,
-             repair_invalid_json=$15,change_note=$16,last_test_ok_at=NULL,created_by=$17
+             repair_invalid_json=$15,change_note=$16,last_test_ok_at=NULL,created_by=$17,thinking_mode=$18
            WHERE id=$1 AND status='draft'`,
           [current.draft.id, ...versionValues(current.id, current.draft.version, draft, userId).slice(2)],
         );
@@ -265,8 +266,8 @@ function createAgentService(dependencies = {}) {
           `INSERT INTO aic_agent_versions (
              agent_id,version,status,connection_id,model,fallback_connection_id,fallback_model,
              system_prompt,user_template,variables,output_schema,temperature,max_input_tokens,
-             max_output_tokens,timeout_ms,max_retries,repair_invalid_json,change_note,created_by,last_test_ok_at
-           ) VALUES ($1,$2,'draft',$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,$18,NULL)`,
+             max_output_tokens,timeout_ms,max_retries,repair_invalid_json,change_note,created_by,last_test_ok_at,thinking_mode
+           ) VALUES ($1,$2,'draft',$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,$18,NULL,$19)`,
           versionValues(current.id, next, draft, userId),
         );
       }
@@ -382,8 +383,8 @@ function createAgentService(dependencies = {}) {
         `INSERT INTO aic_agent_versions (
            agent_id,version,status,connection_id,model,fallback_connection_id,fallback_model,
            system_prompt,user_template,variables,output_schema,temperature,max_input_tokens,
-           max_output_tokens,timeout_ms,max_retries,repair_invalid_json,change_note,created_by,last_test_ok_at
-         ) VALUES ($1,$2,'draft',$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,$18,NULL)`,
+           max_output_tokens,timeout_ms,max_retries,repair_invalid_json,change_note,created_by,last_test_ok_at,thinking_mode
+         ) VALUES ($1,$2,'draft',$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,$18,NULL,$19)`,
         versionValues(current.id, next, restored, userId),
       );
       await createAudit(client).write({ resourceType: 'agent', resourceId: key, action: 'agent.version_restored', actorId: userId, fields: [`version:${source.version}`] });

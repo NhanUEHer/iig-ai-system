@@ -25,5 +25,6 @@ export function formatCompactNumber(value = 0) {
 
 export function estimateInputTokens(values = {}) {
   const characters = Object.values(values).reduce((total, value) => total + String(value || '').length, 0);
-  return Math.max(0, Math.ceil(characters / 4));
+  // Same rule as the DeepSeek server-side estimate (chars / 3.5, +10% safety).
+  return Math.max(0, Math.ceil(Math.ceil(characters / 3.5) * 1.1));
 }

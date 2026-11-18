@@ -37,6 +37,17 @@ function contents(system, user) {
   return request;
 }
 
+// Gemini 3+ uses thinkingLevel (no full off: 'minimal' is the lowest); 2.5 uses thinkingBudget.
+function thinkingConfig(model, mode) {
+  if (!mode || mode === 'default') return null;
+  const legacy = /^gemini-2\./.test(String(model || ''));
+  if (legacy) {
+    const budgets = { off: /pro/.test(model) ? 128 : 0, low: 1024, medium: 4096, high: 16384 };
+    return { thinkingBudget: budgets[mode] };
+  }
+  return { thinkingLevel: mode === 'off' ? 'minimal' : mode };
+}
+
 async function generate(options) {
   const body = contents(options.system, options.user);
   body.generationConfig = {
@@ -44,6 +55,8 @@ async function generate(options) {
     responseSchema: toResponseSchema(options.schema || {}),
   };
   if (options.temperature !== undefined) body.generationConfig.temperature = options.temperature;
+  const thinking = thinkingConfig(options.model, options.thinkingMode);
+  if (thinking) body.generationConfig.thinkingConfig = thinking;
   if (options.maxOutputTokens !== undefined) {
     body.generationConfig.maxOutputTokens = options.maxOutputTokens;
   }
@@ -103,4 +116,4 @@ async function check({ apiKey, baseUrl, timeoutMs = 10000, signal } = {}) {
   }
 }
 
-module.exports = { name, generate, countTokens, check, toResponseSchema, DEFAULT_BASE_URL };
+module.exports = { thinkingConfig, name, generate, countTokens, check, toResponseSchema, DEFAULT_BASE_URL };

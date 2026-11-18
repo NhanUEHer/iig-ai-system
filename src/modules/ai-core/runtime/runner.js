@@ -119,6 +119,7 @@ function createRunner(dependencies = {}) {
             user: generateUser,
             schema: version.outputSchema,
             temperature: version.temperature,
+            thinkingMode: version.thinkingMode,
             maxOutputTokens: version.maxOutputTokens,
             timeoutMs: version.timeoutMs,
           });

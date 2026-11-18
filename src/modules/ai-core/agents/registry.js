@@ -40,6 +40,7 @@ function toVersion(row) {
     variables: jsonValue(row.variables, []),
     outputSchema: jsonValue(row.output_schema, {}),
     temperature: Number(row.temperature || 0),
+    thinkingMode: row.thinking_mode || 'off',
     maxInputTokens: Number(row.max_input_tokens),
     maxOutputTokens: Number(row.max_output_tokens),
     timeoutMs: Number(row.timeout_ms),
@@ -89,7 +90,7 @@ function createRegistry(database = db, options = {}) {
          a.alert_threshold_pct, a.max_concurrency, a.published_version_id,
          v.id AS version_id, v.version, v.status AS version_status, v.connection_id,
          v.model, v.fallback_connection_id, v.fallback_model, v.system_prompt,
-         v.user_template, v.variables, v.output_schema, v.temperature,
+         v.user_template, v.variables, v.output_schema, v.temperature, v.thinking_mode,
          v.max_input_tokens, v.max_output_tokens, v.timeout_ms, v.max_retries,
          v.repair_invalid_json, v.last_test_ok_at
        FROM aic_agents a

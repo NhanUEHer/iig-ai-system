@@ -134,7 +134,7 @@ test('restore replaces any draft with a new untested version copied from history
   assert.ok(sql.some(statement => /DELETE FROM aic_agent_versions.*status='draft'/.test(statement)));
   const insert = sql.find(statement => /INSERT INTO aic_agent_versions/.test(statement));
   assert.match(insert, /last_test_ok_at/);
-  assert.match(insert, /NULL\)/);
+  assert.match(insert, /NULL,\$19\)/);
 });
 
 test('run endpoint requires ai_core.run and delegates to the published-run SDK', async () => {

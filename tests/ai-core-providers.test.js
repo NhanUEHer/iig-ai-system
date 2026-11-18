@@ -127,3 +127,28 @@ test('finish reasons, fake queue, and provider selection follow the common inter
   assert.equal(providers.get('gemini'), gemini);
   assert.equal(providers.get('deepseek', { AI_CORE_PROVIDER_OVERRIDE: 'fake' }), fake);
 });
+
+test('thinking mode maps to DeepSeek thinking.type and Gemini thinkingConfig', async () => {
+  const gemini = require('../src/modules/ai-core/providers/gemini');
+  assert.deepEqual(gemini.thinkingConfig('gemini-3.8-flash', 'off'), { thinkingLevel: 'minimal' });
+  assert.deepEqual(gemini.thinkingConfig('gemini-3.8-flash', 'low'), { thinkingLevel: 'low' });
+  assert.deepEqual(gemini.thinkingConfig('gemini-2.5-flash', 'off'), { thinkingBudget: 0 });
+  assert.deepEqual(gemini.thinkingConfig('gemini-2.5-pro', 'off'), { thinkingBudget: 128 });
+  assert.equal(gemini.thinkingConfig('gemini-3.8-flash', 'default'), null);
+
+  const deepseek = require('../src/modules/ai-core/providers/deepseek');
+  const original = global.fetch;
+  const bodies = [];
+  global.fetch = async (_url, init) => {
+    bodies.push(JSON.parse(init.body));
+    return new Response(JSON.stringify({ choices: [{ message: { content: '{}' }, finish_reason: 'stop' }], usage: {} }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    await deepseek.generate({ apiKey: 'k', model: 'deepseek-flash', system: 'json', user: 'u', thinkingMode: 'off' });
+    await deepseek.generate({ apiKey: 'k', model: 'deepseek-flash', system: 'json', user: 'u', thinkingMode: 'high' });
+    await deepseek.generate({ apiKey: 'k', model: 'deepseek-flash', system: 'json', user: 'u', thinkingMode: 'default' });
+  } finally { global.fetch = original; }
+  assert.deepEqual(bodies[0].thinking, { type: 'disabled' });
+  assert.deepEqual(bodies[1].thinking, { type: 'enabled' });
+  assert.equal(bodies[2].thinking, undefined);
+});
