@@ -24,6 +24,15 @@ export const deleteItem = id => api.delete(`/content-studio/items/${id}`).then(d
 
 export const errorMessage = (error, fallback) => error?.response?.data?.error || error?.response?.data?.message || fallback;
 
+export async function exportItem(id, kind, format) {
+  const response = await api.get(`/content-studio/items/${id}/export/${kind}/${format}`, { responseType: 'blob' });
+  const name = /filename="?([^"]+)"?/.exec(response.headers['content-disposition'] || '')?.[1] || `${kind}.${format}`;
+  const url = URL.createObjectURL(response.data);
+  const anchor = document.createElement('a');
+  anchor.href = url; anchor.download = name; anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return { name, skipped: Number(response.headers['x-export-skipped'] || 0) };
+}
 export const regenerateStale = id => api.post(`/content-studio/items/${id}/regenerate-stale`).then(data);
 export const generateItem = (id, tasks) => api.post(`/content-studio/items/${id}/generate`, tasks ? { tasks } : {}).then(data);
 export const regenerateArtifact = id => api.post(`/content-studio/artifacts/${id}/regenerate`).then(data);

@@ -7,6 +7,7 @@ import { STATUS, isBusy } from '../item/ArtifactShell';
 import DictionaryPanel from '../item/DictionaryPanel';
 import { SourceEditor, VocabView, highlight } from '../item/PassagePanels';
 import TranslationPanel from '../item/TranslationPanel';
+import ExportMenu from '../item/ExportMenu';
 import { QuestionWorkspace, explanationQuote } from '../item/QuestionPanels';
 import './ContentStudioItemPage.css';
 
@@ -174,6 +175,12 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
     catch (requestError) { showMsg?.(errorMessage(requestError, 'Không thể tạo lại phần lỗi thời.'), 'error'); }
     finally { setGenerating(false); }
   };
+  const vocabCount = counts.vocab;
+  const dictReady = dictionaryState?.counts?.ready ?? 0;
+  const exportOptions = [
+    { kind: 'vocab', label: 'Key Vocab', formats: ['xlsx', 'docx'], ready: vocabCount > 0, hint: `${vocabCount} từ · đúng template import LMS`, reason: 'Chưa có Từ vựng' },
+    { kind: 'dictionary', label: 'Từ điển', formats: ['xlsx', 'docx'], ready: dictReady > 0, hint: `${dictReady} mục hoàn tất · mục cần xem lại sẽ bị bỏ qua`, reason: 'Chưa có mục từ điển hoàn tất' },
+  ];
   const tabs = [
     ...(passages.length ? [
       { value: 'vocab', label: 'Từ vựng', detail: counts.vocab || '', status: taskStatus.vocab, stale: staleOf('vocab') },
@@ -231,6 +238,7 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
         <StatusBadge status={ITEM_STATUS[item.status]?.tone} label={ITEM_STATUS[item.status]?.label} />
         <span className="cs-item-head__meta">{[passages[0]?.meta?.part && `Part ${passages[0].meta.part}`, passages.length && `${passages.length} đoạn văn`, questions.length && `${questions.length} câu hỏi${range ? ` (${range.from}–${range.to})` : ''}`].filter(Boolean).join(' · ')}</span>
         {permissions.generate && <Button variant="outline" icon={<RefreshCw />} loading={generating} disabled={busy} onClick={() => generate(null)}>{busy ? 'Đang tạo…' : item.artifacts.length ? 'Tạo lại tất cả' : 'Tạo nội dung'}</Button>}
+        {permissions.export && <ExportMenu itemId={item.id} options={exportOptions} showMsg={showMsg} />}
         {permissions.edit && <Button icon={<Save />} loading={saving} disabled={!dirtyCount} onClick={saveAll}>{dirtyCount ? `Lưu thay đổi (${dirtyCount})` : 'Đã lưu'}</Button>}
       </div>
       {staleTotal > 0 && <div className="cs-stale-banner" role="status">

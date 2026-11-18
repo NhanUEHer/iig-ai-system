@@ -8,6 +8,7 @@ const { docxToText } = require('../modules/content-studio/detect/docxText');
 const generation = require('../modules/content-studio/generation/generationService');
 const dictionary = require('../modules/content-studio/dictionary/dictionaryService');
 const stale = require('../modules/content-studio/staleService');
+const exporter = require('../modules/content-studio/export/exportService');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } }).single('file');
@@ -15,6 +16,7 @@ const VIEW = ['content_studio.view', 'content_studio.edit', 'content_studio.gene
 const EDIT = ['content_studio.edit'];
 const FOLDERS = ['content_studio.manage_folders'];
 const GENERATE = ['content_studio.generate'];
+const EXPORT = ['content_studio.export'];
 
 router.get('/folders', requirePermission(...VIEW), asyncHandler(async (req, res) => res.json({ success: true, data: await service.listFolders() })));
 router.get('/folders/summary', requirePermission(...VIEW), asyncHandler(async (req, res) => res.json({ success: true, data: await service.folderSummary() })));
@@ -39,6 +41,14 @@ router.patch('/items/:id', requirePermission(...EDIT), asyncHandler(async (req, 
 router.put('/items/:id/content', requirePermission(...EDIT), asyncHandler(async (req, res) => res.json({ success: true, data: await service.updateContent(req.params.id, req.body) })));
 router.delete('/items/:id', requirePermission(...EDIT), asyncHandler(async (req, res) => res.json({ success: true, data: await service.deleteItem(req.params.id) })));
 
+router.get('/items/:id/export/:kind/:format', requirePermission(...EXPORT), asyncHandler(async (req, res) => {
+  const result = await exporter.exportItem(req.params.id, req.params.kind, String(req.params.format).toLowerCase());
+  res.setHeader('Content-Type', result.mime);
+  res.setHeader('Content-Disposition', `attachment; filename="${result.name}"`);
+  if (result.skipped) res.setHeader('X-Export-Skipped', String(result.skipped));
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, X-Export-Skipped');
+  res.send(result.file);
+}));
 router.post('/items/:id/regenerate-stale', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.status(202).json({ success: true, data: await stale.regenerateStale(req.params.id) })));
 router.post('/items/:id/generate', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.status(202).json({ success: true, data: await generation.enqueue(req.params.id, req.body?.tasks) })));
 router.post('/items/:id/dictionary/extract', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.status(202).json({ success: true, data: await dictionary.extract(req.params.id) })));
