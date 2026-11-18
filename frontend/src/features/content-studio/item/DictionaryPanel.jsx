@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Check, ChevronLeft, ChevronRight, Pencil, Plus, RefreshCw, Search, Trash2, WandSparkles, X } from 'lucide-react';
-import { Button, EmptyState, Spinner } from '../../../design-system-v2';
+import { Button, ConfirmDialog, EmptyState, Spinner } from '../../../design-system-v2';
 import {
   deleteDictionaryCandidate, errorMessage, extractDictionary, generateDictionary,
   getDictionary, regenerateDictionaryEntry, saveDictionaryList,
@@ -98,6 +98,7 @@ function Entries({ state, drafts, setDraft, clearDraft, canEdit, canGenerate, on
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const [editing, setEditing] = useState(false);
+  const [confirmReExtract, setConfirmReExtract] = useState(false);
   const filtered = all.filter(candidate => {
     const content = drafts[candidate.id] || candidate.entry?.content || {};
     const matches = `${candidate.chunk} ${content.lemma || ''} ${content.meaningVi || ''}`.toLocaleLowerCase().includes(query.toLocaleLowerCase());
@@ -122,7 +123,7 @@ function Entries({ state, drafts, setDraft, clearDraft, canEdit, canGenerate, on
     catch (error) { notify(errorMessage(error, 'Không thể tạo lại câu này.'), 'error'); }
   };
   const reExtract = async () => {
-    if (!window.confirm('Bóc lại từ đầu sẽ xoá toàn bộ mục từ điển hiện có (kể cả phần đã sửa tay) rồi tạo lại. Tiếp tục?')) return;
+    setConfirmReExtract(false);
     try { await extractDictionary(state.itemId); await onReload(); notify('Đang bóc lại từ và tạo từ điển.', 'success'); }
     catch (error) { notify(errorMessage(error, 'Không thể bóc lại từ.'), 'error'); }
   };
@@ -138,7 +139,8 @@ function Entries({ state, drafts, setDraft, clearDraft, canEdit, canGenerate, on
   const fieldPatch = (path, value) => path.includes('.')
     ? patch({ [path.split('.')[0]]: { ...(content[path.split('.')[0]] || {}), [path.split('.')[1]]: value } }) : patch({ [path]: value });
   return <div className="cs-dictionary-entries">
-    <div className="cs-dictionary-entries__bar"><span className={`cs-pill is-${state.status === 'needs_review' ? 'warning' : 'success'}`}>{state.status === 'needs_review' ? 'Cần xem lại' : 'Hoàn tất'}</span><span>{all.length} mục · {state.sentences.length} câu · AI</span><span />{canGenerate && <Button variant="ghost" size="sm" onClick={reExtract}>Bóc lại từ đầu</Button>}<Button variant="outline" size="sm" onClick={onReview}>Sửa danh sách từ</Button></div>
+    <ConfirmDialog open={confirmReExtract} title="Bóc lại từ đầu?" description="Toàn bộ mục từ điển hiện có, kể cả phần đã sửa tay, sẽ bị xoá rồi tạo lại bằng AI." confirmLabel="Bóc lại" danger onConfirm={reExtract} onClose={() => setConfirmReExtract(false)} />
+    <div className="cs-dictionary-entries__bar"><span className={`cs-pill is-${state.status === 'needs_review' ? 'warning' : 'success'}`}>{state.status === 'needs_review' ? 'Cần xem lại' : 'Hoàn tất'}</span><span>{all.length} mục · {state.sentences.length} câu · AI</span><span />{canGenerate && <Button variant="ghost" size="sm" onClick={() => setConfirmReExtract(true)}>Bóc lại từ đầu</Button>}<Button variant="outline" size="sm" onClick={onReview}>Sửa danh sách từ</Button></div>
     <div className="cs-dictionary-split">
       <aside><label className="cs-dictionary-search"><Search /><input value={query} onChange={event => setQuery(event.target.value)} placeholder={`Tìm trong ${all.length} mục…`} /></label>
         <div className="cs-dictionary-filters">{filters.map(([value, label, count]) => <button type="button" key={value} className={filter === value ? 'is-active' : ''} onClick={() => setFilter(value)}>{label} {count}</button>)}</div>
