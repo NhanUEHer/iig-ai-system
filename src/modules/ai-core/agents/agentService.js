@@ -322,12 +322,21 @@ function createAgentService(dependencies = {}) {
     const result = await database.query(
       `SELECT v.*,
               COUNT(l.id)::int AS calls, COALESCE(SUM(l.cost_usd),0) AS cost_usd,
-              COUNT(l.id) FILTER (WHERE l.status='success')::int AS success
+              COUNT(l.id) FILTER (WHERE l.status='success')::int AS success,
+              COUNT(l.id) FILTER (WHERE l.schema_valid_first_try IS TRUE)::int AS schema_first_try_ok,
+              COUNT(l.id) FILTER (WHERE l.finish_reason='length')::int AS truncated
          FROM aic_agents a JOIN aic_agent_versions v ON v.agent_id=a.id
          LEFT JOIN aic_call_logs l ON l.version_id=v.id
+          AND ((v.status='draft' AND l.mode='test') OR (v.status<>'draft' AND l.mode='run'))
         WHERE a.key=$1 GROUP BY v.id ORDER BY v.version DESC`, [key],
     );
-    return result.rows.map(row => ({ ...versionDto(row), usage: { calls: Number(row.calls), success: Number(row.success), costUsd: Number(row.cost_usd) } }));
+    return result.rows.map(row => ({
+      ...versionDto(row),
+      usage: {
+        calls: Number(row.calls), success: Number(row.success), costUsd: Number(row.cost_usd),
+        schemaFirstTryOk: Number(row.schema_first_try_ok), truncated: Number(row.truncated),
+      },
+    }));
   }
 
   async function findVersion(key, version) {

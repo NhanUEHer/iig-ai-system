@@ -34,6 +34,9 @@ import StudioFolderPage from './features/content-studio/pages/StudioFolderPage';
 import StudioCreatePage from './features/content-studio/pages/StudioCreatePage';
 import AgentsPage from './features/ai-core/pages/AgentsPage';
 import AgentEditorPage from './features/ai-core/pages/AgentEditorPage';
+import AgentVersionsPage from './features/ai-core/pages/AgentVersionsPage';
+import LogsPage from './features/ai-core/pages/LogsPage';
+import ConnectionsPage from './features/ai-core/pages/ConnectionsPage';
 import ContentSourcePage from './features/content-sources/pages/ContentSourcePage';
 import ContentSourceDetailPage from './features/content-sources/pages/ContentSourceDetailPage';
 import ContentDevelopmentPage from './features/content-sources/pages/ContentDevelopmentPage';
@@ -525,9 +528,24 @@ function App() {
                   ? <AgentEditorPage canManage showMsg={showMsg} />
                   : <Navigate to={defaultPath} replace />
               } />
+              <Route path="/ai-core/agents/:key/versions" element={
+                ['ai_core.view','ai_core.manage'].some(hasPermission)
+                  ? <AgentVersionsPage canManage={hasPermission('ai_core.manage')} showMsg={showMsg} />
+                  : <Navigate to={defaultPath} replace />
+              } />
               <Route path="/ai-core/agents/:key" element={
                 ['ai_core.view','ai_core.manage'].some(hasPermission)
                   ? <AgentEditorPage canManage={hasPermission('ai_core.manage')} showMsg={showMsg} />
+                  : <Navigate to={defaultPath} replace />
+              } />
+              <Route path="/ai-core/logs" element={
+                ['ai_core.view','ai_core.manage'].some(hasPermission)
+                  ? <LogsPage canManage={hasPermission('ai_core.manage')} showMsg={showMsg} />
+                  : <Navigate to={defaultPath} replace />
+              } />
+              <Route path="/ai-core/connections" element={
+                ['ai_core.view','ai_core.manage'].some(hasPermission)
+                  ? <ConnectionsPage canManage={hasPermission('ai_core.manage')} showMsg={showMsg} />
                   : <Navigate to={defaultPath} replace />
               } />
 
