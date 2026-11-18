@@ -134,7 +134,7 @@ async function saveList(itemId, sentencePayload) {
           if (!current) throw new HttpError('Từ không thuộc câu này.', 400, 'INVALID_DICTIONARY_CANDIDATE');
           const changed = current.chunk !== value.chunk;
           await client.query(`UPDATE cs_dict_candidates SET position = $2, chunk = $3,
-            status = CASE WHEN $4 THEN 'draft' ELSE status END,
+            status = CASE WHEN $4 THEN 'queued' ELSE status END,
             attempts = CASE WHEN $4 THEN 0 ELSE attempts END,
             error = CASE WHEN $4 THEN NULL ELSE error END,
             locked_at = CASE WHEN $4 THEN NULL ELSE locked_at END, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
@@ -143,7 +143,7 @@ async function saveList(itemId, sentencePayload) {
           kept.push(value.id);
         } else {
           const { rows: [created] } = await client.query(`INSERT INTO cs_dict_candidates
-            (item_id, sentence_id, position, chunk, status) VALUES ($1, $2, $3, $4, 'draft') RETURNING id`,
+            (item_id, sentence_id, position, chunk, status) VALUES ($1, $2, $3, $4, 'queued') RETURNING id`,
           [itemId, sentence.id, position, value.chunk]);
           kept.push(created.id);
         }
@@ -154,6 +154,8 @@ async function saveList(itemId, sentencePayload) {
     await client.query('UPDATE cs_items SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [itemId]);
     return { itemId, count: total };
   });
+  // Added or edited words are defined straight away (only those — untouched entries are kept).
+  worker.kickWorker();
   return { ...result, ...(await getState(itemId)) };
 }
 
