@@ -57,7 +57,8 @@ test('Gemini countTokens uses the provider endpoint', async () => {
   };
   assert.equal(await gemini.countTokens({ apiKey: 'key', model: 'model', system: 's', user: 'u' }), 42);
   assert.match(request.url, /models\/model:countTokens$/);
-  assert.deepEqual(request.body.systemInstruction, { parts: [{ text: 's' }] });
+  assert.deepEqual(request.body.generateContentRequest.systemInstruction, { parts: [{ text: 's' }] });
+  assert.equal(request.body.generateContentRequest.model, 'models/model');
 });
 
 test('DeepSeek requests JSON, adds a JSON instruction only when needed, and normalizes usage', async () => {

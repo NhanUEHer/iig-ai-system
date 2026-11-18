@@ -87,7 +87,8 @@ async function countTokens(options) {
     joinUrl(options.baseUrl || DEFAULT_BASE_URL, `models/${encodeURIComponent(options.model)}:countTokens`),
     {
       headers: headers(options.apiKey),
-      body: contents(options.system, options.user),
+      // systemInstruction is only accepted inside generateContentRequest.
+      body: { generateContentRequest: { model: `models/${options.model}`, ...contents(options.system, options.user) } },
       timeoutMs: options.timeoutMs,
       signal: options.signal,
     },
