@@ -1,4 +1,4 @@
-.aic-editor-page > .iig3-page-frame { max-width: 1320px; }
+.aic-editor-page > .iig3-page-frame { max-width: none; }
 .aic-editor-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .aic-editor-head > div:first-child { min-width: 280px; flex: 1; }
 .aic-editor-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

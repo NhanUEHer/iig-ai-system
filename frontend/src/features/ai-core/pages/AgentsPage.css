@@ -1,6 +1,6 @@
-#root .iig3-theme .aic-page { width: 100%; height: 100%; overflow: auto; padding: 24px clamp(20px, 2.3vw, 32px) 48px; background: var(--iig3-canvas); color: var(--iig3-text); font-family: var(--iig3-font); }
+#root .iig3-theme .aic-page { width: 100%; height: 100%; overflow: auto; padding: 24px 32px 48px; background: var(--iig3-canvas); color: var(--iig3-text); font-family: var(--iig3-font); }
 .aic-page, .aic-page * { box-sizing: border-box; }
-.aic-page > .iig3-page-frame { width: 100%; max-width: 1320px; margin: 0 auto; gap: 16px; }
+.aic-page > .iig3-page-frame { width: 100%; max-width: none; margin: 0; gap: 16px; }
 .aic-page .iig3-breadcrumb { font-size: 13px; }
 .aic-page-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .aic-page-head h1 { flex: 1; margin: 0; font-size: 28px; line-height: 1.2; }

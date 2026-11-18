@@ -111,3 +111,14 @@
   .aic-connection-grid { grid-template-columns: 1fr; }
   .aic-modal-form { grid-template-columns: 1fr; }
 }
+
+/* Full-width layout: fixed side padding, content follows the screen */
+.aic-connection-grid { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); align-items: stretch; }
+.aic-connection-grid > section { height: 100%; }
+.aic-connection-grid nav { margin-top: auto; }
+.aic-pricing-card .aic-table { width: 100%; min-width: 860px; table-layout: fixed; }
+.aic-pricing-card .aic-table th:nth-child(1) { width: 11%; }
+.aic-pricing-card .aic-table th:nth-child(2) { width: 17%; }
+.aic-pricing-card .aic-table th:nth-child(n+3):nth-child(-n+7) { width: 12%; }
+.aic-pricing-card .aic-table th:nth-child(8) { width: 12%; }
+#root .iig3-theme .aic-pricing-card .aic-price-input { width: 100%; max-width: 160px; }
