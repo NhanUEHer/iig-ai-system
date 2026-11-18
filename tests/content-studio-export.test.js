@@ -48,3 +48,23 @@ test('export file names are ASCII and keep the legacy prefixes', () => {
   assert.equal(fileName(item, 'vocab', 'xlsx'), 'KeyVocabulary_Letter_Cau_1_4.xlsx');
   assert.equal(fileName(item, 'dictionary', 'docx'), 'VocabularyDictionary_Letter_Cau_1_4.docx');
 });
+
+test('bilingual, question (teacher/student) and full DOCX contain the expected content', async () => {
+  const JSZipLocal = require('jszip');
+  const docx = require('../src/modules/content-studio/export/docxDocuments');
+  const model = {
+    title: 'Letter', part: 7, questionRange: '1–1',
+    passages: [{ text: 'One. Two.', sentences: [{ en: 'One.', vi: 'Một.' }, { en: 'Two.', vi: '' }] }],
+    questions: [{ number: 1, stem: 'Why?', options: { A: 'a', B: 'b' }, answerKey: 'B', pack: { translation: 'Tại sao?\n(A) a\n(B) b', hint: 'Đọc câu 1.', explanation: 'Đáp án đúng là (B) b. “One sentence quoted here.” (A) sai.', note: 'Lưu ý.' } }],
+    vocab: [{ inText: 'one', lemma: 'one', pos: 'Noun', ipa: '/wʌn/', meaningVi: 'một' }], dictionary: [],
+  };
+  const text = async buffer => (await (await JSZipLocal.loadAsync(await buffer)).file('word/document.xml').async('string')).replace(/<[^>]+>/g, ' ');
+  const bilingual = await text(docx.buildBilingual(model));
+  assert.match(bilingual, /Một\./); assert.match(bilingual, /\(chưa dịch\)/); assert.match(bilingual, /Part 7 · Câu 1–1/);
+  const teacher = await text(docx.buildQuestions(model));
+  assert.match(teacher, /✓/); assert.match(teacher, /Explanation/);
+  const student = await text(docx.buildQuestions(model, { student: true }));
+  assert.doesNotMatch(student, /✓|Explanation/); assert.match(student, /Đáp án/); assert.match(student, /1B/);
+  const full = await text(docx.buildFull(model));
+  assert.match(full, /Key Vocab/); assert.match(full, /Song ngữ/);
+});
