@@ -46,3 +46,20 @@
 #root .iig3-theme .cs-create-source > header .cs-create__title-field input:focus { outline: none !important; border-color: #d55f3d !important; box-shadow: 0 0 0 3px #f8e7df !important; }
 .cs-create-source--title > header { border-bottom: 0 !important; padding: 14px 16px !important; }
 .cs-create-source--title { margin-bottom: 14px; }
+
+/* Even vertical rhythm on both steps */
+.cs-create__head { margin-bottom: 4px; }
+.cs-create-source--title { margin-bottom: 0; }
+
+/* Task options in the review sidebar: a clean vertical list */
+.cs-create-review-grid aside .cs-create-tasks { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 16px; }
+.cs-create-review-grid aside .cs-create-tasks__options { flex: none; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 0; border: 1px solid #ecebe6; border-radius: 10px; overflow: hidden; }
+.cs-create-review-grid aside .cs-create-tasks__item { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 0; }
+.cs-create-review-grid aside .cs-create-tasks__item + .cs-create-tasks__item { border-top: 1px solid #ecebe6; }
+.cs-create-review-grid aside .cs-create-tasks__pill { height: 44px; padding: 0 14px; border: 0; border-radius: 0; background: transparent; justify-content: flex-start; font-weight: 600; color: #242521; }
+.cs-create-review-grid aside .cs-create-tasks__pill.is-selected { background: #fdf6f2; color: #242521; }
+.cs-create-review-grid aside .cs-create-tasks__pill:hover { background: #f8efe9; }
+.cs-create-review-grid aside .cs-create-tasks__vocab { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 14px 12px 40px; background: #fdf6f2; margin-top: -8px; }
+.cs-create main .cs-create-review-grid aside .cs-create-tasks__vocab select { width: 100%; height: 32px !important; font-size: 13px !important; }
+.cs-create main .cs-create-review-grid aside .cs-create-tasks__vocab select { padding: 0 22px 0 8px !important; min-width: 0 !important; }
+.cs-create-review-grid aside .cs-create-tasks__vocab { padding-left: 36px; }
