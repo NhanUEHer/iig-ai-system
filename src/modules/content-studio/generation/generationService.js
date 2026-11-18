@@ -3,6 +3,7 @@ const db = require('../../../config/db');
 const HttpError = require('../../../http/httpError');
 const { splitSentences } = require('../detect/detectContent');
 const { validate } = require('./validators');
+const { artifactHash } = require('../sourceHash');
 const mockProvider = require('./mockProvider');
 const aiCoreProvider = require('./aiCoreProvider');
 const dictionary = require('../dictionary/dictionaryService');
@@ -152,11 +153,13 @@ async function saveEdit(artifactId, content, userId) {
     if (!artifact) throw new HttpError('Không tìm thấy nội dung.', 404, 'ARTIFACT_NOT_FOUND');
     if (['queued', 'generating'].includes(artifact.status)) throw new HttpError('Nội dung đang được tạo, hãy chờ xong rồi sửa.', 409, 'ARTIFACT_BUSY');
     if (artifact.type === 'dictionary') content = cleanDictionaryLists(content);
-    const validation = validate(artifact.type, content, await loadContext(client, artifact));
+    const context = await loadContext(client, artifact);
+    const validation = validate(artifact.type, content, context);
     const status = validation.issues.length ? 'needs_review' : 'ready';
+    // A human save confirms the content against the current source.
     await client.query(`
-      UPDATE cs_artifacts SET content = $2, validation = $3, status = $4, source = 'human', error = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
-    [artifactId, JSON.stringify(content), JSON.stringify(validation), status]);
+      UPDATE cs_artifacts SET content = $2, validation = $3, status = $4, source = 'human', error = NULL, source_hash = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+    [artifactId, JSON.stringify(content), JSON.stringify(validation), status, artifactHash(artifact.type, context)]);
     await client.query(`INSERT INTO cs_artifact_versions (artifact_id, content, validation, source, created_by) VALUES ($1, $2, $3, 'human', $4)`,
       [artifactId, JSON.stringify(content), JSON.stringify(validation), userId]);
     await refreshItemStatus(client, artifact.item_id);
@@ -184,8 +187,9 @@ async function processArtifact(artifact) {
     const validation = validate(artifact.type, content, context);
     await db.transaction(async client => {
       await client.query(`
-        UPDATE cs_artifacts SET content = $2, validation = $3, status = $4, source = 'ai', provider = $5, error = NULL, locked_at = NULL, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1`, [artifact.id, JSON.stringify(content), JSON.stringify(validation), validation.issues.length ? 'needs_review' : 'ready', selected.name]);
+        UPDATE cs_artifacts SET content = $2, validation = $3, status = $4, source = 'ai', provider = $5, error = NULL, locked_at = NULL,
+          source_hash = $6, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1`, [artifact.id, JSON.stringify(content), JSON.stringify(validation), validation.issues.length ? 'needs_review' : 'ready', selected.name, artifactHash(artifact.type, context)]);
       await client.query(`INSERT INTO cs_artifact_versions (artifact_id, content, validation, source, provider) VALUES ($1, $2, $3, 'ai', $4)`,
         [artifact.id, JSON.stringify(content), JSON.stringify(validation), selected.name]);
       await refreshItemStatus(client, artifact.item_id);

@@ -339,3 +339,10 @@ main .cs-question-field textarea:focus { border-color: #d55f3d!important; outlin
 /* UAT polish: fields grow with their text instead of scrolling inside; dictionary filters wrap */
 #root .iig3-theme .cs-question-field textarea, #root .iig3-theme .cs-translation-cards textarea { resize: none !important; overflow: hidden !important; min-height: 0 !important; }
 .cs-dictionary-filters { flex-wrap: wrap !important; overflow: visible !important; }
+
+/* Stale content after editing the source */
+.cs-stale-banner { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 10px 14px; border: 1px solid #ecd9a8; border-radius: 10px; background: #fbf4e3; color: #6f5420; font-size: 13px; }
+.cs-stale-banner > svg { width: 18px; flex: none; }
+.cs-stale-banner p { flex: 1; margin: 0; }
+.cs-stale-banner .iig3-button { height: 34px; white-space: nowrap; }
+.cs-stale-tag { margin-left: 6px; padding: 1px 6px; border-radius: 99px; background: #f4ecd8; color: #6f5420; font-size: 10.5px; font-weight: 650; }

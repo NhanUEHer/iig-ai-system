@@ -24,6 +24,7 @@ export const deleteItem = id => api.delete(`/content-studio/items/${id}`).then(d
 
 export const errorMessage = (error, fallback) => error?.response?.data?.error || error?.response?.data?.message || fallback;
 
+export const regenerateStale = id => api.post(`/content-studio/items/${id}/regenerate-stale`).then(data);
 export const generateItem = (id, tasks) => api.post(`/content-studio/items/${id}/generate`, tasks ? { tasks } : {}).then(data);
 export const regenerateArtifact = id => api.post(`/content-studio/artifacts/${id}/regenerate`).then(data);
 export const saveArtifact = (id, content) => api.put(`/content-studio/artifacts/${id}`, { content }).then(data);

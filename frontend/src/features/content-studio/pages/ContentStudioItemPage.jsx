@@ -1,14 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { BookOpen, Check, CheckCircle2, Pencil, RefreshCw, Save } from 'lucide-react';
+import { BookOpen, Check, CheckCircle2, Pencil, RefreshCw, Save, TriangleAlert } from 'lucide-react';
 import { Button, ErrorState, PageFrame, Skeleton, StatusBadge } from '../../../design-system-v2';
-import { errorMessage, generateItem, getDictionary, getItem, regenerateArtifact, saveArtifact, saveDictionaryEntry, updateItemContent } from '../../../services/contentStudioService';
+import { errorMessage, generateItem, getDictionary, regenerateStale, getItem, regenerateArtifact, saveArtifact, saveDictionaryEntry, updateItemContent } from '../../../services/contentStudioService';
 import { STATUS, isBusy } from '../item/ArtifactShell';
 import DictionaryPanel from '../item/DictionaryPanel';
 import { SourceEditor, VocabView, highlight } from '../item/PassagePanels';
 import TranslationPanel from '../item/TranslationPanel';
 import { QuestionWorkspace, explanationQuote } from '../item/QuestionPanels';
 import './ContentStudioItemPage.css';
+
+const STALE_LABEL = { vocab: 'Từ vựng', translation: 'Dịch', dictionary: 'Từ điển (câu)', questions: 'Câu hỏi' };
 
 const ITEM_STATUS = {
   draft: { tone: 'draft', label: 'Chưa tạo' }, waiting_review: { tone: 'warning', label: 'Từ điển chờ duyệt' }, ...STATUS,
@@ -163,13 +165,22 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
     const review = new Set((artifact?.validation?.issues || []).map(issue => issue.path).filter(path => /^sentences\.\d+$/.test(path))).size;
     return { total: totals.total + total, ready: totals.ready + Math.max(0, total - review) };
   }, { total: 0, ready: 0 });
+  const staleParts = item.staleParts || [];
+  const staleOf = part => staleParts.some(entry => entry.part === part);
+  const staleTotal = staleParts.reduce((sum, entry) => sum + entry.count, 0);
+  const runRegenerateStale = async () => {
+    setGenerating(true);
+    try { await regenerateStale(item.id); showMsg?.('Đang tạo lại các phần lỗi thời.', 'success'); await load(); }
+    catch (requestError) { showMsg?.(errorMessage(requestError, 'Không thể tạo lại phần lỗi thời.'), 'error'); }
+    finally { setGenerating(false); }
+  };
   const tabs = [
     ...(passages.length ? [
-      { value: 'vocab', label: 'Từ vựng', detail: counts.vocab || '', status: taskStatus.vocab },
-      { value: 'dictionary', label: 'Từ điển', detail: dictionaryState?.status === 'waiting_review' ? 'chờ duyệt' : (counts.dictionary || ''), status: dictionaryState?.status || taskStatus.dictionary },
-      { value: 'translation', label: 'Dịch', detail: translationCounts.total ? `${translationCounts.ready}/${translationCounts.total}` : '', status: taskStatus.translation },
+      { value: 'vocab', label: 'Từ vựng', detail: counts.vocab || '', status: taskStatus.vocab, stale: staleOf('vocab') },
+      { value: 'dictionary', label: 'Từ điển', detail: dictionaryState?.status === 'waiting_review' ? 'chờ duyệt' : (counts.dictionary || ''), status: dictionaryState?.status || taskStatus.dictionary, stale: staleOf('dictionary') },
+      { value: 'translation', label: 'Dịch', detail: translationCounts.total ? `${translationCounts.ready}/${translationCounts.total}` : '', status: taskStatus.translation, stale: staleOf('translation') },
     ] : []),
-    ...(questions.length ? [{ value: 'questions', label: 'Câu hỏi', detail: `${readyQuestions}/${questions.length}`, status: taskStatus.questions }] : []),
+    ...(questions.length ? [{ value: 'questions', label: 'Câu hỏi', detail: `${readyQuestions}/${questions.length}`, status: taskStatus.questions, stale: staleOf('questions') }] : []),
   ];
   const activeTab = tabs.some(entry => entry.value === tab) ? tab : tabs[0]?.value;
   // Vocab / dictionary terms are highlighted in the fixed source on the left.
@@ -222,6 +233,11 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
         {permissions.generate && <Button variant="outline" icon={<RefreshCw />} loading={generating} disabled={busy} onClick={() => generate(null)}>{busy ? 'Đang tạo…' : item.artifacts.length ? 'Tạo lại tất cả' : 'Tạo nội dung'}</Button>}
         {permissions.edit && <Button icon={<Save />} loading={saving} disabled={!dirtyCount} onClick={saveAll}>{dirtyCount ? `Lưu thay đổi (${dirtyCount})` : 'Đã lưu'}</Button>}
       </div>
+      {staleTotal > 0 && <div className="cs-stale-banner" role="status">
+        <TriangleAlert />
+        <p><strong>Nội dung gốc đã sửa</strong> — {staleParts.map(entry => `${STALE_LABEL[entry.part]} (${entry.count})`).join(', ')} cần tạo lại để khớp với bài.</p>
+        {permissions.generate && <Button variant="outline" icon={<RefreshCw />} loading={generating} disabled={busy} onClick={runRegenerateStale}>Tạo lại phần lỗi thời</Button>}
+      </div>}
     </div>}
   >
     <div className="cs-hub is-split">
@@ -254,7 +270,7 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
       </section>
 
       <section className="cs-hub__col cs-hub__work" aria-label="Biên tập">
-        <nav className="cs-hub__tabs">{tabs.map(entry => <button type="button" key={entry.value} className={activeTab === entry.value ? 'is-active' : ''} onClick={() => changeTab(entry.value)}><i className={`is-${entry.status || 'empty'}`} />{entry.label}{entry.detail !== '' && <span>{entry.detail}</span>}</button>)}</nav>
+        <nav className="cs-hub__tabs">{tabs.map(entry => <button type="button" key={entry.value} className={activeTab === entry.value ? 'is-active' : ''} onClick={() => changeTab(entry.value)}><i className={`is-${entry.status || 'empty'}`} />{entry.label}{entry.detail !== '' && <span>{entry.detail}</span>}{entry.stale && <b className="cs-stale-tag">Lỗi thời</b>}</button>)}</nav>
         <div className="cs-hub__body">
           {activeTab === 'translation' && passages.map(passage => <div key={passage.id} className="cs-hub__block cs-hub__block--translation">
             <TranslationPanel {...editorProps(artifactFor('passage_translation', passage.id))} shell={passageShell('translation')} activeSentence={activeSentence} onFocusSentence={setActiveSentence} />

@@ -231,4 +231,41 @@ async function removeCandidate(candidateId) {
   });
 }
 
-module.exports = { extract, generate, getState, regenerateEntry, removeCandidate, saveEntry, saveList };
+// After the passage is edited: keep unchanged sentences (and their entries), drop removed ones,
+// and queue only new/changed sentences for extraction → definition. Never touches untouched entries.
+async function resync(itemId) {
+  requireId(itemId);
+  const result = await db.transaction(async client => {
+    await requireItem(client, itemId, true);
+    const busy = await client.query(`SELECT 1 FROM cs_dict_sentences WHERE item_id = $1 AND status IN ('queued','generating') LIMIT 1`, [itemId]);
+    if (busy.rowCount) throw new HttpError('Từ điển đang được xử lý.', 409, 'DICTIONARY_BUSY');
+    const { rows: segments } = await client.query(
+      `SELECT id, text FROM cs_segments WHERE item_id = $1 AND kind = 'passage' ORDER BY position`, [itemId]);
+    const { rows: stored } = await client.query('SELECT id, segment_id, text FROM cs_dict_sentences WHERE item_id = $1', [itemId]);
+    const unused = new Map(stored.map(row => [row.id, row]));
+    // Free the (item_id, position) slots before renumbering.
+    await client.query('UPDATE cs_dict_sentences SET position = -1 - position WHERE item_id = $1', [itemId]);
+    let position = 0;
+    let added = 0;
+    for (const segment of segments) {
+      for (const text of splitSentences(segment.text)) {
+        const match = [...unused.values()].find(row => row.segment_id === segment.id && normalizedSentence(row.text) === normalizedSentence(text));
+        if (match) {
+          unused.delete(match.id);
+          await client.query('UPDATE cs_dict_sentences SET position = $2 WHERE id = $1', [match.id, position]);
+        } else {
+          await client.query(`INSERT INTO cs_dict_sentences (item_id, segment_id, position, text, status)
+            VALUES ($1, $2, $3, $4, 'queued')`, [itemId, segment.id, position, text]);
+          added += 1;
+        }
+        position += 1;
+      }
+    }
+    if (unused.size) await client.query('DELETE FROM cs_dict_sentences WHERE id = ANY($1::uuid[])', [[...unused.keys()]]);
+    return { itemId, added, removed: unused.size };
+  });
+  worker.kickWorker();
+  return result;
+}
+
+module.exports = { extract, generate, getState, regenerateEntry, removeCandidate, resync, saveEntry, saveList };

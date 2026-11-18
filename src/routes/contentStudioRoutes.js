@@ -7,6 +7,7 @@ const service = require('../modules/content-studio/contentStudioService');
 const { docxToText } = require('../modules/content-studio/detect/docxText');
 const generation = require('../modules/content-studio/generation/generationService');
 const dictionary = require('../modules/content-studio/dictionary/dictionaryService');
+const stale = require('../modules/content-studio/staleService');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } }).single('file');
@@ -38,6 +39,7 @@ router.patch('/items/:id', requirePermission(...EDIT), asyncHandler(async (req, 
 router.put('/items/:id/content', requirePermission(...EDIT), asyncHandler(async (req, res) => res.json({ success: true, data: await service.updateContent(req.params.id, req.body) })));
 router.delete('/items/:id', requirePermission(...EDIT), asyncHandler(async (req, res) => res.json({ success: true, data: await service.deleteItem(req.params.id) })));
 
+router.post('/items/:id/regenerate-stale', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.status(202).json({ success: true, data: await stale.regenerateStale(req.params.id) })));
 router.post('/items/:id/generate', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.status(202).json({ success: true, data: await generation.enqueue(req.params.id, req.body?.tasks) })));
 router.post('/items/:id/dictionary/extract', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.status(202).json({ success: true, data: await dictionary.extract(req.params.id) })));
 router.get('/items/:id/dictionary', requirePermission(...VIEW), asyncHandler(async (req, res) => res.json({ success: true, data: await dictionary.getState(req.params.id) })));

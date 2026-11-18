@@ -21,13 +21,14 @@ function provider() {
 
 async function claimExtract() {
   return db.transaction(async client => {
+    // A sentence needs extraction when it is queued and has no chunks yet (whole item, or only edited sentences).
+    const NEEDS_EXTRACT = `s.status = 'queued' AND NOT EXISTS (SELECT 1 FROM cs_dict_candidates c WHERE c.sentence_id = s.id)`;
     const { rows: [item] } = await client.query(`SELECT i.id FROM cs_items i
-      WHERE EXISTS (SELECT 1 FROM cs_dict_sentences s WHERE s.item_id = i.id AND s.status = 'queued')
-        AND NOT EXISTS (SELECT 1 FROM cs_dict_candidates c WHERE c.item_id = i.id)
+      WHERE EXISTS (SELECT 1 FROM cs_dict_sentences s WHERE s.item_id = i.id AND ${NEEDS_EXTRACT})
       ORDER BY i.updated_at FOR UPDATE OF i SKIP LOCKED LIMIT 1`);
     if (!item) return null;
-    const { rows: sentences } = await client.query(`UPDATE cs_dict_sentences SET status = 'generating', updated_at = CURRENT_TIMESTAMP
-      WHERE item_id = $1 AND status = 'queued' RETURNING id, item_id, segment_id, position, text`, [item.id]);
+    const { rows: sentences } = await client.query(`UPDATE cs_dict_sentences s SET status = 'generating', updated_at = CURRENT_TIMESTAMP
+      WHERE s.item_id = $1 AND ${NEEDS_EXTRACT} RETURNING id, item_id, segment_id, position, text`, [item.id]);
     return { itemId: item.id, sentences: sentences.sort((a, b) => a.position - b.position) };
   });
 }
@@ -53,11 +54,11 @@ async function processExtract(job) {
       }
       await client.query(`UPDATE cs_dict_sentences s SET status = CASE WHEN EXISTS (
           SELECT 1 FROM cs_dict_candidates c WHERE c.sentence_id = s.id) THEN 'queued' ELSE 'draft' END,
-        updated_at = CURRENT_TIMESTAMP WHERE s.item_id = $1`, [job.itemId]);
+        updated_at = CURRENT_TIMESTAMP WHERE s.id = ANY($1::uuid[])`, [job.sentences.map(sentence => sentence.id)]);
       await client.query('UPDATE cs_items SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [job.itemId]);
     });
   } catch (error) {
-    await db.query(`UPDATE cs_dict_sentences SET status = 'failed', updated_at = CURRENT_TIMESTAMP WHERE item_id = $1`, [job.itemId]);
+    await db.query(`UPDATE cs_dict_sentences SET status = 'failed', updated_at = CURRENT_TIMESTAMP WHERE id = ANY($1::uuid[])`, [job.sentences.map(sentence => sentence.id)]);
     console.error('[ContentStudioDictionaryExtract]', job.itemId, error.message);
   }
 }
