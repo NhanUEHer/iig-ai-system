@@ -122,3 +122,6 @@
 .aic-pricing-card .aic-table th:nth-child(n+3):nth-child(-n+7) { width: 12%; }
 .aic-pricing-card .aic-table th:nth-child(8) { width: 12%; }
 #root .iig3-theme .aic-pricing-card .aic-price-input { width: 100%; max-width: 160px; }
+.aic-pricing-card > .aic-table-wrap { margin: 16px 16px 0; border: 1px solid var(--iig3-border); border-radius: 10px; overflow-x: auto; }
+.aic-pricing-card > .aic-table-wrap .aic-table tr:last-child td { border-bottom: 0; }
+.aic-pricing-card > p { padding: 12px 16px 16px; }
