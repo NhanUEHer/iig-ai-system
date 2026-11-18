@@ -139,7 +139,7 @@ export default function StudioHomePage() {
 
   return <div className="cs-home">
     <div className="cs-home__title-row">
-      <div className="cs-home__title"><h1>Content Studio</h1></div>
+      <div className="cs-home__title"><span>Tạo &amp; phát triển</span><h1>Content Studio</h1></div>
       <label className="cs-home__search"><Search /><input aria-label="Tìm học liệu" placeholder="Tìm học liệu trong mọi thư mục…" value={query} onChange={event => setQuery(event.target.value)} /></label>
       <Button variant="outline" icon={<Folder />} onClick={() => setCreateOpen(true)}>Thêm thư mục</Button>
       <Button icon={<Plus />} onClick={() => navigate('/content-studio/new')}>Tạo học liệu mới</Button>
