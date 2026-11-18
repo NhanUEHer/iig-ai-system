@@ -251,56 +251,14 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
 
       <div className="aic-editor-layout">
         <main>
-          <Card title="1 · Thông tin agent">
-            <div className="aic-grid aic-grid-3">
-              <Field label={<>Tên agent <i className="aic-req">*</i></>}><input value={identity.name} onChange={updateIdentity('name')} disabled={!canManage} placeholder="Ví dụ: Từ điển · định nghĩa" /></Field>
-              <Field label={<>Key <i className="aic-req">*</i></>} help="Dạng tính_năng.tên, không đổi được sau khi tạo"><input className="is-mono" value={identity.key} onChange={updateIdentity('key')} disabled={!canManage || Boolean(agent)} placeholder="cs.dict_define" /></Field>
-              <Field label={<>Tính năng <i className="aic-req">*</i></>}><input value={identity.feature} onChange={updateIdentity('feature')} disabled={!canManage} placeholder="Content Studio" /></Field>
-            </div>
-          </Card>
-
-          <Card title="2 · Mô hình">
-            <div className="aic-grid aic-grid-3">
-              <Field label="Kết nối chính"><select value={draft.connectionId} onChange={event => { const connectionId = event.target.value; const connection = connections.find(item => item.id === connectionId); const model = models.find(item => item.status === 'active' && item.provider === connection?.provider); setDraft(current => ({ ...current, connectionId, model: model?.model || '' })); }} disabled={!canManage}><option value="">Chọn kết nối</option>{connections.filter(item => item.status === 'active').map(item => <option key={item.id} value={item.id}>{item.provider === 'gemini' ? 'Gemini' : 'DeepSeek'} · {item.name}</option>)}</select></Field>
-              <Field label="Model"><select value={draft.model} onChange={updateDraft('model')} disabled={!canManage}><option value="">Chọn model</option>{mainModels.map(item => <option key={item.model} value={item.model}>{item.model}</option>)}</select></Field>
-              <Field label="Temperature"><input type="number" min="0" max="2" step="0.1" value={draft.temperature} onChange={updateDraft('temperature')} disabled={!canManage} /></Field>
-            </div>
-            <div className="aic-grid aic-grid-2">
-              <Field label="Dự phòng khi lỗi" help="Chạy khi provider chính lỗi 5xx, timeout hoặc quá tải"><select value={fallbackValue} onChange={event => { const [fallbackConnectionId = '', fallbackModel = ''] = event.target.value.split('::'); setDraft(current => ({ ...current, fallbackConnectionId, fallbackModel })); }} disabled={!canManage}><option value="">Không dùng dự phòng</option>{fallbackChoices.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></Field>
-              <Field label="Định dạng đầu ra" help="Gemini: ép schema · DeepSeek: JSON + tự kiểm schema"><select value="json_schema" disabled><option value="json_schema">JSON theo schema</option></select></Field>
-            </div>
-          </Card>
-
-          <Card title="3 · Prompt" tools={<div className="aic-variable-list"><span>Biến:</span>{variableNames.length ? variableNames.map(name => <code key={name}>{`{{${name}}}`}</code>) : <small>chưa phát hiện</small>}</div>}>
+          <Card title="Thiết kế prompt" tools={<div className="aic-variable-list"><span>Biến:</span>{variableNames.length ? variableNames.map(name => <code key={name}>{`{{${name}}}`}</code>) : <small>chưa phát hiện</small>}</div>}>
             <Field label="System prompt" help="Vai trò và quy tắc chung cho model"><textarea className="is-prose" rows="5" placeholder="You are … Return JSON only." value={draft.systemPrompt} onChange={updateDraft('systemPrompt')} disabled={!canManage} /></Field>
             <Field label="User prompt (template)" help="Biến dùng cú pháp {{variable_name}}"><textarea className="is-prose" rows="5" placeholder="Translate this sentence into Vietnamese: {{sentence}}" value={draft.userTemplate} onChange={updateDraft('userTemplate')} disabled={!canManage} /></Field>
             <Field label="JSON schema đầu ra" error={schemaValidation.valid ? '' : schemaValidation.error}><textarea rows="10" value={schemaText} onChange={event => setSchemaText(event.target.value)} disabled={!canManage} /></Field>
             {schemaValidation.valid && <span className="aic-schema-ok"><Check /> JSON hợp lệ</span>}
           </Card>
 
-          <Card title="4 · Giới hạn token & thử lại">
-            <div className="aic-grid aic-grid-3">
-              <Field label="Max token đầu vào" help="Vượt → từ chối, mã INPUT_TOO_LARGE"><input type="number" min="1" value={draft.maxInputTokens} onChange={updateDraft('maxInputTokens')} disabled={!canManage} /></Field>
-              <Field label="Max token đầu ra" help="Gồm cả token suy nghĩ của model"><input type="number" min="1" value={draft.maxOutputTokens} onChange={updateDraft('maxOutputTokens')} disabled={!canManage} /></Field>
-              <Field label="Timeout (giây)"><input type="number" min="1" max="600" value={Number(draft.timeoutMs || 0) / 1000} onChange={event => setDraft(current => ({ ...current, timeoutMs: Number(event.target.value) * 1000 }))} disabled={!canManage} /></Field>
-            </div>
-            <div className="aic-grid aic-grid-3">
-              <Field label="Số lần thử lại" help="Khi 429 / 5xx / timeout, chờ tăng dần"><input type="number" min="0" max="5" value={draft.maxRetries} onChange={updateDraft('maxRetries')} disabled={!canManage} /></Field>
-              <Field label="Sửa JSON sai schema"><select value={draft.repairInvalidJson ? 'yes' : 'no'} onChange={event => setDraft(current => ({ ...current, repairInvalidJson: event.target.value === 'yes' }))} disabled={!canManage}><option value="yes">Nhờ AI sửa 1 lần</option><option value="no">Không tự sửa</option></select></Field>
-              <Field label="Chạy đồng thời tối đa"><input type="number" min="1" max="100" value={identity.maxConcurrency} onChange={updateIdentity('maxConcurrency')} disabled={!canManage} /></Field>
-            </div>
-          </Card>
-
-          <Card title="5 · Trần chi phí & cảnh báo (USD)">
-            <div className="aic-grid aic-grid-3">
-              <Field label="Trần mỗi lượt" help="Ước tính tối đa vượt → không gọi, mã COST_CEILING"><div className="aic-input-prefix"><span>$</span><input type="number" min="0" step="0.001" value={identity.maxCostPerCallUsd} onChange={updateIdentity('maxCostPerCallUsd')} disabled={!canManage} /></div></Field>
-              <Field label="Ngân sách tháng" help="Hết → tạm dừng hàng đợi, mã QUOTA_EXCEEDED"><div className="aic-input-prefix"><span>$</span><input type="number" min="0" step="1" value={identity.monthlyBudgetUsd} onChange={updateIdentity('monthlyBudgetUsd')} disabled={!canManage} /></div></Field>
-              <Field label="Cảnh báo khi đạt" help="Báo trên danh sách và gửi thông báo"><div className="aic-input-suffix"><input type="number" min="1" max="100" value={identity.alertThresholdPct} onChange={updateIdentity('alertThresholdPct')} disabled={!canManage} /><span>%</span></div></Field>
-            </div>
-          </Card>
-        </main>
-
-        <aside>
+          <div className="aic-test-row">
           <Card title="Chạy thử bản nháp" accent tools={<small>không tính vào ngân sách tháng</small>}>
             {!variableNames.length && <p className="aic-test-guidance">Thêm biến <code>{'{{variable}}'}</code> vào user prompt để tạo ô dữ liệu chạy thử.</p>}
             {variableNames.map(name => <Field key={name} label={<code className="aic-variable">{name}</code>}><textarea rows={2} value={variables[name] || ''} onChange={event => setVariables(current => ({ ...current, [name]: event.target.value }))} disabled={!canManage} /></Field>)}
@@ -323,6 +281,48 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
               <pre>{typeof responseJson === 'string' ? responseJson : JSON.stringify(responseJson, null, 2)}</pre>
             </>}
           </Card>
+          </div>
+        </main>
+
+        <aside className="aic-config-panel">
+          <header><h2>Cấu hình agent</h2></header>
+          <section><h3>Thông tin</h3>
+            <div className="aic-grid aic-grid-2">
+              <Field className="is-wide" label={<>Tên agent <i className="aic-req">*</i></>}><input value={identity.name} onChange={updateIdentity('name')} disabled={!canManage} placeholder="Ví dụ: Từ điển · định nghĩa" /></Field>
+              <Field label={<>Key <i className="aic-req">*</i></>} help="Dạng tính_năng.tên, không đổi được sau khi tạo"><input className="is-mono" value={identity.key} onChange={updateIdentity('key')} disabled={!canManage || Boolean(agent)} placeholder="cs.dict_define" /></Field>
+              <Field label={<>Tính năng <i className="aic-req">*</i></>}><input value={identity.feature} onChange={updateIdentity('feature')} disabled={!canManage} placeholder="Content Studio" /></Field>
+            </div>
+          </section>
+          <section><h3>Mô hình</h3>
+            <div className="aic-grid aic-grid-2">
+              <Field className="is-wide" label="Kết nối chính"><select value={draft.connectionId} onChange={event => { const connectionId = event.target.value; const connection = connections.find(item => item.id === connectionId); const model = models.find(item => item.status === 'active' && item.provider === connection?.provider); setDraft(current => ({ ...current, connectionId, model: model?.model || '' })); }} disabled={!canManage}><option value="">Chọn kết nối</option>{connections.filter(item => item.status === 'active').map(item => <option key={item.id} value={item.id}>{item.provider === 'gemini' ? 'Gemini' : 'DeepSeek'} · {item.name}</option>)}</select></Field>
+              <Field label="Model"><select value={draft.model} onChange={updateDraft('model')} disabled={!canManage}><option value="">Chọn model</option>{mainModels.map(item => <option key={item.model} value={item.model}>{item.model}</option>)}</select></Field>
+              <Field label="Temperature"><input type="number" min="0" max="2" step="0.1" value={draft.temperature} onChange={updateDraft('temperature')} disabled={!canManage} /></Field>
+            </div>
+            <div className="aic-grid aic-grid-2">
+              <Field className="is-wide" label="Dự phòng khi lỗi" help="Chạy khi provider chính lỗi 5xx, timeout hoặc quá tải"><select value={fallbackValue} onChange={event => { const [fallbackConnectionId = '', fallbackModel = ''] = event.target.value.split('::'); setDraft(current => ({ ...current, fallbackConnectionId, fallbackModel })); }} disabled={!canManage}><option value="">Không dùng dự phòng</option>{fallbackChoices.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></Field>
+              <Field label="Định dạng đầu ra" help="Gemini: ép schema · DeepSeek: JSON + tự kiểm schema"><select value="json_schema" disabled><option value="json_schema">JSON theo schema</option></select></Field>
+            </div>
+          </section>
+          <section><h3>Giới hạn token & thử lại</h3>
+            <div className="aic-grid aic-grid-2">
+              <Field label="Max token đầu vào" help="Vượt → từ chối, mã INPUT_TOO_LARGE"><input type="number" min="1" value={draft.maxInputTokens} onChange={updateDraft('maxInputTokens')} disabled={!canManage} /></Field>
+              <Field label="Max token đầu ra" help="Gồm cả token suy nghĩ của model"><input type="number" min="1" value={draft.maxOutputTokens} onChange={updateDraft('maxOutputTokens')} disabled={!canManage} /></Field>
+              <Field label="Timeout (giây)"><input type="number" min="1" max="600" value={Number(draft.timeoutMs || 0) / 1000} onChange={event => setDraft(current => ({ ...current, timeoutMs: Number(event.target.value) * 1000 }))} disabled={!canManage} /></Field>
+            </div>
+            <div className="aic-grid aic-grid-2">
+              <Field label="Số lần thử lại" help="Khi 429 / 5xx / timeout, chờ tăng dần"><input type="number" min="0" max="5" value={draft.maxRetries} onChange={updateDraft('maxRetries')} disabled={!canManage} /></Field>
+              <Field label="Sửa JSON sai schema"><select value={draft.repairInvalidJson ? 'yes' : 'no'} onChange={event => setDraft(current => ({ ...current, repairInvalidJson: event.target.value === 'yes' }))} disabled={!canManage}><option value="yes">Nhờ AI sửa 1 lần</option><option value="no">Không tự sửa</option></select></Field>
+              <Field label="Chạy đồng thời tối đa"><input type="number" min="1" max="100" value={identity.maxConcurrency} onChange={updateIdentity('maxConcurrency')} disabled={!canManage} /></Field>
+            </div>
+          </section>
+          <section><h3>Trần chi phí & cảnh báo (USD)</h3>
+            <div className="aic-grid aic-grid-2">
+              <Field label="Trần mỗi lượt" help="Ước tính tối đa vượt → không gọi, mã COST_CEILING"><div className="aic-input-prefix"><span>$</span><input type="number" min="0" step="0.001" value={identity.maxCostPerCallUsd} onChange={updateIdentity('maxCostPerCallUsd')} disabled={!canManage} /></div></Field>
+              <Field label="Ngân sách tháng" help="Hết → tạm dừng hàng đợi, mã QUOTA_EXCEEDED"><div className="aic-input-prefix"><span>$</span><input type="number" min="0" step="1" value={identity.monthlyBudgetUsd} onChange={updateIdentity('monthlyBudgetUsd')} disabled={!canManage} /></div></Field>
+              <Field label="Cảnh báo khi đạt" help="Báo trên danh sách và gửi thông báo"><div className="aic-input-suffix"><input type="number" min="1" max="100" value={identity.alertThresholdPct} onChange={updateIdentity('alertThresholdPct')} disabled={!canManage} /><span>%</span></div></Field>
+            </div>
+          </section>
         </aside>
       </div>
       <ConfirmDialog
