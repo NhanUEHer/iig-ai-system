@@ -3,6 +3,8 @@ import { ChevronLeft, ChevronRight, RefreshCw, TriangleAlert } from 'lucide-reac
 import { Button } from '../../../design-system-v2';
 import ArtifactShell, { STATUS, isBusy } from './ArtifactShell';
 
+const autoSize = node => { if (node) { node.style.height = 'auto'; node.style.height = `${node.scrollHeight + 2}px`; } };
+
 const LETTERS = ['A', 'B', 'C', 'D'];
 const FIELDS = [
   { value: 'translation', label: 'Dịch câu hỏi & đáp án', hint: 'một đoạn: câu hỏi + (A)–(D)', rows: 5 },
@@ -23,7 +25,7 @@ export function explanationQuote(value, passage) {
 function Field({ definition, index, value, issues, readOnly, onChange }) {
   return <div className={`cs-question-field cs-question-field--${definition.value}${issues.length ? ' is-review' : ''}`}>
     <div><span>{index + 1}</span><strong>{definition.label}</strong><small>{definition.hint}</small></div>
-    <textarea rows={definition.rows} value={value || ''} readOnly={readOnly} aria-label={definition.label} onChange={event => onChange(event.target.value)} />
+    <textarea ref={autoSize} onInput={event => autoSize(event.currentTarget)} rows={definition.rows} value={value || ''} readOnly={readOnly} aria-label={definition.label} onChange={event => onChange(event.target.value)} />
     {issues.map((issue, issueIndex) => <p key={`${issue.code}-${issueIndex}`}><TriangleAlert />{issue.message}</p>)}
   </div>;
 }

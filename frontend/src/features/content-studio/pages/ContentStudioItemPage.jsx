@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom';
 import { BookOpen, Check, CheckCircle2, Pencil, RefreshCw, Save } from 'lucide-react';
 import { Button, ErrorState, PageFrame, Skeleton, StatusBadge } from '../../../design-system-v2';
-import { errorMessage, generateItem, getItem, regenerateArtifact, saveArtifact, saveDictionaryEntry, updateItemContent } from '../../../services/contentStudioService';
+import { errorMessage, generateItem, getDictionary, getItem, regenerateArtifact, saveArtifact, saveDictionaryEntry, updateItemContent } from '../../../services/contentStudioService';
 import { STATUS, isBusy } from '../item/ArtifactShell';
 import DictionaryPanel from '../item/DictionaryPanel';
 import { SourceEditor, VocabView, highlight } from '../item/PassagePanels';
@@ -45,6 +45,8 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
     catch (requestError) { setError(errorMessage(requestError, 'Không thể tải học liệu.')); }
   }, [id]);
   useEffect(() => { load(); }, [load]);
+  // Tab badge needs the dictionary count before the Từ điển tab is opened.
+  useEffect(() => { getDictionary(id).then(setDictionaryState).catch(() => {}); }, [id]);
   useEffect(() => {
     const requested = searchParams.get('tab');
     if (requested && ['vocab', 'dictionary', 'translation', 'questions'].includes(requested)) setTab(requested);

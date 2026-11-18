@@ -3,6 +3,8 @@ import { Check, RefreshCw, TriangleAlert } from 'lucide-react';
 import { Button } from '../../../design-system-v2';
 import ArtifactShell from './ArtifactShell';
 
+const sizeNode = node => { if (node) { node.style.height = 'auto'; node.style.height = `${node.scrollHeight + 2}px`; } };
+
 const FILTERS = [
   { value: 'all', label: 'Tất cả' },
   { value: 'review', label: 'Cần xem lại' },
@@ -41,7 +43,7 @@ export default function TranslationPanel({ artifact, draft, dirty, onChange, she
         {option.label} {counts[option.value]}
       </button>)}
       <span />
-      <small>{artifact.source === 'human' ? 'AI · đã chỉnh tay' : `AI${artifact.provider ? ` · ${artifact.provider}` : ''}`}</small>
+      <small>{artifact.source === 'human' ? 'AI · đã chỉnh tay' : 'AI'}</small>
       {shell.canGenerate && <Button variant="outline" size="sm" icon={<RefreshCw />} onClick={() => shell.onRegenerate(artifact)}>Tạo lại</Button>}
     </div>
     <ol className="cs-translation-cards">
@@ -55,7 +57,7 @@ export default function TranslationPanel({ artifact, draft, dirty, onChange, she
             <i />
             {isRowDirty(index) && <em>Chưa lưu</em>}
           </div>
-          <textarea rows={2} aria-label={`Bản dịch câu ${index + 1}`} value={row.vi || ''} readOnly={!shell.canEdit}
+          <textarea ref={sizeNode} rows={2} aria-label={`Bản dịch câu ${index + 1}`} value={row.vi || ''} readOnly={!shell.canEdit}
             ref={element => { if (element) { element.style.height = 'auto'; element.style.height = `${element.scrollHeight}px`; } }}
             onInput={autoSize} onFocus={() => onFocusSentence?.(row.en)} onBlur={() => onFocusSentence?.(null)}
             onChange={event => setVietnamese(index, event.target.value)} />

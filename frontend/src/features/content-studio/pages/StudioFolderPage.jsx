@@ -168,7 +168,7 @@ export default function StudioFolderPage({ showMsg, permissions = {} }) {
 
   return <div className="cs-library"><div className="cs-library__inner">
     <header className="cs-library__header">
-      <div><nav aria-label="Breadcrumb"><button type="button" onClick={() => navigate('/content-studio')}>Content Studio</button>{currentPath.map(folder => <React.Fragment key={folder.id}><span>/</span><button type="button" onClick={() => navigate(`/content-studio/folders/${folder.id}`)}>{folder.name}</button></React.Fragment>)}{folderId === 'unfiled' && <><span>/</span><strong>Chưa phân loại</strong></>}</nav><h1>Content Studio</h1></div>
+      <div><nav aria-label="Breadcrumb"><button type="button" onClick={() => navigate('/content-studio')}>Content Studio</button>{currentPath.map(folder => <React.Fragment key={folder.id}><span>/</span><button type="button" onClick={() => navigate(`/content-studio/folders/${folder.id}`)}>{folder.name}</button></React.Fragment>)}{folderId === 'unfiled' && <><span>/</span><strong>Chưa phân loại</strong></>}</nav><h1>{currentName}</h1></div>
       <label className="cs-library-search"><Search /><input aria-label="Tìm học liệu" placeholder="Tìm học liệu trong mọi thư mục…" value={query} onChange={event => setQuery(event.target.value)} /><kbd>⌘K</kbd></label>
     </header>
     <div className="cs-library__layout">
