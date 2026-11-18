@@ -9,6 +9,7 @@ const reportRoutes = require('../../routes/reportRoutes');
 const expenseRoutes = require('../../routes/expenseRoutes');
 const keyVocabRoutes = require('../../routes/keyVocabRoutes');
 const contentStudioRoutes = require('../../routes/contentStudioRoutes');
+const aiCoreRoutes = require('../../modules/ai-core/routes');
 const dictionaryRoutes = require('../../routes/dictionaryRoutes');
 const learningMaterialRoutes = require('../../routes/learningMaterialRoutes');
 const contentSourceRoutes = require('../../routes/contentSourceRoutes');
@@ -38,6 +39,7 @@ function createAdminApp(options = {}) {
       app.use('/api/expenses', authenticate, expenseRoutes);
       app.use('/api/key-vocab', authenticate, keyVocabRoutes);
       app.use('/api/content-studio', authenticate, contentStudioRoutes);
+      app.use('/api/ai-core', authenticate, aiCoreRoutes);
       app.use('/api/dictionary', authenticate, dictionaryRoutes);
       app.use('/api/learning-materials', authenticate, learningMaterialRoutes);
       app.use('/api/content-sources', authenticate, contentSourceRoutes);
