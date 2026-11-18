@@ -3,13 +3,14 @@
 const db = require('../../../config/db');
 const mockProvider = require('../generation/mockProvider');
 const difyProvider = require('../generation/difyProvider');
+const aiCoreProvider = require('../generation/aiCoreProvider');
 const { mapDictionaryEntries, normalizeExtract, sameSentence, validateEntry } = require('./normalize');
 
 const MAX_ATTEMPTS = 3;
 const TIMEOUT_MS = 150000;
 const STALE_MS = TIMEOUT_MS + 30000;
 const CONCURRENCY = Math.max(1, Math.min(20, Number(process.env.CONTENT_STUDIO_DICTIONARY_CONCURRENCY || 4)));
-const PROVIDERS = { mock: mockProvider, dify: difyProvider };
+const PROVIDERS = { mock: mockProvider, dify: difyProvider, 'ai-core': aiCoreProvider };
 
 function provider() {
   const name = process.env.CONTENT_STUDIO_PROVIDER || 'mock';
@@ -35,7 +36,7 @@ async function processExtract(job) {
   const selected = provider();
   const passage = job.sentences.map(sentence => sentence.text).join(' ');
   try {
-    const raw = await selected.generate('dictionary_extract', { passage, sentences: job.sentences.map(sentence => sentence.text) });
+    const raw = await selected.generate('dictionary_extract', { itemId: job.itemId, passage, sentences: job.sentences.map(sentence => sentence.text) });
     const extracted = normalizeExtract(raw, passage);
     await db.transaction(async client => {
       let count = 0;
@@ -44,12 +45,15 @@ async function processExtract(job) {
         if (!sentence) throw new Error('Extracted sentence does not match a stored sentence');
         for (let position = 0; position < row.items.length; position += 1) {
           const chunk = row.items[position];
+          // Extraction flows straight into definition: each sentence becomes one batch.
           await client.query(`INSERT INTO cs_dict_candidates (item_id, sentence_id, position, chunk, status)
-            VALUES ($1, $2, $3, $4, 'draft')`, [job.itemId, sentence.id, position, chunk]);
+            VALUES ($1, $2, $3, $4, 'queued')`, [job.itemId, sentence.id, position, chunk]);
           count += 1;
         }
       }
-      await client.query(`UPDATE cs_dict_sentences SET status = 'draft', updated_at = CURRENT_TIMESTAMP WHERE item_id = $1`, [job.itemId]);
+      await client.query(`UPDATE cs_dict_sentences s SET status = CASE WHEN EXISTS (
+          SELECT 1 FROM cs_dict_candidates c WHERE c.sentence_id = s.id) THEN 'queued' ELSE 'draft' END,
+        updated_at = CURRENT_TIMESTAMP WHERE s.item_id = $1`, [job.itemId]);
       await client.query('UPDATE cs_items SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [job.itemId]);
     });
   } catch (error) {
@@ -106,6 +110,7 @@ async function callWithTimeout(selected, job) {
   timeout.unref?.();
   try {
     return await selected.generate('dictionary_entries', {
+      itemId: job.item_id,
       passage: job.passage,
       sentence: job.text,
       sentences: job.sentences,

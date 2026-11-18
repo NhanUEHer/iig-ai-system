@@ -4,9 +4,10 @@ const HttpError = require('../../../http/httpError');
 const { splitSentences } = require('../detect/detectContent');
 const { validate } = require('./validators');
 const mockProvider = require('./mockProvider');
+const aiCoreProvider = require('./aiCoreProvider');
 const dictionary = require('../dictionary/dictionaryService');
 
-const PROVIDERS = { mock: mockProvider };
+const PROVIDERS = { mock: mockProvider, 'ai-core': aiCoreProvider };
 const MAX_ATTEMPTS = 3;
 const STALE_LOCK_MINUTES = 10;
 const PASSAGE_TYPES = { translation: 'passage_translation', vocab: 'vocab' };
@@ -41,7 +42,13 @@ async function loadContext(client, artifact) {
   }
   const segment = segments.find(row => row.id === artifact.segment_id);
   if (!segment) throw new Error('Segment no longer exists');
-  return { passage: segment.text, sentences: splitSentences(segment.text) };
+  const context = { itemId: artifact.item_id, passage: segment.text, sentences: splitSentences(segment.text) };
+  if (artifact.type === 'vocab') {
+    const { rows: [item] } = await client.query('SELECT tasks FROM cs_items WHERE id = $1', [artifact.item_id]);
+    context.level = item?.tasks?.vocab?.level;
+    context.mode = item?.tasks?.vocab?.mode;
+  }
+  return context;
 }
 
 async function refreshItemStatus(client, itemId) {
@@ -177,9 +184,10 @@ async function processArtifact(artifact) {
       await refreshItemStatus(client, artifact.item_id);
     });
   } catch (error) {
-    const failed = artifact.attempts >= MAX_ATTEMPTS;
+    // AI Core refusals (ceiling, budget, config, auth, input size) will not succeed on retry.
+    const failed = artifact.attempts >= MAX_ATTEMPTS || (error.code && error.retryable === false);
     await db.query(`UPDATE cs_artifacts SET status = $2, error = $3, locked_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
-      [artifact.id, failed ? 'failed' : 'queued', String(error.message || error).slice(0, 500)]);
+      [artifact.id, failed ? 'failed' : 'queued', String(error.code ? `${error.code}: ${error.message}` : error.message || error).slice(0, 500)]);
     await db.transaction(client => refreshItemStatus(client, artifact.item_id));
     console.error('[ContentStudioWorker]', artifact.id, error.message);
   }
