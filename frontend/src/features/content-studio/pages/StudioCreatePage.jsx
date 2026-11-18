@@ -170,7 +170,6 @@ export default function StudioCreatePage({ showMsg, permissions = {} }) {
           <textarea aria-label="Đoạn văn và câu hỏi" value={text} onChange={changeText} placeholder="Dán đoạn văn, câu hỏi và đáp án vào đây… hoặc kéo thả file .docx vào khung này" />
           <footer><span>{chars.toLocaleString('vi-VN')} ký tự · {words.toLocaleString('vi-VN')} từ</span></footer>
         </section>
-        <TaskCards selection={selection} setSelection={setSelection} vocab={vocab} setVocab={setVocab} />
       </> : <>
         <div className="cs-create__review-crumb"><button type="button" onClick={() => navigate('/content-studio')}><ArrowLeft />Content Studio</button><span>/</span><span>Tạo học liệu mới</span><b>Bước 2/2 · Kiểm tra nhận diện</b></div>
         <div className="cs-create__review-title"><input aria-label="Tên học liệu" value={title} maxLength={240} onChange={event => { setTitle(event.target.value); setTitleTouched(true); }} /><button type="button" className="cs-create__folder" onClick={() => setPickerOpen(true)}><Folder />{folderLabel}<ChevronDown /></button></div>
