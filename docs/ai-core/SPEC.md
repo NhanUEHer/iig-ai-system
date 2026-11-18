@@ -158,39 +158,41 @@ estimate_max = counted_input / 1e6 × price_in_per_m + max_output_tokens / 1e6 �
   `aic_usage_daily` + log hôm nay; cache 30 giây trong bộ nhớ.
 - Làm tròn hiển thị 4 chữ số thập phân; lưu đủ 8.
 
-## 5. Provider
+## 5. Provider — lớp tích hợp (custom theo từng nhà cung cấp)
 
-Giao diện adapter (`providers/<name>.js`):
+Nguyên tắc: **AI Core (runtime, guard, pricing, log, admin, UI) là logic chung, không biết tên provider nào.**
+Mọi khác biệt của một nhà cung cấp nằm trong adapter của nó. Sửa/đổi/thêm provider = sửa adapter, không sửa core.
 
-```js
-{
-  name: 'gemini',
-  async generate({ apiKey, baseUrl, model, system, user, schema, temperature, maxOutputTokens, timeoutMs, signal })
-    // → { text, finishReason, usage: { input, cachedInput, output, thinking }, raw }
-  async countTokens({ apiKey, baseUrl, model, system, user }) // → number
-  async check({ apiKey, baseUrl })                             // → { ok, ms, models? }
-}
+```text
+src/modules/ai-core/providers/
+  contract.js        hợp đồng adapter + bọc kết quả về đúng dạng (core không tin adapter mù quáng)
+  index.js           registry — NƠI DUY NHẤT liệt kê provider
+  http.js            fetch/timeout/lỗi HTTP dùng chung (đã che key/URL trong thông báo lỗi)
+  normalize.js       helper trung lập (EMPTY_USAGE, lỗi chuẩn) — không chứa tên trường của provider nào
+  adapters/
+    gemini.js        endpoint, schema dialect (responseSchema), thinkingLevel/Budget, usageMetadata
+    deepseek.js      chat/completions, JSON mode + schema đưa vào system prompt, thinking.type, usage cache hit/miss
+    fake.js          dùng cho test
 ```
 
-| | Gemini | DeepSeek |
-| --- | --- | --- |
-| Endpoint | `models/{model}:generateContent` | `/chat/completions` (kiểu OpenAI) |
-| System | `systemInstruction` | message `role: system` |
-| JSON | `responseMimeType: application/json` + `responseSchema` (bản đã chuyển đổi) | `response_format: {type: json_object}`; prompt phải chứa chữ "json" |
-| Max out | `maxOutputTokens` | `max_tokens` |
-| Đếm token | `:countTokens` | ước lượng: `ceil(chars / 3.5)` × 1.1 (an toàn) |
-| Usage | `promptTokenCount`, `cachedContentTokenCount`, `candidatesTokenCount`, `thoughtsTokenCount` | `prompt_cache_miss_tokens`, `prompt_cache_hit_tokens`, `completion_tokens`, `completion_tokens_details.reasoning_tokens` |
-| finish | `STOP`→stop, `MAX_TOKENS`→length, `SAFETY`/`RECITATION`→safety | `stop`→stop, `length`→length, khác→other |
-| Lỗi có thể retry | 429, 500, 503, timeout | 429, 500, 503, timeout |
-| Lỗi không retry | 400, 401, 403 (`AUTH_FAILED`), 404 | 400, 401, 402 (hết tiền → `PROVIDER_DOWN`), 422 |
+Hợp đồng (`contract.js`):
 
-Chuẩn hoá: `input` = token vào **không** cache (Gemini: `promptTokenCount − cachedContentTokenCount`);
-`output` = `candidates + thoughts` (Gemini) hoặc `completion_tokens` (DeepSeek, đã gồm reasoning).
+| Thành phần | Ý nghĩa |
+| --- | --- |
+| `name`, `label` | id lưu trong DB, nhãn hiển thị |
+| `capabilities` | `{ nativeSchema, thinking, outputFormat }` — mô tả, UI đọc qua `GET /api/ai-core/providers` |
+| `generate(opts)` | phải làm model tuân theo `schema` (native hoặc bằng prompt) và tự map `thinkingMode`; trả `{ text, finishReason: stop/length/safety/other, usage: { input, cachedInput, output, thinking } }` |
+| `countTokens(opts)` | số token **thật sự gửi đi**, gồm cả phần adapter tự chèn (vd schema của DeepSeek) |
+| `check(opts)` | `{ ok, ms, models, modelDetails: [{ id, contextWindow }] }` — dùng để đồng bộ danh sách model |
 
-Schema: hỗ trợ tập con `type, properties, required, items, enum, description, nullable, minItems, maxItems`.
-Validator nội bộ dùng `ajv` (đã có hoặc thêm dependency) cho mọi provider.
+Thêm provider mới (vd OpenAI): viết `adapters/openai.js` theo hợp đồng, thêm 1 dòng trong `providers/index.js`.
+Không cần migration (DB chỉ kiểm định dạng tên provider), không sửa UI (UI lấy danh sách từ API).
 
-Adapter `fake` (chỉ dùng trong test và khi `AI_CORE_PROVIDER_OVERRIDE=fake`): trả output cấu hình sẵn, usage giả.
+Ghi chú hành vi từng provider (thuộc adapter, không thuộc core):
+- **Gemini:** ép schema native; Gemini 3 không tắt hẳn suy nghĩ — "Tắt" = `thinkingLevel: low` (một số model như
+  gemini-3.8-flash không nhận `minimal`); Gemini 2.5 dùng `thinkingBudget`. `countTokens` dùng `generateContentRequest`.
+- **DeepSeek:** chỉ có JSON mode, không nhận schema → adapter chèn schema vào system prompt (nếu không, model tự đặt tên
+  trường và gần như lượt nào cũng phải sửa JSON). "Tắt" suy nghĩ = `thinking: { type: "disabled" }`.
 
 ## 6. Bảo mật key (A02)
 

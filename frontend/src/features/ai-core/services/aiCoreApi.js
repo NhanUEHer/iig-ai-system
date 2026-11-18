@@ -3,6 +3,7 @@ import api from '../../../services/api';
 const data = response => response.data.data;
 const prefix = '/ai-core';
 
+export const listProviders = () => api.get(`${prefix}/providers`).then(data);
 export const listConnections = () => api.get(`${prefix}/connections`).then(data);
 export const createConnection = body => api.post(`${prefix}/connections`, body).then(data);
 export const updateConnection = (id, body) => api.patch(`${prefix}/connections/${id}`, body).then(data);

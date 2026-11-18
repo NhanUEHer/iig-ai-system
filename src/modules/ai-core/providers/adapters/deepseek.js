@@ -1,7 +1,32 @@
-const { fetchJson, joinUrl } = require('./http');
-const { normalizeDeepSeekUsage, normalizeFinishReason } = require('./normalize');
+// DeepSeek adapter: OpenAI-style chat API, JSON mode without native schema, thinking toggle.
+const { fetchJson, joinUrl } = require('../http');
+const { nonNegativeInteger } = require('../normalize');
 
 const name = 'deepseek';
+const label = 'DeepSeek';
+const capabilities = Object.freeze({
+  nativeSchema: false,
+  thinking: '"Tắt" = tắt hẳn suy nghĩ; các mức khác = bật',
+  outputFormat: 'JSON mode + schema đưa vào system prompt, AI Core tự kiểm',
+});
+
+function normalizeUsage(usage = {}) {
+  const details = usage.completion_tokens_details || {};
+  const cachedInput = nonNegativeInteger(usage.prompt_cache_hit_tokens ?? usage.prompt_tokens_details?.cached_tokens);
+  const explicitMiss = usage.prompt_cache_miss_tokens;
+  const input = explicitMiss === undefined
+    ? Math.max(0, nonNegativeInteger(usage.prompt_tokens) - cachedInput)
+    : nonNegativeInteger(explicitMiss);
+  return { input, cachedInput, output: nonNegativeInteger(usage.completion_tokens), thinking: nonNegativeInteger(details.reasoning_tokens) };
+}
+
+function normalizeFinishReason(reason) {
+  const value = String(reason || '').toUpperCase();
+  if (value === 'STOP') return 'stop';
+  if (value === 'LENGTH') return 'length';
+  if (value === 'CONTENT_FILTER') return 'safety';
+  return 'other';
+}
 const DEFAULT_BASE_URL = 'https://api.deepseek.com';
 
 function headers(apiKey) {
@@ -49,8 +74,8 @@ async function generate(options) {
   const choice = raw.choices?.[0] || {};
   return {
     text: typeof choice.message?.content === 'string' ? choice.message.content : '',
-    finishReason: normalizeFinishReason(name, choice.finish_reason),
-    usage: normalizeDeepSeekUsage(raw.usage),
+    finishReason: normalizeFinishReason(choice.finish_reason),
+    usage: normalizeUsage(raw.usage),
     raw,
   };
 }
@@ -79,4 +104,4 @@ async function check({ apiKey, baseUrl, timeoutMs = 10000, signal } = {}) {
   }
 }
 
-module.exports = { name, generate, countTokens, check, jsonSystemPrompt, DEFAULT_BASE_URL };
+module.exports = { name, label, capabilities, normalizeUsage, normalizeFinishReason, generate, countTokens, check, jsonSystemPrompt, DEFAULT_BASE_URL };

@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const fake = require('../src/modules/ai-core/providers/fake');
+const fake = require('../src/modules/ai-core/providers/adapters/fake');
 const { createRegistry, CACHE_TTL_MS } = require('../src/modules/ai-core/agents/registry');
 const { render } = require('../src/modules/ai-core/runtime/template');
 const { parseAndValidate } = require('../src/modules/ai-core/runtime/schema');

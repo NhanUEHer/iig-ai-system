@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import useProviders from '../utils/useProviders';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Check, FileClock, FlaskConical, History, Save, Send, X } from 'lucide-react';
 import { Button, ConfirmDialog, ErrorState, PageFrame, Skeleton, Tooltip } from '../../../design-system-v2';
@@ -40,6 +41,7 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
   const [draft, setDraft] = useState(DEFAULT_DRAFT);
   const [schemaText, setSchemaText] = useState(JSON.stringify(DEFAULT_SCHEMA, null, 2));
   const [connections, setConnections] = useState([]);
+  const { labelOf, capabilitiesOf } = useProviders();
   const [models, setModels] = useState([]);
   const [agent, setAgent] = useState(null);
   const [variables, setVariables] = useState({});
@@ -59,7 +61,7 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
   const mainModels = models.filter(item => item.status === 'active' && item.provider === selectedConnection?.provider);
   const fallbackChoices = connections.filter(item => item.status === 'active').flatMap(connection =>
     models.filter(model => model.status === 'active' && model.provider === connection.provider)
-      .map(model => ({ value: `${connection.id}::${model.model}`, label: `${connection.provider === 'gemini' ? 'Gemini' : 'DeepSeek'} · ${connection.name} — ${model.model}` })),
+      .map(model => ({ value: `${connection.id}::${model.model}`, label: `${labelOf(connection.provider)} · ${connection.name} — ${model.model}` })),
   );
   const fallbackValue = draft.fallbackConnectionId && draft.fallbackModel ? `${draft.fallbackConnectionId}::${draft.fallbackModel}` : '';
   const activeModel = models.find(item => item.provider === selectedConnection?.provider && item.model === draft.model);
@@ -295,14 +297,14 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
           </section>
           <section><h3>Mô hình</h3>
             <div className="aic-grid aic-grid-2">
-              <Field className="is-wide" label="Kết nối chính"><select value={draft.connectionId} onChange={event => { const connectionId = event.target.value; const connection = connections.find(item => item.id === connectionId); const model = models.find(item => item.status === 'active' && item.provider === connection?.provider); setDraft(current => ({ ...current, connectionId, model: model?.model || '' })); }} disabled={!canManage}><option value="">Chọn kết nối</option>{connections.filter(item => item.status === 'active').map(item => <option key={item.id} value={item.id}>{item.provider === 'gemini' ? 'Gemini' : 'DeepSeek'} · {item.name}</option>)}</select></Field>
+              <Field className="is-wide" label="Kết nối chính"><select value={draft.connectionId} onChange={event => { const connectionId = event.target.value; const connection = connections.find(item => item.id === connectionId); const model = models.find(item => item.status === 'active' && item.provider === connection?.provider); setDraft(current => ({ ...current, connectionId, model: model?.model || '' })); }} disabled={!canManage}><option value="">Chọn kết nối</option>{connections.filter(item => item.status === 'active').map(item => <option key={item.id} value={item.id}>{labelOf(item.provider)} · {item.name}</option>)}</select></Field>
               <Field label="Model"><select value={draft.model} onChange={updateDraft('model')} disabled={!canManage}><option value="">Chọn model</option>{mainModels.map(item => <option key={item.model} value={item.model}>{item.model}</option>)}</select></Field>
-              <Field label="Suy nghĩ (thinking)" help={draft.thinkingMode === 'off' ? 'DeepSeek: tắt hẳn · Gemini 3: mức thấp nhất (minimal)' : 'Suy nghĩ dùng chung giới hạn token đầu ra và tính tiền như token ra'}><select value={draft.thinkingMode} onChange={updateDraft('thinkingMode')} disabled={!canManage}><option value="off">Tắt</option><option value="low">Thấp</option><option value="medium">Vừa</option><option value="high">Cao</option><option value="default">Mặc định của model</option></select></Field>
+              <Field label="Suy nghĩ (thinking)" help={draft.thinkingMode === 'off' ? (capabilitiesOf(selectedConnection?.provider).thinking || '') : 'Suy nghĩ dùng chung giới hạn token đầu ra và tính tiền như token ra'}><select value={draft.thinkingMode} onChange={updateDraft('thinkingMode')} disabled={!canManage}><option value="off">Tắt</option><option value="low">Thấp</option><option value="medium">Vừa</option><option value="high">Cao</option><option value="default">Mặc định của model</option></select></Field>
               <Field label="Temperature"><input type="number" min="0" max="2" step="0.1" value={draft.temperature} onChange={updateDraft('temperature')} disabled={!canManage} /></Field>
             </div>
             <div className="aic-grid aic-grid-2">
               <Field className="is-wide" label="Dự phòng khi lỗi" help="Chạy khi provider chính lỗi 5xx, timeout hoặc quá tải"><select value={fallbackValue} onChange={event => { const [fallbackConnectionId = '', fallbackModel = ''] = event.target.value.split('::'); setDraft(current => ({ ...current, fallbackConnectionId, fallbackModel })); }} disabled={!canManage}><option value="">Không dùng dự phòng</option>{fallbackChoices.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></Field>
-              <Field label="Định dạng đầu ra" help="Gemini: ép schema · DeepSeek: JSON + tự kiểm schema"><select value="json_schema" disabled><option value="json_schema">JSON theo schema</option></select></Field>
+              <Field label="Định dạng đầu ra" help={capabilitiesOf(selectedConnection?.provider).outputFormat || "JSON theo schema, AI Core tự kiểm"}><select value="json_schema" disabled><option value="json_schema">JSON theo schema</option></select></Field>
             </div>
           </section>
           <section><h3>Giới hạn token & thử lại</h3>

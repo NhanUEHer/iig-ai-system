@@ -2,9 +2,9 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const providers = require('../src/modules/ai-core/providers');
-const gemini = require('../src/modules/ai-core/providers/gemini');
-const deepseek = require('../src/modules/ai-core/providers/deepseek');
-const fake = require('../src/modules/ai-core/providers/fake');
+const gemini = require('../src/modules/ai-core/providers/adapters/gemini');
+const deepseek = require('../src/modules/ai-core/providers/adapters/deepseek');
+const fake = require('../src/modules/ai-core/providers/adapters/fake');
 
 function response(body, status = 200) {
   return { ok: status >= 200 && status < 300, status, async json() { return body; } };
@@ -114,30 +114,31 @@ test('provider timeout aborts fetch and maps to TIMEOUT', async () => {
 });
 
 test('finish reasons, fake queue, and provider selection follow the common interface', async () => {
-  const { normalizeFinishReason } = require('../src/modules/ai-core/providers/normalize');
-  assert.equal(normalizeFinishReason('gemini', 'SAFETY'), 'safety');
-  assert.equal(normalizeFinishReason('gemini', 'RECITATION'), 'safety');
-  assert.equal(normalizeFinishReason('deepseek', 'length'), 'length');
-  assert.equal(normalizeFinishReason('deepseek', 'content_filter'), 'other');
+  const geminiAdapter = require('../src/modules/ai-core/providers/adapters/gemini');
+  const deepseekAdapter = require('../src/modules/ai-core/providers/adapters/deepseek');
+  assert.equal(geminiAdapter.normalizeFinishReason('SAFETY'), 'safety');
+  assert.equal(geminiAdapter.normalizeFinishReason('RECITATION'), 'safety');
+  assert.equal(deepseekAdapter.normalizeFinishReason('length'), 'length');
+  assert.equal(deepseekAdapter.normalizeFinishReason('content_filter'), 'safety');
   assert.equal(gemini.toResponseSchema({ oneOf: [], type: 'string', enum: ['a'] }).oneOf, undefined);
   fake.enqueue({ text: '{}', usage: { input: 2 }, finishReason: 'safety' });
   assert.deepEqual(await fake.generate({}), {
     text: '{}', usage: { input: 2, cachedInput: 0, output: 0, thinking: 0 },
     finishReason: 'safety', raw: null,
   });
-  assert.equal(providers.get('gemini'), gemini);
-  assert.equal(providers.get('deepseek', { AI_CORE_PROVIDER_OVERRIDE: 'fake' }), fake);
+  assert.equal(providers.get('gemini').name, 'gemini');
+  assert.equal(providers.get('deepseek', { AI_CORE_PROVIDER_OVERRIDE: 'fake' }).name, 'fake');
 });
 
 test('thinking mode maps to DeepSeek thinking.type and Gemini thinkingConfig', async () => {
-  const gemini = require('../src/modules/ai-core/providers/gemini');
-  assert.deepEqual(gemini.thinkingConfig('gemini-3.8-flash', 'off'), { thinkingLevel: 'minimal' });
+  const gemini = require('../src/modules/ai-core/providers/adapters/gemini');
+  assert.deepEqual(gemini.thinkingConfig('gemini-3.8-flash', 'off'), { thinkingLevel: 'low' });
   assert.deepEqual(gemini.thinkingConfig('gemini-3.8-flash', 'low'), { thinkingLevel: 'low' });
   assert.deepEqual(gemini.thinkingConfig('gemini-2.5-flash', 'off'), { thinkingBudget: 0 });
   assert.deepEqual(gemini.thinkingConfig('gemini-2.5-pro', 'off'), { thinkingBudget: 128 });
   assert.equal(gemini.thinkingConfig('gemini-3.8-flash', 'default'), null);
 
-  const deepseek = require('../src/modules/ai-core/providers/deepseek');
+  const deepseek = require('../src/modules/ai-core/providers/adapters/deepseek');
   const original = global.fetch;
   const bodies = [];
   global.fetch = async (_url, init) => {
@@ -155,10 +156,22 @@ test('thinking mode maps to DeepSeek thinking.type and Gemini thinkingConfig', a
 });
 
 test('DeepSeek receives the output schema in its system message (no native schema support)', async () => {
-  const deepseekAdapter = require('../src/modules/ai-core/providers/deepseek');
+  const deepseekAdapter = require('../src/modules/ai-core/providers/adapters/deepseek');
   const schema = { type: 'object', required: ['w'], properties: { w: { type: 'array' } } };
   const prompt = deepseekAdapter.jsonSystemPrompt('You are a teacher.', 'u', schema);
   assert.match(prompt, /REQUIRED OUTPUT FORMAT/);
   assert.ok(prompt.includes(JSON.stringify(schema)));
   assert.ok(await deepseekAdapter.countTokens({ system: 's', user: 'u', schema }) > await deepseekAdapter.countTokens({ system: 's', user: 'u' }));
+});
+
+
+test('registry is the only provider list; every adapter satisfies the contract and results are coerced', async () => {
+  const registry = require('../src/modules/ai-core/providers');
+  const { assertAdapter, normalizeResult } = require('../src/modules/ai-core/providers/contract');
+  assert.deepEqual(registry.names(), ['gemini', 'deepseek']);
+  for (const item of registry.list()) assert.ok(item.label && item.capabilities);
+  assert.throws(() => assertAdapter({ name: 'x1', label: 'X' }), /missing: capabilities, generate, countTokens, check/);
+  assert.deepEqual(normalizeResult({ text: 5, finishReason: 'weird', usage: { input: -3, output: '7' } }),
+    { text: '', finishReason: 'other', usage: { input: 0, cachedInput: 0, output: 7, thinking: 0 }, raw: null });
+  assert.throws(() => registry.get('openai', {}), /Unsupported AI provider/);
 });

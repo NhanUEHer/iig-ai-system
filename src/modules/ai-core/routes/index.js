@@ -9,6 +9,11 @@ const { AiCoreError } = require('../errors');
 
 const router = express.Router();
 
+// Providers come from the registry, so the UI never hardcodes them.
+router.get('/providers', requirePermission('ai_core.view', 'ai_core.manage'), (_req, res) => {
+  res.json({ data: require('../providers').list() });
+});
+
 router.get('/health', requirePermission('ai_core.view'), (_req, res) => {
   res.json({
     ok: true,

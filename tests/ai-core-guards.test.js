@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const fake = require('../src/modules/ai-core/providers/fake');
+const fake = require('../src/modules/ai-core/providers/adapters/fake');
 const { createLimiter } = require('../src/modules/ai-core/guards/limiter');
 const { createRetry } = require('../src/modules/ai-core/guards/retry');
 const { createRunner } = require('../src/modules/ai-core/runtime/runner');

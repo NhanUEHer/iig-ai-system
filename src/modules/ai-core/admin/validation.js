@@ -1,6 +1,6 @@
 const HttpError = require('../../../http/httpError');
 
-const PROVIDERS = new Set(['gemini', 'deepseek']);
+const providerRegistry = require('../providers');
 
 function fail(message, code = 'AI_CORE_VALIDATION_FAILED', statusCode = 400, details) {
   throw new HttpError(message, statusCode, code, details);
@@ -26,7 +26,7 @@ function optionalHttpsUrl(value, field = 'baseUrl') {
 }
 
 function provider(value) {
-  if (!PROVIDERS.has(value)) fail('provider is not supported.', 'AI_CORE_INVALID_PROVIDER');
+  if (!providerRegistry.has(value)) fail('provider is not supported.', 'AI_CORE_INVALID_PROVIDER');
   return value;
 }
 
@@ -44,5 +44,5 @@ function numberValue(value, field, { min = 0, max = Number.MAX_SAFE_INTEGER, int
 }
 
 module.exports = {
-  PROVIDERS, fail, requiredString, optionalHttpsUrl, provider, enumValue, numberValue,
+  fail, requiredString, optionalHttpsUrl, provider, enumValue, numberValue,
 };

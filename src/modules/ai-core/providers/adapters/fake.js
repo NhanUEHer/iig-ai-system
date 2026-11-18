@@ -1,6 +1,8 @@
-const { EMPTY_USAGE } = require('./normalize');
+const { EMPTY_USAGE } = require('../normalize');
 
 const name = 'fake';
+const label = 'Fake (test)';
+const capabilities = Object.freeze({ nativeSchema: true, thinking: 'không áp dụng', outputFormat: 'Trả lời lập trình sẵn' });
 const queue = [];
 
 function enqueue(response) {
@@ -41,4 +43,4 @@ async function check() {
   return { ok: true, ms: 0, models: ['fake'] };
 }
 
-module.exports = { name, enqueue, clear, reset: clear, generate, countTokens, check };
+module.exports = { name, label, capabilities, enqueue, clear, reset: clear, generate, countTokens, check };

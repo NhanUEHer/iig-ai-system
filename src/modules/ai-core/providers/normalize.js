@@ -1,3 +1,5 @@
+// Shared toolkit for adapters: provider-neutral helpers only.
+// Anything that knows a provider's field names lives in that provider's adapter.
 const { AiCoreError } = require('../errors');
 
 const EMPTY_USAGE = Object.freeze({ input: 0, cachedInput: 0, output: 0, thinking: 0 });
@@ -5,56 +7,6 @@ const EMPTY_USAGE = Object.freeze({ input: 0, cachedInput: 0, output: 0, thinkin
 function nonNegativeInteger(value) {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? Math.floor(number) : 0;
-}
-
-function normalizeGeminiUsage(metadata = {}) {
-  const cachedInput = nonNegativeInteger(metadata.cachedContentTokenCount);
-  const prompt = nonNegativeInteger(metadata.promptTokenCount);
-  const thinking = nonNegativeInteger(metadata.thoughtsTokenCount);
-  return {
-    input: Math.max(0, prompt - cachedInput),
-    cachedInput,
-    output: nonNegativeInteger(metadata.candidatesTokenCount) + thinking,
-    thinking,
-  };
-}
-
-function normalizeDeepSeekUsage(usage = {}) {
-  const details = usage.completion_tokens_details || {};
-  const cachedInput = nonNegativeInteger(
-    usage.prompt_cache_hit_tokens ?? usage.prompt_tokens_details?.cached_tokens,
-  );
-  const explicitMiss = usage.prompt_cache_miss_tokens;
-  const input = explicitMiss === undefined
-    ? Math.max(0, nonNegativeInteger(usage.prompt_tokens) - cachedInput)
-    : nonNegativeInteger(explicitMiss);
-  return {
-    input,
-    cachedInput,
-    output: nonNegativeInteger(usage.completion_tokens),
-    thinking: nonNegativeInteger(details.reasoning_tokens),
-  };
-}
-
-function normalizeUsage(provider, usage) {
-  if (provider === 'gemini') return normalizeGeminiUsage(usage);
-  if (provider === 'deepseek') return normalizeDeepSeekUsage(usage);
-  return { ...EMPTY_USAGE };
-}
-
-function normalizeFinishReason(provider, reason) {
-  const value = String(reason || '').toUpperCase();
-  if (provider === 'gemini') {
-    if (value === 'STOP') return 'stop';
-    if (value === 'MAX_TOKENS') return 'length';
-    if (value === 'SAFETY' || value === 'RECITATION') return 'safety';
-    return 'other';
-  }
-  if (provider === 'deepseek') {
-    if (value === 'STOP') return 'stop';
-    if (value === 'LENGTH') return 'length';
-  }
-  return 'other';
 }
 
 function normalizeHttpError(status) {
@@ -96,10 +48,7 @@ function normalizeThrownError(error, timedOut = false) {
 
 module.exports = {
   EMPTY_USAGE,
-  normalizeGeminiUsage,
-  normalizeDeepSeekUsage,
-  normalizeUsage,
-  normalizeFinishReason,
+  nonNegativeInteger,
   normalizeHttpError,
   providerErrorFromHttp,
   timeoutError,

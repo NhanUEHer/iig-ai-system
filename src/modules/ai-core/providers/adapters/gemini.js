@@ -1,7 +1,34 @@
-const { fetchJson, joinUrl } = require('./http');
-const { normalizeFinishReason, normalizeGeminiUsage } = require('./normalize');
+// Gemini adapter: everything Gemini-specific (endpoints, schema dialect, thinking, usage fields) stays here.
+const { fetchJson, joinUrl } = require('../http');
+const { nonNegativeInteger } = require('../normalize');
 
 const name = 'gemini';
+const label = 'Gemini';
+const capabilities = Object.freeze({
+  nativeSchema: true,
+  thinking: 'Gemini 3 không tắt hẳn được: "Tắt" = mức thấp nhất (low) · Gemini 2.5: thinkingBudget',
+  outputFormat: 'Ép JSON schema ngay khi gọi',
+});
+
+function normalizeUsage(metadata = {}) {
+  const cachedInput = nonNegativeInteger(metadata.cachedContentTokenCount);
+  const prompt = nonNegativeInteger(metadata.promptTokenCount);
+  const thinking = nonNegativeInteger(metadata.thoughtsTokenCount);
+  return {
+    input: Math.max(0, prompt - cachedInput),
+    cachedInput,
+    output: nonNegativeInteger(metadata.candidatesTokenCount) + thinking,
+    thinking,
+  };
+}
+
+function normalizeFinishReason(reason) {
+  const value = String(reason || '').toUpperCase();
+  if (value === 'STOP') return 'stop';
+  if (value === 'MAX_TOKENS') return 'length';
+  if (value === 'SAFETY' || value === 'RECITATION') return 'safety';
+  return 'other';
+}
 const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 const SCHEMA_KEYS = new Set([
   'type', 'properties', 'required', 'items', 'enum', 'description', 'nullable', 'minItems', 'maxItems',
@@ -45,7 +72,9 @@ function thinkingConfig(model, mode) {
     const budgets = { off: /pro/.test(model) ? 128 : 0, low: 1024, medium: 4096, high: 16384 };
     return { thinkingBudget: budgets[mode] };
   }
-  return { thinkingLevel: mode === 'off' ? 'minimal' : mode };
+  // 'minimal' is not accepted by every Gemini 3 model (e.g. gemini-3.8-flash rejects it), so 'off' maps to 'low',
+  // the lowest level all of them accept.
+  return { thinkingLevel: mode === 'off' ? 'low' : mode };
 }
 
 async function generate(options) {
@@ -76,8 +105,8 @@ async function generate(options) {
     .join('');
   return {
     text,
-    finishReason: normalizeFinishReason(name, candidate.finishReason),
-    usage: normalizeGeminiUsage(raw.usageMetadata),
+    finishReason: normalizeFinishReason(candidate.finishReason),
+    usage: normalizeUsage(raw.usageMetadata),
     raw,
   };
 }
@@ -117,4 +146,4 @@ async function check({ apiKey, baseUrl, timeoutMs = 10000, signal } = {}) {
   }
 }
 
-module.exports = { thinkingConfig, name, generate, countTokens, check, toResponseSchema, DEFAULT_BASE_URL };
+module.exports = { name, label, capabilities, normalizeUsage, normalizeFinishReason, thinkingConfig, generate, countTokens, check, toResponseSchema, DEFAULT_BASE_URL };
