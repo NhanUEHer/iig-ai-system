@@ -53,7 +53,7 @@
 .aic-bars i { width: min(100%, 38px); flex: none; border-radius: 5px 5px 0 0; background: #c95a37; }
 .aic-bars span { white-space: nowrap; }
 .aic-logs-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
-.aic-logs-table { min-width: 1120px; }
+.aic-logs-table { min-width: 940px; }
 .aic-logs-table tbody tr { cursor: pointer; }
 .aic-logs-table tbody tr:hover, .aic-logs-table tbody tr.is-selected { background: #fdf6f2; }
 .aic-logs-table td { white-space: nowrap; }
@@ -126,3 +126,6 @@
 .aic-pricing-card > .aic-table-wrap .aic-table tr:last-child td { border-bottom: 0; }
 .aic-pricing-card > p { padding: 12px 16px 16px; }
 .aic-model-gone { display: table; max-width: 100%; margin-top: 4px; white-space: normal; font-style: normal; font-size: 11px; }
+/* Logs: keep the source column readable next to the detail panel */
+.aic-logs-table td:last-child { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aic-logs-table td:nth-child(2) { white-space: nowrap; }

@@ -31,7 +31,7 @@ function createUsageService(database = db, options = {}) {
           WHERE l.mode='run' AND l.created_at >= CURRENT_TIMESTAMP - ($2::text || ' days')::interval
           GROUP BY 1
        )
-       SELECT d.day, COALESCE(x.cost,0) AS cost, COALESCE(x.calls,0) AS calls,
+       SELECT d.day::text AS day, COALESCE(x.cost,0) AS cost, COALESCE(x.calls,0) AS calls,
               COALESCE(x.input_tokens,0) AS input_tokens,
               COALESCE(x.cached_input_tokens,0) AS cached_input_tokens,
               COALESCE(x.output_tokens,0) AS output_tokens,
@@ -54,7 +54,7 @@ function createUsageService(database = db, options = {}) {
     const year = Number(monthParts.find(part => part.type === 'year').value);
     const month = Number(monthParts.find(part => part.type === 'month').value);
     const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
-    const days = result.rows.map(row => ({ day: dateKey(new Date(row.day)), cost: Number(row.cost), calls: Number(row.calls) }));
+    const days = result.rows.map(row => ({ day: typeof row.day === 'string' ? row.day.slice(0, 10) : dateKey(new Date(row.day)), cost: Number(row.cost), calls: Number(row.calls) }));
     const tokens = result.rows.reduce((total, row) => ({
       input: total.input + Number(row.input_tokens), cachedInput: total.cachedInput + Number(row.cached_input_tokens),
       output: total.output + Number(row.output_tokens), thinking: total.thinking + Number(row.thinking_tokens),

@@ -8,17 +8,27 @@ function headers(apiKey) {
   return { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` };
 }
 
-function jsonSystemPrompt(system, user) {
+// DeepSeek only guarantees "some JSON" (json_object mode); it never sees a schema natively.
+// So the adapter states the exact output schema in the system message — the provider-specific
+// equivalent of Gemini's responseSchema. Without it the model invents field names and shapes.
+function jsonSystemPrompt(system, user, schema) {
   const prompt = String(system || '');
-  if (/json/i.test(`${prompt}\n${String(user || '')}`)) return prompt;
-  return prompt ? `${prompt}\n\nReturn the answer as JSON.` : 'Return the answer as JSON.';
+  const parts = [prompt];
+  if (schema && typeof schema === 'object' && Object.keys(schema).length) {
+    parts.push(`### REQUIRED OUTPUT FORMAT
+Return ONE JSON object that validates against this JSON Schema. Use exactly these property names and nesting; the top level must be an object, never a bare array; add no other properties.
+${JSON.stringify(schema)}`);
+  } else if (!/json/i.test(`${prompt}\n${String(user || '')}`)) {
+    parts.push('Return the answer as JSON.');
+  }
+  return parts.filter(Boolean).join('\n\n');
 }
 
 async function generate(options) {
   const body = {
     model: options.model,
     messages: [
-      { role: 'system', content: jsonSystemPrompt(options.system, options.user) },
+      { role: 'system', content: jsonSystemPrompt(options.system, options.user, options.schema) },
       { role: 'user', content: String(options.user || '') },
     ],
     response_format: { type: 'json_object' },
@@ -45,8 +55,10 @@ async function generate(options) {
   };
 }
 
-async function countTokens({ system, user }) {
-  const characters = String(system || '').length + String(user || '').length;
+async function countTokens({ system, user, schema }) {
+  // Count what is really sent: the system message includes the injected schema.
+  const sent = schema ? jsonSystemPrompt(system, user, schema) : String(system || '');
+  const characters = sent.length + String(user || '').length;
   return Math.ceil(Math.ceil(characters / 3.5) * 1.1);
 }
 

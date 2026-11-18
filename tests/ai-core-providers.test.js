@@ -153,3 +153,12 @@ test('thinking mode maps to DeepSeek thinking.type and Gemini thinkingConfig', a
   assert.deepEqual(bodies[1].thinking, { type: 'enabled' });
   assert.equal(bodies[2].thinking, undefined);
 });
+
+test('DeepSeek receives the output schema in its system message (no native schema support)', async () => {
+  const deepseekAdapter = require('../src/modules/ai-core/providers/deepseek');
+  const schema = { type: 'object', required: ['w'], properties: { w: { type: 'array' } } };
+  const prompt = deepseekAdapter.jsonSystemPrompt('You are a teacher.', 'u', schema);
+  assert.match(prompt, /REQUIRED OUTPUT FORMAT/);
+  assert.ok(prompt.includes(JSON.stringify(schema)));
+  assert.ok(await deepseekAdapter.countTokens({ system: 's', user: 'u', schema }) > await deepseekAdapter.countTokens({ system: 's', user: 'u' }));
+});
