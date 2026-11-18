@@ -38,7 +38,14 @@ async function loadContext(client, artifact) {
     const passageIndex = set?.meta?.passageIndex;
     const passageSegment = segments.find(segment => segment.kind === 'passage' && segment.position === passageIndex) || segments.find(segment => segment.kind === 'passage');
     const passage = passageSegment?.text || '';
-    return { question, passage, sentences: splitSentences(passage) };
+    // The whole set goes to AI in one call; a Vietnamese passage helps when it already exists.
+    const { rows: setQuestions } = await client.query(
+      'SELECT id, number, stem, options, answer_key AS "answerKey" FROM cs_questions WHERE segment_id = $1 ORDER BY number', [question.segment_id]);
+    const { rows: [translation] } = passageSegment ? await client.query(
+      `SELECT content FROM cs_artifacts WHERE segment_id = $1 AND type = 'passage_translation' AND status IN ('ready','needs_review')`,
+      [passageSegment.id]) : { rows: [] };
+    const passageVi = (translation?.content?.sentences || []).map(row => row?.vi).filter(Boolean).join(' ');
+    return { itemId: artifact.item_id, question, setId: question.segment_id, setQuestions, passage, passageVi, sentences: splitSentences(passage) };
   }
   const segment = segments.find(row => row.id === artifact.segment_id);
   if (!segment) throw new Error('Segment no longer exists');

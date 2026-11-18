@@ -44,11 +44,36 @@ test('dictionary extract and define keep the Dify flow contract understood by no
   } finally { stub.restore(); }
 });
 
+test('translation sends numbered English and joins the Vietnamese-only answer by index', async () => {
+  const stub = stubRun({ 'cs.translate': { t: [{ i: 2, vi: 'Câu hai.' }, { i: 1, vi: 'Câu một.' }] } });
+  try {
+    const out = await provider.generate('passage_translation', { itemId: 'i1', passage: 'One. Two. Three.', sentences: ['One.', 'Two.', 'Three.'] });
+    assert.equal(stub.calls[0].vars.sentences, JSON.stringify([{ i: 1, en: 'One.' }, { i: 2, en: 'Two.' }, { i: 3, en: 'Three.' }]));
+    assert.deepEqual(out.sentences, [{ en: 'One.', vi: 'Câu một.' }, { en: 'Two.', vi: 'Câu hai.' }, { en: 'Three.', vi: '' }]);
+  } finally { stub.restore(); }
+});
+
+test('question pack: one AI call per set, split per question, translation field assembled by the backend', async () => {
+  const setQuestions = [1, 2].map(number => ({ id: `q${number}`, number, stem: `Stem ${number}?`, options: { A: 'a', B: 'b', C: 'c', D: 'd' }, answerKey: 'B' }));
+  const stub = stubRun({ 'cs.question_pack': { q: [1, 2].map(n => ({
+    n, stem_vi: `Câu ${n}?`, options_vi: { A: 'a vi', B: 'b vi', C: 'c vi', D: 'd vi' }, hint: 'h', explanation: 'e', note: 'n',
+  })) } });
+  try {
+    const base = { itemId: 'i1', setId: 'set-1', setQuestions, passage: 'P', passageVi: '' };
+    const [first, second] = await Promise.all(setQuestions.map(question => provider.generate('question_pack', { ...base, question })));
+    assert.equal(stub.calls.length, 1);
+    assert.equal(stub.calls[0].vars.passage_vi, '(chưa có bản dịch)');
+    assert.deepEqual(JSON.parse(stub.calls[0].vars.questions)[1], { n: 2, stem: 'Stem 2?', options: { A: 'a', B: 'b', C: 'c', D: 'd' }, answer: 'B' });
+    assert.equal(first.translation, 'Câu 1?\n(A) a vi\n(B) b vi\n(C) c vi\n(D) d vi');
+    assert.deepEqual({ hint: second.hint, explanation: second.explanation, note: second.note }, { hint: 'h', explanation: 'e', note: 'n' });
+  } finally { stub.restore(); }
+});
+
 test('types without an AI Core agent fall back to the mock provider', async () => {
   const stub = stubRun({});
   try {
-    const out = await provider.generate('passage_translation', { sentences: ['Hello there.'] });
+    const out = await provider.generate('dictionary', { sentences: ['Hello there.'] });
     assert.equal(stub.calls.length, 0);
-    assert.ok(Array.isArray(out.sentences));
+    assert.ok(out);
   } finally { stub.restore(); }
 });

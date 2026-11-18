@@ -163,9 +163,10 @@ async function processBatch(job) {
     await db.transaction(async client => {
       for (const candidate of job.candidates) {
         await finishAttempt(client, candidate, null, error, Date.now() - started);
-        const retry = !timeout && candidate.attempts < MAX_ATTEMPTS;
-        await client.query(`UPDATE cs_dict_candidates SET status = $2, error = $3,
-          locked_at = CASE WHEN $2 = 'queued' THEN CURRENT_TIMESTAMP + ($4 * INTERVAL '5 seconds') ELSE NULL END,
+        // AI Core refusals (ceiling, budget, config, auth) will not succeed on retry.
+        const retry = !timeout && error.retryable !== false && candidate.attempts < MAX_ATTEMPTS;
+        await client.query(`UPDATE cs_dict_candidates SET status = $2::text, error = $3,
+          locked_at = CASE WHEN $2::text = 'queued' THEN CURRENT_TIMESTAMP + ($4 * INTERVAL '5 seconds') ELSE NULL END,
           updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND status = 'generating'`,
         [candidate.id, retry ? 'queued' : 'failed', String(error.message || error).slice(0, 500), candidate.attempts]);
       }
@@ -200,7 +201,10 @@ async function pump() {
       const job = extraction || await claimBatch();
       if (!job) break;
       active += 1;
-      (extraction ? processExtract(job) : processBatch(job)).finally(() => {
+      (extraction ? processExtract(job) : processBatch(job)).catch(error => {
+        // Never let one job take the server down.
+        console.error('[ContentStudioDictionaryWorker] job failed', error.message);
+      }).finally(() => {
         active -= 1;
         pump().catch(error => console.error('[ContentStudioDictionaryWorker]', error.message));
       });
