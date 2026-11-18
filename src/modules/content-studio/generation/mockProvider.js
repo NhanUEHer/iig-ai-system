@@ -1,5 +1,15 @@
 'use strict';
 
+// Rough part-of-speech guess so mock rows are not all "Noun".
+function guessPos(word) {
+  const w = String(word || '').toLowerCase().trim();
+  if (w.includes(' ')) return 'Phrase';
+  if (/(ly)$/.test(w)) return 'Adverb';
+  if (/(ous|ful|ive|able|ible|al|ic|less)$/.test(w)) return 'Adjective';
+  if (/(ing|ed|es|ize|ise|ate|ify)$/.test(w) || /s$/.test(w) && !/(ss|us|is)$/.test(w) && w.length > 4 && !/(tion|ment|ness)s$/.test(w)) return 'Verb';
+  return 'Noun';
+}
+
 // Mock content provider: returns deterministic, schema-correct sample output so the whole
 // Content Studio flow (queue → validate → review → edit) can be exercised without Dify.
 
@@ -58,7 +68,7 @@ async function generate(type, input) {
       dictionary_entries: input.targetChunks.map(chunk => {
         const fixture = fixtureRow.find(entry => entry.inText.toLocaleLowerCase() === chunk.toLocaleLowerCase());
         const entry = fixture || {
-          inText: chunk, lemma: chunk.toLocaleLowerCase(), pos: 'Phrase', ipa: '',
+          inText: chunk, lemma: chunk.toLocaleLowerCase(), pos: guessPos(chunk), ipa: '',
           meaningVi: `nghĩa của “${chunk}”`, meaningEn: `Definition of “${chunk}”.`,
           context: `Trong câu này, “${chunk}” được dùng theo ngữ cảnh của bài.`,
           example: { en: `This is an example with ${chunk}.`, vi: `Đây là ví dụ với ${chunk}.` },
@@ -96,7 +106,7 @@ async function generate(type, input) {
   if (type === 'vocab') {
     return {
       settings: { level: input.level || 650, mode: input.mode || 'balanced' },
-      items: keywords(input.passage, 10).map(item => ({ ...item, pos: 'Noun', ipa: '', meaningVi: `nghĩa của “${item.lemma}”` })),
+      items: keywords(input.passage, 10).map(item => ({ ...item, pos: guessPos(item.inText || item.lemma), ipa: '', meaningVi: `nghĩa của “${item.lemma}”` })),
     };
   }
   if (type === 'dictionary') {
@@ -105,7 +115,7 @@ async function generate(type, input) {
         index: index + 1,
         text,
         entries: keywords(text, 3).map(item => ({
-          ...item, pos: 'Noun', ipa: '', meaningVi: `nghĩa của “${item.lemma}”`,
+          ...item, pos: guessPos(item.inText || item.lemma), ipa: '', meaningVi: `nghĩa của “${item.lemma}”`,
           meaningEn: `Definition of “${item.lemma}”.`,
           context: `Trong câu này, “${item.inText}” được dùng với nghĩa phổ biến nhất.`,
           example: { en: `This is an example with ${item.lemma}.`, vi: `Đây là ví dụ với ${item.lemma}.` },

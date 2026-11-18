@@ -211,9 +211,8 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
 
   return <div className="iig3-list-screen cs-screen"><PageFrame
     className="cs-page cs-item-page"
-    breadcrumb={[{ label: 'Content Studio' }, ...(item.folderPath || []).map(folder => ({ label: folder.name })), { label: item.title }]}
+    breadcrumb={[{ label: 'Content Studio' }, ...(item.folderPath?.length ? item.folderPath.map(folder => ({ label: folder.name })) : [{ label: 'Chưa phân loại' }]), { label: item.title }]}
     header={<div className="cs-item-head">
-      <div className="cs-item-path"><BookOpen />Content Studio / {(item.folderPath || []).map(folder => folder.name).join(' / ') || 'Chưa phân loại'}</div>
       <div className="cs-item-head__row">
         <h1>{item.title}</h1>
         <StatusBadge status={ITEM_STATUS[item.status]?.tone} label={ITEM_STATUS[item.status]?.label} />
