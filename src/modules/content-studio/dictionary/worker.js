@@ -215,10 +215,10 @@ async function pump() {
   }
 }
 
-function kickWorker() { if (timer) void pump(); }
+function kickWorker() { if (timer) pump().catch(error => console.error('[ContentStudioDictionaryWorker]', error.message)); }
 function startWorker() {
   if (timer) return;
-  timer = setInterval(() => void pump(), 1000);
+  timer = setInterval(() => { pump().catch(error => console.error('[ContentStudioDictionaryWorker]', error.message)); }, 1000);
   timer.unref?.();
   void pump();
 }

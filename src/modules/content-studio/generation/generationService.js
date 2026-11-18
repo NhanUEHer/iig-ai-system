@@ -304,15 +304,18 @@ async function pump() {
     const artifact = await claimNext().catch(error => { console.error('[ContentStudioWorker] claim failed', error.message); return null; });
     if (!artifact) return;
     active += 1;
-    processArtifact(artifact).finally(() => { active -= 1; pump(); });
+    // A DB hiccup inside the failure path must never become an unhandled rejection (it would kill the API).
+    processArtifact(artifact)
+      .catch(error => console.error('[ContentStudioWorker] job failed', artifact.id, error.message))
+      .finally(() => { active -= 1; pump().catch(error => console.error('[ContentStudioWorker] pump failed', error.message)); });
   }
 }
 
-function kickWorker() { if (timer) pump(); }
+function kickWorker() { if (timer) pump().catch(error => console.error('[ContentStudioWorker] pump failed', error.message)); }
 
 function startWorker() {
   if (timer) return;
-  timer = setInterval(pump, 3000);
+  timer = setInterval(() => { pump().catch(error => console.error('[ContentStudioWorker] pump failed', error.message)); }, 3000);
   timer.unref?.();
   pump();
 }
