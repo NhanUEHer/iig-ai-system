@@ -26,7 +26,9 @@ async function fetchJson(url, options = {}) {
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
       signal: controller.signal,
     });
-    if (!response.ok) throw providerErrorFromHttp(response.status);
+    if (!response.ok) {
+      throw providerErrorFromHttp(response.status, response.headers?.get?.('retry-after'));
+    }
     return await response.json();
   } catch (error) {
     throw normalizeThrownError(error, timedOut);

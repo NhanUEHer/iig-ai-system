@@ -5,7 +5,7 @@ const defaultConnections = require('../providers/connectionStore');
 const defaultPrices = require('../pricing/prices');
 const defaultCallLog = require('../usage/callLog');
 const defaultSpend = require('../usage/spend');
-const { actual, normalizedPrice, sumUsage } = require('../pricing/cost');
+const { actual, normalizedPrice, roundUsd, sumUsage } = require('../pricing/cost');
 const { render } = require('./template');
 const { parseAndValidate } = require('./schema');
 const inputGuard = require('../guards/inputGuard');
@@ -50,20 +50,21 @@ function createRunner(dependencies = {}) {
     retry: dependencies.guards?.retry || retry,
   };
 
-  async function resolveProvider(version) {
-    let connection = connections.get ? await connections.get(version.connectionId) : null;
-    if (!connection && connections.getWithKey) connection = await connections.getWithKey(version.connectionId);
+  async function resolveProvider(connectionId, model) {
+    let connection = connections.get ? await connections.get(connectionId) : null;
+    if (!connection && connections.getWithKey) connection = await connections.getWithKey(connectionId);
     if (!connection || connection.status !== 'active') {
       throw new AiCoreError('CONFIG_MISSING', 'AI provider connection is not active.');
     }
     const adapter = providers.get(connection.provider);
     if (adapter.name !== 'fake' && !connection.apiKey) {
-      connection = await connections.getWithKey(version.connectionId);
+      connection = await connections.getWithKey(connectionId);
     }
     if (!connection || connection.status !== 'active') {
       throw new AiCoreError('CONFIG_MISSING', 'AI provider connection is not active.');
     }
-    return { adapter, connection };
+    const price = await prices.getPrice(connection.provider, model);
+    return { adapter, connection, price, model };
   }
 
   async function execute({ key, variables = {}, ctx = {}, mode = 'run' }) {
@@ -84,29 +85,36 @@ function createRunner(dependencies = {}) {
     let data;
     let caught;
     let callId = null;
+    let usedFallback = false;
+
+    function totalCost() {
+      return roundUsd(usageParts.reduce(
+        (total, part) => total + actual({ usage: part.usage, price: part.price }),
+        0,
+      ));
+    }
 
     try {
       ({ agent, version } = await registry.load(key, { mode }));
       user = render(version.userTemplate, variables, version.variables);
-      ({ adapter, connection } = await resolveProvider(version));
-      price = await prices.getPrice(connection.provider, version.model);
+      ({ adapter, connection, price } = await resolveProvider(version.connectionId, version.model));
 
       const state = {
         key, variables, ctx, mode, agent, version, adapter, connection, price,
-        system: version.systemPrompt, user,
+        model: version.model, system: version.systemPrompt, user, spend,
       };
       await guards.input(state);
       await guards.cost(state);
       estimatedMaxCostUsd = Number(state.estimatedMaxCostUsd || state.estimatedMax || 0);
       await guards.budget(state);
 
-      const generate = async (generateUser = user) => {
-        const providerResult = await guards.limiter(state, () => guards.retry(state, () => {
-          attempts += 1;
-          return adapter.generate({
+      const invokeSelected = async generateUser => guards.limiter(state, () => guards.retry(state, async () => {
+        attempts += 1;
+        try {
+          return await adapter.generate({
             apiKey: connection.apiKey,
             baseUrl: connection.baseUrl,
-            model: version.model,
+            model: state.model,
             system: version.systemPrompt,
             user: generateUser,
             schema: version.outputSchema,
@@ -114,8 +122,40 @@ function createRunner(dependencies = {}) {
             maxOutputTokens: version.maxOutputTokens,
             timeoutMs: version.timeoutMs,
           });
-        }));
-        usageParts.push(providerResult.usage || EMPTY_USAGE);
+        } catch (error) {
+          if (error?.usage) usageParts.push({ usage: error.usage, price });
+          throw error;
+        }
+      }));
+
+      const generate = async (generateUser = user) => {
+        let providerResult;
+        try {
+          providerResult = await invokeSelected(generateUser);
+        } catch (error) {
+          const canFallback = !usedFallback
+            && version.fallbackConnectionId
+            && version.fallbackModel
+            && (error?.retryable || error?.code === 'PROVIDER_DOWN' || error?.code === 'TIMEOUT');
+          if (!canFallback) throw error;
+          usedFallback = true;
+          ({ adapter, connection, price } = await resolveProvider(
+            version.fallbackConnectionId,
+            version.fallbackModel,
+          ));
+          Object.assign(state, {
+            adapter,
+            connection,
+            price,
+            model: version.fallbackModel,
+            user: generateUser,
+          });
+          await guards.input(state);
+          await guards.cost(state);
+          estimatedMaxCostUsd = Number(state.estimatedMaxCostUsd || state.estimatedMax || 0);
+          providerResult = await invokeSelected(generateUser);
+        }
+        usageParts.push({ usage: providerResult.usage || EMPTY_USAGE, price });
         responseText = providerResult.text;
         finishReason = providerResult.finishReason;
         if (finishReason === 'length') {
@@ -139,9 +179,14 @@ function createRunner(dependencies = {}) {
     } catch (error) {
       caught = safeError(error, attempts > 0);
     } finally {
-      const usage = sumUsage(usageParts);
-      const costUsd = price ? actual({ usage, price }) : 0;
-      const status = caught ? (attempts === 0 ? 'blocked' : 'failed') : 'success';
+      const usage = sumUsage(usageParts.map(part => part.usage));
+      const blockedCodes = new Set([
+        'CONFIG_MISSING', 'AGENT_PAUSED', 'VARIABLES_INVALID', 'INPUT_TOO_LARGE',
+        'COST_CEILING', 'QUOTA_EXCEEDED',
+      ]);
+      const blocked = caught && (blockedCodes.has(caught.code) || attempts === 0);
+      const costUsd = blocked ? 0 : totalCost();
+      const status = caught ? (blocked ? 'blocked' : 'failed') : 'success';
       callId = await logger.write({
         agentId: agent?.id,
         versionId: version?.id,
@@ -153,9 +198,9 @@ function createRunner(dependencies = {}) {
         refId: ctx.refId,
         userId: ctx.userId,
         provider: adapter?.name || connection?.provider,
-        model: version?.model,
+        model: usedFallback ? version?.fallbackModel : version?.model,
         connectionId: connection?.id || version?.connectionId,
-        usedFallback: false,
+        usedFallback,
         attempts,
         status,
         errorCode: caught?.code,
@@ -175,24 +220,24 @@ function createRunner(dependencies = {}) {
         responsePreview: responseText,
         agent,
       });
-      if (mode === 'run' && costUsd > 0 && agent?.id && typeof spend.bump === 'function') {
+      if (!blocked && mode === 'run' && costUsd > 0 && agent?.id && typeof spend.bump === 'function') {
         spend.bump(agent.id, costUsd);
       }
       if (caught) caught.callId = callId;
     }
 
     if (caught) throw caught;
-    const usage = sumUsage(usageParts);
+    const usage = sumUsage(usageParts.map(part => part.usage));
     const result = {
       data,
       callId,
       usage,
-      costUsd: price ? actual({ usage, price }) : 0,
+      costUsd: totalCost(),
       agentKey: agent.key,
       version: version.version,
       provider: adapter.name,
-      model: version.model,
-      usedFallback: false,
+      model: usedFallback ? version.fallbackModel : version.model,
+      usedFallback,
       repaired,
     };
     Object.defineProperty(result, EXECUTION_VERSION_ID, { value: version.id });

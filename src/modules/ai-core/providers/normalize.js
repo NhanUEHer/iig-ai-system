@@ -71,13 +71,14 @@ function normalizeHttpError(status) {
   return { retryable: false, code: 'PROVIDER_DOWN' };
 }
 
-function providerErrorFromHttp(status) {
+function providerErrorFromHttp(status, retryAfter) {
   const normalized = normalizeHttpError(status);
   const error = new AiCoreError(
     normalized.code,
     `Provider request failed (HTTP ${Number(status) || 'unknown'}).`,
   );
   error.retryable = normalized.retryable;
+  if (retryAfter !== undefined && retryAfter !== null) error.retryAfter = retryAfter;
   return error;
 }
 
