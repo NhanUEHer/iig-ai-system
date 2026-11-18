@@ -63,3 +63,8 @@
 .cs-create main .cs-create-review-grid aside .cs-create-tasks__vocab select { width: 100%; height: 32px !important; font-size: 13px !important; }
 .cs-create main .cs-create-review-grid aside .cs-create-tasks__vocab select { padding: 0 22px 0 8px !important; min-width: 0 !important; }
 .cs-create-review-grid aside .cs-create-tasks__vocab { padding-left: 36px; }
+
+/* One card for title + pasted source; breathing room under the app bar */
+.cs-create__head { padding-top: 20px; }
+.cs-create-source--title > .cs-create-collapsed-source { border: 0; border-top: 1px solid #ecebe6; border-radius: 0; background: transparent; }
+.cs-create-source--title > header { padding-bottom: 14px !important; }
