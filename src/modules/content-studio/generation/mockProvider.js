@@ -5,7 +5,7 @@ function guessPos(word) {
   const w = String(word || '').toLowerCase().trim();
   if (w.includes(' ')) return 'Phrase';
   if (/(ly)$/.test(w)) return 'Adverb';
-  if (/(ous|ful|ive|able|ible|al|ic|less)$/.test(w)) return 'Adjective';
+  if (/(ous|ful|ive|able|ible|ic|less)$/.test(w)) return 'Adjective';
   if (/(ing|ed|es|ize|ise|ate|ify)$/.test(w) || /s$/.test(w) && !/(ss|us|is)$/.test(w) && w.length > 4 && !/(tion|ment|ness)s$/.test(w)) return 'Verb';
   return 'Noun';
 }

@@ -326,3 +326,6 @@ main .cs-question-field textarea:focus { border-color: #d55f3d!important; outlin
 .cs-dictionary-detail > header small { flex: 1 1 auto; min-width: 0; }
 .cs-dictionary-detail > header .iig3-button span { all: unset; text-transform: none; font: inherit; color: inherit; }
 .cs-dictionary-filters button { padding: 0 8px; font-size: 12px; }
+.cs-vocab-head + .cs-words { border: 0 !important; border-radius: 0 !important; border-bottom: 1px solid #ecebe6 !important; }
+.cs-vocab-head + .cs-words > li:first-child { border-top: 0 !important; }
+.cs-vocab-head + .cs-words { margin-top: -12px !important; }
