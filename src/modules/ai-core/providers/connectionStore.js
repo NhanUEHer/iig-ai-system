@@ -108,7 +108,27 @@ function createConnectionStore(database = db, secrets = defaultSecrets) {
     return result.rows.map(toDto);
   }
 
-  return { create, update, get, getWithKey, list };
+  async function saveCheck(id, check) {
+    const result = await database.query(
+      `UPDATE aic_connections
+          SET last_check_at=CURRENT_TIMESTAMP,
+              last_check_ok=$2,
+              last_check_ms=$3,
+              last_check_error=$4,
+              updated_at=CURRENT_TIMESTAMP
+        WHERE id=$1
+        RETURNING ${PUBLIC_COLUMNS}`,
+      [
+        id,
+        Boolean(check.ok),
+        Number.isFinite(Number(check.ms)) ? Math.max(0, Math.round(Number(check.ms))) : null,
+        check.ok ? null : String(check.error?.message || check.error || 'Connection check failed.').slice(0, 500),
+      ],
+    );
+    return toDto(result.rows[0]);
+  }
+
+  return { create, update, get, getWithKey, list, saveCheck };
 }
 
 const store = createConnectionStore();

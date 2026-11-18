@@ -64,7 +64,11 @@ function createPriceStore(database = db, options = {}) {
          price_cached_in_per_m=EXCLUDED.price_cached_in_per_m,
          price_out_per_m=EXCLUDED.price_out_per_m,
          context_window=EXCLUDED.context_window,
-         effective_from=CURRENT_TIMESTAMP,
+         effective_from=CASE WHEN
+           aic_models.price_in_per_m IS DISTINCT FROM EXCLUDED.price_in_per_m OR
+           aic_models.price_cached_in_per_m IS DISTINCT FROM EXCLUDED.price_cached_in_per_m OR
+           aic_models.price_out_per_m IS DISTINCT FROM EXCLUDED.price_out_per_m
+           THEN CURRENT_TIMESTAMP ELSE aic_models.effective_from END,
          status=EXCLUDED.status
        RETURNING provider, model, price_in_per_m, price_cached_in_per_m, price_out_per_m,
                  context_window, effective_from, status`,
@@ -82,7 +86,29 @@ function createPriceStore(database = db, options = {}) {
     return toPrice(result.rows[0]);
   }
 
-  return { getPrice, savePrice, setPrice: savePrice, clearCache };
+  async function list() {
+    const result = await database.query(
+      `SELECT provider, model, price_in_per_m, price_cached_in_per_m, price_out_per_m,
+              context_window, effective_from, status
+         FROM aic_models
+        ORDER BY provider, model`,
+    );
+    return result.rows.map(toPrice);
+  }
+
+  async function saveMany(items) {
+    const work = async client => {
+      const transactional = createPriceStore(client, { now });
+      const saved = [];
+      for (const item of items) saved.push(await transactional.savePrice(item));
+      return saved;
+    };
+    const saved = typeof database.transaction === 'function' ? await database.transaction(work) : await work(database);
+    clearCache();
+    return saved;
+  }
+
+  return { getPrice, savePrice, setPrice: savePrice, list, saveMany, clearCache };
 }
 
 const store = createPriceStore();
