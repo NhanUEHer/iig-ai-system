@@ -92,6 +92,11 @@ async function check({ apiKey, baseUrl, timeoutMs = 10000, signal } = {}) {
       ok: true,
       ms: Date.now() - startedAt,
       models: (raw.models || []).map(model => String(model.name || '').replace(/^models\//, '')).filter(Boolean),
+      // Only models that can generate text are usable by agents.
+      modelDetails: (raw.models || [])
+        .filter(model => !Array.isArray(model.supportedGenerationMethods) || model.supportedGenerationMethods.includes('generateContent'))
+        .map(model => ({ id: String(model.name || '').replace(/^models\//, ''), contextWindow: Number(model.inputTokenLimit) || null }))
+        .filter(model => model.id),
     };
   } catch (error) {
     return { ok: false, ms: Date.now() - startedAt, error: { code: error.code, message: error.message } };

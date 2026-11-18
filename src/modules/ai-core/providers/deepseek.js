@@ -56,6 +56,7 @@ async function check({ apiKey, baseUrl, timeoutMs = 10000, signal } = {}) {
       ok: true,
       ms: Date.now() - startedAt,
       models: (raw.data || []).map(model => model.id).filter(Boolean),
+      modelDetails: (raw.data || []).filter(model => model.id).map(model => ({ id: model.id, contextWindow: null })),
     };
   } catch (error) {
     return { ok: false, ms: Date.now() - startedAt, error: { code: error.code, message: error.message } };

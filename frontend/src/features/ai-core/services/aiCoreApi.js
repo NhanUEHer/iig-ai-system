@@ -10,6 +10,7 @@ export const checkConnection = id => api.post(`${prefix}/connections/${id}/check
 
 export const listModels = () => api.get(`${prefix}/models`).then(data);
 export const saveModels = items => api.put(`${prefix}/models`, { items }).then(data);
+export const syncModels = () => api.post(`${prefix}/models/sync`).then(data);
 
 export const listLogs = params => api.get(`${prefix}/logs`, { params }).then(data);
 export const getLog = id => api.get(`${prefix}/logs/${id}`).then(data);

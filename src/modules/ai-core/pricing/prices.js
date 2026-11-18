@@ -14,6 +14,8 @@ function toPrice(row) {
     contextWindow: Number(row.context_window),
     effectiveFrom: row.effective_from,
     status: row.status,
+    providerAvailable: row.provider_available ?? null,
+    syncedAt: row.synced_at ?? null,
   };
 }
 
@@ -89,7 +91,7 @@ function createPriceStore(database = db, options = {}) {
   async function list() {
     const result = await database.query(
       `SELECT provider, model, price_in_per_m, price_cached_in_per_m, price_out_per_m,
-              context_window, effective_from, status
+              context_window, effective_from, status, provider_available, synced_at
          FROM aic_models
         ORDER BY provider, model`,
     );
@@ -108,7 +110,37 @@ function createPriceStore(database = db, options = {}) {
     return saved;
   }
 
-  return { getPrice, savePrice, setPrice: savePrice, list, saveMany, clearCache };
+  // Mirror the provider's own model list: add new models (disabled, no price), flag removed ones.
+  // Providers do not publish prices through their API, so prices stay as entered by admins.
+  async function syncProviderModels(provider, details) {
+    const ids = [...new Set((details || []).map(item => item.id))];
+    const work = async client => {
+      for (const item of details || []) {
+        await client.query(
+          `INSERT INTO aic_models (provider, model, price_in_per_m, price_cached_in_per_m, price_out_per_m,
+                                   context_window, status, provider_available, synced_at)
+           VALUES ($1,$2,0,0,0,COALESCE($3,0),'disabled',TRUE,CURRENT_TIMESTAMP)
+           ON CONFLICT (provider, model) DO UPDATE SET
+             provider_available=TRUE, synced_at=CURRENT_TIMESTAMP,
+             context_window=CASE WHEN aic_models.context_window > 0 THEN aic_models.context_window
+                                 ELSE COALESCE($3, aic_models.context_window) END`,
+          [provider, item.id, item.contextWindow || null],
+        );
+      }
+      const removed = await client.query(
+        `UPDATE aic_models SET provider_available=FALSE, status='disabled', synced_at=CURRENT_TIMESTAMP
+          WHERE provider=$1 AND model <> ALL($2::text[]) AND model <> 'fake-demo'
+          RETURNING model`,
+        [provider, ids],
+      );
+      return { added: ids.length, unavailable: removed.rows.map(row => row.model) };
+    };
+    const result = typeof database.transaction === 'function' ? await database.transaction(work) : await work(database);
+    clearCache();
+    return result;
+  }
+
+  return { getPrice, savePrice, setPrice: savePrice, list, saveMany, clearCache, syncProviderModels };
 }
 
 const store = createPriceStore();

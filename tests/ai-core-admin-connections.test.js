@@ -133,3 +133,19 @@ test('AI Core audit migration is append-only and audit field metadata excludes c
   });
   assert.deepEqual(JSON.parse(params[4]), ['maxInputTokens']);
 });
+
+test('model PUT refuses to enable a model the provider no longer offers or without context', async () => {
+  const router = createModelsRouter({
+    priceStore: {
+      async list() { return [{ provider: 'deepseek', model: 'gone', providerAvailable: false }]; },
+      async saveMany(items) { return items; },
+    },
+    audit: { async write() {} },
+  });
+  const gone = await invoke(router, 'PUT', '/', { permissions: ['ai_core.manage'], body: { items: [{ provider: 'deepseek', model: 'gone', priceIn: 1, priceCachedIn: 0, priceOut: 1, contextWindow: 100, status: 'active' }] } });
+  assert.equal(gone.status, 400);
+  const noContext = await invoke(router, 'PUT', '/', { permissions: ['ai_core.manage'], body: { items: [{ provider: 'deepseek', model: 'new', priceIn: 1, priceCachedIn: 0, priceOut: 1, contextWindow: 0, status: 'active' }] } });
+  assert.equal(noContext.status, 400);
+  const disabledOk = await invoke(router, 'PUT', '/', { permissions: ['ai_core.manage'], body: { items: [{ provider: 'deepseek', model: 'new', priceIn: 0, priceCachedIn: 0, priceOut: 0, contextWindow: 0, status: 'disabled' }] } });
+  assert.equal(disabledOk.status, 200);
+});

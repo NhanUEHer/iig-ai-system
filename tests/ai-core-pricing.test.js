@@ -127,3 +127,15 @@ test('month spend uses Vietnam month/day boundaries, caches, and bumps immediate
   assert.deepEqual(queries[1].slice(1, 3), ['2026-12-01', '2026-12-01']);
   assert.equal(monthWindow(clock).start.toISOString(), '2026-11-30T17:00:00.000Z');
 });
+
+test('syncProviderModels adds provider models disabled and flags missing ones', async () => {
+  const { createPriceStore } = require('../src/modules/ai-core/pricing/prices');
+  const queries = [];
+  const store = createPriceStore({ async query(sql, params) { queries.push({ sql, params }); return { rows: /UPDATE aic_models/.test(sql) ? [{ model: 'old-model' }] : [] }; } });
+  const result = await store.syncProviderModels('gemini', [{ id: 'gemini-x', contextWindow: 1048576 }, { id: 'gemini-y', contextWindow: null }]);
+  const inserts = queries.filter(q => /INSERT INTO aic_models/.test(q.sql));
+  assert.equal(inserts.length, 2);
+  assert.match(inserts[0].sql, /'disabled'/);
+  assert.deepEqual(inserts[0].params, ['gemini', 'gemini-x', 1048576]);
+  assert.deepEqual(result, { added: 2, unavailable: ['old-model'] });
+});

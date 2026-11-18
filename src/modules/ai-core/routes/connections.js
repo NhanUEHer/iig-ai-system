@@ -63,6 +63,10 @@ function createConnectionsRouter(dependencies = {}) {
       apiKey: connection.apiKey, baseUrl: connection.baseUrl,
     });
     const saved = await store.saveCheck(connection.id, result);
+    if (result.ok && (result.modelDetails || result.models)) {
+      const priceStore = dependencies.priceStore || require('../pricing/prices');
+      await priceStore.syncProviderModels(connection.provider, result.modelDetails || result.models.map(id => ({ id })));
+    }
     res.json({ data: { ok: Boolean(result.ok), ms: result.ms, models: result.models || [], error: result.ok ? null : result.error, connection: saved } });
   }));
 
