@@ -107,10 +107,14 @@ test('provider timeout aborts fetch and maps to TIMEOUT', async () => {
   global.fetch = async (_url, { signal }) => new Promise((_resolve, reject) => {
     signal.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })));
   });
-  await assert.rejects(
-    deepseek.generate({ apiKey: 'key', model: 'm', timeoutMs: 5 }),
-    error => error.code === 'TIMEOUT' && error.retryable === true,
-  );
+  // The adapter's timeout timer is unref()'d (it must never keep a server alive); keep the loop alive for the test.
+  const keepAlive = setTimeout(() => {}, 1000);
+  try {
+    await assert.rejects(
+      deepseek.generate({ apiKey: 'key', model: 'm', timeoutMs: 5 }),
+      error => error.code === 'TIMEOUT' && error.retryable === true,
+    );
+  } finally { clearTimeout(keepAlive); }
 });
 
 test('finish reasons, fake queue, and provider selection follow the common interface', async () => {
