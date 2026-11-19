@@ -1,6 +1,22 @@
 # Bài giảng bảo mật (Secure Lectures) trên IIG Admin
 
-Trạng thái: phân tích, kiến trúc, spec và thiết kế đã xong. **Chưa triển khai.**
+Trạng thái: **Đã triển khai** ngày **2026-11-19**. S01–S09 đã commit; S10 đã hoàn tất trong worktree và được giữ
+chưa commit theo yêu cầu bàn giao.
+
+## Lịch sử triển khai S01–S10
+
+| Task | Commit / trạng thái |
+| --- | --- |
+| S01 | `dee9c2e` — foundation, migration 160, permissions, errors, config, stores, routers |
+| S02 | `2bd7837` — private blob store, HTML inspector, versioned upload API |
+| S03 | `16c0093` — folder tree and lecture APIs |
+| S04 | `64d60ce` — share links, one-time token, limits, revoke, device admin |
+| S05 | `e0e0367` — access engine, devices, atomic sessions, heartbeat, takeover, rate-limit, same-origin guard |
+| S06 | `46fe8fe` — teacher viewer, one-time content delivery, guard and watermark |
+| S07 | `433c26e` — library UI, folder tree, lecture table, upload and folder dialogs |
+| S08 | `cc39fd9` — lecture detail UI, share dialogs, devices and versions tabs |
+| S09 | `bc40ef6` — access logs, metrics, attention flags, hourly maintenance |
+| S10 | Chưa commit theo yêu cầu — E2E HTTP in-memory, security checklist, deploy docs và hướng dẫn admin |
 
 | Tài liệu | Nội dung |
 | --- | --- |

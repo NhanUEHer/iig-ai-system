@@ -228,9 +228,8 @@ Bước 6–8 chạy nguyên tử theo share (Lua script Redis, hoặc khoá dò
 - Chặn phím: F12; Ctrl/Cmd + Shift + I/J/C; Ctrl/Cmd + U, S, P; Cmd + Option + I/J/U (macOS).
   Không chặn phím điều hướng slide (mũi tên, PageUp/Down, Space, F5 nếu bài dùng, Esc, F11).
 - `@media print { body { display:none !important } }` và bắt `beforeprint`.
-- Phát hiện DevTools (chênh lệch `outerWidth - innerWidth` > 160 hoặc mẹo `debugger` có thời gian): phủ lớp mờ
-  "Đã tạm ẩn nội dung" và gửi log `devtools_suspected` qua trang cha (`postMessage` → FE → API `/event`). Chỉ cảnh
-  báo, không khoá link.
+- Phát hiện DevTools bằng heuristic ở trang cha và gửi log `devtools_suspected` qua API `/event`. **Chỉ ghi log**;
+  không che nội dung, không khoá link và không kết thúc phiên vì heuristic có thể báo nhầm.
 - Trang `/v/` gửi `postMessage` cho iframe khi cần toàn màn hình; iframe được `allow="fullscreen; autoplay"`.
 
 ## 5. API công khai — `/api/public/lectures` (không JWT)

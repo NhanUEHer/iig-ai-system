@@ -1,4 +1,6 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const test = require('node:test');
 
 test('screenForError maps every public viewer error to its pure UI state', async () => {
@@ -21,4 +23,19 @@ test('screenForError maps every public viewer error to its pure UI state', async
   }
   assert.equal(screenForError({ code: 'UNKNOWN' }), 'invalid');
   assert.equal(screenForError(null), 'invalid');
+});
+
+test('DevTools suspicion is audit-only and cannot hide or lock lecture content', () => {
+  const root = path.join(__dirname, '..');
+  const viewer = fs.readFileSync(
+    path.join(root, 'frontend/src/features/secure-lectures/viewer/ViewerPage.jsx'),
+    'utf8',
+  );
+  const guard = fs.readFileSync(
+    path.join(root, 'src/modules/secure-lectures/assets/guard.js'),
+    'utf8',
+  );
+  assert.match(viewer, /reportEvent\(sessionRef\.current, 'devtools_suspected'\)/);
+  assert.doesNotMatch(viewer, /sl:hide/);
+  assert.doesNotMatch(guard, /sl:hide|sl-content-protection-overlay|Đã tạm ẩn nội dung/);
 });
