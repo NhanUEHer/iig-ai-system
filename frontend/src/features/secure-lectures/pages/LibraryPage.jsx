@@ -2,13 +2,15 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Archive, ChevronDown, ChevronRight, FileClock, FileCode2, Folder, FolderInput,
-  FolderPlus, Inbox, Link2, MoreHorizontal, Pencil, Plus, Search, Trash2, Upload,
+  FolderPlus, Inbox, Link2, MoreHorizontal, Pencil, Plus, RotateCcw, Trash2, Upload,
 } from 'lucide-react';
-import { Button, ConfirmDialog, EmptyState, ErrorState, Skeleton } from '../../../design-system-v2';
+import {
+  Badge, Button, CodeText, ConfirmDialog, DataTable, FilterBar, ListPage, Select, TableToolbar,
+} from '../../../design-system-v2';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import {
   archiveSecureLecture, createSecureLectureFolder, deleteSecureLectureFolder,
-  getSecureLectureOverview, listSecureLectureFolders, listSecureLectures,
+  listSecureLectureFolders, listSecureLectures,
   listSecureLectureVersions, moveSecureLectures, secureLectureError, updateSecureLectureFolder,
 } from '../../../services/secureLecturesApi';
 import { buildFolderPath, buildTree, folderPathLabel, subtreeItemCount } from '../../../utils/folderTree';
@@ -18,7 +20,6 @@ import ShareDialog from '../components/ShareDialog';
 import UploadDialog from '../components/UploadDialog';
 import './LibraryPage.css';
 
-const number = value => new Intl.NumberFormat('vi-VN').format(Number(value || 0));
 const formatSize = value => value < 1024 * 1024 ? `${Math.ceil(Number(value || 0) / 1024)} KB` : `${(Number(value || 0) / 1024 / 1024).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} MB`;
 const relativeDate = value => {
   if (!value) return '—';
@@ -32,11 +33,11 @@ const relativeDate = value => {
 };
 
 function LectureStatus({ lecture }) {
-  const primary = lecture.activeShareCount > 0 ? <span className="sl-badge is-success">Đang chia sẻ</span>
-    : lecture.shareStatusSummary?.expired > 0 ? <span className="sl-badge is-warning">Đã hết hạn</span>
-      : lecture.shareStatusSummary?.revoked > 0 ? <span className="sl-badge is-muted">Không còn link</span>
-        : <span className="sl-badge is-muted">Chưa chia sẻ</span>;
-  return <span className="sl-status-badges">{primary}{lecture.expiringShareCount > 0 && <span className="sl-badge is-warning">Sắp hết hạn</span>}{lecture.attention && <span className="sl-badge is-danger">Cần chú ý</span>}</span>;
+  const primary = lecture.activeShareCount > 0 ? <Badge tone="success" dot>Đang chia sẻ</Badge>
+    : lecture.shareStatusSummary?.expired > 0 ? <Badge tone="warning" dot>Đã hết hạn</Badge>
+      : lecture.shareStatusSummary?.revoked > 0 ? <Badge dot>Không còn link</Badge>
+        : <Badge dot>Chưa chia sẻ</Badge>;
+  return <span className="sl-status-badges">{primary}{lecture.expiringShareCount > 0 && <Badge tone="warning">Sắp hết hạn</Badge>}{lecture.attention && <Badge tone="danger">Cần chú ý</Badge>}</span>;
 }
 
 function FolderNode({ node, depth, selectedId, expanded, canManage, menuId, onToggle, onSelect, onMenu, onAction, onLectureDrop }) {
@@ -68,7 +69,6 @@ export default function LibraryPage({ currentUser, showMsg }) {
   const [folders, setFolders] = useState([]);
   const [unfiledCount, setUnfiledCount] = useState(0);
   const [lectures, setLectures] = useState([]);
-  const [overview, setOverview] = useState({});
   const [nextCursor, setNextCursor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -93,11 +93,11 @@ export default function LibraryPage({ currentUser, showMsg }) {
     setLoading(true); setError('');
     try {
       const params = { folderId, q: debouncedQuery || undefined, status: status || undefined, sort, limit: 50 };
-      const [folderResult, overviewResult, lectureResult] = await Promise.all([
-        listSecureLectureFolders(), getSecureLectureOverview({ folderId }), listSecureLectures(params),
+      const [folderResult, lectureResult] = await Promise.all([
+        listSecureLectureFolders(), listSecureLectures(params),
       ]);
       setFolders(folderResult.folders || []); setUnfiledCount(folderResult.unfiledCount || 0);
-      setOverview(overviewResult || {}); setLectures(lectureResult.items || []); setNextCursor(lectureResult.nextCursor || null);
+      setLectures(lectureResult.items || []); setNextCursor(lectureResult.nextCursor || null);
       setExpanded(current => current.size ? current : new Set((folderResult.folders || []).filter(item => !item.parentId).map(item => item.id)));
     } catch (requestError) { setError(secureLectureError(requestError, 'Không thể tải thư viện bài giảng.')); }
     finally { setLoading(false); }
@@ -174,56 +174,88 @@ export default function LibraryPage({ currentUser, showMsg }) {
     finally { setBusy(false); }
   };
 
-  return <div className="sl-page">
-    <div className="sl-frame">
-      <nav className="sl-breadcrumb"><span>Tạo &amp; phát triển</span><span>/</span><Link to="/secure-lectures">Bài giảng bảo mật</Link>{folderId !== 'all' && folderPath.map((folder, index) => <React.Fragment key={folder.id}><span>/</span>{index === folderPath.length - 1 ? <strong>{folder.name}</strong> : <Link to={`/secure-lectures/folders/${folder.id}`}>{folder.name}</Link>}</React.Fragment>)}{folderId === 'unfiled' && <><span>/</span><strong>Chưa phân loại</strong></>}</nav>
-      <header className="sl-page-head"><h1>Bài giảng bảo mật</h1><nav>
-        <Button variant="outline" icon={<FileClock />} onClick={() => navigate('/secure-lectures/logs')}>Nhật ký truy cập</Button>
-        {canManage && <Button variant="outline" icon={<FolderPlus />} onClick={() => setFolderDialog({ mode: 'create', parentId: ['all', 'unfiled'].includes(folderId) ? null : folderId, parentLabel: selectedLabel })}>Thư mục mới</Button>}
-        {canManage && <Button icon={<Upload />} onClick={() => setUploadState({ folderId: ['all', 'unfiled'].includes(folderId) ? null : folderId })}>Upload bài giảng</Button>}
-      </nav></header>
+  const uploadTarget = ['all', 'unfiled'].includes(folderId) ? null : folderId;
+  const filtered = Boolean(debouncedQuery || status);
+  const clearFilters = () => { setQuery(''); setStatus(''); };
+  const breadcrumb = [
+    { label: 'Tạo & phát triển' },
+    { label: 'Bài giảng bảo mật', to: folderId === 'all' ? undefined : '/secure-lectures' },
+    ...(folderId === 'unfiled' ? [{ label: 'Chưa phân loại' }]
+      : folderId !== 'all' ? folderPath.map((folder, index) => ({ label: folder.name, to: index === folderPath.length - 1 ? undefined : `/secure-lectures/folders/${folder.id}` })) : []),
+  ];
+  const listTitle = folderId === 'all' ? 'Tất cả bài giảng' : folderId === 'unfiled' ? 'Chưa phân loại' : (folderPath[folderPath.length - 1]?.name || 'Thư mục');
 
-      {loading ? <div className="sl-loading"><Skeleton lines={10} /></div> : error ? <ErrorState title="Không thể tải thư viện" description={error} action={<Button variant="outline" onClick={load}>Thử lại</Button>} /> : <>
-        <section className="sl-overview" aria-label="Tổng quan thư viện">
-          <article><span>Bài giảng</span><strong>{number(overview.totalLectures)}</strong><small>{folderId === 'all' ? `trong ${folders.length} thư mục · ${unfiledCount} chưa phân loại` : `trong ${selectedLabel}`}</small></article>
-          <article><span>Link đang hoạt động</span><strong>{number(overview.activeShareCount)}</strong><small>gửi cho {number(overview.uniqueRecipientCount)} người nhận</small></article>
-          <article><span>Đang trình chiếu</span><strong>{number(overview.liveSessionCount)}</strong><small className="is-success">thiết bị đang mở ngay lúc này</small></article>
-          <article className={overview.attentionCount ? 'is-warning' : ''}><span>Cần chú ý</span><strong>{number(overview.attentionCount)}</strong><small>link sắp hết hạn hoặc có vấn đề thiết bị</small></article>
-        </section>
+  const columns = [
+    { key: 'title', label: 'Bài giảng', sortable: true, render: lecture => <div className="sl-cell-title"><span className="sl-file-icon"><FileCode2 /></span><span><strong>{lecture.title}</strong><CodeText>{lecture.currentVersion?.originalFilename || 'Chưa có file'}{lecture.currentVersion ? ` · ${formatSize(lecture.currentVersion.size)}` : ''}{lecture.currentVersion?.meta?.hasAudio ? ' · có audio' : ''}</CodeText></span></div> },
+    { key: 'version', label: 'Phiên bản', align: 'center', width: 110, render: lecture => lecture.currentVersion ? <Badge tone="info">v{lecture.currentVersion.versionNo}</Badge> : '—' },
+    { key: 'activeShareCount', label: 'Link', align: 'center', width: 110, sortable: true, sortType: 'number', render: lecture => lecture.activeShareCount ? `${lecture.activeShareCount} hoạt động` : '—' },
+    { key: 'status', label: 'Trạng thái', width: 220, render: lecture => <LectureStatus lecture={lecture} /> },
+    { key: 'updatedAt', label: 'Cập nhật', width: 170, sortable: true, sortType: 'date', render: lecture => <span className="sl-cell-updated"><span>{relativeDate(lecture.updatedAt)}</span>{lecture.updatedBy?.name && <small>{lecture.updatedBy.name}</small>}</span> },
+  ];
+  const rowActions = lecture => [
+    { label: 'Mở chi tiết', icon: <FileCode2 />, onClick: () => navigate(`/secure-lectures/lectures/${lecture.id}`) },
+    ...(canShare ? [{ label: 'Tạo link chia sẻ', icon: <Link2 />, disabled: busy, onClick: () => openShareDialog(lecture) }] : []),
+    ...(canManage ? [
+      { label: 'Di chuyển', icon: <FolderInput />, onClick: () => setFolderPicker({ type: 'lecture', lecture }) },
+      { separator: true },
+      { label: 'Lưu trữ', icon: <Archive />, danger: true, onClick: () => setConfirm({ type: 'lecture', item: lecture }) },
+    ] : []),
+  ];
 
-        <div className="sl-library-grid">
-          <aside className="sl-tree-panel">
-            <div className="sl-tree-title">THƯ MỤC</div>
-            <button type="button" className={`sl-tree-special${folderId === 'all' ? ' is-selected' : ''}`} onClick={() => navigate('/secure-lectures')}><Inbox /><span>Tất cả bài giảng</span><small>{allLectureCount}</small></button>
-            {tree.map(node => <FolderNode key={node.id} node={node} depth={0} selectedId={folderId} expanded={expanded} canManage={canManage} menuId={menuId} onMenu={setMenuId} onSelect={id => navigate(`/secure-lectures/folders/${id}`)} onToggle={id => setExpanded(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} onAction={handleFolderAction} onLectureDrop={dropLecture} />)}
-            <button type="button" className={`sl-tree-special is-unfiled${folderId === 'unfiled' ? ' is-selected' : ''}`} onClick={() => navigate('/secure-lectures/folders/unfiled')} onDragOver={event => { if (canManage) event.preventDefault(); }} onDrop={event => { event.preventDefault(); dropLecture(event, null); }}><Inbox /><span>Chưa phân loại</span><small>{unfiledCount}</small></button>
-            {canManage && <button type="button" className="sl-tree-create" onClick={() => setFolderDialog({ mode: 'create', parentId: null, parentLabel: 'Thư mục gốc' })}><Plus />Thư mục mới</button>}
-          </aside>
+  const folderPanel = <aside className="sl-tree-panel" aria-label="Thư mục">
+    <header className="sl-tree-head"><strong>Thư mục</strong>{canManage && <button type="button" className="sl-tree-add" aria-label="Thư mục mới" title="Thư mục mới" onClick={() => setFolderDialog({ mode: 'create', parentId: null, parentLabel: 'Thư mục gốc' })}><Plus /></button>}</header>
+    <button type="button" className={`sl-tree-special${folderId === 'all' ? ' is-selected' : ''}`} onClick={() => navigate('/secure-lectures')}><Inbox /><span>Tất cả bài giảng</span><small>{allLectureCount}</small></button>
+    {tree.map(node => <FolderNode key={node.id} node={node} depth={0} selectedId={folderId} expanded={expanded} canManage={canManage} menuId={menuId} onMenu={setMenuId} onSelect={id => navigate(`/secure-lectures/folders/${id}`)} onToggle={id => setExpanded(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} onAction={handleFolderAction} onLectureDrop={dropLecture} />)}
+    <button type="button" className={`sl-tree-special is-unfiled${folderId === 'unfiled' ? ' is-selected' : ''}`} onClick={() => navigate('/secure-lectures/folders/unfiled')} onDragOver={event => { if (canManage) event.preventDefault(); }} onDrop={event => { event.preventDefault(); dropLecture(event, null); }}><Inbox /><span>Chưa phân loại</span><small>{unfiledCount}</small></button>
+  </aside>;
 
-          <main className="sl-library-main">
-            <div className="sl-filters"><label className="sl-search"><Search /><input value={query} onChange={event => setQuery(event.target.value)} placeholder={`Tìm bài giảng trong ${folderId === 'all' ? 'mọi thư mục' : selectedLabel}…`} /></label>
-              <select aria-label="Lọc trạng thái" value={status} onChange={event => setStatus(event.target.value)}><option value="">Mọi trạng thái link</option><option value="shared">Đang chia sẻ</option><option value="expiring">Sắp hết hạn</option><option value="unshared">Chưa chia sẻ</option><option value="attention">Cần chú ý</option></select>
-              <select aria-label="Sắp xếp" value={sort} onChange={event => setSort(event.target.value)}><option value="updated_desc">Cập nhật gần nhất</option><option value="updated_asc">Cập nhật cũ nhất</option><option value="title_asc">Tên A–Z</option><option value="title_desc">Tên Z–A</option></select>
-            </div>
-            <div ref={dropRef} className="sl-table-wrap" onDragOver={event => { if (canManage && event.dataTransfer.types.includes('Files')) { event.preventDefault(); dropRef.current?.classList.add('is-file-over'); } }} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget)) dropRef.current?.classList.remove('is-file-over'); }} onDrop={openDroppedFile}>
-              {!lectures.length ? <EmptyState icon={<FileCode2 />} title={debouncedQuery || status ? 'Không tìm thấy bài giảng' : 'Chưa có bài giảng'} description={debouncedQuery || status ? 'Hãy đổi từ khoá hoặc bộ lọc.' : 'Upload file HTML đầu tiên để bắt đầu quản lý và chia sẻ an toàn.'} action={canManage && !debouncedQuery && !status ? <Button icon={<Upload />} onClick={() => setUploadState({ folderId: ['all', 'unfiled'].includes(folderId) ? null : folderId })}>Upload bài giảng</Button> : null} /> : <table className="sl-table"><thead><tr><th /><th>Bài giảng</th><th>Phiên bản</th><th>Link</th><th>Trạng thái</th><th>Cập nhật</th><th /></tr></thead><tbody>
-                {lectures.map(lecture => <tr key={lecture.id} draggable={canManage} onDragStart={event => { event.dataTransfer.setData('application/x-secure-lecture-id', lecture.id); event.dataTransfer.effectAllowed = 'move'; }}>
-                  <td><span className="sl-file-icon"><FileCode2 /></span></td>
-                  <td><Link to={`/secure-lectures/lectures/${lecture.id}`}>{lecture.title}</Link><code>{lecture.currentVersion?.originalFilename || 'Chưa có file'}{lecture.currentVersion ? ` · ${formatSize(lecture.currentVersion.size)}` : ''}{lecture.currentVersion?.meta?.hasAudio ? ' · có audio' : ''}</code></td>
-                  <td><span className="sl-badge is-info">{lecture.currentVersion ? `v${lecture.currentVersion.versionNo}` : '—'}</span></td>
-                  <td>{lecture.activeShareCount ? `${lecture.activeShareCount} hoạt động` : '—'}</td><td><LectureStatus lecture={lecture} /></td>
-                  <td><span>{relativeDate(lecture.updatedAt)}</span><small>{lecture.updatedBy?.name ? ` · ${lecture.updatedBy.name}` : ''}</small></td>
-                  <td><div className="sl-table-actions">{canShare && <button type="button" className="sl-create-link" disabled={busy} onClick={() => openShareDialog(lecture)}><Link2 />Tạo link</button>}{canManage && <div className="sl-row-menu"><button type="button" aria-label={`Tác vụ ${lecture.title}`} onClick={() => setMenuId(menuId === `lecture:${lecture.id}` ? null : `lecture:${lecture.id}`)}><MoreHorizontal /></button>{menuId === `lecture:${lecture.id}` && <div className="sl-popover is-right"><Link to={`/secure-lectures/lectures/${lecture.id}`}><FileCode2 />Mở chi tiết</Link><button type="button" onClick={() => { setFolderPicker({ type: 'lecture', lecture }); setMenuId(null); }}><FolderInput />Di chuyển</button><button type="button" className="is-danger" onClick={() => { setConfirm({ type: 'lecture', item: lecture }); setMenuId(null); }}><Archive />Lưu trữ</button></div>}</div>}</div></td>
-                </tr>)}
-              </tbody></table>}
-              <div className="sl-file-drop-overlay"><Upload /><strong>Thả file HTML để upload vào {selectedLabel}</strong></div>
-            </div>
-            {nextCursor && <div className="sl-load-more"><Button variant="outline" loading={loadingMore} onClick={loadMore}>Tải thêm</Button></div>}
-            <p className="sl-footnote">Kéo bài giảng sang thư mục bên trái để di chuyển. Kéo thả file .html vào bảng để upload nhanh vào {selectedLabel}.</p>
-          </main>
-        </div>
+  const listPanel = <div className="sl-list-panel">
+    <TableToolbar title={listTitle} count={lectures.length} loading={loading} />
+    <FilterBar
+      search={query}
+      onSearch={event => setQuery(event.target.value)}
+      placeholder={`Tìm bài giảng trong ${folderId === 'all' ? 'mọi thư mục' : selectedLabel}…`}
+      filters={<>
+        <Select aria-label="Lọc trạng thái link" value={status} onChange={event => setStatus(event.target.value)}><option value="">Mọi trạng thái link</option><option value="shared">Đang chia sẻ</option><option value="expiring">Sắp hết hạn</option><option value="unshared">Chưa chia sẻ</option><option value="attention">Cần chú ý</option></Select>
+        <Select aria-label="Sắp xếp" value={sort} onChange={event => setSort(event.target.value)}><option value="updated_desc">Cập nhật gần nhất</option><option value="updated_asc">Cập nhật cũ nhất</option><option value="title_asc">Tên A–Z</option><option value="title_desc">Tên Z–A</option></Select>
       </>}
+      appliedCount={status ? 1 : 0}
+      onClear={clearFilters}
+      loading={loading}
+    />
+    <div ref={dropRef} className="sl-table-drop" onDragOver={event => { if (canManage && event.dataTransfer.types.includes('Files')) { event.preventDefault(); dropRef.current?.classList.add('is-file-over'); } }} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget)) dropRef.current?.classList.remove('is-file-over'); }} onDrop={openDroppedFile}>
+      <DataTable
+        ariaLabel="Danh sách bài giảng"
+        columns={columns}
+        rows={lectures}
+        rowKey="id"
+        loading={loading}
+        error={error || undefined}
+        errorAction={<Button variant="outline" size="sm" icon={<RotateCcw />} onClick={load}>Thử lại</Button>}
+        emptyIcon={<FileCode2 />}
+        emptyTitle={filtered ? 'Không tìm thấy bài giảng' : 'Chưa có bài giảng'}
+        emptyDescription={filtered ? 'Hãy đổi từ khoá hoặc bộ lọc.' : 'Upload file HTML đầu tiên để bắt đầu quản lý và chia sẻ an toàn.'}
+        emptyAction={filtered ? <Button variant="outline" size="sm" onClick={clearFilters}>Xóa bộ lọc</Button> : canManage ? <Button size="sm" icon={<Upload />} onClick={() => setUploadState({ folderId: uploadTarget })}>Upload bài giảng</Button> : null}
+        onRowClick={lecture => navigate(`/secure-lectures/lectures/${lecture.id}`)}
+        getRowActions={rowActions}
+      />
+      <div className="sl-file-drop-overlay"><Upload /><strong>Thả file HTML để upload vào {selectedLabel}</strong></div>
     </div>
+    {nextCursor && <footer className="sl-load-more"><Button variant="outline" size="sm" loading={loadingMore} onClick={loadMore}>Tải thêm</Button></footer>}
+  </div>;
+
+  return <div className="iig3-list-screen sl-library-page">
+    <ListPage
+      breadcrumb={breadcrumb}
+      breadcrumbLinkComponent={Link}
+      title="Bài giảng bảo mật"
+      actions={<>
+        <Button variant="outline" size="sm" icon={<FileClock />} onClick={() => navigate('/secure-lectures/logs')}>Nhật ký truy cập</Button>
+        {canManage && <Button variant="outline" size="sm" icon={<FolderPlus />} onClick={() => setFolderDialog({ mode: 'create', parentId: uploadTarget, parentLabel: selectedLabel })}>Thư mục mới</Button>}
+        {canManage && <Button size="sm" icon={<Upload />} onClick={() => setUploadState({ folderId: uploadTarget })}>Upload bài giảng</Button>}
+      </>}
+      table={<div className="sl-library-layout">{listPanel}{folderPanel}</div>}
+    />
 
     <FolderNameDialog open={Boolean(folderDialog)} mode={folderDialog?.mode} folder={folderDialog?.folder} parentLabel={folderDialog?.parentLabel} busy={busy} onSubmit={submitFolder} onClose={() => !busy && setFolderDialog(null)} />
     <FolderPickerDialog open={Boolean(folderPicker)} folders={folders} currentId={folderPicker?.type === 'lecture' ? folderPicker.lecture.folderId : folderPicker?.folder?.parentId} excludeId={folderPicker?.type === 'folder' ? folderPicker.folder.id : null} title={folderPicker?.type === 'folder' ? 'Di chuyển thư mục' : 'Di chuyển bài giảng'} confirmLabel="Di chuyển" onClose={() => setFolderPicker(null)} onConfirm={async targetId => {
