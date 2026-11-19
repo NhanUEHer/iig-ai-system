@@ -4,6 +4,8 @@ class SessionStore {
   async touch() { throw new Error('SessionStore.touch is not implemented.'); }
   async delete() { throw new Error('SessionStore.delete is not implemented.'); }
   async listByShare() { throw new Error('SessionStore.listByShare is not implemented.'); }
+  async endAllForShare() { throw new Error('SessionStore.endAllForShare is not implemented.'); }
+  async endAllForDevice() { throw new Error('SessionStore.endAllForDevice is not implemented.'); }
 }
 
 class MemorySessionStore extends SessionStore {
@@ -52,6 +54,30 @@ class MemorySessionStore extends SessionStore {
     return [...this.sessions.values()]
       .filter(entry => entry.value.shareId === shareId)
       .map(entry => ({ ...entry.value }));
+  }
+
+  async endAllForShare(shareId) {
+    this.purgeExpired();
+    let ended = 0;
+    for (const [id, entry] of this.sessions) {
+      if (entry.value.shareId === shareId) {
+        this.sessions.delete(id);
+        ended += 1;
+      }
+    }
+    return ended;
+  }
+
+  async endAllForDevice(deviceRef) {
+    this.purgeExpired();
+    let ended = 0;
+    for (const [id, entry] of this.sessions) {
+      if (entry.value.deviceRef === deviceRef) {
+        this.sessions.delete(id);
+        ended += 1;
+      }
+    }
+    return ended;
   }
 }
 

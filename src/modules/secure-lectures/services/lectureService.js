@@ -106,14 +106,15 @@ function createLectureService({
     requireUuid(id);
     const lecture = await repository.findById(id);
     if (!lecture) throw new HttpError('Bài giảng không tồn tại.', 404, 'LECTURE_NOT_FOUND');
+    const shareStatusSummary = lecture.shareStatusSummary || {};
     return {
       ...lecture,
       metrics: {
         currentVersion: lecture.currentVersion?.versionNo || null,
-        activeShareCount: 0,
-        revokedShareCount: 0,
-        expiredShareCount: 0,
-        registeredDeviceCount: 0,
+        activeShareCount: Number(shareStatusSummary.active || 0),
+        revokedShareCount: Number(shareStatusSummary.revoked || 0),
+        expiredShareCount: Number(shareStatusSummary.expired || 0),
+        registeredDeviceCount: Number(lecture.registeredDeviceCount || 0),
         liveSessionCount: 0,
         openOk7d: 0,
         deniedCount: 0,

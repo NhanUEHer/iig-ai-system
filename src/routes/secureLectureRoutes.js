@@ -6,6 +6,8 @@ const config = require('../modules/secure-lectures/config');
 const { SecureLectureError, toHttp } = require('../modules/secure-lectures/errors');
 const folderService = require('../modules/secure-lectures/services/folderService');
 const lectureService = require('../modules/secure-lectures/services/lectureService');
+const shareService = require('../modules/secure-lectures/services/shareService');
+const accessEngine = require('../modules/secure-lectures/services/accessEngine');
 const versionService = require('../modules/secure-lectures/services/versionService');
 
 const router = express.Router();
@@ -165,6 +167,79 @@ router.post(
       req.params.versionId,
       req.auth.userId,
     );
+    res.json({ success: true, data });
+  }),
+);
+
+router.get(
+  '/lectures/:id/shares',
+  requirePermission('secure_lectures.view'),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await shareService.list(req.params.id) });
+  }),
+);
+
+router.post(
+  '/lectures/:id/shares',
+  requirePermission('secure_lectures.share'),
+  asyncHandler(async (req, res) => {
+    const requestBaseUrl = `${req.protocol}://${req.get('host')}`;
+    const data = await shareService.create(
+      req.params.id,
+      req.body,
+      req.auth.userId,
+      requestBaseUrl,
+    );
+    res.status(201).json({ success: true, data });
+  }),
+);
+
+router.patch(
+  '/shares/:id',
+  requirePermission('secure_lectures.share'),
+  asyncHandler(async (req, res) => {
+    const data = await shareService.update(req.params.id, req.body, req.auth.userId);
+    res.json({ success: true, data });
+  }),
+);
+
+router.post(
+  '/shares/:id/revoke',
+  requirePermission('secure_lectures.share'),
+  asyncHandler(async (req, res) => {
+    const data = await shareService.revoke(req.params.id, req.body, req.auth.userId);
+    res.json({ success: true, data });
+  }),
+);
+
+router.get(
+  '/shares/:id/devices',
+  requirePermission('secure_lectures.view'),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await shareService.listDevices(req.params.id) });
+  }),
+);
+
+for (const [action, handler] of [
+  ['remove', shareService.removeDevice],
+  ['block', shareService.blockDevice],
+  ['unblock', shareService.unblockDevice],
+]) {
+  router.post(
+    `/shares/:id/devices/:deviceRef/${action}`,
+    requirePermission('secure_lectures.share'),
+    asyncHandler(async (req, res) => {
+      const data = await handler(req.params.id, req.params.deviceRef, req.auth.userId);
+      res.json({ success: true, data });
+    }),
+  );
+}
+
+router.post(
+  '/sessions/:id/kick',
+  requirePermission('secure_lectures.share'),
+  asyncHandler(async (req, res) => {
+    const data = await accessEngine.kick(req.params.id, req.auth.userId);
     res.json({ success: true, data });
   }),
 );

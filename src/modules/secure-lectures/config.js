@@ -16,7 +16,9 @@ function positiveNumber(value, fallback) {
 
 function loadConfig(env = process.env) {
   return Object.freeze({
-    publicBaseUrl: env.SECURE_LECTURES_PUBLIC_BASE_URL || DEFAULTS.publicBaseUrl,
+    publicBaseUrl: env.SECURE_LECTURES_PUBLIC_BASE_URL
+      || env.PUBLIC_BASE_URL
+      || DEFAULTS.publicBaseUrl,
     storagePrefix: env.SECURE_LECTURES_STORAGE_PREFIX || DEFAULTS.storagePrefix,
     maxUploadMb: positiveNumber(env.SECURE_LECTURES_MAX_UPLOAD_MB, DEFAULTS.maxUploadMb),
     heartbeatSec: positiveNumber(env.SECURE_LECTURES_HEARTBEAT_SEC, DEFAULTS.heartbeatSec),

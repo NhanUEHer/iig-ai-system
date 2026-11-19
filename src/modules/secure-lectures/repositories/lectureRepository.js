@@ -13,6 +13,7 @@ function mapCurrentVersion(row) {
 
 function mapLecture(row) {
   if (!row) return null;
+  const rawSummary = row.share_status_summary || {};
   return {
     id: row.id,
     folderId: row.folder_id,
@@ -20,9 +21,13 @@ function mapLecture(row) {
     description: row.description,
     currentVersion: mapCurrentVersion(row),
     activeShareCount: Number(row.active_share_count || 0),
-    shareStatusSummary: row.share_status_summary || {
-      active: 0, scheduled: 0, expired: 0, revoked: 0,
+    shareStatusSummary: {
+      active: Number(rawSummary.active || 0),
+      scheduled: Number(rawSummary.scheduled || 0),
+      expired: Number(rawSummary.expired || 0),
+      revoked: Number(rawSummary.revoked || 0),
     },
+    registeredDeviceCount: Number(row.registered_device_count || 0),
     archivedAt: row.archived_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -43,6 +48,9 @@ const SELECT_LECTURE = `
          (SELECT COUNT(*)::int FROM sl_shares s
           WHERE s.lecture_id = l.id AND s.revoked_at IS NULL
             AND s.valid_from <= CURRENT_TIMESTAMP AND s.expires_at > CURRENT_TIMESTAMP) AS active_share_count,
+         (SELECT COUNT(*)::int
+          FROM sl_devices d JOIN sl_shares s ON s.id = d.share_id
+          WHERE s.lecture_id = l.id AND d.removed_at IS NULL) AS registered_device_count,
          jsonb_build_object(
            'active', (SELECT COUNT(*)::int FROM sl_shares s WHERE s.lecture_id = l.id AND s.revoked_at IS NULL AND s.valid_from <= CURRENT_TIMESTAMP AND s.expires_at > CURRENT_TIMESTAMP),
            'scheduled', (SELECT COUNT(*)::int FROM sl_shares s WHERE s.lecture_id = l.id AND s.revoked_at IS NULL AND s.valid_from > CURRENT_TIMESTAMP),
@@ -187,14 +195,33 @@ function createLectureRepository({ database = db } = {}) {
         : 'AND folder_id = $1';
     }
     const result = await database.query(`
-      SELECT COUNT(*)::int AS total_lectures
-      FROM sl_lectures WHERE archived_at IS NULL ${folderFilter}`, params);
+      WITH scoped_lectures AS (
+        SELECT id FROM sl_lectures
+        WHERE archived_at IS NULL ${folderFilter}
+      ), active_shares AS (
+        SELECT s.* FROM sl_shares s
+        JOIN scoped_lectures l ON l.id = s.lecture_id
+        WHERE s.revoked_at IS NULL
+          AND s.valid_from <= CURRENT_TIMESTAMP
+          AND s.expires_at > CURRENT_TIMESTAMP
+      )
+      SELECT
+        (SELECT COUNT(*)::int FROM scoped_lectures) AS total_lectures,
+        (SELECT COUNT(*)::int FROM active_shares) AS active_share_count,
+        (SELECT COUNT(DISTINCT lower(recipient_name))::int FROM active_shares)
+          AS unique_recipient_count,
+        (SELECT COUNT(*)::int FROM active_shares s
+         WHERE s.expires_at <= CURRENT_TIMESTAMP + INTERVAL '3 days'
+            OR EXISTS (
+              SELECT 1 FROM sl_devices d
+              WHERE d.share_id = s.id AND d.blocked_at IS NOT NULL
+            )) AS attention_count`, params);
     return {
       totalLectures: Number(result.rows[0]?.total_lectures || 0),
-      activeShareCount: 0,
-      uniqueRecipientCount: 0,
+      activeShareCount: Number(result.rows[0]?.active_share_count || 0),
+      uniqueRecipientCount: Number(result.rows[0]?.unique_recipient_count || 0),
       liveSessionCount: 0,
-      attentionCount: 0,
+      attentionCount: Number(result.rows[0]?.attention_count || 0),
     };
   }
 
