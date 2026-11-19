@@ -113,9 +113,20 @@ jobs:
             printf 'BOOTSTRAP_ADMIN_EMAIL=%s\n' "$BOOTSTRAP_ADMIN_EMAIL" >> bootstrap-admin.env
             printf 'BOOTSTRAP_ADMIN_PASSWORD=%s\n' "$BOOTSTRAP_ADMIN_PASSWORD" >> bootstrap-admin.env
           fi
+      - name: Prepare AI Core runtime env
+        # AI Core master key + Content Studio provider come from this GitHub environment
+        # (secret AI_CORE_MASTER_KEY, variable CONTENT_STUDIO_PROVIDER). Unset values are left out,
+        # so the API keeps running with AI Core unconfigured and Content Studio on the mock provider.
+        env:
+          AI_CORE_MASTER_KEY: ${{ secrets.AI_CORE_MASTER_KEY }}
+          CONTENT_STUDIO_PROVIDER: ${{ vars.CONTENT_STUDIO_PROVIDER }}
+        run: |
+          install -m 600 /dev/null ai-core.env
+          if [ -n "$AI_CORE_MASTER_KEY" ]; then printf 'AI_CORE_MASTER_KEY=%s\n' "$AI_CORE_MASTER_KEY" >> ai-core.env; fi
+          if [ -n "$CONTENT_STUDIO_PROVIDER" ]; then printf 'CONTENT_STUDIO_PROVIDER=%s\n' "$CONTENT_STUDIO_PROVIDER" >> ai-core.env; fi
       - name: Upload deployment definition
         run: |
-          scp -O bootstrap-admin.env deploy/docker-compose.yml deploy/docker-compose.beta.yml deploy/nginx-beta.conf \
+          scp -O bootstrap-admin.env ai-core.env deploy/docker-compose.yml deploy/docker-compose.beta.yml deploy/nginx-beta.conf \
             scripts/configure-beta-environment.sh scripts/deploy-containers.sh \
             root@${{ secrets.VPS_HOST }}:/opt/iig-admin/beta/
       - name: Deploy changed services

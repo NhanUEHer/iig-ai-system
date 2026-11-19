@@ -85,6 +85,17 @@ jobs:
           done
           list="$(IFS=,; echo "${components[*]}")"
           echo "Components to promote: ${list:-none}"; echo "components=$list" >> "$GITHUB_OUTPUT"
+      - name: Prepare AI Core runtime env
+        # AI Core master key + Content Studio provider come from the production GitHub environment
+        # (secret AI_CORE_MASTER_KEY, variable CONTENT_STUDIO_PROVIDER). Unset values are left out,
+        # so the API keeps running with AI Core unconfigured and Content Studio on the mock provider.
+        env:
+          AI_CORE_MASTER_KEY: ${{ secrets.AI_CORE_MASTER_KEY }}
+          CONTENT_STUDIO_PROVIDER: ${{ vars.CONTENT_STUDIO_PROVIDER }}
+        run: |
+          install -m 600 /dev/null ai-core.env
+          if [ -n "$AI_CORE_MASTER_KEY" ]; then printf 'AI_CORE_MASTER_KEY=%s\n' "$AI_CORE_MASTER_KEY" >> ai-core.env; fi
+          if [ -n "$CONTENT_STUDIO_PROVIDER" ]; then printf 'CONTENT_STUDIO_PROVIDER=%s\n' "$CONTENT_STUDIO_PROVIDER" >> ai-core.env; fi
       - name: Deploy Production (changed components only)
         if: steps.retag.outputs.components != ''
         env:
@@ -92,7 +103,7 @@ jobs:
           COMMIT: ${{ steps.commit.outputs.sha }}
           VERSION: ${{ inputs.version }}
         run: |
-          scp -O deploy/docker-compose.yml scripts/deploy-containers.sh root@${{ secrets.VPS_HOST }}:/opt/iig-admin/prod/
+          scp -O ai-core.env deploy/docker-compose.yml scripts/deploy-containers.sh root@${{ secrets.VPS_HOST }}:/opt/iig-admin/prod/
           ssh root@${{ secrets.VPS_HOST }} "deploy production prod-$COMMIT $VERSION $COMMIT $COMPONENTS"
       - name: Tag, fast-forward main, record release
         env:
