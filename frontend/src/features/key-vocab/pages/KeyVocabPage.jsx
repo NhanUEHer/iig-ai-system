@@ -104,7 +104,9 @@ export default function KeyVocabPage({ showMsg, currentUser }) {
     setErrors(nextErrors);
     const firstSuccess = selectedOutputs.find((type, index) => results[index].status === 'fulfilled');
     if (firstSuccess) setResultTab(firstSuccess);
+    const skipped = results.flatMap(result => result.status === 'fulfilled' ? result.value?.skippedItems || [] : []);
     if (Object.keys(nextErrors).length) showMsg?.('Một số học liệu chưa tạo được. Bạn có thể thử lại riêng từng loại.', 'error');
+    else if (skipped.length) showMsg?.(`Đã bỏ ${skipped.length} mục AI trả về không khớp đoạn văn hoặc thiếu dữ liệu. Có thể bấm “Thêm từ” để bổ sung.`, 'warning');
     setGenerating(false);
   };
   const retryOutput = async type => {

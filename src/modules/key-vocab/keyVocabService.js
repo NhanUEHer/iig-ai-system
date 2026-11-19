@@ -2,6 +2,7 @@ const db = require('../../config/db');
 const HttpError = require('../../http/httpError');
 const aiClient = require('../learning-materials/agents/client');
 const crypto = require('crypto');
+const { findTerm } = require('../learning-materials/textMatch');
 
 const ALLOWED_TYPES = new Set(['Noun','Verb','Adjective','Adverb','Noun Phrase','Phrasal Verb','Adjective Phrase','Idiom','Verb Phrase','Preposition','Prepositional Phrase','Prefix','Suffix','Conjunction','Interjection','Phrase']);
 const TARGET_SCORES = new Set([450, 500, 650, 700, 800]);
@@ -22,9 +23,12 @@ function parseJson(value) {
 }
 
 const escapePattern = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const appearsExactly = (passage, original) => new RegExp(
-  `(?<![\\p{L}\\p{N}_])${escapePattern(original)}(?![\\p{L}\\p{N}_])`, 'u'
-).test(passage);
+// Exact = same letters and casing; curly vs straight quotes, dashes and spacing are tolerated.
+const appearsExactly = (passage, original) => {
+  const found = findTerm(passage, original);
+  return Boolean(found) && found.normalize('NFKC').replace(/[\u2018\u2019`\u00B4]/g, "'").replace(/\s+/g, ' ')
+    === String(original).normalize('NFKC').replace(/[\u2018\u2019`\u00B4]/g, "'").replace(/\s+/g, ' ');
+};
 
 function inferOriginalForm(passage, canonical) {
   const term = String(canonical || '').trim();
@@ -36,32 +40,59 @@ function inferOriginalForm(passage, canonical) {
   if (last.endsWith('y')) variants.push(`${prefix}${last.slice(0, -1)}ies`);
   if (last.endsWith('e')) variants.push(`${prefix}${last}d`, `${prefix}${last.slice(0, -1)}ing`);
   for (const candidate of [...new Set(variants)]) {
-    const match = String(passage).match(new RegExp(
-      `(?<![\\p{L}\\p{N}_])${escapePattern(candidate)}(?![\\p{L}\\p{N}_])`, 'iu'
-    ));
-    if (match) return match[0];
+    const match = findTerm(passage, candidate);
+    if (match) return match;
   }
   return '';
 }
 
-function normalizeVocabulary(payload, { passage = '', requireOriginal = true } = {}) {
+const POS_ALIASES = new Map([...ALLOWED_TYPES].map(type => [type.toLowerCase(), type]));
+const FIELD_LABELS = { t: 'từ gốc', i: 'phiên âm', m: 'nghĩa tiếng Việt' };
+
+function normalizeItem(item, index, { passage, requireOriginal }) {
+  const value = { o: String(item?.o || '').trim(), t: String(item?.t || '').trim(), p: String(item?.p || '').trim(), i: String(item?.i || '').trim(), m: String(item?.m || '').trim() };
+  const label = value.o || value.t || `#${index + 1}`;
+  value.p = POS_ALIASES.get(value.p.toLowerCase()) || value.p;
+  if (value.i && !/^\/.*\/$/.test(value.i)) value.i = `/${value.i.replace(/^\/|\/$/g, '')}/`;
+  if (passage && value.o) value.o = findTerm(passage, value.o) || value.o; // snap to the passage's own spelling
+  if (!value.o && passage) value.o = inferOriginalForm(passage, value.t);
+  const missing = Object.keys(FIELD_LABELS).filter(key => !value[key]).map(key => FIELD_LABELS[key]);
+  if (!value.o && requireOriginal) missing.unshift('dạng trong đoạn văn');
+  if (missing.length) throw new HttpError(`Từ vựng thứ ${index + 1} (“${label}”) thiếu ${missing.join(', ')}.`, 422, 'INVALID_VOCAB_ITEM');
+  if (!ALLOWED_TYPES.has(value.p)) throw new HttpError(`Từ vựng thứ ${index + 1} (“${label}”) có loại từ không hợp lệ: “${value.p || 'trống'}”.`, 422, 'INVALID_VOCAB_ITEM');
+  if (!value.o) value.o = value.t;
+  if (passage && !appearsExactly(passage, value.o)) {
+    throw new HttpError(`Từ vựng thứ ${index + 1}: “${value.o}” không xuất hiện nguyên văn trong đoạn văn.`, 422, 'VOCAB_NOT_IN_PASSAGE');
+  }
+  return value;
+}
+
+// strict (save): every row must be valid. lenient (fresh AI output): drop bad rows, keep the rest.
+function normalizeVocabulary(payload, { passage = '', requireOriginal = true, lenient = false, skipped = [] } = {}) {
   const value = parseJson(payload);
   const parsed = value?.result && !value.w ? parseJson(value.result) : value;
-  if (!Array.isArray(parsed.w) || !parsed.w.length || parsed.w.length > 30) {
-    throw new HttpError('Kết quả AI phải có danh sách từ vựng hợp lệ.', 422, 'INVALID_VOCAB_LIST');
+  if (!Array.isArray(parsed?.w) || !parsed.w.length || parsed.w.length > 30) {
+    throw new HttpError('Kết quả AI phải có danh sách từ vựng hợp lệ (1–30 mục).', 422, 'INVALID_VOCAB_LIST');
   }
-  return parsed.w.map((item, index) => {
-    const value = { o: String(item?.o || '').trim(), t: String(item?.t || '').trim(), p: String(item?.p || '').trim(), i: String(item?.i || '').trim(), m: String(item?.m || '').trim() };
-    if (!value.o && passage) value.o = inferOriginalForm(passage, value.t);
-    if ((!value.o && requireOriginal) || !value.t || !value.i || !value.m || !ALLOWED_TYPES.has(value.p)) {
-      throw new HttpError(`Từ vựng thứ ${index + 1} thiếu dữ liệu hoặc sai loại từ.`, 422, 'INVALID_VOCAB_ITEM');
+  const seen = new Set();
+  const items = [];
+  parsed.w.forEach((item, index) => {
+    try {
+      const normalized = normalizeItem(item, index, { passage, requireOriginal });
+      const key = normalized.o.toLocaleLowerCase();
+      if (seen.has(key)) {
+        if (lenient) return;
+        throw new HttpError(`Từ vựng thứ ${index + 1} (“${normalized.o}”) bị trùng.`, 422, 'DUPLICATE_VOCAB_ITEM');
+      }
+      seen.add(key);
+      items.push(normalized);
+    } catch (error) {
+      if (!lenient) throw error;
+      skipped.push(error.message);
     }
-    if (!value.o) value.o = value.t;
-    if (passage && !appearsExactly(passage, value.o)) {
-      throw new HttpError(`Từ vựng thứ ${index + 1} có dạng gốc không xuất hiện chính xác trong đoạn văn.`, 422, 'VOCAB_NOT_IN_PASSAGE');
-    }
-    return value;
   });
+  if (!items.length) throw new HttpError(skipped[0] || 'AI không trả về từ vựng hợp lệ.', 422, 'INVALID_VOCAB_LIST');
+  return items;
 }
 
 async function generate(passage, userId, targetScore, selectionMode) {
@@ -71,7 +102,9 @@ async function generate(passage, userId, targetScore, selectionMode) {
   const settings = normalizeSettings(targetScore, selectionMode);
   const { output, callId } = await aiClient.generateKeyVocab(text, userId, settings.targetScore, settings.selectionMode);
   // workflowRunId keeps its name for the API/DB contract; it now holds the AI Core call log id.
-  return { passage: text, ...settings, vocabularies: normalizeVocabulary(output, { passage: text }), workflowRunId: callId };
+  const skipped = [];
+  const vocabularies = normalizeVocabulary(output, { passage: text, lenient: true, skipped });
+  return { passage: text, ...settings, vocabularies, skippedItems: skipped, workflowRunId: callId };
 }
 
 async function save({ passage, vocabularies, workflowRunId, targetScore, selectionMode }, userId) {

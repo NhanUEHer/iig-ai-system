@@ -13,7 +13,7 @@ test('dictionary generation uses a durable queue with retry attempts', () => {
   assert.match(service, /FOR UPDATE SKIP LOCKED/);
   assert.match(service, /DEFAULT_MAX_ATTEMPTS = 3/);
   assert.match(service, /DEFAULT_GENERATION_CONCURRENCY = 6/);
-  assert.match(service, /DICTIONARY_CONTEXT_MISMATCH/);
+  assert.match(service, /normalizeEntryResults\(raw, targetChunks\)/);
   assert.match(service, /DICTIONARY_PROVIDER_TIMEOUT/);
   assert.match(service, /recoverStaleCandidates/);
   assert.match(service, /Promise\.allSettled/);

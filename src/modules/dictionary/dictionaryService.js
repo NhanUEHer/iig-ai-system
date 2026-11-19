@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const db = require('../../config/db');
 const HttpError = require('../../http/httpError');
 const aiClient = require('../learning-materials/agents/client');
+const { canonicalText, containsTerm, findTerm } = require('../learning-materials/textMatch');
 
 const clean = value => String(value ?? '').trim();
 const DEFAULT_MAX_ITEMS = 300;
@@ -23,14 +24,11 @@ const candidateTimeoutMs = () => {
 };
 const outputOf = raw => raw?.output ?? raw?.data?.outputs?.structured_output ?? raw?.data?.outputs?.result ?? raw?.outputs?.structured_output ?? raw;
 const workflowIdOf = raw => raw?.callId || raw?.workflow_run_id || raw?.data?.workflow_run_id || raw?.data?.id || null;
-const normalizedSentence = value => clean(value).normalize('NFKC').replace(/\s+/g, ' ').replace(/\s*([—–])\s*/g, '$1').toLocaleLowerCase();
+const normalizedSentence = value => canonicalText(value).replace(/\s*-\s*/g, '-').toLocaleLowerCase();
 const sameSentence = (left, right) => normalizedSentence(left) === normalizedSentence(right);
 const sentenceBelongsToPassage = (passage, sentence) => normalizedSentence(passage).includes(normalizedSentence(sentence));
 const escapePattern = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const containsExactTerm = (text, term) => {
-  const value=clean(term);if(!value)return false;
-  return new RegExp(`(^|[^\\p{L}\\p{N}])${escapePattern(value)}(?=$|[^\\p{L}\\p{N}])`,'iu').test(clean(text));
-};
+const containsExactTerm = (text, term) => containsTerm(text, term);
 
 function normalizeExtracted(raw) {
   const output = outputOf(raw);
@@ -67,8 +65,10 @@ function normalizeEntry(raw, requestedItem = '') {
     synonyms: Array.isArray(usage.synonyms || value.synonyms) ? (usage.synonyms || value.synonyms).map(clean).filter(Boolean) : [],
     wordFamily: clean(usage.word_family || value.word_family), workflowRunId: workflowIdOf(raw), rawResponse: value
   };
-  if (!entry.originalChunk || !entry.canonical || !entry.meaningVi || !entry.meaningEn || !entry.originalSentence || !entry.contextExplanation) {
-    throw new HttpError('Mục từ điển thiếu từ, nghĩa hoặc phân tích ngữ cảnh.', 502, 'INVALID_DICTIONARY_ENTRY');
+  const missing = [['từ gốc', entry.canonical], ['nghĩa tiếng Việt', entry.meaningVi], ['nghĩa tiếng Anh', entry.meaningEn]]
+    .filter(([, value]) => !value).map(([label]) => label);
+  if (!entry.originalChunk || missing.length) {
+    throw new HttpError(`Mục từ điển “${entry.originalChunk || '?'}” thiếu ${missing.join(', ') || 'từ/cụm từ'}.`, 502, 'INVALID_DICTIONARY_ENTRY');
   }
   return entry;
 }
@@ -91,15 +91,30 @@ function normalizeEntries(raw, requestedItems = []) {
   }, requested[index]));
 }
 
+// Same as normalizeEntries, but one incomplete entry only fails its own word instead of the whole sentence batch.
+function normalizeEntryResults(raw, requestedItems = []) {
+  const requested = requestedItems.map(clean).filter(Boolean);
+  const values = outputOf(raw)?.dictionary_entries;
+  if (!Array.isArray(values) || values.length !== requested.length) {
+    return normalizeEntries(raw, requestedItems).map(entry => ({ entry })); // throws for the whole batch
+  }
+  const workflowRunId = workflowIdOf(raw);
+  return values.map((value, index) => {
+    try {
+      return { entry: normalizeEntry({ workflow_run_id: workflowRunId, data: { outputs: { structured_output: value } } }, requested[index]) };
+    } catch (error) {
+      return { error, rawResponse: value ?? null };
+    }
+  });
+}
+
 function sentenceForCandidate(candidate, passage) {
   const stored = clean(candidate?.source_sentence);
   if (stored) return stored;
   const target = clean(candidate?.original_chunk);
   const sentences = clean(passage).match(/[^.!?\n]+(?:[.!?]+|$)/g) || [];
   if (!target) return clean(passage);
-  const escaped = escapePattern(target);
-  const exactTerm = new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?=$|[^\\p{L}\\p{N}])`, 'iu');
-  return clean(sentences.find(sentence => exactTerm.test(sentence)) || passage);
+  return clean(sentences.find(sentence => containsTerm(sentence, target)) || passage);
 }
 
 async function extract(passage, userId) {
@@ -107,9 +122,16 @@ async function extract(passage, userId) {
   if (text.length < 80) throw new HttpError('Đoạn văn cần tối thiểu 80 ký tự.', 400, 'PASSAGE_TOO_SHORT');
   if (text.length > 20000) throw new HttpError('Đoạn văn không được vượt quá 20.000 ký tự.', 400, 'PASSAGE_TOO_LONG');
   const extractionRaw = await aiClient.extractItems(text, userId);
-  const items = normalizeExtracted(extractionRaw);
+  const skippedItems = [];
+  const items = normalizeExtracted(extractionRaw).flatMap(item => {
+    if (!item.sentenceText) return [item];
+    const sentenceText = sentenceBelongsToPassage(text, item.sentenceText) ? item.sentenceText : '';
+    const exact = findTerm(sentenceText || text, item.text);
+    if (!exact) { skippedItems.push(item.text); return []; }
+    return [{ text: exact, sentenceText: sentenceText || sentenceForCandidate({ original_chunk: exact }, text) }];
+  });
   if (!items.length) throw new HttpError('AI không tìm thấy từ phù hợp trong đoạn văn.', 422, 'NO_DICTIONARY_ITEMS');
-  return { passage: text, items, extractionWorkflowRunId: workflowIdOf(extractionRaw), rawExtractionResponse: outputOf(extractionRaw) };
+  return { passage: text, items, skippedItems, extractionWorkflowRunId: workflowIdOf(extractionRaw), rawExtractionResponse: outputOf(extractionRaw) };
 }
 
 async function saveCandidates(payload, userId) {
@@ -122,8 +144,11 @@ async function saveCandidates(payload, userId) {
     .filter(item => { const key=`${item.sentenceText}\u0000${item.text}`.toLowerCase(); if(!item.text||seen.has(key))return false; seen.add(key); return true; });
   if (!items.length || items.length > maxItems()) throw new HttpError(`Danh sách từ phải có từ 1 đến ${maxItems()} mục.`, 400, 'INVALID_DICTIONARY_LIST');
   items.forEach((item,index)=>{
-    if(item.sentenceText&&!sentenceBelongsToPassage(passage,item.sentenceText)) throw new HttpError(`Câu nguồn của mục ${index+1} không thuộc đoạn văn.`,400,'DICTIONARY_SENTENCE_NOT_IN_PASSAGE');
-    if(item.sentenceText&&!containsExactTerm(item.sentenceText,item.text)) throw new HttpError(`Từ/cụm từ thứ ${index+1} không xuất hiện chính xác trong câu nguồn.`,400,'DICTIONARY_ITEM_NOT_IN_SENTENCE');
+    if(item.sentenceText&&!sentenceBelongsToPassage(passage,item.sentenceText)) throw new HttpError(`Câu nguồn của “${item.text}” (mục ${index+1}) không thuộc đoạn văn.`,400,'DICTIONARY_SENTENCE_NOT_IN_PASSAGE');
+    const exact = findTerm(item.sentenceText || passage, item.text);
+    if (exact) item.text = exact;
+    else if(!item.sentenceText) throw new HttpError(`“${item.text}” (mục ${index+1}) không xuất hiện nguyên văn trong đoạn văn.`,400,'DICTIONARY_ITEM_NOT_IN_PASSAGE');
+    else throw new HttpError(`“${item.text}” (mục ${index+1}) không xuất hiện nguyên văn trong câu: “${item.sentenceText}”.`,400,'DICTIONARY_ITEM_NOT_IN_SENTENCE');
   });
   return db.transaction(async client => {
     const hash = crypto.createHash('sha256').update(passage).digest('hex');
@@ -175,13 +200,13 @@ async function processCandidateBatch(candidates, passage, userId) {
       // AI Core has no abort hook; stop waiting once the candidate lease would expire.
       new Promise((_, reject) => controller.signal.addEventListener('abort', () => reject(new HttpError('AI không trả kết quả trong thời gian cho phép.', 504, 'DICTIONARY_PROVIDER_TIMEOUT')), { once: true })),
     ]);
-    const entries = normalizeEntries(raw, targetChunks);
-    if (entries.some(entry => !sameSentence(sentence, entry.originalSentence))) {
-      throw new HttpError('AI trả về câu ngữ cảnh không khớp câu nguồn.',502,'DICTIONARY_CONTEXT_MISMATCH');
-    }
+    // The stored entry always uses our own source sentence, so the AI's echo of it is not validated here.
+    const results = normalizeEntryResults(raw, targetChunks);
+    const failures = [];
     await db.transaction(async client => {
       for (let index = 0; index < candidates.length; index += 1) {
-        const candidate = candidates[index], entry = entries[index], attempt = attempts[index];
+        const candidate = candidates[index], attempt = attempts[index], { entry, error, rawResponse } = results[index];
+        if (error) { failures.push({ candidate, attempt, error, rawResponse }); continue; }
         const lease = await client.query(`UPDATE dictionary_generation_attempts SET status='completed',response_payload=$2::jsonb,
           workflow_run_id=$3,duration_ms=$4,completed_at=CURRENT_TIMESTAMP WHERE id=$1 AND status='running' RETURNING id`,
         [attempt.id,JSON.stringify(entry.rawResponse),entry.workflowRunId,Math.max(0,Date.now()-startedAt)]);
@@ -194,15 +219,23 @@ async function processCandidateBatch(candidates, passage, userId) {
         await client.query("UPDATE dictionary_candidates SET status='completed',error_message=NULL,completed_at=CURRENT_TIMESTAMP,next_attempt_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=$1 AND status='generating'", [candidate.id]);
       }
     });
+    if (failures.length) await markFailed(failures, startedAt);
   } catch (error) {
+    await markFailed(candidates.map((candidate, index) => ({ candidate, attempt: attempts[index], error })), startedAt);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function markFailed(failures, startedAt) {
     const maxAttempts = Math.max(1,Number.parseInt(process.env.DICTIONARY_MAX_ATTEMPTS || '',10) || DEFAULT_MAX_ATTEMPTS);
     await db.transaction(async client => {
-      for (let index = 0; index < candidates.length; index += 1) {
-        const candidate = candidates[index], attempt = attempts[index];
+      for (const { candidate, attempt, error, rawResponse } of failures) {
         const shouldRetry = error.code !== 'DICTIONARY_PROVIDER_TIMEOUT' && error.retryable !== false && candidate.attempt_count < maxAttempts;
+        // Keep what the AI returned so a failed entry can be debugged later.
         const lease = await client.query(`UPDATE dictionary_generation_attempts SET status='failed',error_code=$2,error_message=$3,
-          duration_ms=$4,completed_at=CURRENT_TIMESTAMP WHERE id=$1 AND status='running' RETURNING id`,
-        [attempt.id,error.code||'DICTIONARY_GENERATION_FAILED',error.message,Math.max(0,Date.now()-startedAt)]);
+          duration_ms=$4,response_payload=COALESCE($5::jsonb,response_payload),completed_at=CURRENT_TIMESTAMP WHERE id=$1 AND status='running' RETURNING id`,
+        [attempt.id,error.code||'DICTIONARY_GENERATION_FAILED',error.message,Math.max(0,Date.now()-startedAt),rawResponse === undefined ? null : JSON.stringify(rawResponse)]);
         if (!lease.rows[0]) continue;
         await client.query(`UPDATE dictionary_candidates SET status=$2::varchar,error_message=$3,
           next_attempt_at=CASE WHEN $2::varchar='queued' THEN CURRENT_TIMESTAMP + ($4 * INTERVAL '5 seconds') ELSE NULL END,
@@ -210,9 +243,6 @@ async function processCandidateBatch(candidates, passage, userId) {
         [candidate.id,shouldRetry?'queued':'failed',error.message,candidate.attempt_count]);
       }
     });
-  } finally {
-    clearTimeout(timeout);
-  }
 }
 
 async function recoverStaleCandidates() {
@@ -322,4 +352,4 @@ async function detail(id, queryable=db) {
   return { ...generation.rows[0], candidates: candidates.rows.map(candidate=>({...candidate,attempts:attemptsByCandidate.get(candidate.id)||[]})) };
 }
 
-module.exports = { extract, saveCandidates, startGeneration, history, detail, normalizeExtracted, normalizeEntry, normalizeEntries, sentenceForCandidate, sameSentence, sentenceBelongsToPassage, maxItems, candidateTimeoutMs, recoverStaleCandidates, startWorker, stopWorker, runWorkerBatch };
+module.exports = { extract, saveCandidates, startGeneration, history, detail, normalizeExtracted, normalizeEntry, normalizeEntries, normalizeEntryResults, containsExactTerm, sentenceForCandidate, sameSentence, sentenceBelongsToPassage, maxItems, candidateTimeoutMs, recoverStaleCandidates, startWorker, stopWorker, runWorkerBatch };
