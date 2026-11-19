@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
-import { Button, Modal } from '../../../design-system-v2';
+import { Button, Modal, Switch } from '../../../design-system-v2';
 import { createSecureLectureShare, secureLectureError, updateSecureLectureShare } from '../../../services/secureLecturesApi';
 import { createShareDefaults, toDateTimeLocal, validateShareForm } from '../shareForm';
 import './SecureLectureDialogs.css';
@@ -70,8 +70,8 @@ export default function ShareDialog({ open, lecture, versions = [], share, showM
       {warning && <div className="sl-share-warning"><AlertTriangle />Link đang có {share.deviceCount} thiết bị. Thiết bị mới sẽ bị chặn cho đến khi gỡ bớt.</div>}
       <label className="sl-dialog-field"><span>Phiên bản</span><select className="sl-folder-select" value={form.pinnedVersionId} onChange={event => set('pinnedVersionId', event.target.value)}><option value="">Luôn dùng bản mới nhất{currentVersion ? ` (v${currentVersion.versionNo})` : ''}</option>{versions.map(version => <option key={version.id} value={version.id}>Cố định v{version.versionNo} · {version.originalFilename}</option>)}</select></label>
       <div className="sl-share-switches">
-        <label><span>Watermark tên người nhận</span><input type="checkbox" checked={form.watermarkEnabled} onChange={event => set('watermarkEnabled', event.target.checked)} /></label>
-        <label><span>Chặn chuột phải, phím tắt, in, F12</span><input type="checkbox" checked={form.guardEnabled} onChange={event => set('guardEnabled', event.target.checked)} /></label>
+        <Switch label="Watermark tên người nhận" description="Tên người nhận và thời điểm mở hiện mờ trên bài giảng" checked={form.watermarkEnabled} onChange={event => set('watermarkEnabled', event.target.checked)} />
+        <Switch label="Chặn chuột phải, phím tắt, in, F12" description="Gây khó cho việc tải, xem mã nguồn hoặc in bài giảng" checked={form.guardEnabled} onChange={event => set('guardEnabled', event.target.checked)} />
       </div>
     </form>
   </Modal>;
