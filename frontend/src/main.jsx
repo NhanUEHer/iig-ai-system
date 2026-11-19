@@ -3,12 +3,13 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import './index.css';
-import App from './App.jsx';
 import './styles/typography.css';
 import './styles/design-system.css';
 import './styles/admin-list-system.css';
-import {DialogProvider} from './components/feedback/DialogProvider';
-import './services/authSession';
+
+// The teacher viewer (/v/:token) is a standalone public page: no admin shell,
+// no auth bootstrap, no router.
+const isLectureViewer = /^\/v\/[^/]+\/?$/.test(window.location.pathname);
 
 // The admin workspace currently supports one visual theme only. Apply it
 // before React mounts so a saved browser preference cannot cause a dark flash.
@@ -53,12 +54,26 @@ class ErrorBoundary extends Component {
   }
 }
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <BrowserRouter>
-    <DialogProvider><App /></DialogProvider>
-      </BrowserRouter>
-    </ErrorBoundary>
-  </StrictMode>,
-);
+const root = createRoot(document.getElementById('root'));
+
+if (isLectureViewer) {
+  import('./features/secure-lectures/viewer/ViewerPage').then(({ default: ViewerPage }) => {
+    root.render(<StrictMode><ViewerPage /></StrictMode>);
+  });
+} else {
+  Promise.all([
+    import('./App.jsx'),
+    import('./components/feedback/DialogProvider'),
+    import('./services/authSession'),
+  ]).then(([{ default: App }, { DialogProvider }]) => {
+    root.render(
+      <StrictMode>
+        <ErrorBoundary>
+          <BrowserRouter>
+            <DialogProvider><App /></DialogProvider>
+          </BrowserRouter>
+        </ErrorBoundary>
+      </StrictMode>,
+    );
+  });
+}

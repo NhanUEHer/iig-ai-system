@@ -115,10 +115,10 @@ function createLectureService({
         revokedShareCount: Number(shareStatusSummary.revoked || 0),
         expiredShareCount: Number(shareStatusSummary.expired || 0),
         registeredDeviceCount: Number(lecture.registeredDeviceCount || 0),
-        liveSessionCount: 0,
-        openOk7d: 0,
-        deniedCount: 0,
-        takeoverCount: 0,
+        liveSessionCount: Number(lecture.liveSessionCount || 0),
+        openOk7d: Number(lecture.accessMetrics?.openOk7d || 0),
+        deniedCount: Number(lecture.accessMetrics?.deniedCount || 0),
+        takeoverCount: Number(lecture.accessMetrics?.takeoverCount || 0),
       },
     };
   }

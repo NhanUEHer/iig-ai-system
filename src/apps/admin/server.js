@@ -9,6 +9,7 @@ const dictionaryService = require('../../modules/dictionary/dictionaryService');
 const contentStudioGeneration = require('../../modules/content-studio/generation/generationService');
 const contentStudioDictionary = require('../../modules/content-studio/dictionary/worker');
 const aiCoreUsageJob = require('../../modules/ai-core/usage/job');
+const secureLectureMaintenance = require('../../modules/secure-lectures/services/secureLectureMaintenance');
 const { runtimePort, listen, installShutdown, closeServer } = require('../shared/httpRuntime');
 const { createReadiness } = require('../shared/readiness');
 const { runtimeLog } = require('../shared/runtimeLog');
@@ -24,6 +25,7 @@ async function startAdminServer(dependencies = {}) {
     contentStudio: dependencies.contentStudio || contentStudioGeneration,
     contentStudioDictionary: dependencies.contentStudioDictionary || contentStudioDictionary,
     aiCoreUsageJob: dependencies.aiCoreUsageJob || aiCoreUsageJob,
+    secureLectureMaintenance: dependencies.secureLectureMaintenance || secureLectureMaintenance,
     processRef: dependencies.processRef || process,
     listen: dependencies.listen || listen,
   };
@@ -41,12 +43,14 @@ async function startAdminServer(dependencies = {}) {
     deps.contentStudio.startWorker();
     deps.contentStudioDictionary.startWorker();
     deps.aiCoreUsageJob.start();
+    deps.secureLectureMaintenance.start();
   } catch (error) {
     deps.scheduler.stop();
     deps.dictionary.stopWorker();
     deps.contentStudio.stopWorker();
     deps.contentStudioDictionary.stopWorker();
     deps.aiCoreUsageJob.stop();
+    deps.secureLectureMaintenance.stop();
     await closeServer(server);
     await Promise.allSettled([deps.redis.close(), deps.db.close()]);
     throw error;
@@ -58,6 +62,7 @@ async function startAdminServer(dependencies = {}) {
     deps.contentStudio.stopWorker();
     deps.contentStudioDictionary.stopWorker();
     deps.aiCoreUsageJob.stop();
+    deps.secureLectureMaintenance.stop();
     await closeServer(server);
     await deps.redis.close();
     await deps.db.close();

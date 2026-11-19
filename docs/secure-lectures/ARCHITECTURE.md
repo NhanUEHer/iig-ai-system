@@ -109,7 +109,7 @@ Máy bị đá: heartbeat kế tiếp nhận 409 SESSION_KICKED → FE gỡ ifra
 | Nhúng trang vào site khác | `Content-Security-Policy: frame-ancestors 'self'` cho content; `X-Frame-Options: DENY` cho `/v/` | |
 | HTML độc hại do người upload | iframe `sandbox="allow-scripts allow-same-origin allow-fullscreen"`, phát từ **đường dẫn** `/api/public/lectures/content/…`, không đặt cookie admin trên path này; CSP của content cấm `connect-src` ra ngoài trừ font | Chỉ người có quyền `manage` mới upload được |
 | Chia sẻ link cho người khác | Giới hạn thiết bị; watermark người nhận; log IP và UA | |
-| Xem mã, tải, in | Guard script: chặn chuột phải, F12, Ctrl+Shift+I/J/C, Ctrl+U/S/P, kéo thả, chọn chữ; `@media print` ẩn; phát hiện DevTools → làm mờ | Chỉ là lớp gây khó |
+| Xem mã, tải, in | Guard script: chặn chuột phải, F12, Ctrl+Shift+I/J/C, Ctrl+U/S/P, kéo thả, chọn chữ; `@media print` ẩn; phát hiện DevTools chỉ ghi log | Chỉ là lớp gây khó; không che/khóa nội dung theo heuristic |
 | Chụp, quay màn hình | Không chặn được; watermark tên + thời điểm, xoay chéo, mờ | Răn đe và truy vết |
 
 Cookie `sl_did` chỉ chứa UUID ngẫu nhiên. Nó **không** phải xác thực: token vẫn là chìa khoá. `device_id` dùng để đếm
@@ -133,7 +133,7 @@ sl_folders (cây, parent_id) 1─n sl_lectures 1─n sl_lecture_versions
 
 | Biến | Mặc định | Ý nghĩa |
 | --- | --- | --- |
-| `SECURE_LECTURES_PUBLIC_BASE_URL` | lấy từ request | Gốc URL để dựng link `/v/…` |
+| `SECURE_LECTURES_PUBLIC_BASE_URL` | lấy từ request ở local | Gốc URL để dựng link `/v/…`; **bắt buộc đặt URL HTTPS chính xác trên Beta/Production** |
 | `SECURE_LECTURES_STORAGE_PREFIX` | `secure-lectures` | Prefix trong bucket |
 | `SECURE_LECTURES_MAX_UPLOAD_MB` | `20` | |
 | `SECURE_LECTURES_HEARTBEAT_SEC` | `30` | |
@@ -157,7 +157,7 @@ Storage dùng chung cấu hình R2 hiện có (`MEDIA_STORAGE_MODE`, `R2_*`). �
 | Nhu cầu | Cách mở rộng | Điểm đã chuẩn bị sẵn |
 | --- | --- | --- |
 | Domain riêng (`lecture.iig…`) | Đổi `SECURE_LECTURES_PUBLIC_BASE_URL`, tách FE `/v/` thành app nhỏ; cookie và CSP theo domain mới | Public API đã tách router; không phụ thuộc cookie admin |
-| Nhiều instance API | Toàn bộ trạng thái phiên ở Redis; ticket ở Redis; không trạng thái trong RAM ngoài cache blob | Interface `sessionStore` / `ticketStore` |
+| Nhiều instance API | **Bắt buộc Redis** cho session, ticket và rate-limit; không được dùng fallback memory/DB cho topology nhiều instance | Interface `sessionStore` / `ticketStore` |
 | Đá phiên tức thì | Thêm SSE `/events` hoặc Redis pub/sub | Sự kiện `kicked` đã có trong store |
 | PDF, video, gói nhiều file (zip) | Thêm `content_type` cho version; renderer theo loại (pdf.js, HLS mã hoá) | Cột `content_type`, `contentService` theo strategy |
 | OTP email hoặc đăng nhập giáo viên | Thêm `auth_mode` cho share (`token` \| `token_otp`) và bước xác minh trước `open()` | `accessEngine.open()` là pipeline nhiều bước |

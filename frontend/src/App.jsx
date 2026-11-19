@@ -55,6 +55,7 @@ import ScoreScaleCreatePage from './features/score-scales/pages/ScoreScaleCreate
 import ScoreScaleEditPage from './features/score-scales/pages/ScoreScaleEditPage';
 import SecureLectureLibraryPage from './features/secure-lectures/pages/LibraryPage';
 import SecureLectureDetailPage from './features/secure-lectures/pages/LectureDetailPage';
+import SecureLectureAccessLogsPage from './features/secure-lectures/pages/AccessLogsPage';
 
 
 const API_BASE = '/api/submissions';
@@ -594,6 +595,7 @@ function App() {
               <Route path="/secure-lectures" element={hasPermission('secure_lectures.view') ? <SecureLectureLibraryPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/secure-lectures/folders/:folderId" element={hasPermission('secure_lectures.view') ? <SecureLectureLibraryPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/secure-lectures/lectures/:id" element={hasPermission('secure_lectures.view') ? <SecureLectureDetailPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/secure-lectures/logs" element={hasPermission('secure_lectures.view') ? <SecureLectureAccessLogsPage /> : <Navigate to={defaultPath} replace />} />
               <Route path="/key-vocab" element={['key_vocab.view','key_vocab.generate','key_vocab.manage','dictionary.view','dictionary.generate','dictionary.manage'].some(hasPermission) ? <KeyVocabPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/dictionary" element={<Navigate to="/key-vocab" replace />} />
 

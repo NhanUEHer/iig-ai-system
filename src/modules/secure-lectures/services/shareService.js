@@ -1,7 +1,7 @@
 const config = require('../config');
 const { SecureLectureError } = require('../errors');
 const { createShareRepository } = require('../repositories/shareRepository');
-const { createMemorySessionStore } = require('../stores/sessionStore');
+const { sessionStore } = require('../stores/runtimeStores');
 const tokenService = require('./tokenService');
 const { requireUuid } = require('./folderService');
 const HttpError = require('../../../http/httpError');
@@ -9,7 +9,7 @@ const HttpError = require('../../../http/httpError');
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_VALID_DAYS = 365;
 const EXPIRING_MS = 3 * DAY_MS;
-const defaultSessionStore = createMemorySessionStore();
+const defaultSessionStore = sessionStore;
 
 function validation(message) {
   throw new HttpError(message, 400, 'VALIDATION_ERROR');
@@ -178,7 +178,15 @@ function createShareService({
       });
       return inserted;
     });
-    return { share: mapShare(row, current), token, url: `${baseUrl}/v/${token}` };
+    return {
+      share: mapShare(row, current),
+      token,
+      path: `/v/${token}`,
+      url: `${baseUrl}/v/${token}`,
+      // 'request' means the URL was derived from the API request host, which a
+      // reverse proxy may have rewritten; clients should prefer their own origin.
+      baseUrlSource: publicBaseUrl ? 'config' : 'request',
+    };
   }
 
   async function list(lectureId) {

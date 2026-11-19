@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS sl_sessions (
   last_heartbeat_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   ended_at TIMESTAMPTZ,
   end_reason TEXT,
-  kicked_by_session_id UUID REFERENCES sl_sessions(id) ON DELETE SET NULL,
+  kicked_by_session_id UUID REFERENCES sl_sessions(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   ip INET,
   user_agent TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,

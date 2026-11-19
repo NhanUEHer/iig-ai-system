@@ -31,8 +31,45 @@ class MemoryTicketStore extends TicketStore {
   }
 }
 
+class RedisTicketStore extends TicketStore {
+  constructor({ redis }) {
+    super();
+    this.redis = redis;
+    this.kind = 'redis';
+  }
+
+  key(ticket) { return `sl:ticket:${ticket}`; }
+
+  async client() {
+    const client = await this.redis.connection();
+    if (!client) throw new Error('Redis ticket store is unavailable.');
+    return client;
+  }
+
+  async put(ticket, value, ttlSec) {
+    await (await this.client()).set(this.key(ticket), JSON.stringify(value), { EX: ttlSec });
+    return { ...value };
+  }
+
+  async consume(ticket) {
+    const raw = await (await this.client()).getDel(this.key(ticket));
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch { return null; }
+  }
+
+  async delete(ticket) { return (await this.client()).del(this.key(ticket)); }
+}
+
 function createMemoryTicketStore(options) {
   return new MemoryTicketStore(options);
 }
 
-module.exports = { TicketStore, MemoryTicketStore, createMemoryTicketStore };
+function createRedisTicketStore(options) { return new RedisTicketStore(options); }
+
+module.exports = {
+  TicketStore,
+  MemoryTicketStore,
+  RedisTicketStore,
+  createMemoryTicketStore,
+  createRedisTicketStore,
+};

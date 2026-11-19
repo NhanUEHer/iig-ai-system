@@ -1,4 +1,7 @@
 const db = require('../../../config/db');
+const config = require('../config');
+
+const sessionTtlSec = Math.max(1, Number(config.sessionTtlSec));
 
 const SHARE_COLUMNS = `
   s.id, s.lecture_id, s.pinned_version_id, s.token_hint,
@@ -48,7 +51,8 @@ function createShareRepository({ database = db } = {}) {
              (SELECT COUNT(*)::int FROM sl_devices d
               WHERE d.share_id = s.id AND d.removed_at IS NULL) AS device_count,
              (SELECT COUNT(*)::int FROM sl_sessions ss
-              WHERE ss.share_id = s.id AND ss.ended_at IS NULL) AS live_session_count
+              WHERE ss.share_id = s.id AND ss.ended_at IS NULL
+                AND ss.last_heartbeat_at >= CURRENT_TIMESTAMP - INTERVAL '${sessionTtlSec} seconds') AS live_session_count
       FROM sl_shares s WHERE s.id = $1`, [id]);
     return result.rows[0] || null;
   }
@@ -59,7 +63,8 @@ function createShareRepository({ database = db } = {}) {
              (SELECT COUNT(*)::int FROM sl_devices d
               WHERE d.share_id = s.id AND d.removed_at IS NULL) AS device_count,
              (SELECT COUNT(*)::int FROM sl_sessions ss
-              WHERE ss.share_id = s.id AND ss.ended_at IS NULL) AS live_session_count
+              WHERE ss.share_id = s.id AND ss.ended_at IS NULL
+                AND ss.last_heartbeat_at >= CURRENT_TIMESTAMP - INTERVAL '${sessionTtlSec} seconds') AS live_session_count
       FROM sl_shares s
       WHERE s.lecture_id = $1
       ORDER BY s.created_at DESC, s.id DESC`, [lectureId]);
@@ -132,6 +137,7 @@ function createShareRepository({ database = db } = {}) {
                ) ORDER BY ss.started_at DESC)
                FROM sl_sessions ss
                WHERE ss.device_ref = d.id AND ss.ended_at IS NULL
+                 AND ss.last_heartbeat_at >= CURRENT_TIMESTAMP - INTERVAL '${sessionTtlSec} seconds'
              ), '[]'::jsonb) AS live_sessions
       FROM sl_devices d
       WHERE d.share_id = $1

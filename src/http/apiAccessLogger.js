@@ -25,8 +25,15 @@ function getSafeRequestHeaders(req) {
   }));
 }
 
-function routeTemplate(path) {
+// Secure lecture content tickets and share tokens are bearer secrets: never log them.
+function maskSecretPath(path) {
   return String(path || '')
+    .replace(/(\/api\/public\/lectures\/content\/)[^/]+/, '$1***')
+    .replace(/(^|\/)v\/[^/?#]+/, '$1v/***');
+}
+
+function routeTemplate(path) {
+  return maskSecretPath(path)
     .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi, ':id')
     .replace(/\/(\d+)(?=\/|$)/g, '/:number');
 }
@@ -44,7 +51,7 @@ function buildApiAccessLog(req, res, durationMs, outcome = 'finished') {
     environment: process.env.APP_ENV || process.env.NODE_ENV || 'development',
     requestId: req.requestId,
     method: req.method,
-    path: req.path,
+    path: maskSecretPath(req.path),
     routeTemplate: routeTemplate(req.path),
     queryKeys,
     statusCode,
@@ -87,4 +94,5 @@ function apiAccessLogger(req, res, next) {
   return next();
 }
 
-module.exports = { apiAccessLogger, buildApiAccessLog, cleanHeaderValue, routeTemplate };
+module.exports = {
+  maskSecretPath, apiAccessLogger, buildApiAccessLog, cleanHeaderValue, routeTemplate };

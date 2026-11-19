@@ -5,5 +5,8 @@ module.exports = {
   shareService: require('./shareService'),
   tokenService: require('./tokenService'),
   accessEngine: require('./accessEngine'),
+  contentService: require('./contentService'),
   versionService: require('./versionService'),
+  logService: require('./logService'),
+  secureLectureMaintenance: require('./secureLectureMaintenance'),
 };

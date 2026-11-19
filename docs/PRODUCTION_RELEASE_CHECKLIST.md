@@ -18,10 +18,12 @@ Create the server `.env` from `.env.production.example`. At minimum verify:
 - `NODE_ENV=production`
 - `APP_ENV=production`
 - `APP_URL` is the public HTTPS URL.
+- `SECURE_LECTURES_PUBLIC_BASE_URL` is **required** and is the exact public HTTPS origin used by `/v/:token`.
 - `DATABASE_URL` points to the production PostgreSQL instance.
 - `JWT_SECRET` is random and contains at least 32 characters.
 - `PORT`, SMTP, IIG integration and Dify values are correct for the environment.
 - R2 credentials and `AUDIO_STORAGE_MODE=r2` are configured when production media uses R2.
+- `REDIS_URL` is configured and healthy. Redis is mandatory when more than one API instance serves Secure Lectures.
 - Bootstrap administrator credentials are blank after the first administrator exists.
 
 Never copy development `.env` or `.env.r2.local` to production.
@@ -52,7 +54,7 @@ Do not continue without a usable database backup and an application rollback tar
 Migrations are forward-only, tracked in `schema_migrations` and executed in individual transactions.
 
 1. Run `NODE_ENV=production APP_ENV=production npm run db:migrate`.
-2. Confirm the latest applied migration is `120_remove_exam_events.sql` or newer.
+2. Confirm the latest applied migration is `160_secure_lectures.sql` or newer.
 3. Confirm no migration is left partially applied.
 4. Do not manually edit `schema_migrations`.
 
@@ -64,6 +66,23 @@ The server also runs pending migrations during startup, but running the explicit
 2. Start/reload the backend with `NODE_ENV=production` and `APP_ENV=production`.
 3. Validate and reload Nginx using the supplied configuration.
 4. Keep only the required number of old releases after verification completes.
+
+### 6.1 Secure Lectures reverse-proxy requirements
+
+The application currently does not enable Express `trust proxy`. Nginx must be the only Internet-facing hop and must overwrite forwarded headers instead of trusting client-provided values:
+
+```nginx
+proxy_set_header Host              $host;
+proxy_set_header X-Forwarded-Host  $host;
+proxy_set_header X-Forwarded-Proto $scheme;
+proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+```
+
+Do not use `$http_x_forwarded_proto`. Preserve browser `Sec-Fetch-Site`; the Secure Lectures same-origin guard uses it as the primary signal. `X-Forwarded-Proto=https` is required for the `sl_did` cookie to receive `Secure`, while forwarded host/proto are fallback inputs for URL and origin validation.
+
+Until `trust proxy` is enabled with an explicit hop count or trusted proxy CIDR, `req.ip` is the immediate peer (normally Nginx), so IP rate limits group clients behind that peer. Record this limitation in release evidence and test the effective 429 behavior behind the real proxy. Never set `trust proxy=true` without constraining the trusted path.
+
+For multiple API instances, `REDIS_URL` is mandatory. Do not release a multi-instance topology using in-memory session, ticket or rate-limit stores.
 
 ## 7. Smoke verification
 
@@ -94,6 +113,9 @@ deletes production records.
 - Autosave survives refresh; offline changes retry after reconnection.
 - Expiry auto-submits once and repeated submit requests return the same result.
 - Application and Nginx logs contain no new 5xx errors.
+- Secure Lectures creates links on the configured public HTTPS origin; `sl_did` is `Secure`, HttpOnly and SameSite=Lax.
+- Secure Lectures rejects a cross-site request based on `Sec-Fetch-Site` and returns 429 at the documented rate limit.
+- DevTools suspicion only creates an audit log; it never blanks, locks or terminates the lecture.
 
 ## 8. Rollback
 

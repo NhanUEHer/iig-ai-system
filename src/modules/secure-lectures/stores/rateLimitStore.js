@@ -30,8 +30,52 @@ class MemoryRateLimitStore extends RateLimitStore {
   }
 }
 
+const CONSUME_SCRIPT = `
+local count = redis.call('INCR', KEYS[1])
+if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
+local ttl = redis.call('TTL', KEYS[1])
+return { count, ttl }
+`;
+
+class RedisRateLimitStore extends RateLimitStore {
+  constructor({ redis }) {
+    super();
+    this.redis = redis;
+    this.kind = 'redis';
+  }
+
+  async client() {
+    const client = await this.redis.connection();
+    if (!client) throw new Error('Redis rate-limit store is unavailable.');
+    return client;
+  }
+
+  async consume(key, limit, windowSec) {
+    const result = await (await this.client()).eval(CONSUME_SCRIPT, {
+      keys: [`sl:rate:${key}`], arguments: [String(windowSec)],
+    });
+    const count = Number(result[0]);
+    return {
+      allowed: count <= limit,
+      remaining: Math.max(0, limit - count),
+      retryAfterSec: Math.max(1, Number(result[1]) || windowSec),
+    };
+  }
+
+  async reset(key) { return (await this.client()).del(`sl:rate:${key}`); }
+}
+
 function createMemoryRateLimitStore(options) {
   return new MemoryRateLimitStore(options);
 }
 
-module.exports = { RateLimitStore, MemoryRateLimitStore, createMemoryRateLimitStore };
+function createRedisRateLimitStore(options) { return new RedisRateLimitStore(options); }
+
+module.exports = {
+  RateLimitStore,
+  MemoryRateLimitStore,
+  RedisRateLimitStore,
+  createMemoryRateLimitStore,
+  createRedisRateLimitStore,
+  CONSUME_SCRIPT,
+};

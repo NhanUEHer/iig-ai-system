@@ -1,4 +1,7 @@
 import api from './api';
+import { resolveShareUrl } from './secureLectureShareUrl';
+
+export { resolveShareUrl } from './secureLectureShareUrl';
 
 const root = '/secure-lectures';
 const unwrap = response => response.data?.data;
@@ -37,7 +40,9 @@ export const setSecureLectureCurrentVersion = (id, versionId) => api.post(`${roo
 export const previewSecureLectureVersionUrl = (id, versionId) => `/api${root}/lectures/${id}/versions/${versionId}/preview`;
 export const getSecureLectureVersionPreview = (id, versionId) => api.get(`${root}/lectures/${id}/versions/${versionId}/preview`, { responseType: 'blob' }).then(response => response.data);
 export const listSecureLectureShares = id => api.get(`${root}/lectures/${id}/shares`).then(unwrap);
-export const createSecureLectureShare = (id, input) => api.post(`${root}/lectures/${id}/shares`, input).then(unwrap);
+export const createSecureLectureShare = (id, input) => api.post(`${root}/lectures/${id}/shares`, input)
+  .then(unwrap)
+  .then(result => ({ ...result, url: resolveShareUrl(result) }));
 export const updateSecureLectureShare = (id, input) => api.patch(`${root}/shares/${id}`, input).then(unwrap);
 export const revokeSecureLectureShare = (id, reason) => api.post(`${root}/shares/${id}/revoke`, { reason }).then(unwrap);
 export const listSecureLectureShareDevices = id => api.get(`${root}/shares/${id}/devices`).then(unwrap);
