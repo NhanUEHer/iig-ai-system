@@ -7,4 +7,6 @@ module.exports = {
   accessEngine: require('./accessEngine'),
   contentService: require('./contentService'),
   versionService: require('./versionService'),
+  logService: require('./logService'),
+  secureLectureMaintenance: require('./secureLectureMaintenance'),
 };

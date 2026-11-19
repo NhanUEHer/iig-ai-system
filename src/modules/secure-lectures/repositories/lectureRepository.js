@@ -24,6 +24,8 @@ function mapLecture(row) {
     description: row.description,
     currentVersion: mapCurrentVersion(row),
     activeShareCount: Number(row.active_share_count || 0),
+    expiringShareCount: Number(row.expiring_share_count || 0),
+    attention: Boolean(row.attention),
     shareStatusSummary: {
       active: Number(rawSummary.active || 0),
       scheduled: Number(rawSummary.scheduled || 0),
@@ -32,6 +34,11 @@ function mapLecture(row) {
     },
     registeredDeviceCount: Number(row.registered_device_count || 0),
     liveSessionCount: Number(row.live_session_count || 0),
+    accessMetrics: {
+      openOk7d: Number(row.open_ok_7d || 0),
+      deniedCount: Number(row.denied_count || 0),
+      takeoverCount: Number(row.takeover_count || 0),
+    },
     archivedAt: row.archived_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -52,6 +59,16 @@ const SELECT_LECTURE = `
          (SELECT COUNT(*)::int FROM sl_shares s
           WHERE s.lecture_id = l.id AND s.revoked_at IS NULL
             AND s.valid_from <= CURRENT_TIMESTAMP AND s.expires_at > CURRENT_TIMESTAMP) AS active_share_count,
+         (SELECT COUNT(*)::int FROM sl_shares s
+          WHERE s.lecture_id = l.id AND s.revoked_at IS NULL
+            AND s.valid_from <= CURRENT_TIMESTAMP AND s.expires_at > CURRENT_TIMESTAMP
+            AND s.expires_at <= CURRENT_TIMESTAMP + INTERVAL '3 days') AS expiring_share_count,
+         (EXISTS (SELECT 1 FROM sl_devices d JOIN sl_shares s ON s.id = d.share_id
+                  WHERE s.lecture_id = l.id AND d.blocked_at IS NOT NULL)
+          OR EXISTS (SELECT 1 FROM sl_access_logs al
+                     WHERE al.lecture_id = l.id AND al.event = 'open_denied'
+                       AND al.reason = 'DEVICE_LIMIT'
+                       AND al.at >= CURRENT_TIMESTAMP - INTERVAL '7 days')) AS attention,
          (SELECT COUNT(*)::int
           FROM sl_devices d JOIN sl_shares s ON s.id = d.share_id
           WHERE s.lecture_id = l.id AND d.removed_at IS NULL) AS registered_device_count,
@@ -64,21 +81,30 @@ const SELECT_LECTURE = `
            'scheduled', (SELECT COUNT(*)::int FROM sl_shares s WHERE s.lecture_id = l.id AND s.revoked_at IS NULL AND s.valid_from > CURRENT_TIMESTAMP),
            'expired', (SELECT COUNT(*)::int FROM sl_shares s WHERE s.lecture_id = l.id AND s.revoked_at IS NULL AND s.expires_at <= CURRENT_TIMESTAMP),
            'revoked', (SELECT COUNT(*)::int FROM sl_shares s WHERE s.lecture_id = l.id AND s.revoked_at IS NOT NULL)
-         ) AS share_status_summary
+         ) AS share_status_summary,
+         (SELECT COUNT(*)::int FROM sl_access_logs al
+          WHERE al.lecture_id = l.id AND al.event = 'open_ok'
+            AND al.at >= CURRENT_TIMESTAMP - INTERVAL '7 days') AS open_ok_7d,
+         (SELECT COUNT(*)::int FROM sl_access_logs al
+          WHERE al.lecture_id = l.id AND al.event = 'open_denied'
+            AND al.at >= CURRENT_TIMESTAMP - INTERVAL '7 days') AS denied_count,
+         (SELECT COUNT(*)::int FROM sl_access_logs al
+          WHERE al.lecture_id = l.id AND al.event = 'takeover'
+            AND al.at >= CURRENT_TIMESTAMP - INTERVAL '7 days') AS takeover_count
   FROM sl_lectures l
   LEFT JOIN sl_lecture_versions v ON v.id = l.current_version_id
   LEFT JOIN users u ON u.id = l.updated_by`;
 
 function createLectureRepository({ database = db } = {}) {
   async function folderExists(client, id) {
-    const result = await client.query('SELECT 1 FROM sl_folders WHERE id = $1', [id]);
+    const result = await client.query('SELECT 1 FROM sl_folders WHERE id = $1::uuid', [id]);
     return result.rowCount > 0;
   }
 
   async function insert(client, { title, description, folderId, userId }) {
     const result = await client.query(`
       INSERT INTO sl_lectures (folder_id, title, description, created_by, updated_by)
-      VALUES ($1, $2, $3, $4, $4)
+      VALUES ($1::uuid, $2::text, $3::text, $4::uuid, $4::uuid)
       RETURNING id`, [folderId, title, description, userId]);
     return result.rows[0].id;
   }
@@ -86,7 +112,7 @@ function createLectureRepository({ database = db } = {}) {
   async function findById(id, client = database, { includeArchived = false } = {}) {
     const result = await client.query(`
       ${SELECT_LECTURE}
-      WHERE l.id = $1 ${includeArchived ? '' : 'AND l.archived_at IS NULL'}`, [id]);
+      WHERE l.id = $1::uuid ${includeArchived ? '' : 'AND l.archived_at IS NULL'}`, [id]);
     return mapLecture(result.rows[0]);
   }
 
@@ -100,16 +126,16 @@ function createLectureRepository({ database = db } = {}) {
       if (includeSubfolders) {
         where.push(`l.folder_id IN (
           WITH RECURSIVE tree AS (
-            SELECT id FROM sl_folders WHERE id = $${params.length}
+            SELECT id FROM sl_folders WHERE id = $${params.length}::uuid
             UNION ALL SELECT f.id FROM sl_folders f JOIN tree t ON f.parent_id = t.id
           ) SELECT id FROM tree)`);
       } else {
-        where.push(`l.folder_id = $${params.length}`);
+        where.push(`l.folder_id = $${params.length}::uuid`);
       }
     }
     if (q) {
       params.push(`%${q}%`);
-      where.push(`l.title ILIKE $${params.length}`);
+      where.push(`l.title ILIKE $${params.length}::text`);
     }
 
     const activeShare = `EXISTS (SELECT 1 FROM sl_shares fs WHERE fs.lecture_id = l.id
@@ -144,7 +170,7 @@ function createLectureRepository({ database = db } = {}) {
       ${SELECT_LECTURE}
       WHERE ${where.join(' AND ')}
       ORDER BY ${orders[sort] || orders.updated_desc}
-      LIMIT $${limitIndex} OFFSET $${offsetIndex}`, params);
+      LIMIT $${limitIndex}::int OFFSET $${offsetIndex}::int`, params);
     return result.rows.map(mapLecture);
   }
 
@@ -153,13 +179,14 @@ function createLectureRepository({ database = db } = {}) {
     const sets = [];
     for (const [column, value] of Object.entries(changes)) {
       params.push(value);
-      sets.push(`${column} = $${params.length}`);
+      const cast = column === 'folder_id' ? 'uuid' : 'text';
+      sets.push(`${column} = $${params.length}::${cast}`);
     }
     params.push(userId);
     const result = await client.query(`
       UPDATE sl_lectures
-      SET ${sets.join(', ')}, updated_by = $${params.length}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1 AND archived_at IS NULL
+      SET ${sets.join(', ')}, updated_by = $${params.length}::uuid, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1::uuid AND archived_at IS NULL
       RETURNING id`, params);
     return result.rowCount > 0;
   }
@@ -172,7 +199,7 @@ function createLectureRepository({ database = db } = {}) {
     if (locked.rowCount !== ids.length) return null;
     const result = await client.query(`
       UPDATE sl_lectures
-      SET folder_id = $2, updated_by = $3, updated_at = CURRENT_TIMESTAMP
+      SET folder_id = $2::uuid, updated_by = $3::uuid, updated_at = CURRENT_TIMESTAMP
       WHERE id = ANY($1::uuid[]) AND archived_at IS NULL
       RETURNING id`, [ids, folderId, userId]);
     return result.rows.map(row => row.id);
@@ -181,8 +208,8 @@ function createLectureRepository({ database = db } = {}) {
   async function archive(id, userId) {
     const result = await database.query(`
       UPDATE sl_lectures
-      SET archived_at = CURRENT_TIMESTAMP, updated_by = $2, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1 AND archived_at IS NULL
+      SET archived_at = CURRENT_TIMESTAMP, updated_by = $2::uuid, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1::uuid AND archived_at IS NULL
       RETURNING id, archived_at`, [id, userId]);
     return result.rows[0] || null;
   }
@@ -197,10 +224,10 @@ function createLectureRepository({ database = db } = {}) {
       folderFilter = includeSubfolders
         ? `AND folder_id IN (
             WITH RECURSIVE tree AS (
-              SELECT id FROM sl_folders WHERE id = $1
+              SELECT id FROM sl_folders WHERE id = $1::uuid
               UNION ALL SELECT f.id FROM sl_folders f JOIN tree t ON f.parent_id = t.id
             ) SELECT id FROM tree)`
-        : 'AND folder_id = $1';
+        : 'AND folder_id = $1::uuid';
     }
     const result = await database.query(`
       WITH scoped_lectures AS (
@@ -228,6 +255,12 @@ function createLectureRepository({ database = db } = {}) {
             OR EXISTS (
               SELECT 1 FROM sl_devices d
               WHERE d.share_id = s.id AND d.blocked_at IS NOT NULL
+            )
+            OR EXISTS (
+              SELECT 1 FROM sl_access_logs al
+              WHERE al.share_id = s.id AND al.event = 'open_denied'
+                AND al.reason = 'DEVICE_LIMIT'
+                AND al.at >= CURRENT_TIMESTAMP - INTERVAL '7 days'
             )) AS attention_count`, params);
     return {
       totalLectures: Number(result.rows[0]?.total_lectures || 0),

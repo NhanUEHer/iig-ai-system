@@ -9,6 +9,7 @@ const lectureService = require('../modules/secure-lectures/services/lectureServi
 const shareService = require('../modules/secure-lectures/services/shareService');
 const accessEngine = require('../modules/secure-lectures/services/accessEngine');
 const versionService = require('../modules/secure-lectures/services/versionService');
+const logService = require('../modules/secure-lectures/services/logService');
 
 const router = express.Router();
 const multipart = multer({
@@ -76,6 +77,14 @@ router.get(
   requirePermission('secure_lectures.view'),
   asyncHandler(async (req, res) => {
     res.json({ success: true, data: await lectureService.overview(req.query) });
+  }),
+);
+
+router.get(
+  '/logs',
+  requirePermission('secure_lectures.view'),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await logService.list(req.query) });
   }),
 );
 

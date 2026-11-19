@@ -32,10 +32,11 @@ const relativeDate = value => {
 };
 
 function LectureStatus({ lecture }) {
-  if (lecture.activeShareCount > 0) return <span className="sl-badge is-success">Đang chia sẻ</span>;
-  if (lecture.shareStatusSummary?.expired > 0) return <span className="sl-badge is-warning">Đã hết hạn</span>;
-  if (lecture.shareStatusSummary?.revoked > 0) return <span className="sl-badge is-muted">Không còn link</span>;
-  return <span className="sl-badge is-muted">Chưa chia sẻ</span>;
+  const primary = lecture.activeShareCount > 0 ? <span className="sl-badge is-success">Đang chia sẻ</span>
+    : lecture.shareStatusSummary?.expired > 0 ? <span className="sl-badge is-warning">Đã hết hạn</span>
+      : lecture.shareStatusSummary?.revoked > 0 ? <span className="sl-badge is-muted">Không còn link</span>
+        : <span className="sl-badge is-muted">Chưa chia sẻ</span>;
+  return <span className="sl-status-badges">{primary}{lecture.expiringShareCount > 0 && <span className="sl-badge is-warning">Sắp hết hạn</span>}{lecture.attention && <span className="sl-badge is-danger">Cần chú ý</span>}</span>;
 }
 
 function FolderNode({ node, depth, selectedId, expanded, canManage, menuId, onToggle, onSelect, onMenu, onAction, onLectureDrop }) {
