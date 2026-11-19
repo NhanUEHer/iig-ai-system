@@ -53,6 +53,7 @@ import ExamCandidateListPage from './features/exam-candidates/pages/ExamCandidat
 import ScoreScaleListPage from './features/score-scales/pages/ScoreScaleListPage';
 import ScoreScaleCreatePage from './features/score-scales/pages/ScoreScaleCreatePage';
 import ScoreScaleEditPage from './features/score-scales/pages/ScoreScaleEditPage';
+import SecureLectureLibraryPage from './features/secure-lectures/pages/LibraryPage';
 
 
 const API_BASE = '/api/submissions';
@@ -69,6 +70,7 @@ const firstAllowedPath = user => {
   if (has('ai_scoring.jobs.view')) return '/ai-scoring/jobs';
   if (has('ai_scoring.tenants.view')) return '/ai-scoring/tenants';
   if (hasAny(['content_sources.view','content_sources.create'])) return '/content-sources';
+  if (has('secure_lectures.view')) return '/secure-lectures';
   if (hasAny(['key_vocab.view','key_vocab.generate','key_vocab.manage','dictionary.view','dictionary.generate','dictionary.manage'])) return '/key-vocab';
   if (hasAny(['reports.view','reports.forms.view','reports.entry','reports.review','reports.assign','reports.publish','reports.manage'])) return '/reports/kpi';
   if (hasAny(['expenses.view','expenses.import','expenses.manage'])) return '/expenses/dashboard';
@@ -105,6 +107,7 @@ function App() {
   else if (path.startsWith('/content-development')) activeTab = 'content-development';
   else if (path.startsWith('/content-sources')) activeTab = 'content-sources';
   else if (path.startsWith('/content-studio')) activeTab = 'content-studio';
+  else if (path.startsWith('/secure-lectures')) activeTab = 'secure-lectures';
   else if (path.startsWith('/key-vocab')) activeTab = 'key-vocab';
   else if (path.startsWith('/dictionary')) activeTab = 'key-vocab';
   else if (path.startsWith('/logs')) activeTab = 'logs';
@@ -587,6 +590,8 @@ function App() {
               <Route path="/content-studio/new" element={['content_studio.view','content_studio.edit','content_studio.generate'].some(hasPermission) ? <StudioCreatePage showMsg={showMsg} permissions={{ edit: hasPermission('content_studio.edit'), generate: hasPermission('content_studio.generate') }} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/content-studio/folders/:folderId" element={['content_studio.view','content_studio.edit','content_studio.generate'].some(hasPermission) ? <StudioFolderPage showMsg={showMsg} permissions={{ edit: hasPermission('content_studio.edit'), manageFolders: hasPermission('content_studio.manage_folders') }} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/content-studio/items/:id" element={['content_studio.view','content_studio.edit','content_studio.generate'].some(hasPermission) ? <ContentStudioItemPage showMsg={showMsg} permissions={{ edit: hasPermission('content_studio.edit'), generate: hasPermission('content_studio.generate'), export: hasPermission('content_studio.export') }} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/secure-lectures" element={hasPermission('secure_lectures.view') ? <SecureLectureLibraryPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/secure-lectures/folders/:folderId" element={hasPermission('secure_lectures.view') ? <SecureLectureLibraryPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/key-vocab" element={['key_vocab.view','key_vocab.generate','key_vocab.manage','dictionary.view','dictionary.generate','dictionary.manage'].some(hasPermission) ? <KeyVocabPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/dictionary" element={<Navigate to="/key-vocab" replace />} />
 
