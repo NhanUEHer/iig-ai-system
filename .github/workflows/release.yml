@@ -133,11 +133,24 @@ jobs:
         env:
           COMPONENTS: ${{ needs.plan.outputs.components }}
           VERSION: ${{ needs.plan.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          # Definitions-only change: re-apply the running API image (no rebuild) so compose converges.
+          set -euo pipefail
           components="${COMPONENTS:-admin-api}"
           tag="beta-${GITHUB_SHA}"
           if [ -z "$COMPONENTS" ]; then
-            tag="$(ssh root@${{ secrets.VPS_HOST }} "manifest beta" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const m=JSON.parse(s);process.stdout.write("beta-"+m.commit)})')"
+            # Definitions-only change: re-apply the admin-api image that is really current.
+            # Do NOT trust the server manifest's commit (it can return a stale APP_COMMIT and roll Beta back);
+            # use the newest successful release run that actually built admin-api.
+            built=""
+            for run in $(gh run list -R "$GITHUB_REPOSITORY" -w release.yml -b develop --status success -L 30 --json databaseId,headSha -q '.[] | "\(.databaseId):\(.headSha)"'); do
+              id="${run%%:*}"; sha="${run#*:}"
+              if gh run view "$id" -R "$GITHUB_REPOSITORY" --json jobs -q '.jobs[] | select(.name | test("^Build admin-api")) | .conclusion' | grep -qx success; then
+                built="$sha"; break
+              fi
+            done
+            [ -n "$built" ] || { echo "::error::No successful admin-api build found; run release.yml with force_all=true." >&2; exit 1; }
+            tag="beta-$built"
+            echo "Definitions-only deploy re-applies admin-api image $tag"
           fi
           ssh root@${{ secrets.VPS_HOST }} "deploy beta $tag $VERSION ${tag#beta-} $components"
