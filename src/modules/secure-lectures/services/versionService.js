@@ -39,13 +39,14 @@ function createVersionService({
     note = null,
     makeCurrent = true,
     userId = null,
+    transactionClient = null,
   } = {}) {
     const { meta } = inspector(file);
     const digest = sha256(file.buffer);
     let storedKey = null;
 
     try {
-      return await database.transaction(async client => {
+      const work = async client => {
         const lecture = await client.query(
           'SELECT id FROM sl_lectures WHERE id = $1 AND archived_at IS NULL FOR UPDATE',
           [lectureId],
@@ -97,7 +98,8 @@ function createVersionService({
           [lectureId, userId, JSON.stringify({ versionId: version.id, versionNo })],
         );
         return mapVersion(version);
-      });
+      };
+      return transactionClient ? await work(transactionClient) : await database.transaction(work);
     } catch (error) {
       if (storedKey) await blobStore.remove(storedKey).catch(() => {});
       throw error;
@@ -152,7 +154,11 @@ function createVersionService({
     return { version, buffer: await blobStore.get(version.storageKey) };
   }
 
-  return { createVersion, setCurrent, list, read };
+  async function removeBlob(storageKey) {
+    if (storageKey) await blobStore.remove(storageKey);
+  }
+
+  return { createVersion, setCurrent, list, read, removeBlob };
 }
 
 const service = createVersionService();

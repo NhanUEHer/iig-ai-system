@@ -4,6 +4,8 @@ const asyncHandler = require('../http/asyncHandler');
 const { requirePermission } = require('../middleware/authenticate');
 const config = require('../modules/secure-lectures/config');
 const { SecureLectureError, toHttp } = require('../modules/secure-lectures/errors');
+const folderService = require('../modules/secure-lectures/services/folderService');
+const lectureService = require('../modules/secure-lectures/services/lectureService');
 const versionService = require('../modules/secure-lectures/services/versionService');
 
 const router = express.Router();
@@ -34,9 +36,105 @@ router.get('/health', requirePermission('secure_lectures.view'), (req, res) => {
 });
 
 router.get(
+  '/folders',
+  requirePermission('secure_lectures.view'),
+  asyncHandler(async (_req, res) => {
+    res.json({ success: true, data: await folderService.list() });
+  }),
+);
+
+router.post(
+  '/folders',
+  requirePermission('secure_lectures.manage'),
+  asyncHandler(async (req, res) => {
+    const data = await folderService.create(req.body, req.auth.userId);
+    res.status(201).json({ success: true, data });
+  }),
+);
+
+router.patch(
+  '/folders/:id',
+  requirePermission('secure_lectures.manage'),
+  asyncHandler(async (req, res) => {
+    const data = await folderService.update(req.params.id, req.body, req.auth.userId);
+    res.json({ success: true, data });
+  }),
+);
+
+router.delete(
+  '/folders/:id',
+  requirePermission('secure_lectures.manage'),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await folderService.remove(req.params.id) });
+  }),
+);
+
+router.get(
+  '/overview',
+  requirePermission('secure_lectures.view'),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await lectureService.overview(req.query) });
+  }),
+);
+
+router.get(
+  '/lectures',
+  requirePermission('secure_lectures.view'),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await lectureService.list(req.query) });
+  }),
+);
+
+router.post(
+  '/lectures',
+  requirePermission('secure_lectures.manage'),
+  uploadHtml,
+  asyncHandler(async (req, res) => {
+    const data = await lectureService.create(req.body, req.file, req.auth.userId);
+    res.status(201).json({ success: true, data });
+  }),
+);
+
+// Keep this static path before /lectures/:id.
+router.post(
+  '/lectures/move',
+  requirePermission('secure_lectures.manage'),
+  asyncHandler(async (req, res) => {
+    const data = await lectureService.move(req.body, req.auth.userId);
+    res.json({ success: true, data });
+  }),
+);
+
+router.get(
+  '/lectures/:id',
+  requirePermission('secure_lectures.view'),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await lectureService.detail(req.params.id) });
+  }),
+);
+
+router.patch(
+  '/lectures/:id',
+  requirePermission('secure_lectures.manage'),
+  asyncHandler(async (req, res) => {
+    const data = await lectureService.update(req.params.id, req.body, req.auth.userId);
+    res.json({ success: true, data });
+  }),
+);
+
+router.delete(
+  '/lectures/:id',
+  requirePermission('secure_lectures.manage'),
+  asyncHandler(async (req, res) => {
+    res.json({ success: true, data: await lectureService.archive(req.params.id, req.auth.userId) });
+  }),
+);
+
+router.get(
   '/lectures/:id/versions',
   requirePermission('secure_lectures.view'),
   asyncHandler(async (req, res) => {
+    folderService.requireUuid(req.params.id, 'id');
     res.json({ success: true, data: await versionService.list(req.params.id) });
   }),
 );
@@ -46,6 +144,7 @@ router.post(
   requirePermission('secure_lectures.manage'),
   uploadHtml,
   asyncHandler(async (req, res) => {
+    folderService.requireUuid(req.params.id, 'id');
     const data = await versionService.createVersion(req.params.id, req.file, {
       note: req.body?.note,
       makeCurrent: booleanField(req.body?.makeCurrent, true),
@@ -59,6 +158,8 @@ router.post(
   '/lectures/:id/versions/:versionId/current',
   requirePermission('secure_lectures.manage'),
   asyncHandler(async (req, res) => {
+    folderService.requireUuid(req.params.id, 'id');
+    folderService.requireUuid(req.params.versionId, 'versionId');
     const data = await versionService.setCurrent(
       req.params.id,
       req.params.versionId,
