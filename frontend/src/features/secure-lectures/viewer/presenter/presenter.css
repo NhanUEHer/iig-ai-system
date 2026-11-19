@@ -1,26 +1,31 @@
 .slp-annotation { position: absolute; inset: 0; z-index: 12; width: 100%; height: 100%; touch-action: none; }
 .slp-annotation.is-mouse { pointer-events: none; }
-.slp-annotation.is-pen, .slp-annotation.is-highlighter { cursor: crosshair; }
+.slp-annotation.is-pen, .slp-annotation.is-highlighter, .slp-annotation.is-arrow, .slp-annotation.is-rect, .slp-annotation.is-ellipse { cursor: crosshair; }
+.slp-annotation.is-text { cursor: text; }
 .slp-annotation.is-eraser { cursor: none; }
 .slp-annotation.is-laser { cursor: none; }
 .slp-whiteboard { position: absolute; inset: 0; z-index: 10; background: #fffefa; }
 .slp-whiteboard.is-dark { background: #161714; }
 .slp-whiteboard__controls { position: absolute; z-index: 16; top: 12px; left: 50%; display: flex; gap: 8px; transform: translateX(-50%); }
 .slp-whiteboard__controls button { height: 32px; padding: 0 12px; border: 1px solid #555752; border-radius: 7px; background: #292a27; color: #fff; font: inherit; font-size: 12px; cursor: pointer; }
-.slp-toolbar { position: absolute; z-index: 30; bottom: 16px; left: 50%; display: flex; max-width: calc(100% - 24px); align-items: center; gap: 3px; padding: 7px; border: 1px solid rgba(255,255,255,.16); border-radius: 12px; background: rgba(37,38,35,.96); color: #f4f4f1; box-shadow: 0 12px 32px rgba(0,0,0,.35); transform: translateX(-50%); }
-.slp-tool, .slp-toolbar-toggle { display: inline-grid; width: 34px; height: 34px; flex: none; place-items: center; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #d5d6d0; cursor: pointer; }
+.slp-toolbar { position: absolute; z-index: 30; top: 50%; right: 12px; display: flex; max-height: calc(100% - 24px); flex-direction: column; align-items: center; gap: 3px; padding: 6px; overflow-y: auto; border: 1px solid rgba(255,255,255,.16); border-radius: 12px; background: rgba(37,38,35,.96); color: #f4f4f1; box-shadow: 0 12px 32px rgba(0,0,0,.35); transform: translateY(-50%); scrollbar-width: none; }
+.slp-tool { display: inline-grid; width: 34px; height: 34px; flex: none; place-items: center; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #d5d6d0; cursor: pointer; }
 .slp-tool:hover { background: #3b3c38; color: #fff; }
 .slp-tool.is-active { border-color: #e07a5d; background: #d55f3d; color: #fff; }
 .slp-tool:disabled { opacity: .35; cursor: default; }
-.slp-tool svg, .slp-toolbar-toggle svg { width: 17px; height: 17px; }
-.slp-separator { width: 1px; height: 24px; flex: none; margin: 0 3px; background: #555752; }
-.slp-colors { display: flex; align-items: center; gap: 3px; }
-.slp-colors > svg { width: 16px; height: 16px; margin: 0 3px; color: #b9bbb4; }
+.slp-tool svg, .slp-rail-toggle svg { width: 17px; height: 17px; }
+.slp-separator { width: 24px; height: 1px; flex: none; margin: 3px 0; background: #555752; }
+.slp-colors { display: grid; grid-template-columns: repeat(2, 17px); gap: 5px; padding: 2px 0; }
 .slp-colors button { width: 17px; height: 17px; padding: 0; border: 2px solid transparent; border-radius: 50%; background: var(--slp-color); box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); cursor: pointer; }
 .slp-colors button.is-active { border-color: #d55f3d; outline: 1px solid #fff; outline-offset: 1px; }
-.slp-width { width: 62px; height: 30px; border: 1px solid #555752; border-radius: 6px; background: #292a27; color: #fff; font: inherit; font-size: 11px; }
-.slp-toolbar-toggle { position: absolute; z-index: 30; bottom: 16px; left: 50%; display: flex; width: auto; padding: 0 10px; border-color: #555752; background: #292a27; transform: translateX(-50%); }
-.slp-toolbar-toggle svg + svg { width: 12px; }
+.slp-widths { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+.slp-widths button { display: grid; width: 34px; height: 24px; place-items: center; border: 1px solid transparent; border-radius: 6px; background: transparent; cursor: pointer; }
+.slp-widths button span { display: block; border-radius: 50%; background: #d5d6d0; }
+.slp-widths button.is-active { border-color: #d55f3d; background: #3b3c38; }
+.slp-rail-toggle { position: absolute; z-index: 30; top: 50%; right: 12px; display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid rgba(255,255,255,.16); border-radius: 12px; background: rgba(37,38,35,.92); color: #f4f4f1; box-shadow: 0 8px 22px rgba(0,0,0,.3); cursor: pointer; transform: translateY(-50%); opacity: .75; transition: opacity .15s; }
+.slp-rail-toggle:hover { opacity: 1; }
+.slp-rail-toggle__dot { position: absolute; right: 6px; bottom: 6px; width: 8px; height: 8px; border: 1px solid #fff; border-radius: 50%; background: var(--slp-color); }
+.slp-text-input { position: absolute; z-index: 14; min-width: 120px; min-height: 1.4em; margin: 0; padding: 2px 4px; resize: none; overflow: hidden; border: 1px dashed #d55f3d; border-radius: 4px; outline: none; background: rgba(255,255,255,.08); font-family: inherit; font-weight: 600; line-height: 1.25; white-space: pre; user-select: text; }
 .slp-notes { position: absolute; z-index: 40; top: 0; right: 0; display: flex; width: min(320px, 90vw); height: 100%; flex-direction: column; padding: 14px; border-left: 1px solid #444541; background: rgba(31,32,29,.98); color: #f5f5f2; box-shadow: -12px 0 28px rgba(0,0,0,.3); }
 .slp-notes header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .slp-notes header div { display: flex; flex-direction: column; gap: 3px; }
@@ -41,7 +46,4 @@
 .slp-save-error { position: absolute; z-index: 50; top: 12px; left: 50%; padding: 8px 12px; border: 1px solid #8f4337; border-radius: 7px; background: #f6e3df; color: #71362e; font: inherit; font-size: 12px; cursor: pointer; transform: translateX(-50%); }
 .slp-save-error span { margin-left: 8px; font-weight: 700; }
 .slp-slide-reader { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
-@media (max-width: 900px) {
-  .slp-toolbar { overflow-x: auto; justify-content: flex-start; }
-  .slp-colors > button:nth-of-type(n+5) { display: none; }
-}
+.slp-toolbar.is-shifted, .slp-rail-toggle.is-shifted { right: calc(min(320px, 90vw) + 12px); }

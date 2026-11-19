@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import AnnotationLayer from './AnnotationLayer';
+import { TEXT_SIZES } from './geometry';
 import NotesPanel from './NotesPanel';
 import PresenterToolbar from './PresenterToolbar';
 import {
@@ -8,7 +9,7 @@ import {
 import { createAnnotationStore } from './annotationStore';
 import './presenter.css';
 
-const DRAWING_TOOLS = new Set(['pen', 'highlighter', 'eraser', 'laser']);
+const DRAWING_TOOLS = new Set(['pen', 'highlighter', 'text', 'arrow', 'rect', 'ellipse', 'eraser', 'laser']);
 
 function editableTarget(target) {
   return Boolean(target?.closest?.('input, textarea, select, [contenteditable="true"]'));
@@ -68,7 +69,7 @@ export default function PresenterTools({ token, frameRef, frameEpoch }) {
     const shift = Boolean(eventLike.shiftKey ?? eventLike.shift);
     if (command && key === 'z') { if (shift) redo(); else undo(); return true; }
     if (command && key === 'y') { redo(); return true; }
-    const tools = { v: 'mouse', escape: 'mouse', p: 'pen', h: 'highlighter', e: 'eraser', l: 'laser' };
+    const tools = { v: 'mouse', escape: 'mouse', p: 'pen', h: 'highlighter', t: 'text', a: 'arrow', r: 'rect', o: 'ellipse', e: 'eraser', l: 'laser' };
     if (!command && tools[key]) { setTool(tools[key]); return true; }
     if (!command && key === 'w') { setWhiteboard(value => !value); return true; }
     if (!command && key === 'n') { setNotesOpen(value => !value); setViewedNote(null); return true; }
@@ -120,6 +121,7 @@ export default function PresenterTools({ token, frameRef, frameEpoch }) {
       tool={tool}
       color={color}
       width={tool === 'highlighter' ? Math.max(12, width * 3) : width}
+      textSize={TEXT_SIZES[width] || 32}
       onAdd={stroke => dispatch({ type: 'add', slideKey: activeKey, stroke })}
       onErase={strokeId => dispatch({ type: 'remove', slideKey: activeKey, strokeId })}
     />

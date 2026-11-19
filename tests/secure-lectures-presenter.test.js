@@ -130,3 +130,27 @@ test('normalized coordinates round-trip and eraser hit-testing works on whole st
   assert.equal(hitTestStroke(stroke, [0.5, 0.51], 1000, 500), true);
   assert.equal(hitTestStroke(stroke, [0.5, 0.8], 1000, 500), false);
 });
+
+test('presenter erases shapes by outline and text by its box', async () => {
+  const { hitTestAnnotation, shapeOutline, textBounds } = await import('../frontend/src/features/secure-lectures/viewer/presenter/geometry.js');
+  const rect = { id: 'r', tool: 'rect', width: 3, points: [[0.1, 0.1], [0.5, 0.5]] };
+  assert.equal(shapeOutline(rect, 1000, 1000).length, 5);
+  assert.equal(hitTestAnnotation(rect, [0.1, 0.3], 1000, 1000), true);
+  assert.equal(hitTestAnnotation(rect, [0.3, 0.3], 1000, 1000), false);
+  const ellipse = { id: 'e', tool: 'ellipse', width: 3, points: [[0.2, 0.2], [0.6, 0.6]] };
+  assert.equal(hitTestAnnotation(ellipse, [0.6, 0.4], 1000, 1000), true);
+  assert.equal(hitTestAnnotation(ellipse, [0.4, 0.4], 1000, 1000), false);
+  const arrow = { id: 'a', tool: 'arrow', width: 3, points: [[0, 0], [1, 1]] };
+  assert.equal(hitTestAnnotation(arrow, [0.5, 0.5], 1000, 1000), true);
+  const text = { id: 't', tool: 'text', size: 32, text: 'Hello\nWorld', points: [[0.5, 0.5]] };
+  const box = textBounds(text, 1280, 720);
+  assert.equal(box.x, 640);
+  assert.ok(box.height > 32 * 2);
+  assert.equal(hitTestAnnotation(text, [0.52, 0.52], 1280, 720), true);
+  assert.equal(hitTestAnnotation(text, [0.1, 0.1], 1280, 720), false);
+});
+
+test('guard forwards the new presenter shortcuts', () => {
+  const source = require('node:fs').readFileSync(require('node:path').join(__dirname, '../src/modules/secure-lectures/assets/guard.js'), 'utf8');
+  for (const key of ['t', 'a', 'r', 'o']) assert.match(source, new RegExp(`'${key}'`));
+});
