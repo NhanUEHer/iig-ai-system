@@ -570,3 +570,6 @@
   .key-vocab-modal.history .key-vocab-read-main { grid-template-columns: 1fr; gap: 5px; }
   .key-vocab-modal.history .key-vocab-read-main p { grid-column: auto; }
 }
+
+.key-vocab-v2__select-all { display: inline-flex; align-items: center; gap: 8px; margin-right: 16px; font-weight: 600; cursor: pointer; }
+.key-vocab-v2__select-all input { width: 16px; height: 16px; accent-color: var(--primary, #c2502e); cursor: pointer; }
