@@ -28,7 +28,9 @@
    - Nhãn thiết bị tạo từ UA (viết hàm parse nhỏ, không thêm thư viện nặng).
 5. Route public `/session`, `/session/takeover`, `/heartbeat`, `/end`, `/event` + rate-limit SPEC §5
    (`rateLimitStore` Redis, fallback memory).
-6. Cài `POST /sessions/:id/kick` (admin) và nối `shareService.revoke`, `removeDevice`, `blockDevice` để kết thúc phiên.
+6. Lưu ý: `src/app.js` gọi `app.use(cors())` toàn cục **trước** mọi route, nên router public đang thừa hưởng CORS mở. Phải chặn
+   CORS cho `/api/public/lectures/*` (ví dụ đặt middleware riêng trước `cors()` hoặc cấu hình `cors` theo path) và có test.
+7. Cài `POST /sessions/:id/kick` (admin) và nối `shareService.revoke`, `removeDevice`, `blockDevice` để kết thúc phiên.
 
 ## Test
 `tests/secure-lectures-access.test.js`, chạy cho **cả hai** store: memory-Redis giả và DB/pg-mem, hoặc đánh dấu skip
