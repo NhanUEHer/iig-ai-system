@@ -89,8 +89,8 @@ export function VocabView({ artifact, draft, dirty, onChange: update, shell, act
               <span>{item.pos && <span className="cs-tag">{item.pos}</span>}</span>
               <span className="cs-words__meaning">{item.meaningVi}</span>
               <span className="cs-words__actions">
-                {shell.canGenerate && <Button variant="ghost" size="sm" icon={<RefreshCw />} loading={fillingIndex === index} disabled={!canFill || fillingIndex != null} onClick={event => { event.stopPropagation(); onFill(index); }}>Tạo lại từ này</Button>}
-                {!ro && <button type="button" className="cs-icon-btn" title="Sửa" onClick={event => { event.stopPropagation(); onActivate(index); }}><Pencil /></button>}
+                {shell.canGenerate && <button type="button" className={`cs-icon-btn${fillingIndex === index ? ' is-busy' : ''}`} title={fillLabel} aria-label={`${fillLabel}: ${item.lemma || index + 1}`} disabled={!canFill || fillingIndex != null} onClick={event => { event.stopPropagation(); onFill(index); }}><RefreshCw /></button>}
+                {!ro && <button type="button" className="cs-icon-btn" title="Sửa" aria-label={`Sửa từ ${item.lemma || index + 1}`} onClick={event => { event.stopPropagation(); onActivate(index); }}><Pencil /></button>}
               </span>
             </div>}
           {!ro && <button type="button" className="cs-icon-btn cs-words__delete" title="Xoá từ" aria-label={`Xoá từ ${item.lemma || index + 1}`} onClick={() => remove(index)}><Trash2 /></button>}

@@ -82,7 +82,7 @@ async function lessonModel(item, client = db) {
 function fileName(item, kind, format) {
   const base = clean(item.title).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D')
     .replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'hoc_lieu';
-  const prefix = { vocab: 'KeyVocabulary', dictionary: 'VocabularyDictionary', bilingual: 'SongNgu', questions: 'CauHoi_GiaoVien', 'questions-student': 'CauHoi_HocVien', full: 'HocLieu' }[kind] || kind;
+  const prefix = { vocab: 'KeyVocabulary', dictionary: 'VocabularyDictionary', bilingual: 'SongNgu', questions: 'CauHoi_GiaoVien', full: 'HocLieu' }[kind] || kind;
   return `${prefix}_${base}.${format}`;
 }
 
@@ -102,14 +102,14 @@ async function exportItem(itemId, kind, format) {
     if (!file) throw new HttpError('Định dạng không hỗ trợ.', 400, 'INVALID_EXPORT_FORMAT');
     return { file, mime: MIME[format], name: fileName(item, kind, format), skipped: detail.skipped };
   }
-  if (['bilingual', 'questions', 'questions-student', 'full'].includes(kind)) {
+  if (['bilingual', 'questions', 'full'].includes(kind)) {
     if (format !== 'docx') throw new HttpError('Định dạng không hỗ trợ.', 400, 'INVALID_EXPORT_FORMAT');
     const model = await lessonModel(item);
     if (kind === 'bilingual' && !model.passages.some(passage => passage.sentences.length)) throw new HttpError('Chưa có bản dịch để xuất.', 400, 'EMPTY_TRANSLATION_EXPORT');
     if (kind.startsWith('questions') && !model.questions.some(question => question.pack)) throw new HttpError('Chưa có nội dung câu hỏi để xuất.', 400, 'EMPTY_QUESTION_EXPORT');
     const file = kind === 'bilingual' ? await docx.buildBilingual(model)
       : kind === 'full' ? await docx.buildFull(model)
-        : await docx.buildQuestions(model, { student: kind === 'questions-student' });
+        : await docx.buildQuestions(model);
     return { file, mime: MIME.docx, name: fileName(item, kind, 'docx') };
   }
   throw new HttpError('Loại export không hỗ trợ.', 400, 'INVALID_EXPORT_KIND');

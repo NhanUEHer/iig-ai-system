@@ -221,9 +221,8 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   const exportOptions = [
     { kind: 'vocab', label: 'Key Vocab', formats: ['xlsx', 'docx'], ready: vocabCount > 0, hint: `${vocabCount} từ · đúng template import LMS`, reason: 'Chưa có Từ vựng' },
     { kind: 'dictionary', label: 'Từ điển', formats: ['xlsx', 'docx'], ready: dictReady > 0, hint: `${dictReady} mục hoàn tất · mục cần xem lại sẽ bị bỏ qua`, reason: 'Chưa có mục từ điển hoàn tất' },
-    { kind: 'bilingual', label: 'Song ngữ Anh – Việt', formats: ['docx'], ready: translationCounts.total > 0, hint: 'Bảng EN | VI theo câu + bản dịch liền mạch', reason: 'Chưa có bản dịch' },
-    { kind: 'questions', label: 'Câu hỏi · bản giáo viên', formats: ['docx'], ready: readyQuestions > 0, hint: 'Đáp án, dịch, Hint, Explanation, Note', reason: 'Chưa có nội dung câu hỏi' },
-    { kind: 'questions-student', label: 'Câu hỏi · bản học viên', formats: ['docx'], ready: readyQuestions > 0, hint: 'Ẩn đáp án và Explanation, đáp án ở cuối', reason: 'Chưa có nội dung câu hỏi' },
+    { kind: 'bilingual', label: 'Song ngữ Anh – Việt', formats: ['docx'], ready: translationCounts.total > 0, hint: 'Bảng EN | VI, song ngữ xen kẽ, bản dịch liền mạch', reason: 'Chưa có bản dịch' },
+    { kind: 'questions', label: 'Câu hỏi', formats: ['docx'], ready: readyQuestions > 0, hint: 'Đáp án, dịch, Hint, Explanation, Note', reason: 'Chưa có nội dung câu hỏi' },
     { kind: 'full', label: 'Toàn bộ học liệu', formats: ['docx'], ready: vocabCount > 0 || translationCounts.total > 0 || readyQuestions > 0, hint: 'Đoạn văn, song ngữ, từ vựng, từ điển, câu hỏi', reason: 'Chưa có nội dung' },
   ];
   const tabs = [
