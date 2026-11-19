@@ -3,6 +3,8 @@ import { ChevronLeft, ChevronRight, RefreshCw, TriangleAlert } from 'lucide-reac
 import { Button } from '../../../design-system-v2';
 import ArtifactShell, { STATUS, isBusy } from './ArtifactShell';
 
+const autoSize = node => { if (node) { node.style.height = 'auto'; node.style.height = `${node.scrollHeight + 2}px`; } };
+
 const LETTERS = ['A', 'B', 'C', 'D'];
 const FIELDS = [
   { value: 'translation', label: 'Dịch câu hỏi & đáp án', hint: 'một đoạn: câu hỏi + (A)–(D)', rows: 5 },
@@ -23,7 +25,7 @@ export function explanationQuote(value, passage) {
 function Field({ definition, index, value, issues, readOnly, onChange }) {
   return <div className={`cs-question-field cs-question-field--${definition.value}${issues.length ? ' is-review' : ''}`}>
     <div><span>{index + 1}</span><strong>{definition.label}</strong><small>{definition.hint}</small></div>
-    <textarea rows={definition.rows} value={value || ''} readOnly={readOnly} aria-label={definition.label} onChange={event => onChange(event.target.value)} />
+    <textarea ref={autoSize} onInput={event => autoSize(event.currentTarget)} rows={definition.rows} value={value || ''} readOnly={readOnly} aria-label={definition.label} onChange={event => onChange(event.target.value)} />
     {issues.map((issue, issueIndex) => <p key={`${issue.code}-${issueIndex}`}><TriangleAlert />{issue.message}</p>)}
   </div>;
 }
@@ -75,7 +77,7 @@ export function QuestionWorkspace({ questions, artifacts, drafts, selectedId, on
             onChange={value => set({ [definition.value]: value })} />)}
         </div>
         <footer>
-          {shell.canGenerate && <Button variant="outline" size="sm" icon={<RefreshCw />} disabled={isBusy(artifact)} onClick={() => shell.onRegenerate(artifact)}>Tạo lại câu này</Button>}
+          {shell.canGenerate && <Button variant="outline" size="sm" icon={<RefreshCw />} loading={shell.isRegenerating?.(artifact)} disabled={isBusy(artifact) || shell.isRegenerating?.(artifact)} onClick={() => shell.onRegenerate(artifact)}>Tạo lại câu này</Button>}
           <span />
           <button type="button" disabled={!previous} onClick={() => previous && onSelect(previous.id)}><ChevronLeft />{previous ? `Câu ${previous.number}` : 'Câu trước'}</button>
           <button type="button" className="is-next" disabled={!next} onClick={() => next && onSelect(next.id)}>{next ? `Câu ${next.number}` : 'Câu sau'}<ChevronRight /></button>

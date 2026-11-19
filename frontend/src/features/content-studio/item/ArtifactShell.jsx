@@ -24,7 +24,7 @@ export default function ArtifactShell({ artifact, label, dirty, shell, children 
   return <div className="cs-artifact">
     <div className="cs-artifact__bar">
       <StatusBadge status={STATUS[artifact.status]?.tone} label={STATUS[artifact.status]?.label} />
-      {artifact.source && <small>{artifact.source === 'human' ? 'Đã chỉnh tay' : `AI · ${artifact.provider || ''}`}</small>}
+      {artifact.source && <small>{artifact.source === 'human' ? 'Đã chỉnh tay' : 'AI'}</small>}
       {dirty && <em className="cs-dirty">Chưa lưu</em>}
       <span className="cs-artifact__spacer" />
       {shell.canGenerate && <Button variant="ghost" size="sm" icon={<RefreshCw />} disabled={isBusy(artifact)} onClick={() => shell.onRegenerate(artifact)}>Tạo lại</Button>}

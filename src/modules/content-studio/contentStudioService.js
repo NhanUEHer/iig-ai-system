@@ -1,7 +1,7 @@
 'use strict';
 const db = require('../../config/db');
 const HttpError = require('../../http/httpError');
-const { detectContent, countSentences } = require('./detect/detectContent');
+const { detectContent, countSentences, splitSentences } = require('./detect/detectContent');
 const summaryService = require('./summaryService');
 
 const MAX_SOURCE_CHARS = 60000;
@@ -221,6 +221,52 @@ async function insertSegments(client, itemId, segments) {
   }
 }
 
+// ---------- stale detection (generated content vs. edited source) ----------
+const { passageHash, questionHash, norm: normText } = require('./sourceHash');
+
+function passageForSet(segments, setSegment) {
+  const passages = segments.filter(segment => segment.kind === 'passage');
+  return passages.find(segment => segment.position === setSegment?.meta?.passageIndex) || passages[0];
+}
+
+// An artifact is stale when it was built from a source fingerprint that no longer matches.
+// Artifacts generated before fingerprints existed (sourceHash null) are never flagged.
+function markStale(segments, questions, artifacts) {
+  for (const artifact of artifacts) {
+    let current = null;
+    if (artifact.type === 'question_pack') {
+      const question = questions.find(row => row.id === artifact.questionId);
+      const setSegment = segments.find(segment => segment.id === question?.segmentId);
+      if (question) current = questionHash(passageForSet(segments, setSegment)?.text || '', question);
+    } else {
+      const segment = segments.find(row => row.id === artifact.segmentId);
+      if (segment) current = passageHash(segment.text);
+    }
+    artifact.stale = Boolean(artifact.sourceHash && current && artifact.sourceHash !== current && artifact.content);
+    delete artifact.sourceHash;
+  }
+}
+
+// Dictionary works per sentence: stale when stored sentences differ from the passage's current sentences.
+function dictionarySentencesStale(segments, dictSentences) {
+  if (!dictSentences.length) return 0;
+  const stored = new Set(dictSentences.map(row => `${row.segmentId}|${normText(row.text)}`));
+  const current = segments.filter(segment => segment.kind === 'passage')
+    .flatMap(segment => splitSentences(segment.text).map(text => `${segment.id}|${normText(text)}`));
+  const currentSet = new Set(current);
+  return current.filter(key => !stored.has(key)).length + [...stored].filter(key => !currentSet.has(key)).length;
+}
+
+function staleSummary(artifacts, dictionaryStale) {
+  const count = type => artifacts.filter(artifact => artifact.type === type && artifact.stale).length;
+  return [
+    { part: 'vocab', count: count('vocab') },
+    { part: 'translation', count: count('passage_translation') },
+    { part: 'dictionary', count: dictionaryStale },
+    { part: 'questions', count: count('question_pack') },
+  ].filter(part => part.count > 0);
+}
+
 async function getItem(id, client = db) {
   requireId(id);
   const { rows: [item] } = await client.query(`
@@ -234,8 +280,12 @@ async function getItem(id, client = db) {
     SELECT q.id, q.segment_id AS "segmentId", q.number, q.stem, q.options, q.answer_key AS "answerKey"
     FROM cs_questions q JOIN cs_segments s ON s.id = q.segment_id WHERE s.item_id = $1 ORDER BY q.number`, [id]);
   const { rows: artifacts } = await client.query(`
-    SELECT id, segment_id AS "segmentId", question_id AS "questionId", type, status, content, validation, source, provider, error, attempts, updated_at AS "updatedAt"
+    SELECT id, segment_id AS "segmentId", question_id AS "questionId", type, status, content, validation, source, provider, error, attempts,
+           source_hash AS "sourceHash", updated_at AS "updatedAt"
     FROM cs_artifacts WHERE item_id = $1`, [id]);
+  markStale(segments, questions, artifacts);
+  const { rows: dictSentences } = await client.query('SELECT segment_id AS "segmentId", text FROM cs_dict_sentences WHERE item_id = $1', [id]);
+  const dictionaryStale = dictionarySentencesStale(segments, dictSentences);
   const { rows: [dictionary] } = await client.query(`SELECT ${summaryService.DICTIONARY_STATUS_SQL} AS status FROM cs_items i WHERE i.id = $1`, [id]);
   const { rows: path } = await client.query(`
     WITH RECURSIVE chain AS (
@@ -243,7 +293,8 @@ async function getItem(id, client = db) {
       UNION ALL SELECT f.id, f.parent_id, f.name, c.depth + 1 FROM cs_folders f JOIN chain c ON f.id = c.parent_id WHERE c.depth < 20
     ) SELECT id, name FROM chain ORDER BY depth DESC`, [item.folderId]);
   const taskStatus = summaryService.deriveTaskStatus(item.tasks, artifacts, { dictionaryStatus: dictionary?.status });
-  return { ...item, taskStatus, folderPath: path, artifacts, segments: segments.map(segment => ({ ...segment, questions: questions.filter(question => question.segmentId === segment.id) })) };
+  const staleParts = staleSummary(artifacts, dictionaryStale);
+  return { ...item, taskStatus, staleParts, folderPath: path, artifacts, segments: segments.map(segment => ({ ...segment, questions: questions.filter(question => question.segmentId === segment.id) })) };
 }
 
 async function updateItem(id, { title, folderId }) {
@@ -298,5 +349,6 @@ async function deleteItem(id) {
 module.exports = {
   listFolders, createFolder, updateFolder, deleteFolder,
   detect, listItems, createItem, getItem, updateItem, updateContent, deleteItem, normalizeSegments, normalizeTasks, TASKS,
+  markStale, dictionarySentencesStale, staleSummary,
   folderSummary: summaryService.folderSummary, recentItems: summaryService.recentItems, attention: summaryService.attention,
 };

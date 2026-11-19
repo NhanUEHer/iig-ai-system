@@ -15,7 +15,7 @@ const autoSize = event => {
   element.style.height = `${element.scrollHeight}px`;
 };
 
-export default function TranslationPanel({ artifact, draft, dirty, onChange, shell, activeSentence, onFocusSentence }) {
+export default function TranslationPanel({ artifact, draft, dirty, onChange, shell, activeSentence, onFocusSentence, onRegenerateSentence, regeneratingIndex }) {
   const [filter, setFilter] = useState('all');
   if (!artifact || (!artifact.content && ['queued', 'generating', 'failed'].includes(artifact.status))) {
     return <div className="cs-translation-empty"><ArtifactShell artifact={artifact} label="bản dịch" dirty={dirty} shell={shell} /></div>;
@@ -41,7 +41,7 @@ export default function TranslationPanel({ artifact, draft, dirty, onChange, she
         {option.label} {counts[option.value]}
       </button>)}
       <span />
-      <small>{artifact.source === 'human' ? 'AI · đã chỉnh tay' : `AI${artifact.provider ? ` · ${artifact.provider}` : ''}`}</small>
+      <small>{artifact.source === 'human' ? 'AI · đã chỉnh tay' : 'AI'}</small>
       {shell.canGenerate && <Button variant="outline" size="sm" icon={<RefreshCw />} onClick={() => shell.onRegenerate(artifact)}>Tạo lại</Button>}
     </div>
     <ol className="cs-translation-cards">
@@ -54,6 +54,7 @@ export default function TranslationPanel({ artifact, draft, dirty, onChange, she
             <span className={needsReview ? 'is-review' : 'is-ready'}>{needsReview ? <TriangleAlert /> : <Check />}{needsReview ? 'Cần xem lại' : 'Đạt'}</span>
             <i />
             {isRowDirty(index) && <em>Chưa lưu</em>}
+            {shell.canGenerate && <Button variant="ghost" size="sm" icon={<RefreshCw />} loading={regeneratingIndex === index} disabled={regeneratingIndex != null || ['queued', 'generating'].includes(artifact.status)} onClick={() => onRegenerateSentence(index)}>Tạo lại câu này</Button>}
           </div>
           <textarea rows={2} aria-label={`Bản dịch câu ${index + 1}`} value={row.vi || ''} readOnly={!shell.canEdit}
             ref={element => { if (element) { element.style.height = 'auto'; element.style.height = `${element.scrollHeight}px`; } }}

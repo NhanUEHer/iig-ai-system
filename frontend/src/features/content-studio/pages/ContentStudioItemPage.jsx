@@ -1,14 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { BookOpen, Check, CheckCircle2, Pencil, RefreshCw, Save } from 'lucide-react';
-import { Button, ErrorState, PageFrame, Skeleton, StatusBadge } from '../../../design-system-v2';
-import { errorMessage, generateItem, getItem, regenerateArtifact, saveArtifact, saveDictionaryEntry, updateItemContent } from '../../../services/contentStudioService';
+import { BookOpen, Check, CheckCircle2, Pencil, RefreshCw, Save, TriangleAlert } from 'lucide-react';
+import { Button, ConfirmDialog, ErrorState, PageFrame, Skeleton, StatusBadge } from '../../../design-system-v2';
+import { errorMessage, fillVocabItem, generateItem, getDictionary, regenerateStale, getItem, regenerateArtifact, regenerateTranslationSentence, saveArtifact, saveDictionaryEntry, updateItemContent } from '../../../services/contentStudioService';
 import { STATUS, isBusy } from '../item/ArtifactShell';
 import DictionaryPanel from '../item/DictionaryPanel';
 import { SourceEditor, VocabView, highlight } from '../item/PassagePanels';
 import TranslationPanel from '../item/TranslationPanel';
+import ExportMenu from '../item/ExportMenu';
 import { QuestionWorkspace, explanationQuote } from '../item/QuestionPanels';
 import './ContentStudioItemPage.css';
+
+const STALE_LABEL = { vocab: 'Từ vựng', translation: 'Dịch', dictionary: 'Từ điển (câu)', questions: 'Câu hỏi' };
 
 const ITEM_STATUS = {
   draft: { tone: 'draft', label: 'Chưa tạo' }, waiting_review: { tone: 'warning', label: 'Từ điển chờ duyệt' }, ...STATUS,
@@ -37,6 +40,8 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   const [vocabSettings, setVocabSettings] = useState({ level: 650, mode: 'balanced' });
   const [activeSentence, setActiveSentence] = useState(null); // [passageId, sentenceIndex, entryIndex]
   const [generating, setGenerating] = useState(false);
+  const [singleBusy, setSingleBusy] = useState(null);
+  const [confirmVocab, setConfirmVocab] = useState(null);
   const showMsgRef = useRef(showMsg);
   useEffect(() => { showMsgRef.current = showMsg; }, [showMsg]);
 
@@ -45,6 +50,8 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
     catch (requestError) { setError(errorMessage(requestError, 'Không thể tải học liệu.')); }
   }, [id]);
   useEffect(() => { load(); }, [load]);
+  // Tab badge needs the dictionary count before the Từ điển tab is opened.
+  useEffect(() => { getDictionary(id).then(setDictionaryState).catch(() => {}); }, [id]);
   useEffect(() => {
     const requested = searchParams.get('tab');
     if (requested && ['vocab', 'dictionary', 'translation', 'questions'].includes(requested)) setTab(requested);
@@ -90,11 +97,43 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
     finally { setGenerating(false); }
   };
   const regenerate = async artifact => {
+    setSingleBusy(`artifact:${artifact.id}`);
     try {
       await regenerateArtifact(artifact.id);
       setDrafts(current => { const next = { ...current }; delete next[artifact.id]; return next; });
       await load();
     } catch (requestError) { showMsg?.(errorMessage(requestError, 'Không thể tạo lại.'), 'error'); }
+    finally { setSingleBusy(null); }
+  };
+
+  const persistDraft = async artifact => {
+    const content = drafts[artifact.id];
+    if (!content) return;
+    await saveArtifact(artifact.id, content);
+  };
+
+  const fillVocabRow = async (artifact, index) => {
+    setSingleBusy(`vocab:${artifact.id}:${index}`);
+    try {
+      await persistDraft(artifact);
+      await fillVocabItem(artifact.id, index);
+      setDrafts(current => { const next = { ...current }; delete next[artifact.id]; return next; });
+      await load();
+      showMsg?.('AI đã điền từ vựng.', 'success');
+    } catch (requestError) { showMsg?.(errorMessage(requestError, 'Không thể điền từ vựng.'), 'error'); }
+    finally { setSingleBusy(null); }
+  };
+
+  const regenerateSentence = async (artifact, index) => {
+    setSingleBusy(`translation:${artifact.id}:${index}`);
+    try {
+      await persistDraft(artifact);
+      await regenerateTranslationSentence(artifact.id, index);
+      setDrafts(current => { const next = { ...current }; delete next[artifact.id]; return next; });
+      await load();
+      showMsg?.(`Đã tạo lại câu ${index + 1}.`, 'success');
+    } catch (requestError) { showMsg?.(errorMessage(requestError, 'Không thể tạo lại câu dịch.'), 'error'); }
+    finally { setSingleBusy(null); }
   };
 
   const saveAll = async () => {
@@ -141,10 +180,17 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   if (!item) return <div className="iig3-list-screen"><Skeleton lines={6} /></div>;
 
   const tasks = item.tasks || {};
-  const shellFor = onGenerate => ({ canEdit: permissions.edit, canGenerate: permissions.generate, onGenerate, onRegenerate: regenerate });
+  const shellFor = onGenerate => ({ canEdit: permissions.edit, canGenerate: permissions.generate, onGenerate, onRegenerate: regenerate, isRegenerating: artifact => singleBusy === `artifact:${artifact?.id}` });
+  const regenerateVocab = artifact => {
+    if (artifact?.source === 'human') setConfirmVocab(artifact);
+    else {
+      setDrafts(current => { const next = { ...current }; delete next[artifact.id]; return next; });
+      generate({ passage: ['vocab'], question: [], vocab: vocabSettings });
+    }
+  };
   const passageShell = task => ({
     ...shellFor(() => generate({ passage: [task], question: [], ...(task === 'vocab' ? { vocab: vocabSettings } : {}) })),
-    ...(task === 'vocab' ? { onRegenerate: () => generate({ passage: ['vocab'], question: [], vocab: vocabSettings }) } : {}),
+    ...(task === 'vocab' ? { onRegenerate: regenerateVocab } : {}),
   });
   const questionShell = shellFor(() => generate({ passage: [], question: tasks.question?.length ? tasks.question : ['translation', 'hint', 'explanation', 'note'] }));
   const counts = {
@@ -161,13 +207,32 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
     const review = new Set((artifact?.validation?.issues || []).map(issue => issue.path).filter(path => /^sentences\.\d+$/.test(path))).size;
     return { total: totals.total + total, ready: totals.ready + Math.max(0, total - review) };
   }, { total: 0, ready: 0 });
+  const staleParts = item.staleParts || [];
+  const staleOf = part => staleParts.some(entry => entry.part === part);
+  const staleTotal = staleParts.reduce((sum, entry) => sum + entry.count, 0);
+  const runRegenerateStale = async () => {
+    setGenerating(true);
+    try { await regenerateStale(item.id); showMsg?.('Đang tạo lại các phần lỗi thời.', 'success'); await load(); }
+    catch (requestError) { showMsg?.(errorMessage(requestError, 'Không thể tạo lại phần lỗi thời.'), 'error'); }
+    finally { setGenerating(false); }
+  };
+  const vocabCount = counts.vocab;
+  const dictReady = dictionaryState?.counts?.ready ?? 0;
+  const exportOptions = [
+    { kind: 'vocab', label: 'Key Vocab', formats: ['xlsx', 'docx'], ready: vocabCount > 0, hint: `${vocabCount} từ · đúng template import LMS`, reason: 'Chưa có Từ vựng' },
+    { kind: 'dictionary', label: 'Từ điển', formats: ['xlsx', 'docx'], ready: dictReady > 0, hint: `${dictReady} mục hoàn tất · mục cần xem lại sẽ bị bỏ qua`, reason: 'Chưa có mục từ điển hoàn tất' },
+    { kind: 'bilingual', label: 'Song ngữ Anh – Việt', formats: ['docx'], ready: translationCounts.total > 0, hint: 'Bảng EN | VI theo câu + bản dịch liền mạch', reason: 'Chưa có bản dịch' },
+    { kind: 'questions', label: 'Câu hỏi · bản giáo viên', formats: ['docx'], ready: readyQuestions > 0, hint: 'Đáp án, dịch, Hint, Explanation, Note', reason: 'Chưa có nội dung câu hỏi' },
+    { kind: 'questions-student', label: 'Câu hỏi · bản học viên', formats: ['docx'], ready: readyQuestions > 0, hint: 'Ẩn đáp án và Explanation, đáp án ở cuối', reason: 'Chưa có nội dung câu hỏi' },
+    { kind: 'full', label: 'Toàn bộ học liệu', formats: ['docx'], ready: vocabCount > 0 || translationCounts.total > 0 || readyQuestions > 0, hint: 'Đoạn văn, song ngữ, từ vựng, từ điển, câu hỏi', reason: 'Chưa có nội dung' },
+  ];
   const tabs = [
     ...(passages.length ? [
-      { value: 'vocab', label: 'Từ vựng', detail: counts.vocab || '', status: taskStatus.vocab },
-      { value: 'dictionary', label: 'Từ điển', detail: dictionaryState?.status === 'waiting_review' ? 'chờ duyệt' : (counts.dictionary || ''), status: dictionaryState?.status || taskStatus.dictionary },
-      { value: 'translation', label: 'Dịch', detail: translationCounts.total ? `${translationCounts.ready}/${translationCounts.total}` : '', status: taskStatus.translation },
+      { value: 'vocab', label: 'Từ vựng', detail: counts.vocab || '', status: taskStatus.vocab, stale: staleOf('vocab') },
+      { value: 'dictionary', label: 'Từ điển', detail: dictionaryState?.status === 'waiting_review' ? 'chờ duyệt' : (counts.dictionary || ''), status: dictionaryState?.status || taskStatus.dictionary, stale: staleOf('dictionary') },
+      { value: 'translation', label: 'Dịch', detail: translationCounts.total ? `${translationCounts.ready}/${translationCounts.total}` : '', status: taskStatus.translation, stale: staleOf('translation') },
     ] : []),
-    ...(questions.length ? [{ value: 'questions', label: 'Câu hỏi', detail: `${readyQuestions}/${questions.length}`, status: taskStatus.questions }] : []),
+    ...(questions.length ? [{ value: 'questions', label: 'Câu hỏi', detail: `${readyQuestions}/${questions.length}`, status: taskStatus.questions, stale: staleOf('questions') }] : []),
   ];
   const activeTab = tabs.some(entry => entry.value === tab) ? tab : tabs[0]?.value;
   // Vocab / dictionary terms are highlighted in the fixed source on the left.
@@ -218,8 +283,14 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
         <StatusBadge status={ITEM_STATUS[item.status]?.tone} label={ITEM_STATUS[item.status]?.label} />
         <span className="cs-item-head__meta">{[passages[0]?.meta?.part && `Part ${passages[0].meta.part}`, passages.length && `${passages.length} đoạn văn`, questions.length && `${questions.length} câu hỏi${range ? ` (${range.from}–${range.to})` : ''}`].filter(Boolean).join(' · ')}</span>
         {permissions.generate && <Button variant="outline" icon={<RefreshCw />} loading={generating} disabled={busy} onClick={() => generate(null)}>{busy ? 'Đang tạo…' : item.artifacts.length ? 'Tạo lại tất cả' : 'Tạo nội dung'}</Button>}
+        {permissions.export && <ExportMenu itemId={item.id} options={exportOptions} showMsg={showMsg} />}
         {permissions.edit && <Button icon={<Save />} loading={saving} disabled={!dirtyCount} onClick={saveAll}>{dirtyCount ? `Lưu thay đổi (${dirtyCount})` : 'Đã lưu'}</Button>}
       </div>
+      {staleTotal > 0 && <div className="cs-stale-banner" role="status">
+        <TriangleAlert />
+        <p><strong>Nội dung gốc đã sửa</strong> — {staleParts.map(entry => `${STALE_LABEL[entry.part]} (${entry.count})`).join(', ')} cần tạo lại để khớp với bài.</p>
+        {permissions.generate && <Button variant="outline" icon={<RefreshCw />} loading={generating} disabled={busy} onClick={runRegenerateStale}>Tạo lại phần lỗi thời</Button>}
+      </div>}
     </div>}
   >
     <div className="cs-hub is-split">
@@ -252,14 +323,18 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
       </section>
 
       <section className="cs-hub__col cs-hub__work" aria-label="Biên tập">
-        <nav className="cs-hub__tabs">{tabs.map(entry => <button type="button" key={entry.value} className={activeTab === entry.value ? 'is-active' : ''} onClick={() => changeTab(entry.value)}><i className={`is-${entry.status || 'empty'}`} />{entry.label}{entry.detail !== '' && <span>{entry.detail}</span>}</button>)}</nav>
+        <nav className="cs-hub__tabs">{tabs.map(entry => <button type="button" key={entry.value} className={activeTab === entry.value ? 'is-active' : ''} onClick={() => changeTab(entry.value)}><i className={`is-${entry.status || 'empty'}`} />{entry.label}{entry.detail !== '' && <span>{entry.detail}</span>}{entry.stale && <b className="cs-stale-tag">Lỗi thời</b>}</button>)}</nav>
         <div className="cs-hub__body">
           {activeTab === 'translation' && passages.map(passage => <div key={passage.id} className="cs-hub__block cs-hub__block--translation">
-            <TranslationPanel {...editorProps(artifactFor('passage_translation', passage.id))} shell={passageShell('translation')} activeSentence={activeSentence} onFocusSentence={setActiveSentence} />
+            <TranslationPanel {...editorProps(artifactFor('passage_translation', passage.id))} shell={passageShell('translation')} activeSentence={activeSentence} onFocusSentence={setActiveSentence}
+              onRegenerateSentence={index => regenerateSentence(artifactFor('passage_translation', passage.id), index)}
+              regeneratingIndex={singleBusy?.startsWith(`translation:${artifactFor('passage_translation', passage.id)?.id}:`) ? Number(singleBusy.split(':').at(-1)) : null} />
           </div>)}
           {activeTab === 'vocab' && passages.map(passage => <div key={passage.id} className="cs-hub__block">
             <VocabView {...editorProps(artifactFor('vocab', passage.id))} shell={passageShell('vocab')}
               settings={vocabSettings} onSettingsChange={setVocabSettings} sourceText={passage.text}
+              onFill={index => fillVocabRow(artifactFor('vocab', passage.id), index)}
+              fillingIndex={singleBusy?.startsWith(`vocab:${artifactFor('vocab', passage.id)?.id}:`) ? Number(singleBusy.split(':').at(-1)) : null}
               activeIndex={activeWord?.[0] === passage.id ? activeWord[1] : null} onActivate={index => setActiveWord(index == null ? null : [passage.id, index])} />
           </div>)}
           {activeTab === 'dictionary' && <DictionaryPanel itemId={id} canEdit={permissions.edit} canGenerate={permissions.generate}
@@ -272,5 +347,6 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
         </div>
       </section>
     </div>
+    <ConfirmDialog open={Boolean(confirmVocab)} danger title="Tạo lại toàn bộ từ vựng?" description="Danh sách này đã được chỉnh tay. Tạo lại sẽ thay thế toàn bộ danh sách và các chỉnh sửa thủ công sẽ bị mất." confirmLabel="Tạo lại" onClose={() => setConfirmVocab(null)} onConfirm={() => { const artifact = confirmVocab; setConfirmVocab(null); setDrafts(current => { const next = { ...current }; delete next[artifact.id]; return next; }); generate({ passage: ['vocab'], question: [], vocab: vocabSettings }); }} />
   </PageFrame></div>;
 }

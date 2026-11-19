@@ -3,10 +3,12 @@ const db = require('../../../config/db');
 const HttpError = require('../../../http/httpError');
 const { splitSentences } = require('../detect/detectContent');
 const { validate } = require('./validators');
+const { artifactHash } = require('../sourceHash');
 const mockProvider = require('./mockProvider');
+const aiCoreProvider = require('./aiCoreProvider');
 const dictionary = require('../dictionary/dictionaryService');
 
-const PROVIDERS = { mock: mockProvider };
+const PROVIDERS = { mock: mockProvider, 'ai-core': aiCoreProvider };
 const MAX_ATTEMPTS = 3;
 const STALE_LOCK_MINUTES = 10;
 const PASSAGE_TYPES = { translation: 'passage_translation', vocab: 'vocab' };
@@ -37,11 +39,24 @@ async function loadContext(client, artifact) {
     const passageIndex = set?.meta?.passageIndex;
     const passageSegment = segments.find(segment => segment.kind === 'passage' && segment.position === passageIndex) || segments.find(segment => segment.kind === 'passage');
     const passage = passageSegment?.text || '';
-    return { question, passage, sentences: splitSentences(passage) };
+    // The whole set goes to AI in one call; a Vietnamese passage helps when it already exists.
+    const { rows: setQuestions } = await client.query(
+      'SELECT id, number, stem, options, answer_key AS "answerKey" FROM cs_questions WHERE segment_id = $1 ORDER BY number', [question.segment_id]);
+    const { rows: [translation] } = passageSegment ? await client.query(
+      `SELECT content FROM cs_artifacts WHERE segment_id = $1 AND type = 'passage_translation' AND status IN ('ready','needs_review')`,
+      [passageSegment.id]) : { rows: [] };
+    const passageVi = (translation?.content?.sentences || []).map(row => row?.vi).filter(Boolean).join(' ');
+    return { itemId: artifact.item_id, question, setId: question.segment_id, setQuestions, passage, passageVi, sentences: splitSentences(passage) };
   }
   const segment = segments.find(row => row.id === artifact.segment_id);
   if (!segment) throw new Error('Segment no longer exists');
-  return { passage: segment.text, sentences: splitSentences(segment.text) };
+  const context = { itemId: artifact.item_id, passage: segment.text, sentences: splitSentences(segment.text) };
+  if (artifact.type === 'vocab') {
+    const { rows: [item] } = await client.query('SELECT tasks FROM cs_items WHERE id = $1', [artifact.item_id]);
+    context.level = item?.tasks?.vocab?.level;
+    context.mode = item?.tasks?.vocab?.mode;
+  }
+  return context;
 }
 
 async function refreshItemStatus(client, itemId) {
@@ -112,6 +127,11 @@ async function enqueue(itemId, tasks) {
 
 async function regenerate(artifactId) {
   requireId(artifactId, 'id');
+  const { rows: [current] } = await db.query('SELECT * FROM cs_artifacts WHERE id = $1', [artifactId]);
+  if (!current) throw new HttpError('Không tìm thấy nội dung.', 404, 'ARTIFACT_NOT_FOUND');
+  if (current.type === 'question_pack') {
+    return regenerateQuestion(current);
+  }
   const { rows: [artifact] } = await db.query(`
     UPDATE cs_artifacts SET status = 'queued', attempts = 0, error = NULL, locked_at = NULL, updated_at = CURRENT_TIMESTAMP
     WHERE id = $1 AND status NOT IN ('queued','generating') RETURNING item_id`, [artifactId]);
@@ -119,6 +139,92 @@ async function regenerate(artifactId) {
   await db.transaction(client => refreshItemStatus(client, artifact.item_id));
   kickWorker();
   return { id: artifactId };
+}
+
+async function claimSingle(artifactId, expectedType) {
+  const { rows: [artifact] } = await db.query(`
+    UPDATE cs_artifacts SET status = 'generating', error = NULL, locked_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1 AND type = $2 AND status NOT IN ('queued','generating') RETURNING *`, [artifactId, expectedType]);
+  if (artifact) return artifact;
+  const { rows: [existing] } = await db.query('SELECT type, status FROM cs_artifacts WHERE id = $1', [artifactId]);
+  if (!existing) throw new HttpError('Không tìm thấy nội dung.', 404, 'ARTIFACT_NOT_FOUND');
+  if (existing.type !== expectedType) throw new HttpError('Loại nội dung không hợp lệ.', 400, 'INVALID_ARTIFACT_TYPE');
+  throw new HttpError('Nội dung đang được tạo, hãy chờ hoàn tất.', 409, 'ARTIFACT_BUSY');
+}
+
+async function finishSingle(artifact, content, context, providerName = aiCoreProvider.name) {
+  const validation = validate(artifact.type, content, context);
+  const status = validation.issues.length ? 'needs_review' : 'ready';
+  await db.transaction(async client => {
+    await client.query(`
+      UPDATE cs_artifacts SET content = $2, validation = $3, status = $4, source = 'ai', provider = $5,
+        error = NULL, locked_at = NULL, source_hash = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+    [artifact.id, JSON.stringify(content), JSON.stringify(validation), status, providerName, artifactHash(artifact.type, context)]);
+    await client.query(`INSERT INTO cs_artifact_versions (artifact_id, content, validation, source, provider) VALUES ($1, $2, $3, 'ai', $4)`,
+      [artifact.id, JSON.stringify(content), JSON.stringify(validation), providerName]);
+    await refreshItemStatus(client, artifact.item_id);
+  });
+  return { id: artifact.id, status, validation, content };
+}
+
+async function failSingle(artifact, error) {
+  await db.query(`UPDATE cs_artifacts SET status = $2, error = $3, locked_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+    [artifact.id, artifact.content ? (artifact.validation?.issues?.length ? 'needs_review' : 'ready') : 'failed', String(error.message || error).slice(0, 500)]);
+  await db.transaction(client => refreshItemStatus(client, artifact.item_id));
+}
+
+async function fillVocab(artifactId, index) {
+  requireId(artifactId, 'id');
+  if (!Number.isInteger(index) || index < 0) throw new HttpError('Vị trí từ vựng không hợp lệ.', 400, 'INVALID_INDEX');
+  const artifact = await claimSingle(artifactId, 'vocab');
+  try {
+    const context = await loadContext(db, artifact);
+    const items = Array.isArray(artifact.content?.items) ? artifact.content.items : [];
+    const item = items[index];
+    if (!item) throw new HttpError('Không tìm thấy dòng từ vựng.', 404, 'VOCAB_ITEM_NOT_FOUND');
+    const word = String(item.inText || item.lemma || '').trim();
+    if (!word) throw new HttpError('Hãy nhập từ trong bài trước khi dùng AI điền.', 400, 'VOCAB_WORD_REQUIRED');
+    if (!context.passage.toLocaleLowerCase().includes(word.toLocaleLowerCase())) {
+      throw new HttpError(`Không tìm thấy “${word}” trong đoạn văn.`, 400, 'VOCAB_WORD_NOT_IN_PASSAGE');
+    }
+    const filled = await aiCoreProvider.fillVocabItem({ passage: context.passage, word, itemId: context.itemId });
+    const content = { ...artifact.content, items: items.map((value, itemIndex) => itemIndex === index ? { ...value, ...filled } : value) };
+    return await finishSingle(artifact, content, context);
+  } catch (error) {
+    await failSingle(artifact, error);
+    throw error;
+  }
+}
+
+async function regenerateTranslationSentence(artifactId, index) {
+  requireId(artifactId, 'id');
+  if (!Number.isInteger(index) || index < 0) throw new HttpError('Vị trí câu dịch không hợp lệ.', 400, 'INVALID_INDEX');
+  const artifact = await claimSingle(artifactId, 'passage_translation');
+  try {
+    const context = await loadContext(db, artifact);
+    const rows = Array.isArray(artifact.content?.sentences) ? artifact.content.sentences : [];
+    if (!rows[index] || !context.sentences[index]) throw new HttpError('Không tìm thấy câu dịch.', 404, 'TRANSLATION_SENTENCE_NOT_FOUND');
+    const generated = await aiCoreProvider.generate('passage_translation', { ...context, sentences: [context.sentences[index]] });
+    const vi = generated.sentences?.[0]?.vi || '';
+    const content = { ...artifact.content, sentences: rows.map((row, rowIndex) => rowIndex === index ? { ...row, en: context.sentences[index], vi } : row) };
+    return await finishSingle(artifact, content, context);
+  } catch (error) {
+    await failSingle(artifact, error);
+    throw error;
+  }
+}
+
+async function regenerateQuestion(knownArtifact) {
+  const artifact = await claimSingle(knownArtifact.id, 'question_pack');
+  try {
+    const context = await loadContext(db, artifact);
+    const singleContext = { ...context, setQuestions: [context.question], bypassSetCache: true };
+    const content = await aiCoreProvider.generate('question_pack', singleContext);
+    return await finishSingle(artifact, content, context);
+  } catch (error) {
+    await failSingle(artifact, error);
+    throw error;
+  }
 }
 
 // Editors keep empty items while typing comma lists; drop them before storing.
@@ -138,11 +244,13 @@ async function saveEdit(artifactId, content, userId) {
     if (!artifact) throw new HttpError('Không tìm thấy nội dung.', 404, 'ARTIFACT_NOT_FOUND');
     if (['queued', 'generating'].includes(artifact.status)) throw new HttpError('Nội dung đang được tạo, hãy chờ xong rồi sửa.', 409, 'ARTIFACT_BUSY');
     if (artifact.type === 'dictionary') content = cleanDictionaryLists(content);
-    const validation = validate(artifact.type, content, await loadContext(client, artifact));
+    const context = await loadContext(client, artifact);
+    const validation = validate(artifact.type, content, context);
     const status = validation.issues.length ? 'needs_review' : 'ready';
+    // A human save confirms the content against the current source.
     await client.query(`
-      UPDATE cs_artifacts SET content = $2, validation = $3, status = $4, source = 'human', error = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
-    [artifactId, JSON.stringify(content), JSON.stringify(validation), status]);
+      UPDATE cs_artifacts SET content = $2, validation = $3, status = $4, source = 'human', error = NULL, source_hash = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+    [artifactId, JSON.stringify(content), JSON.stringify(validation), status, artifactHash(artifact.type, context)]);
     await client.query(`INSERT INTO cs_artifact_versions (artifact_id, content, validation, source, created_by) VALUES ($1, $2, $3, 'human', $4)`,
       [artifactId, JSON.stringify(content), JSON.stringify(validation), userId]);
     await refreshItemStatus(client, artifact.item_id);
@@ -170,16 +278,18 @@ async function processArtifact(artifact) {
     const validation = validate(artifact.type, content, context);
     await db.transaction(async client => {
       await client.query(`
-        UPDATE cs_artifacts SET content = $2, validation = $3, status = $4, source = 'ai', provider = $5, error = NULL, locked_at = NULL, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1`, [artifact.id, JSON.stringify(content), JSON.stringify(validation), validation.issues.length ? 'needs_review' : 'ready', selected.name]);
+        UPDATE cs_artifacts SET content = $2, validation = $3, status = $4, source = 'ai', provider = $5, error = NULL, locked_at = NULL,
+          source_hash = $6, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1`, [artifact.id, JSON.stringify(content), JSON.stringify(validation), validation.issues.length ? 'needs_review' : 'ready', selected.name, artifactHash(artifact.type, context)]);
       await client.query(`INSERT INTO cs_artifact_versions (artifact_id, content, validation, source, provider) VALUES ($1, $2, $3, 'ai', $4)`,
         [artifact.id, JSON.stringify(content), JSON.stringify(validation), selected.name]);
       await refreshItemStatus(client, artifact.item_id);
     });
   } catch (error) {
-    const failed = artifact.attempts >= MAX_ATTEMPTS;
+    // AI Core refusals (ceiling, budget, config, auth, input size) will not succeed on retry.
+    const failed = artifact.attempts >= MAX_ATTEMPTS || (error.code && error.retryable === false);
     await db.query(`UPDATE cs_artifacts SET status = $2, error = $3, locked_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
-      [artifact.id, failed ? 'failed' : 'queued', String(error.message || error).slice(0, 500)]);
+      [artifact.id, failed ? 'failed' : 'queued', String(error.code ? `${error.code}: ${error.message}` : error.message || error).slice(0, 500)]);
     await db.transaction(client => refreshItemStatus(client, artifact.item_id));
     console.error('[ContentStudioWorker]', artifact.id, error.message);
   }
@@ -194,19 +304,22 @@ async function pump() {
     const artifact = await claimNext().catch(error => { console.error('[ContentStudioWorker] claim failed', error.message); return null; });
     if (!artifact) return;
     active += 1;
-    processArtifact(artifact).finally(() => { active -= 1; pump(); });
+    // A DB hiccup inside the failure path must never become an unhandled rejection (it would kill the API).
+    processArtifact(artifact)
+      .catch(error => console.error('[ContentStudioWorker] job failed', artifact.id, error.message))
+      .finally(() => { active -= 1; pump().catch(error => console.error('[ContentStudioWorker] pump failed', error.message)); });
   }
 }
 
-function kickWorker() { if (timer) pump(); }
+function kickWorker() { if (timer) pump().catch(error => console.error('[ContentStudioWorker] pump failed', error.message)); }
 
 function startWorker() {
   if (timer) return;
-  timer = setInterval(pump, 3000);
+  timer = setInterval(() => { pump().catch(error => console.error('[ContentStudioWorker] pump failed', error.message)); }, 3000);
   timer.unref?.();
   pump();
 }
 
 function stopWorker() { if (timer) clearInterval(timer); timer = null; }
 
-module.exports = { enqueue, regenerate, saveEdit, startWorker, stopWorker, loadContext };
+module.exports = { enqueue, regenerate, fillVocab, regenerateTranslationSentence, saveEdit, startWorker, stopWorker, loadContext };

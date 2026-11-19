@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS aic_alerts (
+  agent_id UUID NOT NULL REFERENCES aic_agents(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  month DATE NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (agent_id, kind, month)
+);

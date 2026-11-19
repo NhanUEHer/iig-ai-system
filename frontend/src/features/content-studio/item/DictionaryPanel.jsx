@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Check, ChevronLeft, ChevronRight, Pencil, Plus, RefreshCw, Search, Trash2, WandSparkles, X } from 'lucide-react';
-import { Button, EmptyState, Spinner } from '../../../design-system-v2';
+import { Button, ConfirmDialog, EmptyState, Spinner } from '../../../design-system-v2';
 import {
   deleteDictionaryCandidate, errorMessage, extractDictionary, generateDictionary,
   getDictionary, regenerateDictionaryEntry, saveDictionaryList,
@@ -66,19 +66,21 @@ function ReviewList({ state, canEdit, canGenerate, selectedText, onConsumed, onR
     } catch (error) { notify(errorMessage(error, 'Không thể lưu danh sách từ.'), 'error'); }
     finally { setSaving(false); }
   };
+  // Saving the list defines added or edited words right away; untouched entries stay as they are.
   const generate = async () => {
     setGenerating(true);
     try {
       await saveDictionaryList(state.itemId, sentences.map(sentence => ({ id: sentence.id, chunks: sentence.candidates.map(({ id, chunk }) => ({ id, chunk })) })));
-      await generateDictionary(state.itemId);
-      notify('Đã bắt đầu tạo từ điển.', 'success');
+      const drafts = (await getDictionary(state.itemId)).sentences.some(sentence => sentence.candidates.some(candidate => candidate.status === 'draft'));
+      if (drafts) await generateDictionary(state.itemId);
+      notify('Đã lưu danh sách · đang tạo nghĩa cho từ mới hoặc đã sửa.', 'success');
       await onReload();
-    } catch (error) { notify(errorMessage(error, 'Không thể tạo từ điển.'), 'error'); }
+    } catch (error) { notify(errorMessage(error, 'Không thể lưu danh sách từ.'), 'error'); }
     finally { setGenerating(false); }
   };
 
   return <div className="cs-dictionary-review">
-    <div className="cs-dictionary-review__intro"><span className="cs-pill is-warning">Chờ duyệt danh sách</span><span>{total} từ · {sentences.filter(sentence => sentence.candidates.length).length} câu</span><small>Chọn chữ trong nội dung gốc để thêm vào đúng câu.</small></div>
+    <div className="cs-dictionary-review__intro"><span className="cs-pill is-warning">Sửa danh sách từ</span><span>{total} từ · {sentences.filter(sentence => sentence.candidates.length).length} câu</span><small>Chọn chữ trong nội dung gốc để thêm vào đúng câu.</small></div>
     <div className="cs-dictionary-review__groups">{sentences.map((sentence, si) => <section key={sentence.id}>
       <header><span>Câu {pad(sentence.position)}</span><p>{sentence.text}</p><small>{sentence.candidates.length} từ</small></header>
       <div className="cs-dictionary-chips">{sentence.candidates.map((candidate, ci) => editing?.[0] === si && editing?.[1] === ci
@@ -87,7 +89,7 @@ function ReviewList({ state, canEdit, canGenerate, selectedText, onConsumed, onR
         {canEdit && <button type="button" className="cs-dictionary-chip-add" onClick={() => add(si)}><Plus /> Thêm từ</button>}
       </div>
     </section>)}</div>
-    <footer>{canEdit && <Button variant="outline" loading={saving} onClick={save}>Lưu danh sách</Button>}{canGenerate && <Button icon={<WandSparkles />} loading={generating} disabled={!total} onClick={generate}>Tạo từ điển ({total} từ · {sentences.filter(sentence => sentence.candidates.length).length} câu)</Button>}</footer>
+    <footer>{canEdit && !canGenerate && <Button variant="outline" loading={saving} onClick={save}>Lưu danh sách</Button>}{canGenerate && <Button icon={<WandSparkles />} loading={generating} disabled={!total} onClick={generate}>Lưu & tạo nghĩa cho từ mới ({total} từ)</Button>}</footer>
   </div>;
 }
 
@@ -96,6 +98,7 @@ function Entries({ state, drafts, setDraft, clearDraft, canEdit, canGenerate, on
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const [editing, setEditing] = useState(false);
+  const [confirmReExtract, setConfirmReExtract] = useState(false);
   const filtered = all.filter(candidate => {
     const content = drafts[candidate.id] || candidate.entry?.content || {};
     const matches = `${candidate.chunk} ${content.lemma || ''} ${content.meaningVi || ''}`.toLocaleLowerCase().includes(query.toLocaleLowerCase());
@@ -115,6 +118,15 @@ function Entries({ state, drafts, setDraft, clearDraft, canEdit, canGenerate, on
     try { await deleteDictionaryCandidate(selected.id); clearDraft(selected.id); onActive(null); await onReload(); notify('Đã xoá mục từ.', 'success'); }
     catch (error) { notify(errorMessage(error, 'Không thể xoá mục từ.'), 'error'); }
   };
+  const regenerateSentence = async () => {
+    try { await generateDictionary(state.itemId, { sentenceIds: [selected.sentence.id] }); await onReload(); notify(`Đang tạo lại ${selected.sentence.candidates.length} mục của câu ${pad(selected.sentence.position)}.`, 'success'); }
+    catch (error) { notify(errorMessage(error, 'Không thể tạo lại câu này.'), 'error'); }
+  };
+  const reExtract = async () => {
+    setConfirmReExtract(false);
+    try { await extractDictionary(state.itemId); await onReload(); notify('Đang bóc lại từ và tạo từ điển.', 'success'); }
+    catch (error) { notify(errorMessage(error, 'Không thể bóc lại từ.'), 'error'); }
+  };
   const regenerate = async () => {
     try { await regenerateDictionaryEntry(selected.id); await onReload(); notify('Đã đưa mục từ vào hàng chờ tạo lại.', 'success'); }
     catch (error) { notify(errorMessage(error, 'Không thể tạo lại mục từ.'), 'error'); }
@@ -127,13 +139,14 @@ function Entries({ state, drafts, setDraft, clearDraft, canEdit, canGenerate, on
   const fieldPatch = (path, value) => path.includes('.')
     ? patch({ [path.split('.')[0]]: { ...(content[path.split('.')[0]] || {}), [path.split('.')[1]]: value } }) : patch({ [path]: value });
   return <div className="cs-dictionary-entries">
-    <div className="cs-dictionary-entries__bar"><span className={`cs-pill is-${state.status === 'needs_review' ? 'warning' : 'success'}`}>{state.status === 'needs_review' ? 'Cần xem lại' : 'Hoàn tất'}</span><span>{all.length} mục · {state.sentences.length} câu · AI</span><span /><Button variant="outline" size="sm" onClick={onReview}>Sửa danh sách từ</Button></div>
+    <ConfirmDialog open={confirmReExtract} title="Bóc lại từ đầu?" description="Toàn bộ mục từ điển hiện có, kể cả phần đã sửa tay, sẽ bị xoá rồi tạo lại bằng AI." confirmLabel="Bóc lại" danger onConfirm={reExtract} onClose={() => setConfirmReExtract(false)} />
+    <div className="cs-dictionary-entries__bar"><span className={`cs-pill is-${state.status === 'needs_review' ? 'warning' : 'success'}`}>{state.status === 'needs_review' ? 'Cần xem lại' : 'Hoàn tất'}</span><span>{all.length} mục · {state.sentences.length} câu · AI</span><span />{canGenerate && <Button variant="ghost" size="sm" onClick={() => setConfirmReExtract(true)}>Bóc lại từ đầu</Button>}<Button variant="outline" size="sm" onClick={onReview}>Sửa danh sách từ</Button></div>
     <div className="cs-dictionary-split">
       <aside><label className="cs-dictionary-search"><Search /><input value={query} onChange={event => setQuery(event.target.value)} placeholder={`Tìm trong ${all.length} mục…`} /></label>
         <div className="cs-dictionary-filters">{filters.map(([value, label, count]) => <button type="button" key={value} className={filter === value ? 'is-active' : ''} onClick={() => setFilter(value)}>{label} {count}</button>)}</div>
         <ul>{filtered.map(candidate => { const value = drafts[candidate.id] || candidate.entry?.content || {}; return <li key={candidate.id}><button type="button" className={`${candidate.id === selected.id ? 'is-active' : ''} ${candidate.status === 'needs_review' ? 'is-warning' : ''}`} onClick={() => { onActive(candidate.id); setEditing(false); }}><span><strong>{value.lemma || candidate.chunk}</strong><em>{value.pos || (candidate.chunk.includes(' ') ? 'Phrase' : '')}</em><i className={`is-${candidate.status}`}>{candidate.status === 'needs_review' ? <AlertTriangle /> : <Check />}{STATUS_LABEL[candidate.status]}</i></span><small>{value.ipa ? `${value.ipa} · ` : ''}câu {pad(candidate.sentence.position)}</small><p>{value.meaningVi || candidate.error || 'Chưa có nội dung'}</p></button></li>; })}</ul>
       </aside>
-      <article className="cs-dictionary-detail"><header><div><h2>{content.lemma || selected.chunk}</h2><span>{content.pos || (selected.chunk.includes(' ') ? 'Phrase' : '')}</span><em className={`is-${selected.status}`}>{STATUS_LABEL[selected.status]}</em></div><div><small>{content.ipa ? `${content.ipa} · ` : ''}trong bài: “{content.inText || selected.chunk}” · câu {pad(selected.sentence.position)}</small><span />{canEdit && <Button variant="outline" size="sm" icon={<Pencil />} onClick={() => setEditing(value => !value)}>{editing ? 'Xong' : 'Sửa'}</Button>}{canGenerate && <Button variant="outline" size="sm" icon={<RefreshCw />} disabled={BUSY.includes(selected.status)} onClick={regenerate}>Tạo lại</Button>}{canEdit && <button type="button" className="cs-icon-btn" aria-label="Xoá mục" onClick={remove}><Trash2 /></button>}</div></header>
+      <article className="cs-dictionary-detail"><header><div><h2>{content.lemma || selected.chunk}</h2><span>{content.pos || (selected.chunk.includes(' ') ? 'Phrase' : '')}</span><em className={`is-${selected.status}`}>{STATUS_LABEL[selected.status]}</em></div><div><small>{content.ipa ? `${content.ipa} · ` : ''}trong bài: “{content.inText || selected.chunk}” · câu {pad(selected.sentence.position)}</small><span />{canEdit && <Button variant="outline" size="sm" icon={<Pencil />} onClick={() => setEditing(value => !value)}>{editing ? 'Xong' : 'Sửa'}</Button>}{canGenerate && <Button variant="outline" size="sm" icon={<RefreshCw />} disabled={BUSY.includes(selected.status)} onClick={regenerate}>Tạo lại</Button>}{canGenerate && <Button variant="ghost" size="sm" disabled={selected.sentence.candidates.some(candidate => BUSY.includes(candidate.status))} onClick={regenerateSentence}>Tạo lại cả câu</Button>}{canEdit && <button type="button" className="cs-icon-btn" aria-label="Xoá mục" onClick={remove}><Trash2 /></button>}</div></header>
         <div>{fields.map(([label, path, kind], fieldIndex) => <EntryField key={path} number={fieldIndex + 1} label={label} value={fieldValue(path)} kind={kind} editing={editing && path !== 'sentence'} tone={path === 'meaningVi' ? 'accent' : ''} onChange={value => fieldPatch(path, value)} />)}</div>
         <footer><button type="button" disabled={!all[index - 1]} onClick={() => onActive(all[index - 1]?.id)}><ChevronLeft />{all[index - 1]?.entry?.content?.lemma || all[index - 1]?.chunk || 'Trước'}</button><button type="button" disabled={!all[index + 1]} onClick={() => onActive(all[index + 1]?.id)}>{all[index + 1]?.entry?.content?.lemma || all[index + 1]?.chunk || 'Tiếp'}<ChevronRight /></button></footer>
       </article>

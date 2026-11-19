@@ -3,13 +3,14 @@
 const db = require('../../../config/db');
 const mockProvider = require('../generation/mockProvider');
 const difyProvider = require('../generation/difyProvider');
+const aiCoreProvider = require('../generation/aiCoreProvider');
 const { mapDictionaryEntries, normalizeExtract, sameSentence, validateEntry } = require('./normalize');
 
 const MAX_ATTEMPTS = 3;
 const TIMEOUT_MS = 150000;
 const STALE_MS = TIMEOUT_MS + 30000;
 const CONCURRENCY = Math.max(1, Math.min(20, Number(process.env.CONTENT_STUDIO_DICTIONARY_CONCURRENCY || 4)));
-const PROVIDERS = { mock: mockProvider, dify: difyProvider };
+const PROVIDERS = { mock: mockProvider, dify: difyProvider, 'ai-core': aiCoreProvider };
 
 function provider() {
   const name = process.env.CONTENT_STUDIO_PROVIDER || 'mock';
@@ -20,13 +21,14 @@ function provider() {
 
 async function claimExtract() {
   return db.transaction(async client => {
+    // A sentence needs extraction when it is queued and has no chunks yet (whole item, or only edited sentences).
+    const NEEDS_EXTRACT = `s.status = 'queued' AND NOT EXISTS (SELECT 1 FROM cs_dict_candidates c WHERE c.sentence_id = s.id)`;
     const { rows: [item] } = await client.query(`SELECT i.id FROM cs_items i
-      WHERE EXISTS (SELECT 1 FROM cs_dict_sentences s WHERE s.item_id = i.id AND s.status = 'queued')
-        AND NOT EXISTS (SELECT 1 FROM cs_dict_candidates c WHERE c.item_id = i.id)
+      WHERE EXISTS (SELECT 1 FROM cs_dict_sentences s WHERE s.item_id = i.id AND ${NEEDS_EXTRACT})
       ORDER BY i.updated_at FOR UPDATE OF i SKIP LOCKED LIMIT 1`);
     if (!item) return null;
-    const { rows: sentences } = await client.query(`UPDATE cs_dict_sentences SET status = 'generating', updated_at = CURRENT_TIMESTAMP
-      WHERE item_id = $1 AND status = 'queued' RETURNING id, item_id, segment_id, position, text`, [item.id]);
+    const { rows: sentences } = await client.query(`UPDATE cs_dict_sentences s SET status = 'generating', updated_at = CURRENT_TIMESTAMP
+      WHERE s.item_id = $1 AND ${NEEDS_EXTRACT} RETURNING id, item_id, segment_id, position, text`, [item.id]);
     return { itemId: item.id, sentences: sentences.sort((a, b) => a.position - b.position) };
   });
 }
@@ -35,7 +37,7 @@ async function processExtract(job) {
   const selected = provider();
   const passage = job.sentences.map(sentence => sentence.text).join(' ');
   try {
-    const raw = await selected.generate('dictionary_extract', { passage, sentences: job.sentences.map(sentence => sentence.text) });
+    const raw = await selected.generate('dictionary_extract', { itemId: job.itemId, passage, sentences: job.sentences.map(sentence => sentence.text) });
     const extracted = normalizeExtract(raw, passage);
     await db.transaction(async client => {
       let count = 0;
@@ -44,16 +46,19 @@ async function processExtract(job) {
         if (!sentence) throw new Error('Extracted sentence does not match a stored sentence');
         for (let position = 0; position < row.items.length; position += 1) {
           const chunk = row.items[position];
+          // Extraction flows straight into definition: each sentence becomes one batch.
           await client.query(`INSERT INTO cs_dict_candidates (item_id, sentence_id, position, chunk, status)
-            VALUES ($1, $2, $3, $4, 'draft')`, [job.itemId, sentence.id, position, chunk]);
+            VALUES ($1, $2, $3, $4, 'queued')`, [job.itemId, sentence.id, position, chunk]);
           count += 1;
         }
       }
-      await client.query(`UPDATE cs_dict_sentences SET status = 'draft', updated_at = CURRENT_TIMESTAMP WHERE item_id = $1`, [job.itemId]);
+      await client.query(`UPDATE cs_dict_sentences s SET status = CASE WHEN EXISTS (
+          SELECT 1 FROM cs_dict_candidates c WHERE c.sentence_id = s.id) THEN 'queued' ELSE 'draft' END,
+        updated_at = CURRENT_TIMESTAMP WHERE s.id = ANY($1::uuid[])`, [job.sentences.map(sentence => sentence.id)]);
       await client.query('UPDATE cs_items SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [job.itemId]);
     });
   } catch (error) {
-    await db.query(`UPDATE cs_dict_sentences SET status = 'failed', updated_at = CURRENT_TIMESTAMP WHERE item_id = $1`, [job.itemId]);
+    await db.query(`UPDATE cs_dict_sentences SET status = 'failed', updated_at = CURRENT_TIMESTAMP WHERE id = ANY($1::uuid[])`, [job.sentences.map(sentence => sentence.id)]);
     console.error('[ContentStudioDictionaryExtract]', job.itemId, error.message);
   }
 }
@@ -106,6 +111,7 @@ async function callWithTimeout(selected, job) {
   timeout.unref?.();
   try {
     return await selected.generate('dictionary_entries', {
+      itemId: job.item_id,
       passage: job.passage,
       sentence: job.text,
       sentences: job.sentences,
@@ -158,9 +164,10 @@ async function processBatch(job) {
     await db.transaction(async client => {
       for (const candidate of job.candidates) {
         await finishAttempt(client, candidate, null, error, Date.now() - started);
-        const retry = !timeout && candidate.attempts < MAX_ATTEMPTS;
-        await client.query(`UPDATE cs_dict_candidates SET status = $2, error = $3,
-          locked_at = CASE WHEN $2 = 'queued' THEN CURRENT_TIMESTAMP + ($4 * INTERVAL '5 seconds') ELSE NULL END,
+        // AI Core refusals (ceiling, budget, config, auth) will not succeed on retry.
+        const retry = !timeout && error.retryable !== false && candidate.attempts < MAX_ATTEMPTS;
+        await client.query(`UPDATE cs_dict_candidates SET status = $2::text, error = $3,
+          locked_at = CASE WHEN $2::text = 'queued' THEN CURRENT_TIMESTAMP + ($4 * INTERVAL '5 seconds') ELSE NULL END,
           updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND status = 'generating'`,
         [candidate.id, retry ? 'queued' : 'failed', String(error.message || error).slice(0, 500), candidate.attempts]);
       }
@@ -195,7 +202,10 @@ async function pump() {
       const job = extraction || await claimBatch();
       if (!job) break;
       active += 1;
-      (extraction ? processExtract(job) : processBatch(job)).finally(() => {
+      (extraction ? processExtract(job) : processBatch(job)).catch(error => {
+        // Never let one job take the server down.
+        console.error('[ContentStudioDictionaryWorker] job failed', error.message);
+      }).finally(() => {
         active -= 1;
         pump().catch(error => console.error('[ContentStudioDictionaryWorker]', error.message));
       });
@@ -205,10 +215,10 @@ async function pump() {
   }
 }
 
-function kickWorker() { if (timer) void pump(); }
+function kickWorker() { if (timer) pump().catch(error => console.error('[ContentStudioDictionaryWorker]', error.message)); }
 function startWorker() {
   if (timer) return;
-  timer = setInterval(() => void pump(), 1000);
+  timer = setInterval(() => { pump().catch(error => console.error('[ContentStudioDictionaryWorker]', error.message)); }, 1000);
   timer.unref?.();
   void pump();
 }
