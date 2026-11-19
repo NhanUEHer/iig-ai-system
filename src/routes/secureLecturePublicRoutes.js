@@ -3,6 +3,7 @@ const express = require('express');
 const asyncHandler = require('../http/asyncHandler');
 const { SecureLectureError, toHttp } = require('../modules/secure-lectures/errors');
 const accessEngine = require('../modules/secure-lectures/services/accessEngine');
+const contentService = require('../modules/secure-lectures/services/contentService');
 const tokenService = require('../modules/secure-lectures/services/tokenService');
 const { rateLimitStore } = require('../modules/secure-lectures/stores/runtimeStores');
 
@@ -48,6 +49,7 @@ function rateLimited(data) {
 
 function createSecureLecturePublicRoutes({
   engine = accessEngine,
+  content = contentService,
   limits = rateLimitStore,
 } = {}) {
   const router = express.Router();
@@ -101,6 +103,27 @@ function createSecureLecturePublicRoutes({
     await engine.event(req.body?.sessionId, req.body?.type, context(req));
     res.status(204).end();
   }));
+
+  // One-time content delivery. Any failure is a blank 404 so the response never
+  // reveals whether the ticket, device or session was the problem.
+  router.get('/content/:ticket', async (req, res) => {
+    const notFound = () => {
+      res.status(404).set({ 'Cache-Control': 'no-store', 'Content-Type': 'text/plain; charset=utf-8' }).send('');
+    };
+    try {
+      await consume(res, `content:ip:${req.ip}`, 30, 60);
+      const deviceId = cookie(req, DEVICE_COOKIE);
+      if (!UUID_PATTERN.test(deviceId || '')) return notFound();
+      const html = await content.delivery(req.params.ticket, deviceId, context(req));
+      content.setContentHeaders(res);
+      return res.status(200).send(html);
+    } catch (error) {
+      if (!(error instanceof content.ContentNotFoundError) && error?.code !== 'RATE_LIMITED') {
+        console.error(JSON.stringify({ level: 'error', event: 'secure_lecture_content_error', requestId: req.requestId, message: error?.message }));
+      }
+      return notFound();
+    }
+  });
 
   router.use((error, req, res, next) => {
     // Public endpoints never expose internal error details (SQL, stack, paths).

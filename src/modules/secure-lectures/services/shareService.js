@@ -178,7 +178,15 @@ function createShareService({
       });
       return inserted;
     });
-    return { share: mapShare(row, current), token, url: `${baseUrl}/v/${token}` };
+    return {
+      share: mapShare(row, current),
+      token,
+      path: `/v/${token}`,
+      url: `${baseUrl}/v/${token}`,
+      // 'request' means the URL was derived from the API request host, which a
+      // reverse proxy may have rewritten; clients should prefer their own origin.
+      baseUrlSource: publicBaseUrl ? 'config' : 'request',
+    };
   }
 
   async function list(lectureId) {

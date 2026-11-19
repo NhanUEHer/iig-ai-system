@@ -156,6 +156,28 @@ router.post(
   }),
 );
 
+router.get(
+  '/lectures/:id/versions/:versionId/preview',
+  requirePermission('secure_lectures.view'),
+  asyncHandler(async (req, res) => {
+    const contentService = require('../modules/secure-lectures/services/contentService');
+    try {
+      const html = await contentService.preview(
+        req.params.id,
+        req.params.versionId,
+        req.auth?.fullName || req.auth?.name || req.auth?.email,
+      );
+      contentService.setContentHeaders(res);
+      res.status(200).send(html);
+    } catch (error) {
+      if (error instanceof contentService.ContentNotFoundError) {
+        throw new SecureLectureError('LECTURE_NOT_READY', 'Không tìm thấy phiên bản để xem trước.');
+      }
+      throw error;
+    }
+  }),
+);
+
 router.post(
   '/lectures/:id/versions/:versionId/current',
   requirePermission('secure_lectures.manage'),
@@ -183,7 +205,9 @@ router.post(
   '/lectures/:id/shares',
   requirePermission('secure_lectures.share'),
   asyncHandler(async (req, res) => {
-    const requestBaseUrl = `${req.protocol}://${req.get('host')}`;
+    const forwardedHost = String(req.get('x-forwarded-host') || '').split(',')[0].trim();
+    const forwardedProto = String(req.get('x-forwarded-proto') || '').split(',')[0].trim();
+    const requestBaseUrl = `${forwardedProto || req.protocol}://${forwardedHost || req.get('host')}`;
     const data = await shareService.create(
       req.params.id,
       req.body,

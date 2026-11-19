@@ -3,4 +3,5 @@ module.exports = {
   lectureRepository: require('./lectureRepository'),
   shareRepository: require('./shareRepository'),
   accessRepository: require('./accessRepository'),
+  contentRepository: require('./contentRepository'),
 };
