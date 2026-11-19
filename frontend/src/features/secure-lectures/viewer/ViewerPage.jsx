@@ -3,6 +3,7 @@ import { Ban, Clock, Laptop, Lock, LogOut, Maximize, Minimize, RefreshCw, Shield
 import {
   contentUrl, endSession, heartbeat, openSession, reportEvent, screenForError, takeoverSession,
 } from './viewerApi';
+import PresenterTools from './presenter/PresenterTools';
 import './ViewerPage.css';
 
 const MAX_RECONNECT = 3;
@@ -63,6 +64,7 @@ export default function ViewerPage() {
   const [errorData, setErrorData] = useState(null);
   const [connection, setConnection] = useState('ok');
   const [fullscreen, setFullscreen] = useState(false);
+  const [frameEpoch, setFrameEpoch] = useState(0);
   const stageRef = useRef(null);
   const frameRef = useRef(null);
   const openedRef = useRef(false);
@@ -189,8 +191,9 @@ export default function ViewerPage() {
           sandbox="allow-scripts allow-presentation"
           allow="fullscreen; autoplay"
           referrerPolicy="no-referrer"
-          onLoad={() => frameRef.current?.focus()}
+          onLoad={() => { setFrameEpoch(value => value + 1); frameRef.current?.focus(); }}
         />
+        <PresenterTools token={token} frameRef={frameRef} frameEpoch={frameEpoch} />
       </main>
     </div>;
   }
