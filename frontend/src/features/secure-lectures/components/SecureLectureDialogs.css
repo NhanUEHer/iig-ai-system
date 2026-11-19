@@ -20,3 +20,19 @@
 .sl-upload-success { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid #c8ddce; border-radius: 9px; background: #e7f0e9; color: #3f6650; font-size: 13px; }.sl-upload-success svg { width: 16px; flex: none; }
 .sl-upload-progress { height: 6px; overflow: hidden; border-radius: 99px; background: #efeeea; }.sl-upload-progress i { display: block; height: 100%; border-radius: inherit; background: #d55f3d; transition: width .2s; }
 .iig3-modal:has(.sl-upload-dialog) { width: min(560px, 100%); background: #fffefa; }.iig3-modal:has(.sl-dialog-body) > header { padding: 18px 20px; }.iig3-modal:has(.sl-dialog-body) > main { padding: 20px; }.iig3-modal:has(.sl-dialog-body) > footer { padding: 14px 20px; background: #f9f8f5; }
+.sl-dialog-field > span small { color: #7f847d; font-weight: 400; }
+.sl-dialog-field > small { color: #7f847d; font-size: 11px; }
+.sl-dialog-field > em { color: #a04435; font-size: 12px; font-style: normal; }
+.sl-share-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.sl-share-quick { margin-top: 1px; }.sl-share-quick button { padding: 0; border: 0; background: transparent; color: #b84e31; font: inherit; cursor: pointer; }
+.sl-share-warning, .sl-created-warning { display: flex; align-items: flex-start; gap: 9px; padding: 11px 13px; border-radius: 9px; background: #fbf4e3; color: #6f5420; font-size: 12px; line-height: 1.5; }.sl-share-warning svg, .sl-created-warning svg { width: 16px; flex: none; }
+.sl-share-switches { padding: 4px 14px; border: 1px solid #deded8; border-radius: 10px; background: #fffefa; }
+.sl-share-switches label { display: flex; min-height: 42px; align-items: center; justify-content: space-between; gap: 16px; font-size: 13px; }.sl-share-switches label + label { border-top: 1px solid #efeee9; }
+.sl-share-switches input { width: 38px; height: 20px; accent-color: #d55f3d; }
+.iig3-modal:has(.sl-share-dialog), .iig3-modal:has(.sl-created-dialog) { width: min(560px, 100%); background: #fffefa; }
+.sl-created-dialog { display: flex; flex-direction: column; align-items: center; color: #242521; text-align: center; }
+.sl-created-check { display: grid; width: 44px; height: 44px; margin: 4px 0 8px; border-radius: 50%; background: #e7f0e9; color: #3f6650; place-items: center; }.sl-created-check svg { width: 22px; }
+.sl-created-dialog > strong { font-size: 16px; }.sl-created-dialog > small { margin-top: 5px; color: #7f847d; }
+.sl-created-url { display: flex; width: 100%; gap: 8px; margin-top: 20px; }.sl-created-url input { min-width: 0; height: 40px; flex: 1; padding: 0 12px; border: 1px solid #deded8; border-radius: 8px; background: #fff; color: #242521; font: 12px 'JetBrains Mono', monospace; }
+.sl-created-warning { width: 100%; margin-top: 14px; text-align: left; }
+@media (max-width: 620px) { .sl-share-grid { grid-template-columns: 1fr; }.sl-created-url { align-items: stretch; flex-direction: column; } }

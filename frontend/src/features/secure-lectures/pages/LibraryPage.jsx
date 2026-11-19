@@ -9,10 +9,12 @@ import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import {
   archiveSecureLecture, createSecureLectureFolder, deleteSecureLectureFolder,
   getSecureLectureOverview, listSecureLectureFolders, listSecureLectures,
-  moveSecureLectures, secureLectureError, updateSecureLectureFolder,
+  listSecureLectureVersions, moveSecureLectures, secureLectureError, updateSecureLectureFolder,
 } from '../../../services/secureLecturesApi';
 import { buildFolderPath, buildTree, folderPathLabel, subtreeItemCount } from '../../../utils/folderTree';
 import { FolderNameDialog, FolderPickerDialog } from '../components/FolderDialogs';
+import ShareCreatedDialog from '../components/ShareCreatedDialog';
+import ShareDialog from '../components/ShareDialog';
 import UploadDialog from '../components/UploadDialog';
 import './LibraryPage.css';
 
@@ -79,6 +81,8 @@ export default function LibraryPage({ currentUser, showMsg }) {
   const [folderDialog, setFolderDialog] = useState(null);
   const [folderPicker, setFolderPicker] = useState(null);
   const [uploadState, setUploadState] = useState(null);
+  const [shareState, setShareState] = useState(null);
+  const [createdShare, setCreatedShare] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [busy, setBusy] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -162,6 +166,13 @@ export default function LibraryPage({ currentUser, showMsg }) {
     else if (event.dataTransfer.files?.length) showMsg?.('Chỉ chấp nhận file .html.', 'error');
   };
 
+  const openShareDialog = async lecture => {
+    setBusy(true);
+    try { setShareState({ lecture, versions: await listSecureLectureVersions(lecture.id) || [] }); }
+    catch (requestError) { showMsg?.(secureLectureError(requestError, 'Không thể tải phiên bản bài giảng.'), 'error'); }
+    finally { setBusy(false); }
+  };
+
   return <div className="sl-page">
     <div className="sl-frame">
       <nav className="sl-breadcrumb"><span>Tạo &amp; phát triển</span><span>/</span><Link to="/secure-lectures">Bài giảng bảo mật</Link>{folderId !== 'all' && folderPath.map((folder, index) => <React.Fragment key={folder.id}><span>/</span>{index === folderPath.length - 1 ? <strong>{folder.name}</strong> : <Link to={`/secure-lectures/folders/${folder.id}`}>{folder.name}</Link>}</React.Fragment>)}{folderId === 'unfiled' && <><span>/</span><strong>Chưa phân loại</strong></>}</nav>
@@ -201,7 +212,7 @@ export default function LibraryPage({ currentUser, showMsg }) {
                   <td><span className="sl-badge is-info">{lecture.currentVersion ? `v${lecture.currentVersion.versionNo}` : '—'}</span></td>
                   <td>{lecture.activeShareCount ? `${lecture.activeShareCount} hoạt động` : '—'}</td><td><LectureStatus lecture={lecture} /></td>
                   <td><span>{relativeDate(lecture.updatedAt)}</span><small>{lecture.updatedBy?.name ? ` · ${lecture.updatedBy.name}` : ''}</small></td>
-                  <td><div className="sl-table-actions">{canShare && <button type="button" className="sl-create-link"><Link2 />Tạo link</button>}{canManage && <div className="sl-row-menu"><button type="button" aria-label={`Tác vụ ${lecture.title}`} onClick={() => setMenuId(menuId === `lecture:${lecture.id}` ? null : `lecture:${lecture.id}`)}><MoreHorizontal /></button>{menuId === `lecture:${lecture.id}` && <div className="sl-popover is-right"><Link to={`/secure-lectures/lectures/${lecture.id}`}><FileCode2 />Mở chi tiết</Link><button type="button" onClick={() => { setFolderPicker({ type: 'lecture', lecture }); setMenuId(null); }}><FolderInput />Di chuyển</button><button type="button" className="is-danger" onClick={() => { setConfirm({ type: 'lecture', item: lecture }); setMenuId(null); }}><Archive />Lưu trữ</button></div>}</div>}</div></td>
+                  <td><div className="sl-table-actions">{canShare && <button type="button" className="sl-create-link" disabled={busy} onClick={() => openShareDialog(lecture)}><Link2 />Tạo link</button>}{canManage && <div className="sl-row-menu"><button type="button" aria-label={`Tác vụ ${lecture.title}`} onClick={() => setMenuId(menuId === `lecture:${lecture.id}` ? null : `lecture:${lecture.id}`)}><MoreHorizontal /></button>{menuId === `lecture:${lecture.id}` && <div className="sl-popover is-right"><Link to={`/secure-lectures/lectures/${lecture.id}`}><FileCode2 />Mở chi tiết</Link><button type="button" onClick={() => { setFolderPicker({ type: 'lecture', lecture }); setMenuId(null); }}><FolderInput />Di chuyển</button><button type="button" className="is-danger" onClick={() => { setConfirm({ type: 'lecture', item: lecture }); setMenuId(null); }}><Archive />Lưu trữ</button></div>}</div>}</div></td>
                 </tr>)}
               </tbody></table>}
               <div className="sl-file-drop-overlay"><Upload /><strong>Thả file HTML để upload vào {selectedLabel}</strong></div>
@@ -219,6 +230,8 @@ export default function LibraryPage({ currentUser, showMsg }) {
       const success = await mutate(() => updateSecureLectureFolder(folderPicker.folder.id, { parentId: targetId }), 'Đã di chuyển thư mục.'); if (success) setFolderPicker(null);
     }} />
     <UploadDialog open={Boolean(uploadState)} initialFile={uploadState?.file} initialFolderId={uploadState?.folderId} folders={folders} showMsg={showMsg} onClose={() => setUploadState(null)} onUploaded={() => setReloadKey(value => value + 1)} />
+    <ShareDialog open={Boolean(shareState)} lecture={shareState?.lecture} versions={shareState?.versions || []} showMsg={showMsg} onClose={() => setShareState(null)} onCreated={result => { setShareState(null); setCreatedShare(result); setReloadKey(value => value + 1); }} />
+    <ShareCreatedDialog result={createdShare} showMsg={showMsg} onClose={() => setCreatedShare(null)} />
     <ConfirmDialog open={Boolean(confirm)} danger loading={busy} title={confirm?.type === 'folder' ? `Xoá thư mục “${confirm?.item?.name || ''}”?` : `Lưu trữ “${confirm?.item?.title || ''}”?`} description={confirm?.type === 'folder' ? 'Cây thư mục con sẽ bị xoá; toàn bộ bài giảng bên trong được chuyển về Chưa phân loại.' : 'Bài giảng sẽ không còn xuất hiện trong thư viện và các link chia sẻ sẽ ngừng hoạt động.'} confirmLabel={confirm?.type === 'folder' ? 'Xoá thư mục' : 'Lưu trữ'} onConfirm={confirmAction} onClose={() => !busy && setConfirm(null)} />
   </div>;
 }

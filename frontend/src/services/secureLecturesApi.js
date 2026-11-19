@@ -35,6 +35,7 @@ export const createSecureLectureVersion = (id, { file, note, makeCurrent = true 
 };
 export const setSecureLectureCurrentVersion = (id, versionId) => api.post(`${root}/lectures/${id}/versions/${versionId}/current`).then(unwrap);
 export const previewSecureLectureVersionUrl = (id, versionId) => `/api${root}/lectures/${id}/versions/${versionId}/preview`;
+export const getSecureLectureVersionPreview = (id, versionId) => api.get(`${root}/lectures/${id}/versions/${versionId}/preview`, { responseType: 'blob' }).then(response => response.data);
 export const listSecureLectureShares = id => api.get(`${root}/lectures/${id}/shares`).then(unwrap);
 export const createSecureLectureShare = (id, input) => api.post(`${root}/lectures/${id}/shares`, input).then(unwrap);
 export const updateSecureLectureShare = (id, input) => api.patch(`${root}/shares/${id}`, input).then(unwrap);
