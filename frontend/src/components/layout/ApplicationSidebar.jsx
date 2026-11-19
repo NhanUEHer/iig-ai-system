@@ -50,6 +50,7 @@ export const applicationNavigation = [
       { id: 'content-sources', label: 'Nguồn học liệu', to: '/content-sources', icon: Archive, permissions: ['content_sources.view', 'content_sources.create'] },
       { id: 'content-development', label: 'Phát triển học liệu', to: '/content-development', icon: BookOpen, permissions: ['content_sources.view', 'content_sources.analyze'] },
       { id: 'content-studio', label: 'Content Studio', to: '/content-studio', icon: WandSparkles, permissions: ['content_studio.view', 'content_studio.edit', 'content_studio.generate'] },
+      { id: 'secure-lectures', label: 'Bài giảng bảo mật', to: '/secure-lectures', icon: ShieldCheck, permission: 'secure_lectures.view' },
       { id: 'key-vocab', label: 'Tạo học liệu', to: '/key-vocab', icon: GraduationCap, permissions: ['key_vocab.view', 'key_vocab.generate', 'key_vocab.manage', 'dictionary.view', 'dictionary.generate', 'dictionary.manage'] },
     ],
   },

@@ -29,6 +29,11 @@ Router FE trong `frontend/src/App.jsx` (cách khai báo route ngoài layout đă
 4. Xem trước cho admin `GET /api/secure-lectures/lectures/:id/versions/:vid/preview`: dùng cùng `contentService`,
    watermark "XEM TRƯỚC · {tên admin}", không tạo thiết bị hay phiên.
 
+## Sửa lỗi phát hiện khi review S08
+Link tạo ra đang dùng host của API (ví dụ `localhost:5105`) vì Vite/nginx proxy đổi `Host` (`changeOrigin`). Sửa: backend
+bật `trust proxy` và ưu tiên `X-Forwarded-Host`, hoặc đơn giản hơn: API trả `token` + `path` (`/v/<token>`), FE ghép với
+`window.location.origin` khi không có `SECURE_LECTURES_PUBLIC_BASE_URL`. Có test.
+
 ## Test
 - `tests/secure-lectures-content.test.js`: ticket dùng lần 2 trả 404; cookie sai trả 404; HTML trả về chứa guard và
   watermark đúng vị trí (có/không có `<head>`); đủ header (`no-store`, CSP `frame-ancestors 'self'`, `connect-src 'none'`);
