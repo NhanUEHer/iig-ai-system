@@ -9,6 +9,10 @@ on:
       version:
         description: Release version (X.Y.Z)
         required: true
+      redeploy_api:
+        description: Redeploy admin-api even if its image is unchanged (picks up new runtime config such as ai-core.env)
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -69,6 +73,7 @@ jobs:
         env:
           BETA: ${{ steps.m.outputs.beta }}
           PROD: ${{ steps.m.outputs.prod }}
+          REDEPLOY_API: ${{ inputs.redeploy_api }}
           COMMIT: ${{ steps.commit.outputs.sha }}
           VERSION: ${{ inputs.version }}
         run: |
@@ -77,7 +82,7 @@ jobs:
           for svc in admin-api admin-web exam-web; do
             b="$(jq -r --arg s "$svc" '.[$s]' <<<"$BETA")"; p="$(jq -r --arg s "$svc" '.[$s]' <<<"$PROD")"
             [[ "$b" == *@sha256:* ]] || { echo "Beta $svc has no registry digest" >&2; exit 1; }
-            if [ "${b#*@}" != "${p#*@}" ]; then
+            if [ "${b#*@}" != "${p#*@}" ] || { [ "$svc" = admin-api ] && [ "${REDEPLOY_API:-false}" = true ]; }; then
               repo="${b%@*}"
               docker buildx imagetools create -t "$repo:prod-$COMMIT" -t "$repo:v$VERSION" "$b"
               components+=("$svc")
