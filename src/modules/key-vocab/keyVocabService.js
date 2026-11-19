@@ -1,6 +1,6 @@
 const db = require('../../config/db');
 const HttpError = require('../../http/httpError');
-const difyClient = require('../../clients/keyVocabDifyClient');
+const aiClient = require('../learning-materials/agents/client');
 const crypto = require('crypto');
 
 const ALLOWED_TYPES = new Set(['Noun','Verb','Adjective','Adverb','Noun Phrase','Phrasal Verb','Adjective Phrase','Idiom','Verb Phrase','Preposition','Prepositional Phrase','Prefix','Suffix','Conjunction','Interjection','Phrase']);
@@ -69,10 +69,9 @@ async function generate(passage, userId, targetScore, selectionMode) {
   if (text.length < 80) throw new HttpError('Đoạn văn cần tối thiểu 80 ký tự.', 400, 'PASSAGE_TOO_SHORT');
   if (text.length > 20000) throw new HttpError('Đoạn văn không được vượt quá 20.000 ký tự.', 400, 'PASSAGE_TOO_LONG');
   const settings = normalizeSettings(targetScore, selectionMode);
-  const raw = await difyClient.generate(text, userId, settings.targetScore, settings.selectionMode);
-  const outputs = raw?.data?.outputs || raw?.outputs || raw;
-  const candidate = outputs?.result ?? outputs?.structured_output ?? outputs?.output ?? outputs;
-  return { passage: text, ...settings, vocabularies: normalizeVocabulary(candidate, { passage: text }), workflowRunId: raw?.workflow_run_id || raw?.data?.workflow_run_id || null };
+  const { output, callId } = await aiClient.generateKeyVocab(text, userId, settings.targetScore, settings.selectionMode);
+  // workflowRunId keeps its name for the API/DB contract; it now holds the AI Core call log id.
+  return { passage: text, ...settings, vocabularies: normalizeVocabulary(output, { passage: text }), workflowRunId: callId };
 }
 
 async function save({ passage, vocabularies, workflowRunId, targetScore, selectionMode }, userId) {
@@ -89,7 +88,7 @@ async function save({ passage, vocabularies, workflowRunId, targetScore, selecti
     );
     const generation = await client.query(
       `INSERT INTO key_vocab_generations
-       (passage_id, workflow_run_id, target_score, selection_mode, created_by) VALUES ($1,$2,$3,$4,$5)
+       (passage_id, provider, workflow_run_id, target_score, selection_mode, created_by) VALUES ($1,'ai-core',$2,$3,$4,$5)
        RETURNING id, provider, workflow_run_id, target_score, selection_mode, created_at`,
       [passageResult.rows[0].id, workflowRunId || null, settings.targetScore, settings.selectionMode, userId]
     );

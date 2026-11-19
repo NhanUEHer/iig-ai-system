@@ -93,7 +93,7 @@ test('dictionary generation sends the stored source sentence and can infer it fo
   assert.equal(sentenceForCandidate({ original_chunk: 'carry out' }, passage), 'Employees will carry out an audit next week.');
   const boundaryPassage = 'The update will significantly reduce delays. If you need help, contact IT.';
   assert.equal(sentenceForCandidate({ original_chunk: 'If' }, boundaryPassage), 'If you need help, contact IT.');
-  const clientSource = require('node:fs').readFileSync(require.resolve('../src/clients/dictionaryDifyClient'), 'utf8');
+  const clientSource = require('node:fs').readFileSync(require.resolve('../src/modules/learning-materials/agents/client'), 'utf8');
   assert.match(clientSource, /target_chunk: JSON\.stringify\(Array\.isArray\(targetChunks\) \? targetChunks : \[targetChunks\]\)/);
   const serviceSource = require('node:fs').readFileSync(require.resolve('../src/modules/dictionary/dictionaryService'), 'utf8');
   assert.match(serviceSource, /RETURNING id,generation_id,original_chunk,source_sentence,display_order/);
