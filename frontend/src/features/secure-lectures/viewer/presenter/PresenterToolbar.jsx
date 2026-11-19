@@ -1,17 +1,21 @@
 import { useState } from 'react';
 import {
-  ChevronUp, CircleOff, Eraser, EyeOff, Highlighter, Menu, MousePointer2, NotebookPen,
-  Palette, PenLine, Redo2, RotateCcw, Sparkles, Trash2, Undo2,
+  ChevronRight, Circle, CircleOff, Eraser, Highlighter, MousePointer2, MoveUpRight, NotebookPen,
+  PenLine, Redo2, RotateCcw, Sparkles, Square, Trash2, Type, Undo2,
 } from 'lucide-react';
 
 const COLORS = ['#111111', '#ef4444', '#2563eb', '#16a34a', '#f97316', '#ffffff'];
-const WIDTHS = [3, 6, 12];
+const WIDTHS = [[3, 'Mảnh'], [6, 'Vừa'], [12, 'Đậm']];
 
 const TOOLS = [
   ['mouse', 'Chuột (V/Esc)', MousePointer2],
   ['pen', 'Bút (P)', PenLine],
   ['highlighter', 'Bút dạ quang (H)', Highlighter],
-  ['eraser', 'Tẩy nét (E)', Eraser],
+  ['text', 'Gõ chữ (T)', Type],
+  ['arrow', 'Mũi tên (A)', MoveUpRight],
+  ['rect', 'Hình chữ nhật (R)', Square],
+  ['ellipse', 'Hình tròn/elip (O)', Circle],
+  ['eraser', 'Tẩy (E)', Eraser],
   ['laser', 'Laser (L)', Sparkles],
 ];
 
@@ -24,24 +28,33 @@ export default function PresenterToolbar({
   tool, setTool, color, setColor, width, setWidth, canUndo, canRedo, undo, redo, clear,
   whiteboard, toggleWhiteboard, notesOpen, toggleNotes,
 }) {
-  const [collapsed, setCollapsed] = useState(false);
-  if (collapsed) {
-    return <button type="button" className="slp-toolbar-toggle" title="Hiện công cụ"
-      onClick={() => setCollapsed(false)}><Menu /><ChevronUp /></button>;
+  const [open, setOpen] = useState(false);
+  const ActiveIcon = (TOOLS.find(([value]) => value === tool) || TOOLS[0])[2];
+
+  if (!open) {
+    return <button type="button" className={`slp-rail-toggle ${notesOpen ? "is-shifted" : ""}`} title="Mở công cụ trình chiếu"
+      aria-label="Mở công cụ trình chiếu" onClick={() => setOpen(true)}>
+      <ActiveIcon />
+      {tool !== 'mouse' && <span className="slp-rail-toggle__dot" style={{ '--slp-color': color }} />}
+    </button>;
   }
-  return <div className="slp-toolbar" role="toolbar" aria-label="Công cụ trình chiếu">
+
+  return <div className={`slp-toolbar ${notesOpen ? "is-shifted" : ""}`} role="toolbar" aria-orientation="vertical" aria-label="Công cụ trình chiếu">
+    <ToolButton title="Thu gọn công cụ" onClick={() => setOpen(false)}><ChevronRight /></ToolButton>
+    <span className="slp-separator" />
     {TOOLS.map(([value, title, Icon]) => <ToolButton key={value} active={tool === value} title={title}
       onClick={() => setTool(value)}><Icon /></ToolButton>)}
     <span className="slp-separator" />
-    <div className="slp-colors" title="Màu nét">
-      <Palette aria-hidden="true" />
-      {COLORS.map(value => <button key={value} type="button" aria-label={`Màu ${value}`}
+    <div className="slp-colors" role="group" aria-label="Màu">
+      {COLORS.map(value => <button key={value} type="button" aria-label={`Màu ${value}`} title="Màu"
         className={color === value ? 'is-active' : ''} style={{ '--slp-color': value }} onClick={() => setColor(value)} />)}
     </div>
-    <select className="slp-width" aria-label="Độ dày nét" title="Độ dày nét" value={width}
-      onChange={event => setWidth(Number(event.target.value))}>
-      {WIDTHS.map(value => <option key={value} value={value}>{value === 3 ? 'Mảnh' : value === 6 ? 'Vừa' : 'Đậm'}</option>)}
-    </select>
+    <div className="slp-widths" role="group" aria-label="Độ dày / cỡ chữ">
+      {WIDTHS.map(([value, label]) => <button key={value} type="button" title={`${label} (độ dày / cỡ chữ)`}
+        aria-label={label} className={width === value ? 'is-active' : ''} onClick={() => setWidth(value)}>
+        <span style={{ width: 4 + value, height: 4 + value }} />
+      </button>)}
+    </div>
     <span className="slp-separator" />
     <ToolButton title="Hoàn tác (Ctrl/Cmd+Z)" onClick={undo} disabled={!canUndo}><Undo2 /></ToolButton>
     <ToolButton title="Làm lại (Ctrl/Cmd+Shift+Z hoặc Ctrl/Cmd+Y)" onClick={redo} disabled={!canRedo}><Redo2 /></ToolButton>
@@ -50,6 +63,5 @@ export default function PresenterToolbar({
     <ToolButton active={whiteboard} title={whiteboard ? 'Quay lại bài giảng (W)' : 'Bảng trắng (W)'}
       onClick={toggleWhiteboard}>{whiteboard ? <RotateCcw /> : <CircleOff />}</ToolButton>
     <ToolButton active={notesOpen} title="Ghi chú (N)" onClick={toggleNotes}><NotebookPen /></ToolButton>
-    <ToolButton title="Ẩn thanh công cụ" onClick={() => setCollapsed(true)}><EyeOff /></ToolButton>
   </div>;
 }

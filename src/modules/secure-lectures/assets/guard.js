@@ -35,7 +35,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') (function 
   function presenterKey(event) {
     var key = String(event.key || '').toLowerCase();
     var command = event.ctrlKey || event.metaKey;
-    return ['v', 'p', 'h', 'e', 'l', 'w', 'n', 'escape'].indexOf(key) >= 0
+    return ['v', 'p', 'h', 't', 'a', 'r', 'o', 'e', 'l', 'w', 'n', 'escape'].indexOf(key) >= 0
       || (command && (key === 'z' || key === 'y'));
   }
 
