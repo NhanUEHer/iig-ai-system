@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const db = require('../../config/db');
 const HttpError = require('../../http/httpError');
-const dify = require('../../clients/dictionaryDifyClient');
+const aiClient = require('../learning-materials/agents/client');
 
 const clean = value => String(value ?? '').trim();
 const DEFAULT_MAX_ITEMS = 300;
@@ -21,8 +21,8 @@ const candidateTimeoutMs = () => {
   const configured = Number.parseInt(process.env.DICTIONARY_CANDIDATE_TIMEOUT_MS || '', 10);
   return Number.isInteger(configured) && configured >= 30000 ? Math.min(configured, 600000) : DEFAULT_CANDIDATE_TIMEOUT_MS;
 };
-const outputOf = raw => raw?.data?.outputs?.structured_output ?? raw?.data?.outputs?.result ?? raw?.outputs?.structured_output ?? raw;
-const workflowIdOf = raw => raw?.workflow_run_id || raw?.data?.workflow_run_id || raw?.data?.id || null;
+const outputOf = raw => raw?.output ?? raw?.data?.outputs?.structured_output ?? raw?.data?.outputs?.result ?? raw?.outputs?.structured_output ?? raw;
+const workflowIdOf = raw => raw?.callId || raw?.workflow_run_id || raw?.data?.workflow_run_id || raw?.data?.id || null;
 const normalizedSentence = value => clean(value).normalize('NFKC').replace(/\s+/g, ' ').replace(/\s*([—–])\s*/g, '$1').toLocaleLowerCase();
 const sameSentence = (left, right) => normalizedSentence(left) === normalizedSentence(right);
 const sentenceBelongsToPassage = (passage, sentence) => normalizedSentence(passage).includes(normalizedSentence(sentence));
@@ -106,7 +106,7 @@ async function extract(passage, userId) {
   const text = clean(passage);
   if (text.length < 80) throw new HttpError('Đoạn văn cần tối thiểu 80 ký tự.', 400, 'PASSAGE_TOO_SHORT');
   if (text.length > 20000) throw new HttpError('Đoạn văn không được vượt quá 20.000 ký tự.', 400, 'PASSAGE_TOO_LONG');
-  const extractionRaw = await dify.extractItems(text, userId);
+  const extractionRaw = await aiClient.extractItems(text, userId);
   const items = normalizeExtracted(extractionRaw);
   if (!items.length) throw new HttpError('AI không tìm thấy từ phù hợp trong đoạn văn.', 422, 'NO_DICTIONARY_ITEMS');
   return { passage: text, items, extractionWorkflowRunId: workflowIdOf(extractionRaw), rawExtractionResponse: outputOf(extractionRaw) };
@@ -170,13 +170,14 @@ async function processCandidateBatch(candidates, passage, userId) {
   const timeout = setTimeout(() => controller.abort(), candidateTimeoutMs());
   timeout.unref?.();
   try {
-    const raw = await dify.generateEntries(passage, sentence, targetChunks, userId, {
-      signal: controller.signal,
-      timeoutMs: candidateTimeoutMs()
-    });
+    const raw = await Promise.race([
+      aiClient.generateEntries(passage, sentence, targetChunks, userId, { refId: candidates[0]?.id }),
+      // AI Core has no abort hook; stop waiting once the candidate lease would expire.
+      new Promise((_, reject) => controller.signal.addEventListener('abort', () => reject(new HttpError('AI không trả kết quả trong thời gian cho phép.', 504, 'DICTIONARY_PROVIDER_TIMEOUT')), { once: true })),
+    ]);
     const entries = normalizeEntries(raw, targetChunks);
     if (entries.some(entry => !sameSentence(sentence, entry.originalSentence))) {
-      throw new HttpError('Dify trả về câu ngữ cảnh không khớp câu nguồn.',502,'DICTIONARY_CONTEXT_MISMATCH');
+      throw new HttpError('AI trả về câu ngữ cảnh không khớp câu nguồn.',502,'DICTIONARY_CONTEXT_MISMATCH');
     }
     await db.transaction(async client => {
       for (let index = 0; index < candidates.length; index += 1) {
@@ -198,7 +199,7 @@ async function processCandidateBatch(candidates, passage, userId) {
     await db.transaction(async client => {
       for (let index = 0; index < candidates.length; index += 1) {
         const candidate = candidates[index], attempt = attempts[index];
-        const shouldRetry = error.code !== 'DICTIONARY_PROVIDER_TIMEOUT' && candidate.attempt_count < maxAttempts;
+        const shouldRetry = error.code !== 'DICTIONARY_PROVIDER_TIMEOUT' && error.retryable !== false && candidate.attempt_count < maxAttempts;
         const lease = await client.query(`UPDATE dictionary_generation_attempts SET status='failed',error_code=$2,error_message=$3,
           duration_ms=$4,completed_at=CURRENT_TIMESTAMP WHERE id=$1 AND status='running' RETURNING id`,
         [attempt.id,error.code||'DICTIONARY_GENERATION_FAILED',error.message,Math.max(0,Date.now()-startedAt)]);
@@ -218,7 +219,7 @@ async function recoverStaleCandidates() {
   const stale = await db.transaction(async client => {
     const attempts = await client.query(`UPDATE dictionary_generation_attempts attempt
       SET status='failed',error_code='DICTIONARY_PROVIDER_TIMEOUT',
-        error_message='Dify không trả kết quả trong thời gian cho phép.',
+        error_message='AI không trả kết quả trong thời gian cho phép.',
         duration_ms=$2,completed_at=CURRENT_TIMESTAMP
       FROM dictionary_candidates candidate
       WHERE attempt.candidate_id=candidate.id AND attempt.status='running' AND candidate.status='generating'
@@ -227,7 +228,7 @@ async function recoverStaleCandidates() {
     if (!attempts.rows.length) return [];
     const ids = attempts.rows.map(row => row.candidate_id);
     await client.query(`UPDATE dictionary_candidates
-      SET status='failed',error_message='Dify không trả kết quả trong thời gian cho phép. Bạn có thể bấm Gen lại.',
+      SET status='failed',error_message='AI không trả kết quả trong thời gian cho phép. Bạn có thể bấm Gen lại.',
         next_attempt_at=NULL,updated_at=CURRENT_TIMESTAMP
       WHERE id=ANY($1::uuid[]) AND status='generating'`, [ids]);
     return [...new Set(attempts.rows.map(row => row.generation_id))];
