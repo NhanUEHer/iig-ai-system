@@ -52,6 +52,9 @@ trap cleanup EXIT INT TERM
 for file in docker-compose.yml .env .env.container; do
   test -s "$file" || { echo "Missing required deployment file: $DEPLOY_DIR/$file" >&2; exit 1; }
 done
+# Optional AI Core runtime env (written by the release/promote workflow). Make sure it exists so a
+# rollback or an environment without the GitHub secret still starts, with AI Core unconfigured.
+test -f ai-core.env || install -m 600 /dev/null ai-core.env
 
 read_runtime_env() {
   key="$1"

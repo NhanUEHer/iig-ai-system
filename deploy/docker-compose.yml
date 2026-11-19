@@ -62,7 +62,8 @@ services:
         tag: "iig-admin-{{.Name}}"
         labels: "com.docker.compose.project,com.docker.compose.service"
     image: ${REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:?IMAGE_NAMESPACE is required}/iig-admin-api:${ADMIN_API_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
-    env_file: [.env.container]
+    # ai-core.env is written by the release/promote workflow from GitHub environment secrets (AI Core key, Content Studio provider).
+    env_file: [.env.container, ai-core.env]
     environment:
       <<: *runtime-env
       ADMIN_API_PORT: 3001
