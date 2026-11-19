@@ -79,6 +79,18 @@ function bilingualSection(model) {
         ] })),
       ],
     }));
+    // Interleaved: each English sentence followed by its translation in italics, one line per sentence.
+    out.push(heading('Song ngữ xen kẽ', HeadingLevel.HEADING_2));
+    for (const row of rows) {
+      const vi = clean(row.vi);
+      out.push(new Paragraph({
+        children: [
+          new TextRun({ text: clean(row.en), size: 21, color: INK }),
+          new TextRun({ text: vi ? ` (${vi})` : ' (chưa dịch)', italics: true, size: 21, color: vi ? INK : AMBER }),
+        ],
+        spacing: { after: 60, line: 280 },
+      }));
+    }
     out.push(heading('Bản dịch liền mạch', HeadingLevel.HEADING_2));
     out.push(para(rows.map(row => clean(row.vi) || '(chưa dịch)').join(' '), { fill: PALE, after: 160 }));
   });
@@ -129,10 +141,18 @@ function dictionarySection(model) {
   const out = [heading('Từ điển theo ngữ cảnh')];
   model.dictionary.forEach((entry, index) => {
     out.push(para(`${index + 1}. ${clean(entry.lemma)}  ${clean(entry.ipa)}  (${clean(entry.pos)})`, { bold: true, size: 22, before: 120, keepNext: true }));
-    out.push(label('Nghĩa', [entry.meaningVi, entry.meaningEn].filter(Boolean).join(' — ')));
+    // Same fields as the Dictionary XLSX: nothing is dropped, only laid out for reading.
+    const list = value => (Array.isArray(value) ? value : String(value ?? '').split(/\n/)).map(clean).filter(Boolean);
+    const family = Array.isArray(entry.wordFamily) ? list(entry.wordFamily).join(' - ') : clean(entry.wordFamily);
+    out.push(label('Dạng trong bài', entry.inText));
+    out.push(label('Nghĩa tiếng Việt', entry.meaningVi));
+    out.push(label('Định nghĩa tiếng Anh', entry.meaningEn));
     out.push(label('Câu gốc', entry.sentence, { italics: true }));
     out.push(label('Ngữ cảnh', entry.context));
-    if (entry.example?.en) out.push(label('Ví dụ', `${entry.example.en}${entry.example.vi ? `\n→ ${entry.example.vi}` : ''}`));
+    out.push(label('Ví dụ', entry.example?.en ? `${entry.example.en}${entry.example.vi ? `\n→ ${entry.example.vi}` : ''}` : ''));
+    out.push(label('Collocations', list(entry.collocations).join('; ')));
+    out.push(label('Synonyms', list(entry.synonyms).join(', ')));
+    out.push(label('Word family', family));
   });
   return out;
 }

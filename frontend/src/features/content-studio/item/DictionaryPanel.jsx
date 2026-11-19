@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Check, ChevronLeft, ChevronRight, Pencil, Plus, RefreshCw, Search, Trash2, WandSparkles, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, ListRestart, Pencil, Plus, RefreshCw, Search, Trash2, WandSparkles, X } from 'lucide-react';
 import { Button, ConfirmDialog, EmptyState, Spinner } from '../../../design-system-v2';
 import {
   deleteDictionaryCandidate, errorMessage, extractDictionary, generateDictionary,
@@ -146,7 +146,20 @@ function Entries({ state, drafts, setDraft, clearDraft, canEdit, canGenerate, on
         <div className="cs-dictionary-filters">{filters.map(([value, label, count]) => <button type="button" key={value} className={filter === value ? 'is-active' : ''} onClick={() => setFilter(value)}>{label} {count}</button>)}</div>
         <ul>{filtered.map(candidate => { const value = drafts[candidate.id] || candidate.entry?.content || {}; return <li key={candidate.id}><button type="button" className={`${candidate.id === selected.id ? 'is-active' : ''} ${candidate.status === 'needs_review' ? 'is-warning' : ''}`} onClick={() => { onActive(candidate.id); setEditing(false); }}><span><strong>{value.lemma || candidate.chunk}</strong><em>{value.pos || (candidate.chunk.includes(' ') ? 'Phrase' : '')}</em><i className={`is-${candidate.status}`}>{candidate.status === 'needs_review' ? <AlertTriangle /> : <Check />}{STATUS_LABEL[candidate.status]}</i></span><small>{value.ipa ? `${value.ipa} · ` : ''}câu {pad(candidate.sentence.position)}</small><p>{value.meaningVi || candidate.error || 'Chưa có nội dung'}</p></button></li>; })}</ul>
       </aside>
-      <article className="cs-dictionary-detail"><header><div><h2>{content.lemma || selected.chunk}</h2><span>{content.pos || (selected.chunk.includes(' ') ? 'Phrase' : '')}</span><em className={`is-${selected.status}`}>{STATUS_LABEL[selected.status]}</em></div><div><small>{content.ipa ? `${content.ipa} · ` : ''}trong bài: “{content.inText || selected.chunk}” · câu {pad(selected.sentence.position)}</small><span />{canEdit && <Button variant="outline" size="sm" icon={<Pencil />} onClick={() => setEditing(value => !value)}>{editing ? 'Xong' : 'Sửa'}</Button>}{canGenerate && <Button variant="outline" size="sm" icon={<RefreshCw />} disabled={BUSY.includes(selected.status)} onClick={regenerate}>Tạo lại</Button>}{canGenerate && <Button variant="ghost" size="sm" disabled={selected.sentence.candidates.some(candidate => BUSY.includes(candidate.status))} onClick={regenerateSentence}>Tạo lại cả câu</Button>}{canEdit && <button type="button" className="cs-icon-btn" aria-label="Xoá mục" onClick={remove}><Trash2 /></button>}</div></header>
+      <article className="cs-dictionary-detail"><header>
+        <div className="cs-dictionary-detail__title">
+          <h2>{content.lemma || selected.chunk}</h2>
+          <span>{content.pos || (selected.chunk.includes(' ') ? 'Phrase' : '')}</span>
+          <em className={`is-${selected.status}`}>{STATUS_LABEL[selected.status]}</em>
+          <div className="cs-dictionary-detail__actions">
+            {canEdit && <button type="button" className="cs-icon-btn" title={editing ? 'Xong' : 'Sửa'} aria-label={editing ? 'Xong' : 'Sửa mục'} onClick={() => setEditing(value => !value)}>{editing ? <Check /> : <Pencil />}</button>}
+            {canGenerate && <button type="button" className={`cs-icon-btn${BUSY.includes(selected.status) ? ' is-busy' : ''}`} title="Tạo lại từ này" aria-label="Tạo lại từ này" disabled={BUSY.includes(selected.status)} onClick={regenerate}><RefreshCw /></button>}
+            {canGenerate && <button type="button" className="cs-icon-btn" title="Tạo lại cả câu" aria-label="Tạo lại cả câu" disabled={selected.sentence.candidates.some(candidate => BUSY.includes(candidate.status))} onClick={regenerateSentence}><ListRestart /></button>}
+            {canEdit && <button type="button" className="cs-icon-btn cs-icon-btn--danger" title="Xoá mục" aria-label="Xoá mục" onClick={remove}><Trash2 /></button>}
+          </div>
+        </div>
+        <small>{content.ipa ? `${content.ipa} · ` : ''}trong bài: “{content.inText || selected.chunk}” · câu {pad(selected.sentence.position)}</small>
+      </header>
         <div>{fields.map(([label, path, kind], fieldIndex) => <EntryField key={path} number={fieldIndex + 1} label={label} value={fieldValue(path)} kind={kind} editing={editing && path !== 'sentence'} tone={path === 'meaningVi' ? 'accent' : ''} onChange={value => fieldPatch(path, value)} />)}</div>
         <footer><button type="button" disabled={!all[index - 1]} onClick={() => onActive(all[index - 1]?.id)}><ChevronLeft />{all[index - 1]?.entry?.content?.lemma || all[index - 1]?.chunk || 'Trước'}</button><button type="button" disabled={!all[index + 1]} onClick={() => onActive(all[index + 1]?.id)}>{all[index + 1]?.entry?.content?.lemma || all[index + 1]?.chunk || 'Tiếp'}<ChevronRight /></button></footer>
       </article>

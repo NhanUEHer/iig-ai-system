@@ -361,3 +361,21 @@ main .cs-question-field textarea:focus { border-color: #d55f3d!important; outlin
 .cs-export__row button:hover:not(:disabled) { border-color: #d55f3d; color: #b4532f; }
 .cs-export__row.is-disabled { opacity: .55; }
 .cs-export__row button:disabled { cursor: not-allowed; }
+
+/* Vocab row actions: icon-only, shown on hover/focus (always while AI is filling that row). */
+.cs-words__row .cs-words__actions { gap: 2px; opacity: 0; transition: opacity .15s; }
+.cs-words > li:hover .cs-words__row .cs-words__actions, .cs-words__row:focus-within .cs-words__actions, .cs-words__row .cs-words__actions:has(.is-busy) { opacity: 1; }
+.cs-icon-btn:disabled { opacity: .45; cursor: default; }
+.cs-icon-btn.is-busy { opacity: 1; color: var(--iig3-text); }
+.cs-icon-btn.is-busy svg { animation: cs-spin 1s linear infinite; }
+@keyframes cs-spin { to { transform: rotate(360deg); } }
+@media (hover: none) { .cs-words__row .cs-words__actions { opacity: 1; } }
+
+/* Dictionary detail header: title row with icon actions (revealed on hover), meta line full width below. */
+.cs-dictionary-detail > header > .cs-dictionary-detail__title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cs-dictionary-detail__actions { display: flex !important; gap: 2px !important; margin-left: auto; opacity: 0; transition: opacity .15s; }
+.cs-dictionary-detail > header:hover .cs-dictionary-detail__actions, .cs-dictionary-detail__actions:focus-within, .cs-dictionary-detail__actions:has(.is-busy) { opacity: 1; }
+.cs-dictionary-detail > header > small { display: block; }
+.cs-icon-btn--danger:hover { color: var(--iig3-color-danger); background: var(--iig3-color-danger-soft); }
+@media (hover: none) { .cs-dictionary-detail__actions { opacity: 1; } }
+.cs-dictionary-detail > header > .cs-dictionary-detail__title > span { flex: none; padding: 2px 8px; background: #eaf0f5; }
