@@ -1,4 +1,7 @@
 const db = require('../../../config/db');
+const config = require('../config');
+
+const sessionTtlSec = Math.max(1, Number(config.sessionTtlSec));
 
 function mapCurrentVersion(row) {
   if (!row?.current_version_id) return null;
@@ -28,6 +31,7 @@ function mapLecture(row) {
       revoked: Number(rawSummary.revoked || 0),
     },
     registeredDeviceCount: Number(row.registered_device_count || 0),
+    liveSessionCount: Number(row.live_session_count || 0),
     archivedAt: row.archived_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -51,6 +55,10 @@ const SELECT_LECTURE = `
          (SELECT COUNT(*)::int
           FROM sl_devices d JOIN sl_shares s ON s.id = d.share_id
           WHERE s.lecture_id = l.id AND d.removed_at IS NULL) AS registered_device_count,
+         (SELECT COUNT(*)::int FROM sl_sessions ss
+          JOIN sl_shares s ON s.id = ss.share_id
+          WHERE s.lecture_id = l.id AND ss.ended_at IS NULL
+            AND ss.last_heartbeat_at >= CURRENT_TIMESTAMP - INTERVAL '${sessionTtlSec} seconds') AS live_session_count,
          jsonb_build_object(
            'active', (SELECT COUNT(*)::int FROM sl_shares s WHERE s.lecture_id = l.id AND s.revoked_at IS NULL AND s.valid_from <= CURRENT_TIMESTAMP AND s.expires_at > CURRENT_TIMESTAMP),
            'scheduled', (SELECT COUNT(*)::int FROM sl_shares s WHERE s.lecture_id = l.id AND s.revoked_at IS NULL AND s.valid_from > CURRENT_TIMESTAMP),
@@ -210,6 +218,11 @@ function createLectureRepository({ database = db } = {}) {
         (SELECT COUNT(*)::int FROM active_shares) AS active_share_count,
         (SELECT COUNT(DISTINCT lower(recipient_name))::int FROM active_shares)
           AS unique_recipient_count,
+        (SELECT COUNT(*)::int FROM sl_sessions ss
+         JOIN active_shares s ON s.id = ss.share_id
+         WHERE ss.ended_at IS NULL
+           AND ss.last_heartbeat_at >= CURRENT_TIMESTAMP - INTERVAL '${sessionTtlSec} seconds')
+          AS live_session_count,
         (SELECT COUNT(*)::int FROM active_shares s
          WHERE s.expires_at <= CURRENT_TIMESTAMP + INTERVAL '3 days'
             OR EXISTS (
@@ -220,7 +233,7 @@ function createLectureRepository({ database = db } = {}) {
       totalLectures: Number(result.rows[0]?.total_lectures || 0),
       activeShareCount: Number(result.rows[0]?.active_share_count || 0),
       uniqueRecipientCount: Number(result.rows[0]?.unique_recipient_count || 0),
-      liveSessionCount: 0,
+      liveSessionCount: Number(result.rows[0]?.live_session_count || 0),
       attentionCount: Number(result.rows[0]?.attention_count || 0),
     };
   }

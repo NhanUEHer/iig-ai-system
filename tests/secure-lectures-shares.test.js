@@ -276,7 +276,7 @@ test('view-only permission cannot create shares', () => {
   assert.equal(deniedError.code, 'PERMISSION_DENIED');
 });
 
-test('lecture detail uses share/device values while later-phase metrics remain zero', async () => {
+test('lecture detail includes share, device and live-session metrics', async () => {
   const service = createLectureService({
     repository: {
       async findById() {
@@ -285,6 +285,7 @@ test('lecture detail uses share/device values while later-phase metrics remain z
           currentVersion: { versionNo: 4 },
           shareStatusSummary: { active: 3, scheduled: 1, expired: 2, revoked: 1 },
           registeredDeviceCount: 7,
+          liveSessionCount: 2,
         };
       },
     },
@@ -298,7 +299,7 @@ test('lecture detail uses share/device values while later-phase metrics remain z
     revokedShareCount: 1,
     expiredShareCount: 2,
     registeredDeviceCount: 7,
-    liveSessionCount: 0,
+    liveSessionCount: 2,
     openOk7d: 0,
     deniedCount: 0,
     takeoverCount: 0,
@@ -315,6 +316,7 @@ test('overview returns share/device-derived aggregates from its scoped query', a
           total_lectures: 5,
           active_share_count: 4,
           unique_recipient_count: 3,
+          live_session_count: 2,
           attention_count: 2,
         }] };
       },
@@ -325,7 +327,7 @@ test('overview returns share/device-derived aggregates from its scoped query', a
     totalLectures: 5,
     activeShareCount: 4,
     uniqueRecipientCount: 3,
-    liveSessionCount: 0,
+    liveSessionCount: 2,
     attentionCount: 2,
   });
   assert.match(sql, /FROM sl_shares/);

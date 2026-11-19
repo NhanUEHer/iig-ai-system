@@ -26,10 +26,13 @@ const examV3Routes = require('./routes/examV3Routes');
 const scoreScaleRoutes = require('./routes/scoreScaleRoutes');
 const examCandidateRoutes = require('./routes/examCandidateRoutes');
 const publicExamCatalogRoutes = require('./routes/publicExamCatalogRoutes');
+const { sameOriginOnly } = require('./http/sameOriginOnly');
 
 const path = require('path');
 const app = express();
 
+// This guard must run before the legacy global permissive CORS middleware.
+app.use('/api/public/lectures', sameOriginOnly);
 // Standard middlewares with increased payload limits for Base64 audio uploads
 app.use(cors());
 app.use(requestContext);

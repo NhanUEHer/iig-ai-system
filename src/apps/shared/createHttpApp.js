@@ -5,6 +5,7 @@ const { apiAccessLogger } = require('../../http/apiAccessLogger');
 const errorHandler = require('../../http/errorHandler');
 const HttpError = require('../../http/httpError');
 const { getBuildInfo } = require('../../config/buildInfo');
+const { sameOriginOnly } = require('../../http/sameOriginOnly');
 
 function createHttpApp({ serviceName, mountRoutes, configure, readiness }) {
   if (!serviceName) throw new Error('serviceName is required.');
@@ -13,6 +14,7 @@ function createHttpApp({ serviceName, mountRoutes, configure, readiness }) {
   const app = express();
   app.locals.serviceName = serviceName;
   app.disable('x-powered-by');
+  app.use('/api/public/lectures', sameOriginOnly);
   app.use(cors());
   app.use(requestContext);
   app.use(apiAccessLogger);
