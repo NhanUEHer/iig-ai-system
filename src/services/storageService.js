@@ -131,10 +131,11 @@ async function uploadBuffer(buffer, r2Key, contentType = 'application/octet-stre
     return `local:${safeKey}`;
   };
   const production = process.env.NODE_ENV === 'production' || process.env.APP_ENV === 'production';
+  if (options.requireRemote) requireR2();
   if (production && (options.preferLocal || MEDIA_STORAGE_MODE !== 'r2' || !isR2Configured())) {
     throw new Error('Production media upload requires configured R2 storage.');
   }
-  if (options.preferLocal || MEDIA_STORAGE_MODE !== 'r2' || !isR2Configured()) {
+  if (!options.requireRemote && (options.preferLocal || MEDIA_STORAGE_MODE !== 'r2' || !isR2Configured())) {
     return saveLocal();
   }
   try {
@@ -142,7 +143,7 @@ async function uploadBuffer(buffer, r2Key, contentType = 'application/octet-stre
     return `r2:${r2Key}`;
   } catch (error) {
     const isProduction = process.env.NODE_ENV === 'production' || process.env.APP_ENV === 'production';
-    if (isProduction) throw error;
+    if (isProduction || options.requireRemote) throw error;
     console.warn(`[Storage] R2 upload failed in local development; using local storage: ${error.message}`);
     return saveLocal();
   }
@@ -189,7 +190,7 @@ async function headObject(r2KeyOrStoredUrl) {
 
 async function downloadBuffer(r2KeyOrStoredUrl, options = {}) {
   const localKey = r2KeyOrStoredUrl.startsWith('local:') ? r2KeyOrStoredUrl.slice(6) : r2KeyOrStoredUrl;
-  if (r2KeyOrStoredUrl.startsWith('local:') || fs.existsSync(path.join(LOCAL_MEDIA_ROOT, localKey))) {
+  if (!options.requireRemote && (r2KeyOrStoredUrl.startsWith('local:') || fs.existsSync(path.join(LOCAL_MEDIA_ROOT, localKey)))) {
     const safeKey = localKey.replace(/\.\.(?:\/|\\)/g, '');
     return { buffer: fs.readFileSync(path.join(LOCAL_MEDIA_ROOT, safeKey)), contentType: 'application/octet-stream' };
   }
@@ -209,9 +210,9 @@ async function downloadBuffer(r2KeyOrStoredUrl, options = {}) {
 /**
  * Delete an object from R2.
  */
-async function deleteFile(r2KeyOrStoredUrl) {
+async function deleteFile(r2KeyOrStoredUrl, options = {}) {
   const localKey = r2KeyOrStoredUrl.startsWith('local:') ? r2KeyOrStoredUrl.slice(6) : r2KeyOrStoredUrl;
-  if (r2KeyOrStoredUrl.startsWith('local:') || fs.existsSync(path.join(LOCAL_MEDIA_ROOT, localKey))) {
+  if (!options.requireRemote && (r2KeyOrStoredUrl.startsWith('local:') || fs.existsSync(path.join(LOCAL_MEDIA_ROOT, localKey)))) {
     const safeKey = localKey.replace(/\.\.(?:\/|\\)/g, '');
     fs.rmSync(path.join(LOCAL_MEDIA_ROOT, safeKey), { force: true });
     return;

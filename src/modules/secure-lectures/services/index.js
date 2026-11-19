@@ -1,2 +1,4 @@
-// Service implementations are introduced by S02 and later tasks.
-module.exports = Object.freeze({});
+module.exports = {
+  htmlInspector: require('./htmlInspector'),
+  versionService: require('./versionService'),
+};

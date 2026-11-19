@@ -17,6 +17,7 @@ asset/
 public/cleaned-audio/
 public/dialogues/
 public/question-bank-media/
+storage/secure-lectures/
 
 # Environment variables (highly sensitive)
 .env
