@@ -1,0 +1,149 @@
+// Gemini adapter: everything Gemini-specific (endpoints, schema dialect, thinking, usage fields) stays here.
+const { fetchJson, joinUrl } = require('../http');
+const { nonNegativeInteger } = require('../normalize');
+
+const name = 'gemini';
+const label = 'Gemini';
+const capabilities = Object.freeze({
+  nativeSchema: true,
+  thinking: 'Gemini 3 không tắt hẳn được: "Tắt" = mức thấp nhất (low) · Gemini 2.5: thinkingBudget',
+  outputFormat: 'Ép JSON schema ngay khi gọi',
+});
+
+function normalizeUsage(metadata = {}) {
+  const cachedInput = nonNegativeInteger(metadata.cachedContentTokenCount);
+  const prompt = nonNegativeInteger(metadata.promptTokenCount);
+  const thinking = nonNegativeInteger(metadata.thoughtsTokenCount);
+  return {
+    input: Math.max(0, prompt - cachedInput),
+    cachedInput,
+    output: nonNegativeInteger(metadata.candidatesTokenCount) + thinking,
+    thinking,
+  };
+}
+
+function normalizeFinishReason(reason) {
+  const value = String(reason || '').toUpperCase();
+  if (value === 'STOP') return 'stop';
+  if (value === 'MAX_TOKENS') return 'length';
+  if (value === 'SAFETY' || value === 'RECITATION') return 'safety';
+  return 'other';
+}
+const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
+const SCHEMA_KEYS = new Set([
+  'type', 'properties', 'required', 'items', 'enum', 'description', 'nullable', 'minItems', 'maxItems',
+]);
+
+function toResponseSchema(schema) {
+  if (Array.isArray(schema)) return schema.map(toResponseSchema);
+  if (!schema || typeof schema !== 'object') return schema;
+
+  const converted = {};
+  for (const [key, value] of Object.entries(schema)) {
+    if (!SCHEMA_KEYS.has(key)) continue;
+    if (key === 'properties') {
+      converted.properties = Object.fromEntries(
+        Object.entries(value || {}).map(([property, definition]) => [property, toResponseSchema(definition)]),
+      );
+    } else if (key === 'items') {
+      converted.items = toResponseSchema(value);
+    } else {
+      converted[key] = Array.isArray(value) ? [...value] : value;
+    }
+  }
+  return converted;
+}
+
+function headers(apiKey) {
+  return { 'content-type': 'application/json', 'x-goog-api-key': apiKey };
+}
+
+function contents(system, user) {
+  const request = { contents: [{ role: 'user', parts: [{ text: String(user || '') }] }] };
+  if (system) request.systemInstruction = { parts: [{ text: String(system) }] };
+  return request;
+}
+
+// Gemini 3+ uses thinkingLevel (no full off: 'minimal' is the lowest); 2.5 uses thinkingBudget.
+function thinkingConfig(model, mode) {
+  if (!mode || mode === 'default') return null;
+  const legacy = /^gemini-2\./.test(String(model || ''));
+  if (legacy) {
+    const budgets = { off: /pro/.test(model) ? 128 : 0, low: 1024, medium: 4096, high: 16384 };
+    return { thinkingBudget: budgets[mode] };
+  }
+  // 'minimal' is not accepted by every Gemini 3 model (e.g. gemini-3.8-flash rejects it), so 'off' maps to 'low',
+  // the lowest level all of them accept.
+  return { thinkingLevel: mode === 'off' ? 'low' : mode };
+}
+
+async function generate(options) {
+  const body = contents(options.system, options.user);
+  body.generationConfig = {
+    responseMimeType: 'application/json',
+    responseSchema: toResponseSchema(options.schema || {}),
+  };
+  if (options.temperature !== undefined) body.generationConfig.temperature = options.temperature;
+  const thinking = thinkingConfig(options.model, options.thinkingMode);
+  if (thinking) body.generationConfig.thinkingConfig = thinking;
+  if (options.maxOutputTokens !== undefined) {
+    body.generationConfig.maxOutputTokens = options.maxOutputTokens;
+  }
+
+  const raw = await fetchJson(
+    joinUrl(options.baseUrl || DEFAULT_BASE_URL, `models/${encodeURIComponent(options.model)}:generateContent`),
+    {
+      headers: headers(options.apiKey),
+      body,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    },
+  );
+  const candidate = raw.candidates?.[0] || {};
+  const text = (candidate.content?.parts || [])
+    .map(part => (typeof part.text === 'string' ? part.text : ''))
+    .join('');
+  return {
+    text,
+    finishReason: normalizeFinishReason(candidate.finishReason),
+    usage: normalizeUsage(raw.usageMetadata),
+    raw,
+  };
+}
+
+async function countTokens(options) {
+  const raw = await fetchJson(
+    joinUrl(options.baseUrl || DEFAULT_BASE_URL, `models/${encodeURIComponent(options.model)}:countTokens`),
+    {
+      headers: headers(options.apiKey),
+      // systemInstruction is only accepted inside generateContentRequest.
+      body: { generateContentRequest: { model: `models/${options.model}`, ...contents(options.system, options.user) } },
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    },
+  );
+  return Number(raw.totalTokens) || 0;
+}
+
+async function check({ apiKey, baseUrl, timeoutMs = 10000, signal } = {}) {
+  const startedAt = Date.now();
+  try {
+    const raw = await fetchJson(joinUrl(baseUrl || DEFAULT_BASE_URL, 'models'), {
+      method: 'GET', headers: headers(apiKey), timeoutMs, signal,
+    });
+    return {
+      ok: true,
+      ms: Date.now() - startedAt,
+      models: (raw.models || []).map(model => String(model.name || '').replace(/^models\//, '')).filter(Boolean),
+      // Only models that can generate text are usable by agents.
+      modelDetails: (raw.models || [])
+        .filter(model => !Array.isArray(model.supportedGenerationMethods) || model.supportedGenerationMethods.includes('generateContent'))
+        .map(model => ({ id: String(model.name || '').replace(/^models\//, ''), contextWindow: Number(model.inputTokenLimit) || null }))
+        .filter(model => model.id),
+    };
+  } catch (error) {
+    return { ok: false, ms: Date.now() - startedAt, error: { code: error.code, message: error.message } };
+  }
+}
+
+module.exports = { name, label, capabilities, normalizeUsage, normalizeFinishReason, thinkingConfig, generate, countTokens, check, toResponseSchema, DEFAULT_BASE_URL };

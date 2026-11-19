@@ -1,0 +1,363 @@
+.cs-back { display: inline-flex; align-items: center; gap: 4px; color: var(--iig3-color-accent-hover); font-size: 13px; text-decoration: none; }
+.cs-back svg { width: 14px; height: 14px; }
+.cs-item-path { display: flex; align-items: center; gap: 6px; color: #656963; font-size: 12px; }
+.cs-item-path svg { width: 13px; height: 13px; }
+.cs-item-page button:focus:not(:focus-visible) { outline: none; box-shadow: none; }
+.cs-item-head { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--iig3-space-4); }
+.cs-item-head__row { display: flex; align-items: center; gap: var(--iig3-space-3); flex-wrap: wrap; }
+.cs-item-head__row h1 { margin: 0; font-size: 22px; line-height: 1.2; }
+.cs-item-head__meta { flex: 1; color: var(--iig3-text-muted); font-size: 13px; }
+.cs-muted { color: var(--iig3-text-muted); font-size: 12px; }
+.cs-num { color: var(--iig3-text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+/* Workspace: passage (left) + questions (right), each scrolls on its own. */
+.cs-hub { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--iig3-space-4); }
+.cs-hub.is-split { grid-template-columns: minmax(0, .9fr) minmax(0, 1.25fr); align-items: start; }
+.cs-hub__col { display: flex; flex-direction: column; min-width: 0; min-height: 480px; background: var(--iig3-surface); border: 1px solid var(--iig3-border); border-radius: 12px; overflow: hidden; }
+.cs-hub__source { position: sticky; top: 16px; max-height: calc(100vh - 32px); }
+.cs-hub__work { min-height: 640px; }
+.cs-hub__head { display: flex; align-items: center; gap: var(--iig3-space-3); padding: 10px 16px; border-bottom: 1px solid var(--iig3-border); flex-wrap: wrap; }
+.cs-hub__head > strong { flex: 1; font-size: 14px; }
+.cs-hub__head > strong small { color: #7f847d; font-size: 12px; font-weight: 500; }
+.cs-hub__head > strong small { color: #7f847d; font-size: 12px; font-weight: 500; }
+.cs-hub__body { flex: 1; overflow: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.cs-hub__work > .cs-hub__body { padding: 0; }
+.cs-hub__block + .cs-hub__block { border-top: 1px dashed var(--iig3-border); padding-top: 16px; }
+@media (max-width: 1100px) { .cs-hub.is-split { grid-template-columns: minmax(0, 1fr); } .cs-hub__col { height: auto; min-height: 0; } }
+
+.cs-artifact { display: flex; flex-direction: column; gap: var(--iig3-space-3); }
+.cs-artifact__bar { display: flex; align-items: center; gap: var(--iig3-space-2); flex-wrap: wrap; }
+.cs-artifact__bar small { color: var(--iig3-text-muted); font-size: 12px; }
+.cs-artifact__spacer { flex: 1; }
+.cs-artifact__busy { display: grid; place-items: center; padding: var(--iig3-space-6); }
+.cs-issues { margin: 0; padding-left: 18px; }
+
+.cs-source { margin: 0; white-space: pre-line; font-size: 14px; line-height: 1.85; }
+.cs-source.is-compact { font-size: 13px; line-height: 1.75; padding: 12px; border-radius: 8px; background: var(--iig3-color-surface-muted); }
+.cs-source mark, .cs-dict__sentence mark { background: #f8e7df; color: #9c3f26; padding: 0 3px; border-radius: 4px; }
+.cs-source mark.is-active { background: #d55f3d; color: #fff; }
+.cs-source-toggle { display: flex; gap: 2px; padding: 2px; border: 1px solid #deded8; border-radius: 7px; background: #f6f5f2; }
+.cs-source-toggle button { height: 26px; padding: 0 10px; border: 0; border-radius: 5px; background: transparent; color: #656963; font: inherit; font-size: 12px; }
+.cs-source-toggle button.is-active { background: #fffefa; color: #242521; box-shadow: 0 1px 2px rgba(0,0,0,.08); font-weight: 600; }
+
+.cs-translation { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.cs-translation li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px; }
+.cs-translation p { margin: 0 0 4px; font-size: 14px; line-height: 1.55; }
+.cs-translation textarea { width: 100%; font-size: 14px; min-height: 0; }
+.cs-translation__vi { color: var(--iig3-color-info); }
+
+.cs-vocab { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.cs-vocab li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 6px; align-items: start; padding: 8px; border: 1px solid var(--iig3-border); border-radius: 8px; }
+.cs-vocab li .cs-num { padding-top: 9px; }
+.cs-vocab__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 150px; gap: 6px; }
+.cs-vocab__grid .is-strong input { font-weight: 600; }
+.cs-vocab__meaning { grid-column: span 2; }
+.cs-select { height: 32px; min-width: 0; border: 1px solid var(--iig3-border); border-radius: 6px; background: var(--iig3-surface); font: inherit; font-size: 13px; padding: 0 6px; }
+
+.cs-dict { display: flex; flex-direction: column; gap: 14px; }
+.cs-dict__sentence { display: flex; gap: 8px; margin: 0 0 6px; font-size: 13px; line-height: 1.6; }
+.cs-dict__sentence .cs-num { padding-top: 2px; }
+.cs-dict__entry { display: grid; grid-template-columns: minmax(110px, auto) auto minmax(0, 1fr); gap: 10px; align-items: baseline; width: 100%; margin-left: 0; padding: 8px 10px 8px 30px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.cs-dict__entry:hover { background: var(--iig3-color-surface-muted); }
+.cs-dict__entry small { color: var(--iig3-text-muted); }
+.cs-dict__entry span { color: var(--iig3-color-info); }
+.cs-entry { display: flex; flex-direction: column; gap: 10px; }
+.cs-entry__back { display: inline-flex; align-items: center; gap: 2px; align-self: flex-start; padding: 0; border: 0; background: none; color: var(--iig3-color-accent-hover); font: inherit; font-size: 13px; cursor: pointer; }
+.cs-entry__back svg { width: 14px; height: 14px; }
+.cs-entry header { display: flex; align-items: baseline; gap: 8px; }
+.cs-entry header strong { font-size: 20px; }
+.cs-entry header small { color: var(--iig3-text-muted); }
+.cs-entry__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.cs-entry textarea { width: 100%; min-height: 0; }
+
+.cs-question { border: 1px solid var(--iig3-border); border-radius: 10px; }
+.cs-question.is-open { border-color: var(--iig3-color-border-strong); }
+.cs-question__toggle { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 0; background: transparent; font: inherit; text-align: left; cursor: pointer; }
+.cs-question__toggle > svg { width: 16px; height: 16px; color: var(--iig3-text-muted); flex-shrink: 0; }
+.cs-question__toggle strong { flex: 1; font-size: 14px; font-weight: 600; }
+.cs-question__toggle em { font-style: normal; font-size: 12px; color: var(--iig3-color-warning); }
+.cs-question__no { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; background: var(--iig3-color-accent-soft); color: var(--iig3-color-accent-hover); font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.cs-question__body { display: flex; flex-direction: column; gap: 12px; padding: 0 14px 14px 48px; }
+.cs-question__opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 16px; margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--iig3-text-secondary); }
+.cs-question__opts li.is-answer { color: var(--iig3-color-success); font-weight: 600; }
+.cs-question__opts li svg { width: 14px; height: 14px; margin-left: 4px; vertical-align: -2px; }
+.cs-question__fields { display: grid; gap: 10px; }
+.cs-question__fields textarea { width: 100%; font-size: 14px; min-height: 0; }
+.cs-question__options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+.cs-question__fields .is-flagged .iig3-control, .cs-question__fields .is-flagged textarea { border-color: var(--iig3-color-warning); }
+@media (max-width: 720px) { .cs-question__opts, .cs-question__options, .cs-vocab__grid, .cs-entry__grid { grid-template-columns: minmax(0, 1fr); } .cs-vocab__meaning { grid-column: auto; } .cs-question__body { padding-left: 14px; } }
+
+/* Fixed source (left) + 5-tab editor (right) */
+.cs-hub.is-split { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); }
+.cs-hub__tabs { padding: 0 12px; border-bottom: 1px solid var(--iig3-border); }
+.cs-hub__tabs .iig3-tabs { border-bottom: 0; }
+.cs-dirty { font-style: normal; font-size: 12px; color: var(--iig3-color-warning); }
+.cs-source-q { display: flex; flex-direction: column; gap: 12px; margin: 4px 0 0; padding: 12px 0 0; border-top: 1px dashed var(--iig3-border); list-style: none; font-size: 13px; }
+.cs-source-q > li > strong { display: block; margin-bottom: 4px; font-size: 14px; }
+.cs-source-q ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 14px; margin: 0; padding: 0 0 0 16px; list-style: none; color: var(--iig3-text-secondary); }
+.cs-source-q li.is-answer { color: var(--iig3-color-success); font-weight: 600; }
+.cs-source-q li svg { width: 13px; height: 13px; margin-left: 4px; vertical-align: -2px; }
+.cs-source-edit { display: flex; flex-direction: column; gap: 14px; }
+.cs-source-edit textarea { width: 100%; font-size: 14px; line-height: 1.7; }
+.cs-source-edit__q { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 10px 12px; border: 1px solid var(--iig3-border); border-radius: 8px; }
+.cs-source-edit__q legend { padding: 0 4px; font-size: 12px; font-weight: 600; color: var(--iig3-text-muted); }
+.cs-source-edit__opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.cs-source-edit__opts label { display: flex; align-items: center; gap: 6px; }
+.cs-source-edit__opts label > span { flex: 1; }
+.cs-source-edit__opts label.is-answer .iig3-control { border-color: var(--iig3-color-success); }
+.cs-source-edit__opts input[type="radio"] { accent-color: var(--iig3-color-success); }
+@media (max-width: 720px) { .cs-source-q ul, .cs-source-edit__opts { grid-template-columns: minmax(0, 1fr); } }
+
+/* Vocab list: readable rows, click to edit */
+.cs-words { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; border: 1px solid var(--iig3-border); border-radius: 10px; overflow: hidden; }
+.cs-words > li + li { border-top: 1px solid var(--iig3-border); }
+.cs-words > li.is-active { background: var(--iig3-color-surface-muted); }
+.cs-words__row { display: grid; grid-template-columns: 24px minmax(0, 1.3fr) minmax(0, 1fr); gap: 12px; align-items: baseline; width: 100%; padding: 10px 14px; border: 0; background: transparent; font: inherit; text-align: left; cursor: pointer; }
+.cs-words__row:hover { background: var(--iig3-color-surface-muted); }
+.cs-words__main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; min-width: 0; }
+.cs-words__main strong { font-size: 14px; }
+.cs-words__main small { color: var(--iig3-text-muted); font-size: 12px; }
+.cs-words__meaning { font-size: 14px; color: var(--iig3-color-info); }
+.cs-tag { padding: 1px 8px; border-radius: 999px; background: var(--iig3-color-info-soft); color: var(--iig3-color-info); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.cs-words__edit { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; padding: 4px 14px 14px 50px; align-items: end; }
+.cs-words__wide { grid-column: span 2; }
+.cs-words__edit .cs-select { width: 100%; height: 36px; }
+.cs-source mark.is-active { background: var(--iig3-color-accent); color: #fff; }
+@media (max-width: 720px) { .cs-words__row { grid-template-columns: 24px minmax(0, 1fr); } .cs-words__meaning { grid-column: 2; } .cs-words__edit { grid-template-columns: minmax(0, 1fr); padding-left: 14px; } .cs-words__wide { grid-column: auto; } }
+
+/* Dictionary: groups by sentence, same rows as vocab */
+.cs-dict-groups { display: flex; flex-direction: column; gap: 14px; }
+.cs-dict-groups > section > header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+.cs-dict-groups > section > header strong { color: var(--iig3-text); white-space: nowrap; }
+.cs-dict-groups > section > header span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--iig3-text-muted); }
+.cs-dict-groups > section > header small { color: var(--iig3-text-muted); white-space: nowrap; }
+.cs-words__edit textarea { width: 100%; min-height: 0; }
+.cs-hub__source .cs-source-edit__opts { grid-template-columns: minmax(0, 1fr); }
+.cs-question .cs-artifact__bar > .iig3-badge { display: none; }
+
+/* Document-style source editing */
+.cs-doc { display: flex; flex-direction: column; gap: 10px; }
+.cs-doc__hint { margin: 0; font-size: 12px; color: var(--iig3-text-muted); }
+.cs-doc input, .cs-doc textarea { width: 100%; border: 1px solid transparent; border-radius: 6px; background: transparent; font: inherit; color: inherit; padding: 2px 6px; margin-left: -7px; outline: none; transition: border-color .15s, background .15s; }
+.cs-doc input:hover, .cs-doc textarea:hover { border-color: var(--iig3-border); }
+.cs-doc input:focus, .cs-doc textarea:focus { border-color: var(--iig3-color-accent); background: var(--iig3-surface); }
+.cs-doc__passage { resize: none; overflow: hidden; font-size: 14px; line-height: 1.85; white-space: pre-wrap; }
+.cs-doc__questions { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 12px 0 0; border-top: 1px dashed var(--iig3-border); list-style: none; font-size: 13px; }
+.cs-doc__stem { display: flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 600; }
+.cs-doc__stem > span { white-space: nowrap; }
+.cs-doc__opt { display: flex; align-items: center; gap: 4px; padding-left: 14px; color: var(--iig3-text-secondary); }
+.cs-doc__opt button { flex-shrink: 0; width: 22px; height: 22px; border: 1px solid var(--iig3-border); border-radius: 999px; background: transparent; font: inherit; font-size: 11px; font-weight: 600; color: var(--iig3-text-muted); cursor: pointer; }
+.cs-doc__opt button:hover { border-color: var(--iig3-color-success); color: var(--iig3-color-success); }
+.cs-doc__opt.is-answer { color: var(--iig3-color-success); font-weight: 600; }
+.cs-doc__opt.is-answer button { background: var(--iig3-color-success); border-color: var(--iig3-color-success); color: #fff; }
+/* Legacy global `main input` styles use !important; neutralise them inside the document editor. */
+main .cs-doc input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), main .cs-doc textarea { min-height: 0 !important; height: auto; border: 1px solid transparent !important; background: transparent !important; box-shadow: none !important; border-radius: 6px !important; padding: 2px 6px !important; }
+main .cs-doc input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):hover, main .cs-doc textarea:hover { border-color: var(--iig3-border) !important; }
+main .cs-doc input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus, main .cs-doc textarea:focus { border-color: var(--iig3-color-accent) !important; background: var(--iig3-surface) !important; }
+main .cs-doc__stem input { font-size: 14px !important; font-weight: 600; }
+main .cs-doc__opt input { font-size: 13px !important; }
+main .cs-doc__passage { font-size: 14px !important; line-height: 1.85; }
+main .cs-doc__opt button { min-height: 0 !important; }
+
+/* Translation: reads like a bilingual text, the Vietnamese line is editable in place */
+.cs-trans { margin: 0; padding: 0; list-style: none; gap: 4px; }
+.cs-trans > li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px; align-items: start; padding: 4px 8px 4px 6px; border-radius: 8px; }
+.cs-trans > li:hover, .cs-trans > li:focus-within { background: var(--iig3-color-surface-muted); }
+.cs-trans .cs-num { padding-top: 6px; }
+.cs-trans__en { margin: 0 0 2px; font-size: 13px; line-height: 1.55; color: var(--iig3-text-muted); }
+main .cs-trans textarea { resize: none; overflow: hidden; font-size: 14px !important; line-height: 1.6; color: var(--iig3-text); }
+
+/* Vocab rows: edit inline in the same row, delete icon per row */
+.cs-words > li { position: relative; }
+.cs-words__row, .cs-words__inline { display: grid; grid-template-columns: 24px minmax(0, 1.3fr) minmax(0, 1fr) 56px; gap: 12px; align-items: center; padding: 10px 14px; }
+.cs-words__row { cursor: pointer; }
+.cs-words__row:hover { background: var(--iig3-color-surface-muted); }
+.cs-words__row:focus-visible { outline: 2px solid var(--iig3-color-accent-soft); outline-offset: -2px; }
+.cs-words__intext { flex-basis: 100%; color: var(--iig3-text-muted); font-size: 12px; }
+.cs-words__inline { background: var(--iig3-surface); box-shadow: inset 3px 0 0 var(--iig3-color-accent); }
+.cs-words__inline .cs-words__main { gap: 2px 6px; }
+main .cs-words__inline input.cs-words__lemma { width: auto; min-width: 0; flex: 0 1 180px; font-weight: 700 !important; font-size: 14px !important; }
+main .cs-words__inline input.cs-words__ipa { width: auto; flex: 0 1 140px; font-size: 12px !important; color: var(--iig3-text-muted); }
+main .cs-words__inline input.cs-words__meaning { color: var(--iig3-color-info); font-size: 14px !important; }
+.cs-words__inline .cs-words__intext { display: flex; align-items: center; gap: 4px; }
+main .cs-words__inline .cs-words__intext input { flex: 1; font-size: 12px !important; }
+.cs-tag--select { border: 0; appearance: none; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; min-height: 0 !important; height: auto !important; padding: 2px 8px !important; }
+main .cs-words select.cs-tag--select { border: 0 !important; background: var(--iig3-color-info-soft) !important; color: var(--iig3-color-info); box-shadow: none !important; }
+.cs-words__actions { display: flex; justify-content: flex-end; }
+.cs-icon-btn { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: var(--iig3-text-muted); cursor: pointer; }
+.cs-icon-btn svg { width: 15px; height: 15px; }
+.cs-icon-btn:hover { background: var(--iig3-color-surface-muted); color: var(--iig3-text); }
+.cs-words__delete { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity .15s; }
+.cs-words > li:hover .cs-words__delete, .cs-words > li.is-active .cs-words__delete, .cs-words__delete:focus-visible { opacity: 1; }
+.cs-words__delete:hover { color: var(--iig3-color-danger); background: var(--iig3-color-danger-soft); }
+.cs-words > li.is-active .cs-words__actions { padding-right: 30px; }
+main .cs-words__inline input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) { border-bottom: 1px dashed var(--iig3-color-border-strong) !important; border-radius: 4px 4px 0 0 !important; }
+main .cs-words__inline input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus { border: 1px solid var(--iig3-color-accent) !important; border-radius: 6px !important; }
+/* Inline edit: stack into lines so it fits the narrow column */
+.cs-words__inline { grid-template-columns: 24px minmax(0, 1fr) 56px; align-items: start; }
+.cs-words__inline .cs-words__main { display: grid; grid-template-columns: minmax(0, 1.4fr) auto minmax(0, 1fr); gap: 6px; align-items: center; }
+main .cs-words__inline input.cs-words__lemma, main .cs-words__inline input.cs-words__ipa { width: 100%; flex: none; }
+main .cs-words__inline input.cs-words__meaning { grid-column: 1 / -1; }
+.cs-words__inline .cs-words__intext { grid-column: 1 / -1; }
+.cs-words__inline .cs-words__actions { grid-column: 3; grid-row: 1; }
+.cs-words__inline .cs-num { padding-top: 4px; }
+
+/* Dictionary inline extra fields */
+.cs-entry-fields { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 2px; margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--iig3-border); }
+.cs-entry-field { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 8px; align-items: start; }
+.cs-entry-field > span { padding-top: 4px; font-size: 12px; color: var(--iig3-text-muted); }
+main .cs-entry-field textarea { resize: none; overflow: hidden; font-size: 13px !important; line-height: 1.55; }
+
+/* T07 item tabs and vocabulary table. */
+.cs-hub__tabs { display: flex; gap: 2px; min-height: 49px; padding: 0 10px; border-bottom: 1px solid #deded8; flex-wrap: wrap; }
+.cs-hub__tabs button { display: inline-flex; align-items: center; gap: 8px; height: 49px; padding: 0 14px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #656963; font: inherit; font-size: 14px; font-weight: 500; }
+.cs-hub__tabs button.is-active { border-bottom-color: #d55f3d; color: #242521; font-weight: 600; }
+.cs-hub__tabs i { width: 7px; height: 7px; border-radius: 50%; background: #a3a69f; }
+.cs-hub__tabs i.is-ready { background: #648b73; }.cs-hub__tabs i.is-generating,.cs-hub__tabs i.is-queued { background: #557da5; }.cs-hub__tabs i.is-waiting_review,.cs-hub__tabs i.is-needs_review,.cs-hub__tabs i.is-draft { background: #c99a3a; }.cs-hub__tabs i.is-failed { background: #b3503f; }
+.cs-hub__tabs span { font-size: 12px; color: #3f6650; font-weight: 600; }
+.cs-hub__block { padding: 12px 14px 0; }
+.cs-vocab-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: -4px; }.cs-vocab-toolbar > span:first-child { color: #7f847d; font-size: 12px; }.cs-vocab-toolbar > span:nth-child(2) { flex: 1; }
+.cs-vocab-toolbar label { display: flex; align-items: center; gap: 6px; color: #656963; font-size: 12px; }.cs-vocab-toolbar select { height: 32px!important; padding: 0 8px!important; border: 1px solid #deded8!important; border-radius: 8px!important; background: #fffefa!important; font: inherit!important; font-size: 13px!important; }
+.cs-vocab-head,.cs-words__row { display: grid; grid-template-columns: 34px minmax(0,1.2fr) 150px minmax(0,1fr) 68px; gap: 12px; align-items: center; }.cs-vocab-head { margin: 0 -14px; padding: 8px 14px; border-top: 1px solid #ecebe6; background: #f6f5f2; color: #7f847d; font-size: 11px; font-weight: 600; letter-spacing: .04em; }
+.cs-words { margin: 0 -14px!important; gap: 0!important; }.cs-words > li { position: relative; display: block!important; padding: 0!important; border: 0!important; border-top: 1px solid #ecebe6!important; border-radius: 0!important; }.cs-words > li.is-active { background: #fdf3ee!important; box-shadow: inset 3px 0 #d55f3d; }.cs-words__row { padding: 10px 14px; min-height: 52px; }.cs-words__main { min-width: 0; }.cs-words__main strong { font-size: 14px; }.cs-words__main small { margin-left: 5px; color: #7f847d; font-size: 12px; }.cs-words__main .cs-words__intext { display: block; margin: 2px 0 0; color: #656963; }.cs-words__meaning { color: #3f5d7d; font-size: 14px; }.cs-words__actions { display: flex; justify-content: flex-end; }.cs-words__delete { right: 8px; }.cs-words__row .cs-words__actions { padding-right: 30px; }.cs-words__inline { margin: 8px 44px 8px 14px; }
+
+/* T08 dictionary review and entry workspace. */
+.cs-pill { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }.cs-pill.is-warning { background: #f4ecd8; color: #6f5420; }.cs-pill.is-success { background: #e7f0e9; color: #3f6650; }
+.cs-dictionary-empty,.cs-dictionary-generating { min-height: 430px; display: grid; place-items: center; align-content: center; gap: 10px; padding: 30px; text-align: center; }.cs-dictionary-generating p { margin: 0; color: #656963; font-size: 13px; }
+.cs-dictionary-review__intro,.cs-dictionary-entries__bar { display: flex; align-items: center; gap: 10px; padding: 12px 14px; color: #7f847d; font-size: 12px; }.cs-dictionary-review__intro small { margin-left: auto; }.cs-dictionary-entries__bar > span:nth-child(3) { flex: 1; }
+.cs-dictionary-review__groups { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 10px; }.cs-dictionary-review__groups section { border: 1px solid #ecebe6; border-radius: 10px; overflow: hidden; }.cs-dictionary-review__groups header { display: grid; grid-template-columns: 54px minmax(0,1fr) auto; gap: 10px; align-items: start; padding: 10px 12px; background: #f6f5f2; }.cs-dictionary-review__groups header span { color: #bd4f31; font-size: 11px; font-weight: 700; text-transform: uppercase; }.cs-dictionary-review__groups header p { margin: 0; font-size: 13px; line-height: 1.45; }.cs-dictionary-review__groups header small { color: #7f847d; }
+.cs-dictionary-chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 12px; }.cs-dictionary-chips button { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 8px 0 10px; border: 1px solid #e3c0b4; border-radius: 999px; background: #fdf3ee; color: #8a3a22; font: inherit; font-size: 12px; }.cs-dictionary-chips button.is-warning { border-style: dashed; border-color: #c99a3a; background: #fbf6ea; color: #6f5420; }.cs-dictionary-chips button svg { width: 13px; }.cs-dictionary-chips input { width: 150px; height: 30px!important; padding: 0 10px!important; border: 1px solid #d55f3d!important; border-radius: 999px!important; font-size: 12px!important; }.cs-dictionary-chips .cs-dictionary-chip-add { border-style: dashed; border-color: #deded8; background: #fffefa; color: #656963; }.cs-dictionary-review > footer { position: sticky; bottom: 0; display: flex; justify-content: flex-end; gap: 8px; padding: 12px 14px; border-top: 1px solid #ecebe6; background: #fffefa; }
+.cs-dictionary-split { display: grid; grid-template-columns: minmax(250px,.9fr) minmax(0,1.25fr); border-top: 1px solid #ecebe6; }.cs-dictionary-split > aside { padding: 12px; border-right: 1px solid #ecebe6; }.cs-dictionary-search { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px; border: 1px solid #deded8; border-radius: 8px; color: #656963; }.cs-dictionary-search svg { width: 15px; }.cs-dictionary-search input { flex: 1; min-width: 0; height: auto!important; padding: 0!important; border: 0!important; background: transparent!important; font-size: 13px!important; }
+.cs-dictionary-filters { display: flex; gap: 4px; flex-wrap: wrap; margin: 10px 0; }.cs-dictionary-filters button { height: 28px; padding: 0 10px; border: 1px solid #deded8; border-radius: 999px; background: #fffefa; font: inherit; font-size: 12px; }.cs-dictionary-filters button.is-active { border-color: #d55f3d; background: #d55f3d; color: #fff; font-weight: 600; }
+.cs-dictionary-split aside ul { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; max-height: 720px; overflow: auto; }.cs-dictionary-split aside li > button { display: flex; flex-direction: column; gap: 3px; width: 100%; padding: 10px 12px; border: 1px solid #ecebe6; border-radius: 10px; background: #fffefa; color: #242521; font: inherit; text-align: left; }.cs-dictionary-split aside li > button.is-active { border-color: #d55f3d; background: #fdf3ee; }.cs-dictionary-split aside li > button.is-warning { border-color: #e2c98f; background: #fbf6ea; }.cs-dictionary-split aside li span { display: flex; align-items: center; gap: 7px; width: 100%; }.cs-dictionary-split aside li strong { font-size: 14px; }.cs-dictionary-split aside li em { color: #3f5d7d; font-size: 10px; font-style: normal; font-weight: 600; text-transform: uppercase; }.cs-dictionary-split aside li i { display: flex; align-items: center; gap: 3px; margin-left: auto; color: #3f6650; font-size: 11px; font-style: normal; font-weight: 600; }.cs-dictionary-split aside li i.is-needs_review,.cs-dictionary-split aside li i.is-failed { color: #8a6a2c; }.cs-dictionary-split aside li i svg { width: 12px; }.cs-dictionary-split aside li small { color: #7f847d; font-size: 12px; }.cs-dictionary-split aside li p { margin: 0; color: #3f5d7d; font-size: 13px; }
+.cs-dictionary-detail { padding: 16px 18px; }.cs-dictionary-detail > header { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }.cs-dictionary-detail > header > div { display: flex; align-items: center; gap: 8px; }.cs-dictionary-detail h2 { margin: 0; font-size: 24px; }.cs-dictionary-detail header span { padding: 2px 8px; border-radius: 6px; background: #eaf0f5; color: #3f5d7d; font-size: 11px; font-weight: 700; text-transform: uppercase; }.cs-dictionary-detail header em { padding: 2px 8px; border-radius: 999px; background: #e7f0e9; color: #3f6650; font-size: 11px; font-style: normal; font-weight: 600; }.cs-dictionary-detail header small { color: #656963; font-size: 13px; }.cs-dictionary-detail header div > span:nth-child(2) { flex: 1; padding: 0; background: none; }
+.cs-dictionary-field { display: grid; grid-template-columns: 26px 150px minmax(0,1fr); gap: 10px; align-items: baseline; padding: 9px 0; border-top: 1px solid #f0efea; }.cs-dictionary-field > span { color: #a3a69f; font-size: 11px; }.cs-dictionary-field > strong { color: #656963; font-size: 12px; }.cs-dictionary-field p { margin: 0; color: #242521; font-size: 14px; line-height: 1.55; white-space: pre-wrap; }.cs-dictionary-field.is-accent p { color: #8a3a22; font-weight: 600; }.cs-dictionary-field textarea,.cs-dictionary-field select { width: 100%; min-height: 34px!important; padding: 6px 8px!important; border: 1px solid #deded8!important; border-radius: 6px!important; font: inherit!important; font-size: 14px!important; resize: vertical; }
+.cs-dictionary-detail > footer { display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px solid #ecebe6; }.cs-dictionary-detail > footer button { display: inline-flex; align-items: center; gap: 4px; height: 34px; padding: 0 10px; border: 0; background: transparent; color: #656963; font: inherit; font-size: 13px; }.cs-dictionary-detail > footer button:last-child { padding: 0 12px; border: 1px solid #deded8; border-radius: 8px; background: #fffefa; color: #242521; font-weight: 500; }.cs-dictionary-detail > footer svg { width: 14px; }
+@media (max-width: 1200px) { .cs-vocab-head,.cs-words__row { grid-template-columns: 30px minmax(0,1fr) 120px minmax(0,.8fr) 64px; gap: 8px; }.cs-dictionary-split { grid-template-columns: 1fr; }.cs-dictionary-split > aside { border-right: 0; border-bottom: 1px solid #ecebe6; }.cs-dictionary-split aside ul { max-height: 350px; } }
+
+/* T09 translation workspace. */
+.cs-hub__block--translation { padding: 0; }
+.cs-source-sentences { display: flex; flex-direction: column; gap: 2px; margin: -6px -8px; padding: 0; list-style: none; }
+.cs-source-sentences li { display: grid; grid-template-columns: 30px minmax(0,1fr); gap: 8px; padding: 8px 10px; border-radius: 8px; }
+.cs-source-sentences li.is-active { background: #fdf3ee; box-shadow: inset 3px 0 #d55f3d; }
+.cs-source-sentences strong { padding-top: 3px; color: #7f847d; font-size: 11px; }
+.cs-source-sentences li.is-active strong { color: #bd4f31; }
+.cs-source-sentences span { color: #3a3c38; font-size: 14px; line-height: 1.6; }
+.cs-translation-empty { padding: 16px 14px; }
+.cs-translation-toolbar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #ecebe6; flex-wrap: wrap; }
+.cs-translation-toolbar > button:not(.iig3-button) { height: 28px; padding: 0 10px; border: 1px solid #deded8; border-radius: 999px; background: #fffefa; color: #242521; font: inherit; font-size: 12px; }
+.cs-translation-toolbar > button.is-active { border-color: #d55f3d; background: #d55f3d; color: #fff; font-weight: 600; }
+.cs-translation-toolbar > span { flex: 1; }
+.cs-translation-toolbar small { color: #7f847d; font-size: 12px; }
+.cs-translation-cards { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 12px 14px 16px; list-style: none; }
+.cs-translation-cards > li { padding: 10px 12px; border: 1px solid #ecebe6; border-radius: 10px; background: #fffefa; }
+.cs-translation-cards > li.is-active { border-color: #d55f3d; box-shadow: 0 0 0 1px rgba(213,95,61,.08); }
+.cs-translation-cards > li.is-review { border-color: #d55f3d; background: #fbf6ea; }
+.cs-translation-card__head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.cs-translation-card__head > strong { padding: 1px 7px; border-radius: 5px; background: #f6f5f2; color: #4a4d48; font-size: 11px; }
+.cs-translation-cards > li.is-review .cs-translation-card__head > strong { background: #d55f3d; color: #fff; }
+.cs-translation-card__head > span { display: inline-flex; align-items: center; gap: 4px; color: #3f6650; font-size: 11px; font-weight: 600; }
+.cs-translation-card__head > span.is-review { color: #8a6a2c; }
+.cs-translation-card__head svg { width: 12px; height: 12px; }
+.cs-translation-card__head i { flex: 1; }
+.cs-translation-card__head em { color: #8a6a2c; font-size: 11px; font-style: normal; }
+main .cs-translation-cards textarea { width: 100%; min-height: 0!important; box-sizing: border-box; margin-left: -6px; padding: 4px 6px!important; border: 1px solid transparent!important; border-radius: 6px!important; background: transparent!important; box-shadow: none!important; color: #242521; font: inherit; font-size: 14px!important; line-height: 1.6; resize: none; }
+main .cs-translation-cards .is-review textarea { border-color: #d55f3d!important; }
+main .cs-translation-cards textarea:focus { border-color: #d55f3d!important; outline: none; }
+.cs-translation-card__issue { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 10px; border-radius: 6px; background: #f4ecd8; color: #6f5420; font-size: 12px; }
+.cs-translation-card__issue svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+/* T10 question workspace. */
+.cs-source mark.is-quote { padding: 2px 0; border-radius: 0; background: #fdf3ee; box-shadow: inset 0 -2px #d55f3d; color: #242521; }
+.cs-source mark.is-quote.is-active { color: #242521; }
+.cs-source-quote-note { display: flex; align-items: center; gap: 6px; margin: 8px -16px -14px; padding: 10px 16px 14px; border-top: 1px dashed #deded8; color: #656963; font-size: 12px; }
+.cs-source-quote-note i { width: 18px; height: 3px; border-radius: 2px; background: #d55f3d; }
+.cs-question-picker { display: flex; align-items: center; gap: 6px; padding: 12px 14px; border-bottom: 1px solid #ecebe6; flex-wrap: wrap; }
+.cs-question-picker button { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid #deded8; border-radius: 999px; background: #fffefa; color: #242521; font: inherit; font-size: 13px; font-weight: 500; }
+.cs-question-picker button.is-active { border-color: #d55f3d; background: #d55f3d; color: #fff; font-weight: 600; }
+.cs-question-picker button i { width: 7px; height: 7px; border-radius: 999px; background: #648b73; }
+.cs-question-picker button i.is-review,.cs-question-picker button i.is-failed { background: #b3503f; }
+.cs-question-picker button i.is-generating,.cs-question-picker button i.is-queued { background: #557da5; }
+.cs-question-picker button i.is-empty { background: #a3a69f; }
+.cs-question-picker button.is-active i { background: #fff; }
+.cs-question-picker > span { flex: 1; }
+.cs-question-picker small { color: #7f847d; font-size: 12px; }
+.cs-question-empty { padding: 30px 18px; }
+.cs-question-card { display: flex; flex-direction: column; gap: 14px; padding: 16px 18px; }
+.cs-question-card > header { display: flex; align-items: flex-start; gap: 12px; }
+.cs-question-card > header > span { display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 32px; border-radius: 9px; background: #d55f3d; color: #fff; font-weight: 700; }
+.cs-question-card h2 { flex: 1; margin: 4px 0 0; font-size: 17px; font-weight: 600; line-height: 1.4; }
+.cs-question-card header em { margin-top: 6px; color: #8a6a2c; font-size: 11px; font-style: normal; }
+.cs-question-card header b { margin-top: 3px; padding: 3px 10px; border-radius: 999px; background: #e7f0e9; color: #3f6650; font-size: 12px; white-space: nowrap; }
+.cs-question-card header b.is-review { background: #f4ecd8; color: #6f5420; }
+.cs-question-card > ul { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin: 0; padding: 12px 14px; border-radius: 10px; background: #f6f5f2; list-style: none; }
+.cs-question-card > ul li { display: flex; align-items: center; gap: 8px; color: #3a3c38; font-size: 14px; }
+.cs-question-card > ul li > span { display: inline-grid; place-items: center; flex-shrink: 0; width: 22px; height: 22px; border: 1px solid #deded8; border-radius: 999px; color: #7f847d; font-size: 11px; font-weight: 700; }
+.cs-question-card > ul li.is-answer { color: #2f5a41; font-weight: 600; }
+.cs-question-card > ul li.is-answer > span { border-color: #648b73; background: #648b73; color: #fff; }
+.cs-question-field { padding: 12px 0; border-top: 1px solid #ecebe6; }
+.cs-question-field > div { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.cs-question-field > div span { color: #a3a69f; font-size: 11px; }
+.cs-question-field > div strong { color: #242521; font-size: 13px; }
+.cs-question-field--hint > div strong { color: #7a5b1e; }.cs-question-field--explanation > div strong { color: #2d4f75; }.cs-question-field--note > div strong { color: #8f4337; }
+.cs-question-field > div small { color: #7f847d; font-size: 12px; }
+main .cs-question-field textarea { width: 100%; min-height: 0!important; box-sizing: border-box; padding: 8px 10px!important; border: 1px solid #ecebe6!important; border-radius: 8px!important; background: #fffefa!important; box-shadow: none!important; color: #242521; font: inherit; font-size: 14px!important; line-height: 1.65; resize: vertical; }
+main .cs-question-field.is-review textarea { border-color: #e2c98f!important; }
+main .cs-question-field textarea:focus { border-color: #d55f3d!important; outline: none; }
+.cs-question-field > p { display: flex; align-items: center; gap: 5px; margin: 6px 0 0; color: #8a6a2c; font-size: 12px; }
+.cs-question-field > p svg { width: 13px; height: 13px; }
+.cs-question-card > footer { display: flex; align-items: center; gap: 8px; padding-top: 4px; }
+.cs-question-card > footer > span { flex: 1; }
+.cs-question-card > footer > button:not(.iig3-button) { display: inline-flex; align-items: center; gap: 3px; height: 34px; padding: 0 10px; border: 0; background: transparent; color: #656963; font: inherit; font-size: 13px; }
+.cs-question-card > footer > button.is-next { padding: 0 12px; border: 1px solid #deded8; border-radius: 8px; background: #fffefa; color: #242521; font-weight: 500; }
+.cs-question-card > footer > button:disabled { opacity: .4; }
+.cs-question-card > footer svg { width: 14px; height: 14px; }
+@media (max-width: 720px) { .cs-question-card > ul { grid-template-columns: 1fr; }.cs-question-field > div { align-items: flex-start; flex-wrap: wrap; }.cs-question-field > div small { flex-basis: 100%; padding-left: 19px; } }
+
+/* Polish: tabs focus, dictionary toolbar, buttons */
+.cs-hub__tabs button:focus { outline: none; box-shadow: none; }
+.cs-hub__tabs button:focus-visible { outline: 2px solid #d55f3d; outline-offset: -2px; border-radius: 6px; }
+.cs-dictionary-search { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px; border: 1px solid #deded8; border-radius: 8px; background: #fff; }
+.cs-dictionary-search:focus-within { border-color: #d55f3d; box-shadow: 0 0 0 3px #f8e7df; }
+#root .iig3-theme .cs-dictionary-search input, main .cs-dictionary-search input { flex: 1; min-width: 0; height: 100% !important; padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; outline: none !important; font-size: 13px !important; }
+.cs-dictionary-filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.cs-dictionary-filters button { flex: none; white-space: nowrap; }
+.cs-dictionary-detail .iig3-button { text-transform: none; letter-spacing: 0; white-space: nowrap; flex: none; }
+.cs-dictionary-detail > header small { flex: 1 1 auto; min-width: 0; }
+.cs-dictionary-detail > header .iig3-button span { all: unset; text-transform: none; font: inherit; color: inherit; }
+.cs-dictionary-filters button { padding: 0 8px; font-size: 12px; }
+.cs-vocab-head + .cs-words { border: 0 !important; border-radius: 0 !important; border-bottom: 1px solid #ecebe6 !important; }
+.cs-vocab-head + .cs-words > li:first-child { border-top: 0 !important; }
+.cs-vocab-head + .cs-words { margin-top: -12px !important; }
+
+/* Dictionary edit mode: inline like the vocab table */
+#root .iig3-theme .cs-dictionary-field textarea, #root .iig3-theme .cs-dictionary-field select { width: 100%; min-height: 0 !important; padding: 2px 0 !important; border: 0 !important; border-bottom: 1px dashed var(--iig3-color-border-strong, #c9c8c0) !important; border-radius: 4px 4px 0 0 !important; background: transparent !important; box-shadow: none !important; font: inherit !important; font-size: 14px !important; line-height: 1.55 !important; color: inherit; resize: none; overflow: hidden; field-sizing: content; height: auto !important; }
+#root .iig3-theme .cs-dictionary-field select { height: 28px !important; cursor: pointer; }
+#root .iig3-theme .cs-dictionary-field textarea:focus, #root .iig3-theme .cs-dictionary-field select:focus { outline: none !important; border-bottom: 1px solid #d55f3d !important; background: #fdf3ee !important; }
+#root .iig3-theme .cs-dictionary-field.is-accent textarea { color: #b4532f; font-weight: 600 !important; }
+
+/* UAT polish: fields grow with their text instead of scrolling inside; dictionary filters wrap */
+#root .iig3-theme .cs-question-field textarea, #root .iig3-theme .cs-translation-cards textarea { resize: none !important; overflow: hidden !important; min-height: 0 !important; }
+.cs-dictionary-filters { flex-wrap: wrap !important; overflow: visible !important; }
+
+/* Stale content after editing the source */
+.cs-stale-banner { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 10px 14px; border: 1px solid #ecd9a8; border-radius: 10px; background: #fbf4e3; color: #6f5420; font-size: 13px; }
+.cs-stale-banner > svg { width: 18px; flex: none; }
+.cs-stale-banner p { flex: 1; margin: 0; }
+.cs-stale-banner .iig3-button { height: 34px; white-space: nowrap; }
+.cs-stale-tag { margin-left: 6px; padding: 1px 6px; border-radius: 99px; background: #f4ecd8; color: #6f5420; font-size: 10.5px; font-weight: 650; }
+
+/* Export menu */
+.cs-export { position: relative; }
+.cs-export__caret { width: 14px; margin-left: 2px; }
+.cs-export__menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: 360px; padding: 6px; border: 1px solid #deded8; border-radius: 12px; background: #fffefa; box-shadow: 0 12px 32px rgba(36, 37, 33, .14); }
+.cs-export__row { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; }
+.cs-export__row + .cs-export__row { border-top: 1px solid #f0efea; }
+.cs-export__row > div { flex: 1; min-width: 0; }
+.cs-export__row strong { display: block; font-size: 14px; }
+.cs-export__row small { display: block; color: #6b6a62; font-size: 12px; }
+.cs-export__row > span { display: flex; gap: 6px; }
+.cs-export__row button { height: 30px; min-width: 52px; padding: 0 10px; border: 1px solid #deded8; border-radius: 6px; background: #fff; font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; }
+.cs-export__row button:hover:not(:disabled) { border-color: #d55f3d; color: #b4532f; }
+.cs-export__row.is-disabled { opacity: .55; }
+.cs-export__row button:disabled { cursor: not-allowed; }

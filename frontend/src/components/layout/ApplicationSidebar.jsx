@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   Archive,
+  WandSparkles,
   BarChart3,
   BookOpen,
   Bot,
@@ -48,6 +49,7 @@ export const applicationNavigation = [
     items: [
       { id: 'content-sources', label: 'Nguồn học liệu', to: '/content-sources', icon: Archive, permissions: ['content_sources.view', 'content_sources.create'] },
       { id: 'content-development', label: 'Phát triển học liệu', to: '/content-development', icon: BookOpen, permissions: ['content_sources.view', 'content_sources.analyze'] },
+      { id: 'content-studio', label: 'Content Studio', to: '/content-studio', icon: WandSparkles, permissions: ['content_studio.view', 'content_studio.edit', 'content_studio.generate'] },
       { id: 'key-vocab', label: 'Tạo học liệu', to: '/key-vocab', icon: GraduationCap, permissions: ['key_vocab.view', 'key_vocab.generate', 'key_vocab.manage', 'dictionary.view', 'dictionary.generate', 'dictionary.manage'] },
     ],
   },
@@ -60,6 +62,7 @@ export const applicationNavigation = [
       { id: 'ai-scoring-tenants', label: 'Tenant tích hợp', to: '/ai-scoring/tenants', icon: Boxes, permissions: ['ai_scoring.tenants.view', 'ai_scoring.tenants.manage'] },
       { id: 'mappings', label: 'Đồng bộ Keycode', to: '/mappings', icon: Webhook, permission: 'mappings.view' },
       { id: 'ai', label: 'Cấu hình AI Agents', to: '/ai', icon: Bot, permission: 'agents.view' },
+      { id: 'ai-core', label: 'AI Core', to: '/ai-core', icon: Sparkles, permission: 'ai_core.view' },
     ],
   },
   {

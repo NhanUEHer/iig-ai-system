@@ -6,6 +6,9 @@ const redis = require('../../config/redis');
 const storageService = require('../../services/storageService');
 const mappingSyncScheduler = require('../../services/mappingSyncScheduler');
 const dictionaryService = require('../../modules/dictionary/dictionaryService');
+const contentStudioGeneration = require('../../modules/content-studio/generation/generationService');
+const contentStudioDictionary = require('../../modules/content-studio/dictionary/worker');
+const aiCoreUsageJob = require('../../modules/ai-core/usage/job');
 const { runtimePort, listen, installShutdown, closeServer } = require('../shared/httpRuntime');
 const { createReadiness } = require('../shared/readiness');
 const { runtimeLog } = require('../shared/runtimeLog');
@@ -18,6 +21,9 @@ async function startAdminServer(dependencies = {}) {
     storage: dependencies.storage || storageService,
     scheduler: dependencies.scheduler || mappingSyncScheduler,
     dictionary: dependencies.dictionary || dictionaryService,
+    contentStudio: dependencies.contentStudio || contentStudioGeneration,
+    contentStudioDictionary: dependencies.contentStudioDictionary || contentStudioDictionary,
+    aiCoreUsageJob: dependencies.aiCoreUsageJob || aiCoreUsageJob,
     processRef: dependencies.processRef || process,
     listen: dependencies.listen || listen,
   };
@@ -32,9 +38,15 @@ async function startAdminServer(dependencies = {}) {
     server = await deps.listen(deps.app, port, 'iig-admin-api');
     deps.scheduler.start();
     await deps.dictionary.startWorker();
+    deps.contentStudio.startWorker();
+    deps.contentStudioDictionary.startWorker();
+    deps.aiCoreUsageJob.start();
   } catch (error) {
     deps.scheduler.stop();
     deps.dictionary.stopWorker();
+    deps.contentStudio.stopWorker();
+    deps.contentStudioDictionary.stopWorker();
+    deps.aiCoreUsageJob.stop();
     await closeServer(server);
     await Promise.allSettled([deps.redis.close(), deps.db.close()]);
     throw error;
@@ -43,6 +55,9 @@ async function startAdminServer(dependencies = {}) {
   const close = async () => {
     deps.scheduler.stop();
     deps.dictionary.stopWorker();
+    deps.contentStudio.stopWorker();
+    deps.contentStudioDictionary.stopWorker();
+    deps.aiCoreUsageJob.stop();
     await closeServer(server);
     await deps.redis.close();
     await deps.db.close();

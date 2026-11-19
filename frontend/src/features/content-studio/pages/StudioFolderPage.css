@@ -1,0 +1,68 @@
+#root .iig3-theme .cs-library { width: 100%; height: 100%; overflow: auto; padding: 20px clamp(20px, 2vw, 32px) 32px; background: #efefec; color: #242521; font-family: Inter, -apple-system, "Segoe UI", sans-serif; }
+.cs-library, .cs-library * { box-sizing: border-box; }
+.cs-library button, .cs-library input { font-family: inherit; }
+.cs-library__inner { display: flex; width: 100%; max-width: var(--iig3-content-wide); margin: 0 auto; flex-direction: column; gap: 16px; }
+.cs-library__header { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.cs-library__header > div { min-width: 260px; flex: 1; }
+.cs-library__header nav { display: flex; gap: 6px; color: #656963; font-size: 12px; }
+.cs-library__header nav button { overflow: hidden; max-width: 180px; padding: 0; border: 0; background: transparent; color: inherit; font-size: inherit; text-overflow: ellipsis; white-space: nowrap; }
+.cs-library__header nav button:last-child, .cs-library__header nav strong { color: #242521; font-weight: 600; }
+.cs-library__header h1 { margin: 6px 0 0; font-size: 28px; font-weight: 700; letter-spacing: -.01em; line-height: 1.15; }
+.cs-library-search, .cs-library-list__tools > label { display: flex; width: 320px; max-width: 100%; height: 40px; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid #deded8; border-radius: 8px; background: #fffefa; color: #656963; font-size: 13px; }
+.cs-library-search:focus-within, .cs-library-list__tools > label:focus-within { border-color: #d55f3d; box-shadow: 0 0 0 3px #f8e7df; }
+.cs-library-search svg, .cs-library-list__tools svg { width: 16px; flex: none; }
+#root .iig3-theme .cs-library-search input, #root .iig3-theme .cs-library-list__tools input { min-width: 0; height: auto; flex: 1; padding: 0 !important; border: 0 !important; outline: 0; background: transparent !important; box-shadow: none !important; color: #242521; font-size: 13px !important; }
+.cs-library-search kbd { padding: 1px 6px; border: 1px solid #deded8; border-radius: 4px; background: #f6f5f2; font: 11px inherit; }
+.cs-library__layout { display: grid; grid-template-columns: minmax(0, 1fr) 256px; gap: 16px; align-items: start; }
+.cs-library__layout > main { display: flex; min-width: 0; flex-direction: column; gap: 16px; }
+.cs-library-tabs { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #deded8; }
+.cs-library-tabs > button, .cs-library-tabs > span { display: inline-flex; height: 44px; align-items: center; gap: 8px; padding: 0 14px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #656963; font-size: 14px; }
+.cs-library-tabs > button svg, .cs-library-tabs > span svg { width: 16px; }
+.cs-library-tabs > span { border-bottom-color: #d55f3d; color: #242521; font-weight: 600; }
+.cs-library-tabs b, .cs-library-tabs em { padding: 1px 8px; border-radius: 999px; background: #f8e7df; color: #9c3f26; font-size: 12px; font-style: normal; }
+.cs-library-tabs em { background: #f4ecd8; color: #6f5420; }
+.cs-library-list { display: flex; min-width: 0; flex-direction: column; gap: 10px; }
+.cs-library-list__tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cs-library-list__tools > label { width: 280px; height: 36px; }
+.cs-library-list__tools > span { flex: 1; }
+.cs-library-list__tools > div { display: flex; gap: 4px; padding: 3px; border: 1px solid #deded8; border-radius: 8px; background: #f6f5f2; }
+.cs-library-list__tools > div button { height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: #656963; font-size: 12px; }
+.cs-library-list__tools > div button[aria-pressed="true"] { background: #fffefa; box-shadow: 0 1px 2px rgba(0,0,0,.08); color: #242521; font-weight: 600; }
+.cs-library-row { display: grid; grid-template-columns: 40px minmax(160px, 1fr) repeat(4, 92px) 160px; gap: 12px; align-items: center; padding: 14px 16px; border: 1px solid #deded8; border-radius: 12px; background: #fffefa; cursor: pointer; }
+.cs-library-row:hover { border-color: #c8c9c3; }
+.cs-library-row.has-attention { border-color: #d55f3d; }
+.cs-library-row--head { padding: 0 16px; border: 0; border-radius: 0; background: transparent; color: #7f847d; cursor: default; font-size: 11px; font-weight: 600; letter-spacing: .04em; }
+.cs-library-row--head:hover { border-color: transparent; }
+.cs-library-row__kind { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 8px; background: #eaf0f5; color: #3f5d7d; font-size: 14px; font-weight: 700; }
+.cs-library-row__kind.is-question { background: #f8e7df; color: #bd4f31; }
+.cs-library-row__body { min-width: 0; }
+.cs-library-row__body strong { display: block; overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.cs-library-row__body span { color: #656963; font-size: 12px; }
+.cs-library-task { display: flex; align-items: center; gap: 6px; color: #656963; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.cs-library-task i { width: 8px; height: 8px; flex: none; border-radius: 50%; background: currentColor; }
+.cs-library-task.is-ready { color: #3f6650; }.cs-library-task.is-review { color: #7a5b1e; }.cs-library-task.is-danger { color: #8f4337; }.cs-library-task.is-running { color: #3f5d7d; }.cs-library-task.is-empty { color: #9a9e97; font-weight: 400; }
+.cs-library-row__actions { display: flex; justify-content: flex-end; align-items: center; gap: 4px; }
+.cs-library-row__actions > .iig3-button { height: 34px; max-width: 125px; overflow: hidden; padding: 0 12px; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.cs-library-menu { position: relative; }
+.cs-library-menu > button { display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 6px; background: transparent; color: #656963; }
+.cs-library-menu > button:hover { background: #f6f5f2; }.cs-library-menu > button svg { width: 16px; }
+.cs-library-menu > div { position: absolute; z-index: 12; top: 34px; right: 0; width: 178px; padding: 5px; border: 1px solid #deded8; border-radius: 9px; background: #fffefa; box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+.cs-library-menu > div button { display: flex; width: 100%; height: 34px; align-items: center; gap: 8px; padding: 0 9px; border: 0; border-radius: 6px; background: transparent; color: #242521; font-size: 13px; text-align: left; }
+.cs-library-menu > div button:hover { background: #f6f5f2; }.cs-library-menu > div button.is-danger { color: #8f4337; }.cs-library-menu > div svg { width: 15px; }
+.cs-library-list__state { display: flex; min-height: 180px; align-items: center; justify-content: center; flex-direction: column; gap: 6px; padding: 20px; border: 1px dashed #deded8; border-radius: 12px; color: #7f847d; font-size: 13px; text-align: center; }
+.cs-library-list__state > svg { width: 24px; }.cs-library-list__state strong { color: #242521; }.cs-library-list__state p { margin: 0; }
+.cs-library-list__state .iig3-skeleton { width: 100%; }
+.cs-library-folders { position: sticky; top: 20px; overflow: hidden; border: 1px solid #deded8; border-radius: 12px; background: #fffefa; }
+.cs-library-folders > header { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid #deded8; }
+.cs-library-folders > header strong { flex: 1; font-size: 13px; }.cs-library-folders > header button { display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 6px; background: transparent; color: #656963; }.cs-library-folders > header svg { width: 16px; }
+.cs-library-folders__tree { display: flex; max-height: 540px; flex-direction: column; gap: 2px; overflow: auto; padding: 8px; }
+.cs-library-folders__tree > button { display: flex; width: 100%; height: 34px; align-items: center; gap: 8px; padding: 0 10px 0 calc(10px + var(--cs-folder-depth, 0) * 18px); border: 0; border-radius: 6px; background: transparent; color: #4a4d48; font-size: 13px; text-align: left; }
+.cs-library-folders__tree > button:hover { background: #f6f5f2; }.cs-library-folders__tree > button.is-selected { background: #f8e7df; color: #242521; font-weight: 600; }
+.cs-library-folders__toggle { display: grid; width: 14px; flex: 0 0 14px; place-items: center; color: #7f847d; }.cs-library-folders__toggle svg { width: 14px; }
+.cs-library-folders__name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.cs-library-folders__name + span { color: #7f847d; font-size: 11px; font-weight: 400; }
+.cs-library-folders__tree > button.is-selected .cs-library-folders__name + span { color: #9c3f26; }
+.cs-library-folders__tree hr { width: calc(100% - 8px); height: 1px; margin: 6px 4px; border: 0; background: #ecebe6; }
+.cs-library-folders__attention { margin: 4px 12px 12px; padding: 10px 12px; border-radius: 8px; background: #f4ecd8; color: #6f5420; font-size: 12px; line-height: 1.5; }.cs-library-folders__attention strong { display: block; }.cs-library-folders__attention button { padding: 0; border: 0; background: transparent; color: #9c3f26; font-size: inherit; text-decoration: underline; }
+@media (max-width: 1180px) { .cs-library-row { grid-template-columns: 40px minmax(160px, 1fr) repeat(4, 74px) 145px; gap: 8px; }.cs-library-task { font-size: 11px; } }
+@media (max-width: 980px) { .cs-library__layout { grid-template-columns: minmax(0, 1fr); }.cs-library-folders { position: static; grid-row: 1; }.cs-library-folders__tree { max-height: 260px; }.cs-library-row { grid-template-columns: 40px minmax(140px, 1fr) repeat(2, 80px) 145px; }.cs-library-row > :nth-child(5), .cs-library-row > :nth-child(6) { display: none; } }
+@media (max-width: 700px) { #root .iig3-theme .cs-library { padding: 18px 16px 32px; }.cs-library-search { width: 100%; }.cs-library-list__tools > label { width: 100%; }.cs-library-list__tools > span { display: none; }.cs-library-list__tools > div { width: 100%; overflow-x: auto; }.cs-library-row--head { display: none; }.cs-library-row { grid-template-columns: 40px minmax(0, 1fr) auto; }.cs-library-row > .cs-library-task { display: none; }.cs-library-row__actions > .iig3-button { display: none; }.cs-library-tabs > span em { display: none; } }

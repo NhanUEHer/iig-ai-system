@@ -28,6 +28,15 @@ import ChangePasswordPage from './features/auth/pages/ChangePasswordPage';
 import AccountProfileModal from './features/auth/components/AccountProfileModal';
 import BulkSyncPanel from './components/sync/BulkSyncPanel';
 import KeyVocabPage from './features/key-vocab/pages/KeyVocabPage';
+import ContentStudioItemPage from './features/content-studio/pages/ContentStudioItemPage';
+import StudioHomePage from './features/content-studio/pages/StudioHomePage';
+import StudioFolderPage from './features/content-studio/pages/StudioFolderPage';
+import StudioCreatePage from './features/content-studio/pages/StudioCreatePage';
+import AgentsPage from './features/ai-core/pages/AgentsPage';
+import AgentEditorPage from './features/ai-core/pages/AgentEditorPage';
+import AgentVersionsPage from './features/ai-core/pages/AgentVersionsPage';
+import LogsPage from './features/ai-core/pages/LogsPage';
+import ConnectionsPage from './features/ai-core/pages/ConnectionsPage';
 import ContentSourcePage from './features/content-sources/pages/ContentSourcePage';
 import ContentSourceDetailPage from './features/content-sources/pages/ContentSourceDetailPage';
 import ContentDevelopmentPage from './features/content-sources/pages/ContentDevelopmentPage';
@@ -56,6 +65,7 @@ const firstAllowedPath = user => {
   if (has('submissions.view')) return '/submissions';
   if (has('mappings.view')) return '/mappings';
   if (has('agents.view')) return '/ai';
+  if (has('ai_core.view') || has('ai_core.manage')) return '/ai-core';
   if (has('ai_scoring.jobs.view')) return '/ai-scoring/jobs';
   if (has('ai_scoring.tenants.view')) return '/ai-scoring/tenants';
   if (hasAny(['content_sources.view','content_sources.create'])) return '/content-sources';
@@ -86,6 +96,7 @@ function App() {
 
   let activeTab = 'submissions';
   if (path.startsWith('/mappings')) activeTab = 'mappings';
+  else if (path.startsWith('/ai-core')) activeTab = 'ai-core';
   else if (path.startsWith('/ai-scoring/jobs')) activeTab = 'ai-scoring-jobs';
   else if (path.startsWith('/ai-scoring/tenants')) activeTab = 'ai-scoring-tenants';
   else if (path.startsWith('/ai')) activeTab = 'ai';
@@ -93,6 +104,7 @@ function App() {
   else if (path.startsWith('/roles')) activeTab = 'roles';
   else if (path.startsWith('/content-development')) activeTab = 'content-development';
   else if (path.startsWith('/content-sources')) activeTab = 'content-sources';
+  else if (path.startsWith('/content-studio')) activeTab = 'content-studio';
   else if (path.startsWith('/key-vocab')) activeTab = 'key-vocab';
   else if (path.startsWith('/dictionary')) activeTab = 'key-vocab';
   else if (path.startsWith('/logs')) activeTab = 'logs';
@@ -506,6 +518,37 @@ function App() {
                 ) : <Navigate to={defaultPath} replace />
               } />
 
+              <Route path="/ai-core" element={
+                ['ai_core.view','ai_core.manage'].some(hasPermission)
+                  ? <AgentsPage canManage={hasPermission('ai_core.manage')} />
+                  : <Navigate to={defaultPath} replace />
+              } />
+              <Route path="/ai-core/agents/new" element={
+                hasPermission('ai_core.manage')
+                  ? <AgentEditorPage canManage showMsg={showMsg} />
+                  : <Navigate to={defaultPath} replace />
+              } />
+              <Route path="/ai-core/agents/:key/versions" element={
+                ['ai_core.view','ai_core.manage'].some(hasPermission)
+                  ? <AgentVersionsPage canManage={hasPermission('ai_core.manage')} showMsg={showMsg} />
+                  : <Navigate to={defaultPath} replace />
+              } />
+              <Route path="/ai-core/agents/:key" element={
+                ['ai_core.view','ai_core.manage'].some(hasPermission)
+                  ? <AgentEditorPage canManage={hasPermission('ai_core.manage')} showMsg={showMsg} />
+                  : <Navigate to={defaultPath} replace />
+              } />
+              <Route path="/ai-core/logs" element={
+                ['ai_core.view','ai_core.manage'].some(hasPermission)
+                  ? <LogsPage canManage={hasPermission('ai_core.manage')} showMsg={showMsg} />
+                  : <Navigate to={defaultPath} replace />
+              } />
+              <Route path="/ai-core/connections" element={
+                ['ai_core.view','ai_core.manage'].some(hasPermission)
+                  ? <ConnectionsPage canManage={hasPermission('ai_core.manage')} showMsg={showMsg} />
+                  : <Navigate to={defaultPath} replace />
+              } />
+
               <Route path="/ai-scoring/tenants" element={
                 hasPermission('ai_scoring.tenants.view') ? (
                   <TenantManagementPage currentUser={currentUser} showMsg={showMsg} />
@@ -540,6 +583,10 @@ function App() {
 
 
 
+              <Route path="/content-studio" element={['content_studio.view','content_studio.edit','content_studio.generate'].some(hasPermission) ? <StudioHomePage /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/content-studio/new" element={['content_studio.view','content_studio.edit','content_studio.generate'].some(hasPermission) ? <StudioCreatePage showMsg={showMsg} permissions={{ edit: hasPermission('content_studio.edit'), generate: hasPermission('content_studio.generate') }} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/content-studio/folders/:folderId" element={['content_studio.view','content_studio.edit','content_studio.generate'].some(hasPermission) ? <StudioFolderPage showMsg={showMsg} permissions={{ edit: hasPermission('content_studio.edit'), manageFolders: hasPermission('content_studio.manage_folders') }} /> : <Navigate to={defaultPath} replace />} />
+              <Route path="/content-studio/items/:id" element={['content_studio.view','content_studio.edit','content_studio.generate'].some(hasPermission) ? <ContentStudioItemPage showMsg={showMsg} permissions={{ edit: hasPermission('content_studio.edit'), generate: hasPermission('content_studio.generate'), export: hasPermission('content_studio.export') }} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/key-vocab" element={['key_vocab.view','key_vocab.generate','key_vocab.manage','dictionary.view','dictionary.generate','dictionary.manage'].some(hasPermission) ? <KeyVocabPage currentUser={currentUser} showMsg={showMsg} /> : <Navigate to={defaultPath} replace />} />
               <Route path="/dictionary" element={<Navigate to="/key-vocab" replace />} />
 
