@@ -28,9 +28,13 @@ function fitSize(size, maxWidth = 560, maxHeight = 380) {
   return { width: Math.round(size.width * scale), height: Math.round(size.height * scale) };
 }
 
-// Gemini image tokens: 258 when both sides <= 384px, else 258 per tile, where the tile (crop unit)
-// is floor(min(w, h) / 1.5) and tiles = ceil(w / unit) * ceil(h / unit). Unknown size → a 6-tile guess.
-function geminiImageTokens(size) {
+// Gemini image tokens. Gemini 3+ bills a fixed budget per image (default/high media resolution ≈ 1,120
+// tokens, matching our measured ~2,310 input for a ~1,200-token prompt + one image of any size).
+// Gemini 2.x tiles: 258 when both sides <= 384px, else 258 per tile, where the crop unit is
+// floor(min(w, h) / 1.5) and tiles = ceil(w / unit) * ceil(h / unit). Unknown size → a 6-tile guess.
+const GEMINI_3_IMAGE_TOKENS = 1120;
+function geminiImageTokens(size, model = '') {
+  if (!/^gemini-[0-2]\./.test(String(model))) return GEMINI_3_IMAGE_TOKENS;
   if (!size?.width || !size?.height) return 258 * 6;
   if (size.width <= 384 && size.height <= 384) return 258;
   const unit = Math.max(1, Math.floor(Math.min(size.width, size.height) / 1.5));

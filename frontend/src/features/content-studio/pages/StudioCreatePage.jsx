@@ -28,16 +28,54 @@ const MAX_IMAGES = 20;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 let imageSeq = 0;
 
-// Word cannot embed WEBP: convert it to PNG in the browser before upload (PNG/JPG go as they are).
+const MAX_IMAGE_SIDE = 2048;
+
+// Bounds of the non-blank content: trims the white/transparent margin a pasted table or
+// screenshot usually carries (keeps a few pixels of padding). Null when nothing to trim.
+function contentBounds(context, width, height) {
+  const { data } = context.getImageData(0, 0, width, height);
+  const blank = index => data[index + 3] < 16 || (data[index] > 245 && data[index + 1] > 245 && data[index + 2] > 245);
+  let top = height, left = width, right = -1, bottom = -1;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (blank((y * width + x) * 4)) continue;
+      if (x < left) left = x;
+      if (x > right) right = x;
+      if (y < top) top = y;
+      if (y > bottom) bottom = y;
+    }
+  }
+  if (right < 0) return null;
+  const pad = 8;
+  const box = { x: Math.max(0, left - pad), y: Math.max(0, top - pad) };
+  box.width = Math.min(width, right + pad + 1) - box.x;
+  box.height = Math.min(height, bottom + pad + 1) - box.y;
+  return box.width < width - 2 || box.height < height - 2 ? box : null;
+}
+
+// Before upload: drop blank margins, cap the long side at 2048px, and turn WEBP into PNG
+// (Word cannot embed WEBP). Smaller files upload faster and cost fewer image tokens.
+// A JPEG photo that needs none of this is sent untouched.
 async function toUploadable(file) {
-  if (file.type !== 'image/webp') return file;
   const bitmap = await createImageBitmap(file);
+  const probe = document.createElement('canvas');
+  probe.width = bitmap.width;
+  probe.height = bitmap.height;
+  const probeContext = probe.getContext('2d', { willReadFrequently: true });
+  probeContext.drawImage(bitmap, 0, 0);
+  const crop = file.type === 'image/jpeg' ? null : contentBounds(probeContext, bitmap.width, bitmap.height);
+  const box = crop || { x: 0, y: 0, width: bitmap.width, height: bitmap.height };
+  const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(box.width, box.height));
+  if (!crop && scale === 1 && file.type !== 'image/webp') return file;
   const canvas = document.createElement('canvas');
-  canvas.width = bitmap.width;
-  canvas.height = bitmap.height;
-  canvas.getContext('2d').drawImage(bitmap, 0, 0);
-  const blob = await new Promise((resolve, reject) => canvas.toBlob(result => (result ? resolve(result) : reject(new Error('Không chuyển được ảnh WEBP.'))), 'image/png'));
-  return new File([blob], file.name.replace(/\.webp$/i, '') + '.png', { type: 'image/png' });
+  canvas.width = Math.round(box.width * scale);
+  canvas.height = Math.round(box.height * scale);
+  const context = canvas.getContext('2d');
+  context.imageSmoothingQuality = 'high';
+  context.drawImage(probe, box.x, box.y, box.width, box.height, 0, 0, canvas.width, canvas.height);
+  const type = file.type === 'image/jpeg' ? 'image/jpeg' : 'image/png';
+  const blob = await new Promise((resolve, reject) => canvas.toBlob(result => (result ? resolve(result) : reject(new Error('Không xử lý được ảnh.'))), type, 0.9));
+  return new File([blob], file.name.replace(/\.(webp|png|jpe?g)$/i, '') + (type === 'image/jpeg' ? '.jpg' : '.png'), { type });
 }
 
 const isImageFile = file => IMAGE_TYPES.includes(file?.type);
