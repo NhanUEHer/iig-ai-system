@@ -15,10 +15,23 @@ function translationText(value) {
 }
 const issue = (code, message, path) => ({ code, message, ...(path ? { path } : {}) });
 
-function validatePassageTranslation(content, { sentences }) {
+// The agent splits the passage itself: check every English row is really in the passage and,
+// together, the rows cover the passage (nothing skipped).
+const letters = text => String(text || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+function validatePassageTranslation(content, { passage = '' }) {
   const issues = [];
   const rows = Array.isArray(content?.sentences) ? content.sentences : [];
-  if (rows.length !== sentences.length) issues.push(issue('SENTENCE_COUNT', `Số câu dịch (${rows.length}) khác số câu gốc (${sentences.length}).`));
+  const source = letters(passage);
+  if (!rows.length) issues.push(issue('EMPTY_TRANSLATION', 'Chưa có câu dịch nào.'));
+  let covered = 0;
+  rows.forEach((row, index) => {
+    const en = letters(row?.en);
+    if (source && en && !source.includes(en)) issues.push(issue('SENTENCE_NOT_IN_PASSAGE', `Câu ${index + 1}: câu tiếng Anh không khớp nguyên văn đoạn văn.`, `sentences.${index}`));
+    else covered += en.length;
+  });
+  if (source && rows.length && covered < source.length * 0.95) {
+    issues.push(issue('MISSING_TEXT', `Bản dịch mới phủ khoảng ${Math.round((covered / source.length) * 100)}% đoạn văn — có thể bị sót câu.`));
+  }
   rows.forEach((row, index) => {
     if (!String(row?.vi || '').trim()) issues.push(issue('EMPTY_TRANSLATION', `Câu ${index + 1} chưa có bản dịch.`, `sentences.${index}`));
     const missing = digits(row?.en).filter(number => !String(row?.vi || '').includes(number));

@@ -1,4 +1,5 @@
 'use strict';
+const { splitSentences } = require('../detect/detectContent');
 
 // Rough part-of-speech guess so mock rows are not all "Noun".
 function guessPos(word) {
@@ -96,7 +97,10 @@ async function generate(type, input) {
     };
   }
   if (type === 'passage_translation') {
-    return { sentences: input.sentences.map(en => ({ en, vi: fixtures.translationFor(en) || vi(en) })) };
+    // Same split the agent is asked for: sentences, plus non-sentence lines (greeting, signature) as their own items.
+    const rows = String(input.passage || '').split(/\n+/).map(line => line.trim()).filter(Boolean)
+      .flatMap(line => { const parts = splitSentences(line); return parts.length ? parts : [line]; });
+    return { sentences: rows.map(en => ({ en, vi: fixtures.translationFor(en) || vi(en) })) };
   }
   if (type === 'vocab' && sample) return { settings: { level: 650, mode: 'balanced' }, items: fixtures.VOCAB };
   if (type === 'dictionary' && sample) {

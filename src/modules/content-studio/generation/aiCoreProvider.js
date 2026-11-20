@@ -25,7 +25,17 @@ const SET_CACHE_MS = 30 * 1000; // long enough for the set's artifacts claimed t
 const setCalls = new Map(); // one AI call per question set, shared by the set's question artifacts
 const MODES = new Set(['balanced', 'phrase_focused', 'single_word_focused']);
 
-// cs.translate returns Vietnamese only, numbered like the input; join it with the English we already have.
+// cs.translate receives only the passage, splits it itself and returns {s: [{en, vi}]} in reading order.
+// Older agent versions answered {t: [{i, vi}]} against our own split; that shape is still understood.
+function mapTranslation(data, sentences = []) {
+  if (Array.isArray(data?.s)) {
+    return { sentences: data.s
+      .map(row => ({ en: String(row?.en || '').trim(), vi: String(row?.vi || '').trim() }))
+      .filter(row => row.en || row.vi) };
+  }
+  return mergeTranslation(data, sentences);
+}
+
 function mergeTranslation(data, sentences) {
   const byIndex = new Map((Array.isArray(data?.t) ? data.t : []).map(row => [Number(row?.i), String(row?.vi || '').trim()]));
   return { sentences: sentences.map((en, index) => ({ en, vi: byIndex.get(index + 1) || '' })) };
@@ -52,7 +62,6 @@ function questionSetCall(agentKey, input, ctx) {
   if (input.bypassSetCache) {
     return aiCore.run(agentKey, {
       passage: input.passage || NO_PASSAGE,
-      passage_vi: input.passageVi || (input.passage ? '(chưa có bản dịch)' : '(none)'),
       image_description: input.imageDescription || NO_IMAGE,
       questions: JSON.stringify(questions),
     }, ctx);
@@ -62,7 +71,6 @@ function questionSetCall(agentKey, input, ctx) {
   if (cached && cached.expiresAt > Date.now()) return cached.promise;
   const promise = aiCore.run(agentKey, {
     passage: input.passage || NO_PASSAGE,
-    passage_vi: input.passageVi || (input.passage ? '(chưa có bản dịch)' : '(none)'),
       image_description: input.imageDescription || NO_IMAGE,
     questions: JSON.stringify(questions),
   }, ctx);
@@ -140,12 +148,8 @@ async function generate(type, input = {}, options = {}) {
   }
 
   if (type === 'passage_translation') {
-    const sentences = input.sentences || [];
-    const result = await aiCore.run(agentKey, {
-      passage: input.passage,
-      sentences: JSON.stringify(sentences.map((en, index) => ({ i: index + 1, en }))),
-    }, ctx);
-    return mergeTranslation(result.data, sentences);
+    const result = await aiCore.run(agentKey, { passage: input.passage }, ctx);
+    return mapTranslation(result.data, input.sentences || []);
   }
 
   if (type === 'image_description') {
@@ -178,4 +182,4 @@ async function generate(type, input = {}, options = {}) {
   return result.data; // { dictionary_entries: [...] } in request order — mapped by dictionary/normalize.js
 }
 
-module.exports = { name: 'ai-core', generate, fillVocabItem, mapVocab, mergeTranslation, mapQuestion, mapImageDescription, AGENTS, NO_IMAGE };
+module.exports = { name: 'ai-core', generate, fillVocabItem, mapVocab, mergeTranslation, mapTranslation, mapQuestion, mapImageDescription, AGENTS, NO_IMAGE };

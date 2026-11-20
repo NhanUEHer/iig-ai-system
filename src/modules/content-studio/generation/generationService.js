@@ -75,15 +75,11 @@ async function loadContext(client, artifact) {
     const passageSegment = questionOnly ? null
       : segments.find(segment => segment.kind === 'passage' && segment.position === passageIndex) || segments.find(segment => segment.kind === 'passage');
     const passage = passageSegment?.text || '';
-    // The whole set goes to AI in one call; a Vietnamese passage helps when it already exists.
+    // The whole set goes to AI in one call: passage (or transcript), image descriptions and questions — English only.
     const { rows: setQuestions } = await client.query(
       'SELECT id, number, stem, options, answer_key AS "answerKey" FROM cs_questions WHERE segment_id = $1 ORDER BY number', [question.segment_id]);
-    const { rows: [translation] } = passageSegment ? await client.query(
-      `SELECT content FROM cs_artifacts WHERE segment_id = $1 AND type = 'passage_translation' AND status IN ('ready','needs_review')`,
-      [passageSegment.id]) : { rows: [] };
-    const passageVi = (translation?.content?.sentences || []).map(row => row?.vi).filter(Boolean).join(' ');
     const imageDescription = await imageDescriptionsForSet(client, artifact.item_id, question.segment_id);
-    return { itemId: artifact.item_id, question, setId: question.segment_id, setQuestions, passage, passageVi, imageDescription, sentences: splitSentences(passage) };
+    return { itemId: artifact.item_id, question, setId: question.segment_id, setQuestions, passage, imageDescription, sentences: splitSentences(passage) };
   }
   const segment = segments.find(row => row.id === artifact.segment_id);
   if (!segment) throw new Error('Segment no longer exists');
@@ -251,10 +247,11 @@ async function regenerateTranslationSentence(artifactId, index) {
   try {
     const context = await loadContext(db, artifact);
     const rows = Array.isArray(artifact.content?.sentences) ? artifact.content.sentences : [];
-    if (!rows[index] || !context.sentences[index]) throw new HttpError('Không tìm thấy câu dịch.', 404, 'TRANSLATION_SENTENCE_NOT_FOUND');
-    const generated = await aiCoreProvider.generate('passage_translation', { ...context, sentences: [context.sentences[index]] });
-    const vi = generated.sentences?.[0]?.vi || '';
-    const content = { ...artifact.content, sentences: rows.map((row, rowIndex) => rowIndex === index ? { ...row, en: context.sentences[index], vi } : row) };
+    if (!rows[index]?.en) throw new HttpError('Không tìm thấy câu dịch.', 404, 'TRANSLATION_SENTENCE_NOT_FOUND');
+    // The sentences came from the agent's own split: retranslate that English row as a one-sentence passage.
+    const generated = await aiCoreProvider.generate('passage_translation', { ...context, passage: rows[index].en, sentences: [rows[index].en] });
+    const vi = (generated.sentences || []).map(row => row.vi).filter(Boolean).join(' ');
+    const content = { ...artifact.content, sentences: rows.map((row, rowIndex) => rowIndex === index ? { ...row, vi } : row) };
     return await finishSingle(artifact, content, context);
   } catch (error) {
     await failSingle(artifact, error);

@@ -27,9 +27,12 @@ test('question pack validator flags leaks, wrong answers, fake quotes and banned
   assert.deepEqual(codes, ['ANSWER_MISMATCH', 'BANNED_WORDS', 'HINT_LEAKS_ANSWER', 'QUOTE_NOT_IN_PASSAGE', 'WRONG_OPTIONS_NOT_EXPLAINED']);
 });
 
-test('translation validator checks sentence count and preserved numbers', () => {
-  const issues = validate('passage_translation', { sentences: [{ en: sentences[0], vi: 'Ông Howard đề xuất ngày tháng Ba.' }] }, { sentences }).issues.map(issue => issue.code);
-  assert.deepEqual(issues.sort(), ['NUMBER_MISMATCH', 'SENTENCE_COUNT']);
+test('translation validator checks text is from the passage, covers it, and keeps numbers', () => {
+  const passage = sentences.join(' ');
+  const issues = validate('passage_translation', { sentences: [{ en: sentences[0], vi: 'Ông Howard đề xuất ngày tháng Ba.' }, { en: 'Invented sentence here.', vi: 'Bịa.' }] }, { passage }).issues.map(issue => issue.code);
+  assert.deepEqual(issues.sort(), ['MISSING_TEXT', 'NUMBER_MISMATCH', 'SENTENCE_NOT_IN_PASSAGE']);
+  const full = validate('passage_translation', { sentences: sentences.map(en => ({ en, vi: `${en.match(/\d+/g)?.join(' ') || ''} dịch` })) }, { passage }).issues;
+  assert.deepEqual(full, []);
 });
 
 test('sample letter fixtures pass every validator', async () => {
