@@ -57,3 +57,11 @@ test('translation check ignores rewritten Part 6 blank markers', () => {
   const issues = validate('passage_translation', { sentences: [{ en: 'Please ______ the form by Friday.', vi: 'Vui lòng ______ biểu mẫu trước thứ Sáu.' }] }, { passage: 'Please ---[131]--- the form by Friday.' }).issues;
   assert.deepEqual(issues, []);
 });
+
+test('question pack quotes may come from the image description', () => {
+  const question = { number: 1, stem: 'Which line shows the sender?', options: { A: 'S1', B: 'S2', C: 'S3', D: 'S4' }, answerKey: 'B' };
+  const content = { translation: 'x', hint: 'Nhìn vào hình.', note: 'Dạng câu hỏi đồ họa.', explanation: 'Đáp án đúng là (B). Dòng S2 là “From: Rebecca Lin, Facilities Manager”. (A) sai, (C) sai, (D) sai.' };
+  const passage = 'M: The second card shows who sent the memo.';
+  assert.deepEqual(validate('question_pack', content, { question, passage }).issues.map(i => i.code), ['QUOTE_NOT_IN_PASSAGE']);
+  assert.deepEqual(validate('question_pack', content, { question, passage, imageDescription: '[Image 1] S2: From: Rebecca Lin, Facilities Manager' }).issues, []);
+});
