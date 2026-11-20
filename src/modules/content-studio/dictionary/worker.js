@@ -33,6 +33,11 @@ async function claimExtract() {
   });
 }
 
+function extractErrorMessage(error) {
+  const text = String(error?.message || error || 'Lỗi không xác định');
+  return (error?.code && !text.startsWith(error.code) ? `${error.code}: ${text}` : text).slice(0, 500);
+}
+
 async function processExtract(job) {
   const selected = provider();
   const passage = job.sentences.map(sentence => sentence.text).join(' ');
@@ -54,12 +59,15 @@ async function processExtract(job) {
       }
       await client.query(`UPDATE cs_dict_sentences s SET status = CASE WHEN EXISTS (
           SELECT 1 FROM cs_dict_candidates c WHERE c.sentence_id = s.id) THEN 'queued' ELSE 'draft' END,
-        updated_at = CURRENT_TIMESTAMP WHERE s.id = ANY($1::uuid[])`, [job.sentences.map(sentence => sentence.id)]);
+        error = NULL, updated_at = CURRENT_TIMESTAMP WHERE s.id = ANY($1::uuid[])`, [job.sentences.map(sentence => sentence.id)]);
       await client.query('UPDATE cs_items SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [job.itemId]);
     });
   } catch (error) {
-    await db.query(`UPDATE cs_dict_sentences SET status = 'failed', updated_at = CURRENT_TIMESTAMP WHERE id = ANY($1::uuid[])`, [job.sentences.map(sentence => sentence.id)]);
-    console.error('[ContentStudioDictionaryExtract]', job.itemId, error.message);
+    // Keep the reason: without it the UI can only show an empty list.
+    const message = extractErrorMessage(error);
+    await db.query(`UPDATE cs_dict_sentences SET status = 'failed', error = $2, updated_at = CURRENT_TIMESTAMP WHERE id = ANY($1::uuid[])`,
+      [job.sentences.map(sentence => sentence.id), message]);
+    console.error('[ContentStudioDictionaryExtract]', job.itemId, `provider=${selected.name}`, message);
   }
 }
 
@@ -74,7 +82,8 @@ async function recoverStale() {
         duration_ms = COALESCE(duration_ms, $3) WHERE candidate_id = $1 AND attempt = $2`,
       [candidate.id, candidate.attempts, STALE_MS]);
     }
-    await client.query(`UPDATE cs_dict_sentences s SET status = 'failed', updated_at = CURRENT_TIMESTAMP
+    await client.query(`UPDATE cs_dict_sentences s SET status = 'failed',
+        error = 'Bóc từ không trả kết quả trong thời gian cho phép.', updated_at = CURRENT_TIMESTAMP
       WHERE s.status = 'generating' AND s.updated_at < CURRENT_TIMESTAMP - ($1 * INTERVAL '1 millisecond')
         AND NOT EXISTS (SELECT 1 FROM cs_dict_candidates c WHERE c.item_id = s.item_id)`, [STALE_MS]);
     return stale;

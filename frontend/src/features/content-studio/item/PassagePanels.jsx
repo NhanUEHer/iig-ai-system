@@ -6,11 +6,52 @@ import ArtifactShell from './ArtifactShell';
 const POS = ['Noun', 'Verb', 'Adjective', 'Adverb', 'Noun Phrase', 'Verb Phrase', 'Phrasal Verb', 'Prepositional Phrase', 'Idiom', 'Preposition', 'Conjunction', 'Phrase'];
 const pad = value => String(value).padStart(2, '0');
 
+const escapeRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// Whitespace in a stored sentence may differ from the source (line breaks, double spaces).
+const loosePattern = value => value.trim().split(/\s+/).map(escapeRegExp).join('\\s+');
+const asTerm = value => (typeof value === 'string' ? { text: value, scope: null } : { text: value?.text || '', scope: value?.scope || null });
+
+// Where a term may be highlighted: inside its own sentence when it has one, else the whole text.
+function scopeRange(text, scope) {
+  if (!scope) return [0, text.length];
+  const match = new RegExp(loosePattern(scope), 'iu').exec(text);
+  return match ? [match.index, match.index + match[0].length] : null;
+}
+
+// Terms are strings or { text, scope }; a scoped term is only marked inside its own sentence.
+export function highlightRanges(text, terms) {
+  const ranges = [];
+  for (const term of terms.map(asTerm).filter(term => term.text.trim())) {
+    const bounds = scopeRange(text, term.scope);
+    if (!bounds) continue;
+    // Whole words only: "school" must not light up inside "Homeschooling" or "Delitehomeschool.com".
+    const pattern = new RegExp(`(?<![\\p{L}\\p{N}])${loosePattern(term.text)}(?![\\p{L}\\p{N}])`, 'giu');
+    for (const match of text.slice(bounds[0], bounds[1]).matchAll(pattern)) {
+      ranges.push({ start: bounds[0] + match.index, end: bounds[0] + match.index + match[0].length, term });
+    }
+  }
+  // Longest first at each position, then drop overlaps.
+  ranges.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
+  const kept = [];
+  for (const range of ranges) if (!kept.length || range.start >= kept[kept.length - 1].end) kept.push(range);
+  return kept;
+}
+
 export function highlight(text, terms, active, className = '') {
-  const list = terms.filter(Boolean).sort((a, b) => b.length - a.length).map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  if (!list.length) return text;
-  const current = String(active || '').toLowerCase();
-  return text.split(new RegExp(`(${list.join('|')})`, 'gi')).map((part, index) => (index % 2 ? <mark key={index} className={[className, current && part.toLowerCase() === current ? 'is-active' : ''].filter(Boolean).join(' ')}>{part}</mark> : part));
+  const ranges = highlightRanges(text, terms);
+  if (!ranges.length) return text;
+  const current = active ? asTerm(active) : null;
+  const isActive = term => Boolean(current?.text) && term.text.toLowerCase() === current.text.toLowerCase()
+    && (!current.scope || !term.scope || current.scope === term.scope);
+  const parts = [];
+  let cursor = 0;
+  ranges.forEach((range, index) => {
+    if (range.start > cursor) parts.push(text.slice(cursor, range.start));
+    parts.push(<mark key={index} className={[className, isActive(range.term) ? 'is-active' : ''].filter(Boolean).join(' ')}>{text.slice(range.start, range.end)}</mark>);
+    cursor = range.end;
+  });
+  if (cursor < text.length) parts.push(text.slice(cursor));
+  return parts;
 }
 
 const LETTERS = ['A', 'B', 'C', 'D'];
