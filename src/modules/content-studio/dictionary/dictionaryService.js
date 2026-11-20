@@ -48,7 +48,7 @@ async function getState(itemId) {
   requireId(itemId);
   await requireItem(db, itemId);
   const { rows } = await db.query(`
-    SELECT s.id, s.segment_id AS "segmentId", s.position, s.text, s.status, s.updated_at AS "updatedAt",
+    SELECT s.id, s.segment_id AS "segmentId", s.position, s.text, s.status, s.error AS "sentenceError", s.updated_at AS "updatedAt",
            c.id AS "candidateId", c.position AS "candidatePosition", c.chunk, c.status AS "candidateStatus",
            c.attempts, c.error, c.updated_at AS "candidateUpdatedAt",
            e.content, e.validation, e.source, e.provider, e.updated_at AS "entryUpdatedAt"
@@ -61,7 +61,7 @@ async function getState(itemId) {
   for (const row of rows) {
     let sentence = byId.get(row.id);
     if (!sentence) {
-      sentence = { id: row.id, segmentId: row.segmentId, position: row.position, text: row.text, status: row.status, updatedAt: row.updatedAt, candidates: [] };
+      sentence = { id: row.id, segmentId: row.segmentId, position: row.position, text: row.text, status: row.status, error: row.sentenceError || null, updatedAt: row.updatedAt, candidates: [] };
       byId.set(row.id, sentence);
       sentences.push(sentence);
     }
@@ -77,7 +77,10 @@ async function getState(itemId) {
     result[candidate.status] = (result[candidate.status] || 0) + 1;
     return result;
   }, { total: 0, sentences: sentences.length });
-  return { itemId, status: dictionaryStatus(sentences, candidates), counts, sentences };
+  // Extraction runs per item, so a failed extraction leaves sentences failed with no candidates.
+  const extractError = sentences.find(sentence => sentence.status === 'failed' && !sentence.candidates.length && sentence.error)?.error
+    || (sentences.length && !candidates.length && sentences.some(sentence => sentence.status === 'failed') ? 'Bóc từ thất bại.' : null);
+  return { itemId, status: dictionaryStatus(sentences, candidates), counts, sentences, extractError };
 }
 
 function dictionaryStatus(sentences, candidates) {
