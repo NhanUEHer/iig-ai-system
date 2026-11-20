@@ -129,7 +129,7 @@ async function countTokens(options) {
     },
   );
   const imageTokens = (options.images || [])
-    .reduce((sum, image) => sum + geminiImageTokens(imageSize(Buffer.from(String(image.data || ''), 'base64'))), 0);
+    .reduce((sum, image) => sum + geminiImageTokens(imageSize(Buffer.from(String(image.data || ''), 'base64')), options.model), 0);
   return (Number(raw.totalTokens) || 0) + imageTokens;
 }
 
