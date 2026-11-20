@@ -30,7 +30,32 @@ function Field({ definition, index, value, issues, readOnly, onChange }) {
   </div>;
 }
 
-export function QuestionWorkspace({ questions, artifacts, drafts, selectedId, onSelect, onChange, shell }) {
+// Each image of the question (or its set) with the AI description that cs.question_pack reads.
+// Editing the description is saved with the page; the question then shows as stale until regenerated.
+function ImageDescriptions({ images, imageArtifacts, drafts, onChange, shell, questionNumber }) {
+  if (!images.length) return null;
+  return <section className="cs-image-descriptions" aria-label="Hình và mô tả hình">
+    {images.map((image, index) => {
+      const artifact = imageArtifacts[image.id];
+      const draft = artifact ? drafts[artifact.id] ?? artifact.content : null;
+      return <article key={image.id} className="cs-image-description">
+        {image.url ? <a href={image.url} target="_blank" rel="noreferrer"><img src={image.url} alt={`Hình ${index + 1} · câu ${questionNumber}`} /></a> : <div className="cs-image-description__missing">Không tải được ảnh</div>}
+        <div>
+          <strong>Mô tả hình {images.length > 1 ? index + 1 : ''}{image.questionId ? '' : image.segmentId ? ' · dùng cho cả nhóm câu' : ' · dùng cho cả học liệu'}</strong>
+          <ArtifactShell artifact={artifact} label="mô tả hình" dirty={Boolean(artifact && drafts[artifact.id])} shell={shell}>
+            {draft && <>
+              {draft.imageType && <small className="cs-image-description__type">{draft.imageType}</small>}
+              <textarea ref={autoSize} onInput={event => autoSize(event.currentTarget)} rows={4} aria-label="Mô tả hình" readOnly={!shell.canEdit}
+                value={draft.description || ''} onChange={event => onChange(artifact, { ...draft, description: event.target.value })} />
+            </>}
+          </ArtifactShell>
+        </div>
+      </article>;
+    })}
+  </section>;
+}
+
+export function QuestionWorkspace({ questions, artifacts, drafts, selectedId, onSelect, onChange, shell, imageShell = shell, images = [], imageArtifacts = {} }) {
   const selectedIndex = Math.max(0, questions.findIndex(question => question.id === selectedId));
   const question = questions[selectedIndex];
   const artifact = artifacts[question?.id];
@@ -42,6 +67,10 @@ export function QuestionWorkspace({ questions, artifacts, drafts, selectedId, on
   const set = patch => onChange(artifact, { ...draft, ...patch });
   const previous = questions[selectedIndex - 1];
   const next = questions[selectedIndex + 1];
+  // Part 1 photo on the question itself; Part 3/4 graphic on its question set.
+  // Its own photo, its set's graphic, or an image attached to the whole item (sent to every set).
+  const questionImages = question ? images.filter(image => image.questionId === question.id
+    || (!image.questionId && (!image.segmentId || image.segmentId === question.segmentId))) : [];
 
   return <div className="cs-question-workspace">
     <div className="cs-question-picker">
@@ -56,12 +85,14 @@ export function QuestionWorkspace({ questions, artifacts, drafts, selectedId, on
       <small>{needsReview ? `AI · Câu ${question.number} cần xem lại` : 'AI · Nội dung đạt'}</small>
     </div>
 
+    <ImageDescriptions images={questionImages} imageArtifacts={imageArtifacts} drafts={drafts} onChange={onChange} shell={imageShell} questionNumber={question?.number} />
+
     {!artifact || (!artifact.content && (isBusy(artifact) || artifact?.status === 'failed'))
       ? <div className="cs-question-empty"><ArtifactShell artifact={artifact} label="nội dung câu hỏi" dirty={dirty} shell={shell} /></div>
       : <article className="cs-question-card">
         <header>
           <span>{question.number}</span>
-          <h2>{question.stem}</h2>
+          <h2>{question.stem || (questionImages.length ? '(Mô tả tranh — chọn câu đúng với hình)' : '(Chỉ có phương án)')}</h2>
           {dirty && <em>Chưa lưu</em>}
           <b className={needsReview ? 'is-review' : 'is-ready'}>{needsReview ? 'Cần xem lại' : status?.label || 'Hoàn tất'}</b>
         </header>

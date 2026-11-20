@@ -15,10 +15,25 @@ function translationText(value) {
 }
 const issue = (code, message, path) => ({ code, message, ...(path ? { path } : {}) });
 
-function validatePassageTranslation(content, { sentences }) {
+// The agent splits the passage itself: check every English row is really in the passage and,
+// together, the rows cover the passage (nothing skipped).
+// Blank markers (Part 6 "---[131]---", "____ (131)") are often rewritten by the agent: ignore them when matching.
+const BLANK_MARKERS = /-{2,}\s*\[?\(?\d{1,3}\)?\]?\s*-{2,}|_{2,}\s*\(?\d{0,3}\)?|\(\d{1,3}\)\s*_{2,}|-{3,}|_{2,}/g;
+const letters = text => String(text || '').replace(BLANK_MARKERS, ' ').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+function validatePassageTranslation(content, { passage = '' }) {
   const issues = [];
   const rows = Array.isArray(content?.sentences) ? content.sentences : [];
-  if (rows.length !== sentences.length) issues.push(issue('SENTENCE_COUNT', `Số câu dịch (${rows.length}) khác số câu gốc (${sentences.length}).`));
+  const source = letters(passage);
+  if (!rows.length) issues.push(issue('EMPTY_TRANSLATION', 'Chưa có câu dịch nào.'));
+  let covered = 0;
+  rows.forEach((row, index) => {
+    const en = letters(row?.en);
+    if (source && en && !source.includes(en)) issues.push(issue('SENTENCE_NOT_IN_PASSAGE', `Câu ${index + 1}: câu tiếng Anh không khớp nguyên văn đoạn văn.`, `sentences.${index}`));
+    else covered += en.length;
+  });
+  if (source && rows.length && covered < source.length * 0.95) {
+    issues.push(issue('MISSING_TEXT', `Bản dịch mới phủ khoảng ${Math.round((covered / source.length) * 100)}% đoạn văn — có thể bị sót câu.`));
+  }
   rows.forEach((row, index) => {
     if (!String(row?.vi || '').trim()) issues.push(issue('EMPTY_TRANSLATION', `Câu ${index + 1} chưa có bản dịch.`, `sentences.${index}`));
     const missing = digits(row?.en).filter(number => !String(row?.vi || '').includes(number));
@@ -31,7 +46,7 @@ function quotesIn(text) {
   return [...String(text || '').matchAll(/[“"]([^”"]{12,})[”"]/g)].map(match => match[1]);
 }
 
-function validateQuestionPack(content, { question, passage }) {
+function validateQuestionPack(content, { question, passage, imageDescription = '' }) {
   const issues = [];
   const answer = question.answerKey;
   for (const field of ['hint', 'explanation', 'note']) {
@@ -49,9 +64,12 @@ function validateQuestionPack(content, { question, passage }) {
   const otherLetters = LETTERS.filter(letter => letter !== answer && question.options?.[letter]);
   const unmentioned = otherLetters.filter(letter => !explanation.includes(`(${letter})`));
   if (explanation && unmentioned.length) issues.push(issue('WRONG_OPTIONS_NOT_EXPLAINED', `Câu ${question.number}: Explanation chưa giải thích phương án ${unmentioned.map(letter => `(${letter})`).join(', ')}.`, 'explanation'));
+  // A quote must come from the passage/transcript or from the text read off the image (graphic, form…).
   const passageText = norm(passage);
+  const imageText = norm(imageDescription);
   for (const quote of quotesIn(explanation)) {
-    if (passageText && !passageText.includes(norm(quote).replace(/[.…]+$/, ''))) issues.push(issue('QUOTE_NOT_IN_PASSAGE', `Câu ${question.number}: trích dẫn không có trong bài: “${quote.slice(0, 60)}…”`, 'explanation'));
+    const needle = norm(quote).replace(/[.…]+$/, '');
+    if (passageText && !passageText.includes(needle) && !imageText.includes(needle)) issues.push(issue('QUOTE_NOT_IN_PASSAGE', `Câu ${question.number}: trích dẫn không có trong bài: “${quote.slice(0, 60)}…”`, 'explanation'));
   }
   const hint = norm(content?.hint);
   const correct = norm(question.options?.[answer]);
@@ -96,7 +114,16 @@ const VALIDATORS = {
   question_pack: validateQuestionPack,
   vocab: validateVocab,
   dictionary: validateDictionary,
+  image_description: validateImageDescription,
 };
+
+function validateImageDescription(content) {
+  const description = String(content?.description || '').trim();
+  if (!description) return [issue('EMPTY_FIELD', 'Chưa có mô tả ảnh.', 'description')];
+  // The agent writes [unclear] where it could not read text; a person should check those spots.
+  if (description.includes('[unclear]')) return [issue('UNCLEAR_TEXT', 'Mô tả ảnh có chỗ AI không đọc rõ ([unclear]) — hãy kiểm tra lại.', 'description')];
+  return [];
+}
 
 function validate(type, content, context) {
   const issues = VALIDATORS[type](content, context);

@@ -4,7 +4,7 @@
 // Same look as learning-materials/learningMaterialDocumentExporter (Arial, blue headings, letter page).
 const {
   Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, ShadingType,
-  Footer, AlignmentType, PageNumber,
+  Footer, AlignmentType, PageNumber, ImageRun,
 } = require('docx');
 
 const BLUE = '155A9C', INK = '102A43', MUTED = '627D98', PALE = 'EDF5FC', GREEN = '2F6B45', AMBER = 'B26A00';
@@ -100,7 +100,13 @@ function bilingualSection(model) {
 function questionSection(model, { student = false } = {}) {
   const out = [heading(student ? 'Câu hỏi luyện tập' : 'Câu hỏi – Dịch, Hint, Explanation, Note')];
   for (const question of model.questions) {
-    out.push(para(`Câu ${question.number}. ${clean(question.stem)}`, { bold: true, size: 23, before: 160, keepNext: true }));
+    for (const image of question.images || []) {
+      out.push(image.data
+        ? new Paragraph({ children: [new ImageRun({ type: image.type, data: image.data, transformation: { width: image.width, height: image.height } })], spacing: { before: 160, after: 80 }, keepNext: true })
+        : para(`[${image.missing}]`, { color: AMBER, before: 120 }));
+    }
+    const stem = clean(question.stem) || (question.images?.length ? '(Chọn câu mô tả đúng nhất bức tranh)' : '');
+    out.push(para(`Câu ${question.number}. ${stem}`, { bold: true, size: 23, before: 160, keepNext: true }));
     for (const letter of LETTERS.filter(value => question.options?.[value])) {
       const correct = !student && question.answerKey === letter;
       out.push(new Paragraph({

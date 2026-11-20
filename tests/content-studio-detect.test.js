@@ -104,3 +104,76 @@ test('keeps only known generation tasks that match detected content and normaliz
     passage: ['vocab'], question: [], vocab: { level: 650, mode: 'balanced' },
   });
 });
+
+test('question-only Part 2 input yields questions with no passage', () => {
+  const result = detectContent(`7. Where is the meeting?\n(A) In room 3.\n(B) At 2 o'clock.\n(C) Yes, I will.\nAnswer: A\n8. Who wrote the report?\n(A) Ms. Kim did.\n(B) It's on my desk.\n(C) Last week.\nAnswer: A`);
+  assert.equal(result.segments.length, 1);
+  assert.equal(result.segments[0].kind, 'question_set');
+  assert.equal(result.segments[0].meta.passageIndex, null);
+  assert.equal(result.segments[0].meta.questionOnly, true);
+  assert.equal(result.segments[0].meta.part, 2);
+  assert.deepEqual(result.segments[0].questions.map(q => [q.number, q.answerKey]), [[7, 'A'], [8, 'A']]);
+  assert.equal(result.warnings.length, 0);
+});
+
+test('Part 1 options-only questions are recognised without a passage', () => {
+  const result = detectContent(`1.\n(A) A man is typing.\n(B) A woman is reading.\n(C) They are walking.\n(D) Chairs are stacked.\nAnswer: B`);
+  assert.equal(result.segments.length, 1);
+  assert.equal(result.segments[0].meta.part, 1);
+  assert.equal(result.segments[0].questions[0].stem, '');
+});
+
+test('Part 1: section label, directions and "Look at the picture" stems are not passage text', () => {
+  const options = '(A) A man is typing.\n(B) A woman is reading.\n(C) They are walking.\n(D) Chairs are stacked.';
+  const result = detectContent(`PART 1\nDirections: For each question in this part, you will hear four\nstatements about a picture in your test book.\n1. Look at the picture marked number 1 in your test book.\n${options}\n2.\n${options}\nAnswer key: 1-A 2-D`);
+  assert.equal(result.segments.length, 1);
+  assert.equal(result.segments[0].meta.part, 1);
+  assert.equal(result.segments[0].meta.questionOnly, true);
+  assert.deepEqual(result.segments[0].questions.map(q => [q.number, q.stem, q.answerKey]), [[1, '', 'A'], [2, '', 'D']]);
+});
+
+test('photo questions and question–response items pasted together become separate sets', () => {
+  const result = detectContent(`6.\n(A) a\n(B) b\n(C) c\n(D) d\nAnswer: A\n7. Where is the meeting?\n(A) In room 3.\n(B) At 2.\n(C) Yes.\nAnswer: A`);
+  assert.deepEqual(result.segments.map(segment => [segment.kind, segment.meta.part, segment.questions.map(q => q.number)]), [['question_set', 1, [6]], ['question_set', 2, [7]]]);
+});
+
+test('directions before a reading passage keep the passage', () => {
+  const result = detectContent('Directions: In this part you will read a selection of texts.\nDear Ms. Kim,\nThank you for your order. It will ship on Monday.\n147. When will the order ship?\n(A) Monday\n(B) Tuesday\n(C) Friday\n(D) Sunday\nAnswer: A');
+  assert.equal(result.segments[0].kind, 'passage');
+  assert.match(result.segments[0].text, /^Dear Ms\. Kim/);
+  assert.equal(result.segments[1].meta.part, 7);
+});
+
+test('unnumbered "Question" blocks and bare option lists become numbered questions', () => {
+  const options = '(A) She is checking her backpack.\n(B) She is putting some items into a shopping cart.\n(C) She is choosing some clothes.\n(D) She is pointing at a mirror.';
+  const blocks = detectContent(`Question\n${options}\nKey C\nQuestion\n${options}\nKey A`);
+  assert.deepEqual(blocks.segments.map(segment => segment.kind), ['question_set']);
+  assert.deepEqual(blocks.segments[0].questions.map(q => [q.number, q.stem, Object.keys(q.options).join(''), q.answerKey]), [[1, '', 'ABCD', 'C'], [2, '', 'ABCD', 'A']]);
+  const bare = detectContent(`${options}\nKey C\n${options}\nKey B`);
+  assert.deepEqual(bare.segments[0].questions.map(q => [q.number, q.answerKey]), [[1, 'C'], [2, 'B']]);
+  const withStem = detectContent('Question: Where is the meeting?\n(A) In room 3.\n(B) At 2.\n(C) Yes.\nKey: A');
+  assert.deepEqual(withStem.segments[0].questions.map(q => [q.number, q.stem, q.answerKey]), [[1, 'Where is the meeting?', 'A']]);
+});
+
+test('"(A)" inside a passage and sentences starting with "Question" stay passage text', () => {
+  const form = detectContent('The form has two parts.\n(A) Personal details must be complete.\nPlease sign below.\n1. What is required?\n(A) x\n(B) y\n(C) z\n(D) w\nAnswer: A');
+  assert.deepEqual(form.segments.map(segment => segment.kind), ['passage', 'question_set']);
+  assert.match(form.segments[0].text, /\(A\) Personal details/);
+  const sentence = detectContent('Question everything you read in the news.\n1. Why?\n(A) a\n(B) b\n(C) c\n(D) d\nAnswer: B');
+  assert.equal(sentence.segments[0].kind, 'passage');
+});
+
+test('a lettered list inside a passage stays passage text', () => {
+  const result = detectContent('NOTICE\nFees are listed below.\nA. Registration fee\nB. Late payment\nC. Refunds\n147. What is listed?\n(A) a\n(B) b\n(C) c\n(D) d\nAnswer: A');
+  assert.deepEqual(result.segments.map(segment => segment.kind), ['passage', 'question_set']);
+  assert.match(result.segments[0].text, /A\. Registration fee\nB\. Late payment/);
+  assert.deepEqual(result.segments[1].questions.map(q => q.number), [147]);
+});
+
+test('passageForSet: question-only sets never borrow a passage', () => {
+  const { passageForSet } = require('../src/modules/content-studio/passageForSet');
+  const segments = [{ kind: 'passage', position: 0, text: 'P' }, { kind: 'question_set', position: 1, meta: { passageIndex: 0 } }, { kind: 'question_set', position: 2, meta: { passageIndex: null, questionOnly: true } }];
+  assert.equal(passageForSet(segments, segments[1]).text, 'P');
+  assert.equal(passageForSet(segments, segments[2]), undefined);
+  assert.equal(passageForSet(segments, { meta: {} }).text, 'P');
+});

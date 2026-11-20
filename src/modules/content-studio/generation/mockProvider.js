@@ -1,4 +1,5 @@
 'use strict';
+const { splitSentences } = require('../detect/detectContent');
 
 // Rough part-of-speech guess so mock rows are not all "Noun".
 function guessPos(word) {
@@ -46,6 +47,9 @@ function bestSentence(sentences, text) {
 const vi = text => `(Bản dịch mẫu) ${text}`;
 
 async function generate(type, input) {
+  if (type === 'image_description') {
+    return { imageType: 'scene_photo', description: `(mock) Image ${String(input.image?.sha256 || '').slice(0, 8)}: an office scene with two people at a desk. ${input.contextText ? 'Context was provided.' : ''}`.trim() };
+  }
   // No artificial delay: the mock behaves as if the AI step was bypassed and results go straight to the database.
   const sample = fixtures.isSamplePassage(input.sentences || []);
   if (type === 'dictionary_extract') {
@@ -93,7 +97,10 @@ async function generate(type, input) {
     };
   }
   if (type === 'passage_translation') {
-    return { sentences: input.sentences.map(en => ({ en, vi: fixtures.translationFor(en) || vi(en) })) };
+    // Same split the agent is asked for: sentences, plus non-sentence lines (greeting, signature) as their own items.
+    const rows = String(input.passage || '').split(/\n+/).map(line => line.trim()).filter(Boolean)
+      .flatMap(line => { const parts = splitSentences(line); return parts.length ? parts : [line]; });
+    return { sentences: rows.map(en => ({ en, vi: fixtures.translationFor(en) || vi(en) })) };
   }
   if (type === 'vocab' && sample) return { settings: { level: 650, mode: 'balanced' }, items: fixtures.VOCAB };
   if (type === 'dictionary' && sample) {

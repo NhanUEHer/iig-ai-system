@@ -23,7 +23,7 @@ export const getAgent = key => api.get(`${prefix}/agents/${key}`).then(data);
 export const createAgent = body => api.post(`${prefix}/agents`, body).then(data);
 export const updateAgent = (key, body) => api.patch(`${prefix}/agents/${key}`, body).then(data);
 export const saveAgentDraft = (key, body) => api.put(`${prefix}/agents/${key}/draft`, body).then(data);
-export const testAgent = (key, variables) => api.post(`${prefix}/agents/${key}/test`, { variables }).then(data);
+export const testAgent = (key, variables, images) => api.post(`${prefix}/agents/${key}/test`, images?.length ? { variables, images } : { variables }).then(data);
 export const publishAgent = key => api.post(`${prefix}/agents/${key}/publish`).then(data);
 export const listAgentVersions = key => api.get(`${prefix}/agents/${key}/versions`).then(data);
 export const diffAgentVersions = (key, a, b) => api.get(`${prefix}/agents/${key}/versions/${a}/diff/${b}`).then(data);

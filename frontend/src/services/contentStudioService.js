@@ -14,6 +14,12 @@ export const detectDocx = file => {
   return api.post('/content-studio/detect/docx', form).then(data);
 };
 
+export const uploadImage = file => {
+  const form = new FormData();
+  form.append('file', file);
+  return api.post('/content-studio/images', form).then(data);
+};
+
 export const listItems = params => api.get('/content-studio/items', { params }).then(data);
 export const getRecentItems = params => api.get('/content-studio/items/recent', { params }).then(data);
 export const getAttention = () => api.get('/content-studio/attention').then(data);
@@ -35,6 +41,7 @@ export async function exportItem(id, kind, format) {
 }
 export const regenerateStale = id => api.post(`/content-studio/items/${id}/regenerate-stale`).then(data);
 export const generateItem = (id, tasks) => api.post(`/content-studio/items/${id}/generate`, tasks ? { tasks } : {}).then(data);
+export const describeItemImages = id => api.post(`/content-studio/items/${id}/images/describe`).then(data);
 export const regenerateArtifact = id => api.post(`/content-studio/artifacts/${id}/regenerate`).then(data);
 export const fillVocabItem = (id, index) => api.post(`/content-studio/artifacts/${id}/vocab/fill`, { index }).then(data);
 export const regenerateTranslationSentence = (id, index) => api.post(`/content-studio/artifacts/${id}/translation/sentence`, { index }).then(data);

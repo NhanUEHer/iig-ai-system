@@ -5,6 +5,7 @@
 // Types without an agent fall back to the mock provider.
 const aiCore = require('../../ai-core');
 const mockProvider = require('./mockProvider');
+const storage = require('../../../services/storageService');
 const { splitSentences } = require('../detect/detectContent');
 
 const AGENTS = {
@@ -13,13 +14,28 @@ const AGENTS = {
   dictionary_entries: 'cs.dict.define',
   passage_translation: 'cs.translate',
   question_pack: 'cs.question_pack',
+  image_description: 'cs.image.describe',
 };
+// Sent when the question set has no image; the question_pack prompt must not invent one.
+const NO_IMAGE = '(none)';
 const LETTERS = ['A', 'B', 'C', 'D'];
+// Question-only sets (Part 1/2/5) have no passage; say so explicitly instead of sending an empty tag.
+const NO_PASSAGE = '(none — this set has questions only, no passage or transcript)';
 const SET_CACHE_MS = 30 * 1000; // long enough for the set's artifacts claimed together, short enough for "Tạo lại"
 const setCalls = new Map(); // one AI call per question set, shared by the set's question artifacts
 const MODES = new Set(['balanced', 'phrase_focused', 'single_word_focused']);
 
-// cs.translate returns Vietnamese only, numbered like the input; join it with the English we already have.
+// cs.translate receives only the passage, splits it itself and returns {s: [{en, vi}]} in reading order.
+// Older agent versions answered {t: [{i, vi}]} against our own split; that shape is still understood.
+function mapTranslation(data, sentences = []) {
+  if (Array.isArray(data?.s)) {
+    return { sentences: data.s
+      .map(row => ({ en: String(row?.en || '').trim(), vi: String(row?.vi || '').trim() }))
+      .filter(row => row.en || row.vi) };
+  }
+  return mergeTranslation(data, sentences);
+}
+
 function mergeTranslation(data, sentences) {
   const byIndex = new Map((Array.isArray(data?.t) ? data.t : []).map(row => [Number(row?.i), String(row?.vi || '').trim()]));
   return { sentences: sentences.map((en, index) => ({ en, vi: byIndex.get(index + 1) || '' })) };
@@ -45,17 +61,17 @@ function questionSetCall(agentKey, input, ctx) {
   }));
   if (input.bypassSetCache) {
     return aiCore.run(agentKey, {
-      passage: input.passage,
-      passage_vi: input.passageVi || '(chưa có bản dịch)',
+      passage: input.passage || NO_PASSAGE,
+      image_description: input.imageDescription || NO_IMAGE,
       questions: JSON.stringify(questions),
     }, ctx);
   }
-  const cacheKey = `${input.setId || input.question.id}:${JSON.stringify(questions)}:${input.passage}`;
+  const cacheKey = `${input.setId || input.question.id}:${JSON.stringify(questions)}:${input.passage}:${input.imageDescription || ''}`;
   const cached = setCalls.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.promise;
   const promise = aiCore.run(agentKey, {
-    passage: input.passage,
-    passage_vi: input.passageVi || '(chưa có bản dịch)',
+    passage: input.passage || NO_PASSAGE,
+      image_description: input.imageDescription || NO_IMAGE,
     questions: JSON.stringify(questions),
   }, ctx);
   setCalls.set(cacheKey, { promise, expiresAt: Date.now() + SET_CACHE_MS });
@@ -105,6 +121,14 @@ function mapVocab(data, settings) {
   return { settings, items };
 }
 
+// cs.image.describe returns { image_type, image_description }; keep a stable camelCase shape.
+function mapImageDescription(data) {
+  return {
+    imageType: String(data?.image_type || data?.type || 'other').trim(),
+    description: String(data?.image_description || data?.description || '').trim(),
+  };
+}
+
 async function generate(type, input = {}, options = {}) {
   const agentKey = AGENTS[type];
   if (!agentKey) return mockProvider.generate(type, input, options);
@@ -124,12 +148,17 @@ async function generate(type, input = {}, options = {}) {
   }
 
   if (type === 'passage_translation') {
-    const sentences = input.sentences || [];
-    const result = await aiCore.run(agentKey, {
-      passage: input.passage,
-      sentences: JSON.stringify(sentences.map((en, index) => ({ i: index + 1, en }))),
-    }, ctx);
-    return mergeTranslation(result.data, sentences);
+    const result = await aiCore.run(agentKey, { passage: input.passage }, ctx);
+    return mapTranslation(result.data, input.sentences || []);
+  }
+
+  if (type === 'image_description') {
+    // The image itself goes to AI Core as image data; `context` (the question text) is optional in the agent.
+    const { buffer } = await storage.downloadBuffer(input.image.storedKey);
+    const result = await aiCore.run(agentKey, { context: input.contextText || '' }, ctx, {
+      images: [{ mimeType: input.image.mime, data: buffer }],
+    });
+    return mapImageDescription(result.data);
   }
 
   if (type === 'question_pack') {
@@ -153,4 +182,4 @@ async function generate(type, input = {}, options = {}) {
   return result.data; // { dictionary_entries: [...] } in request order — mapped by dictionary/normalize.js
 }
 
-module.exports = { name: 'ai-core', generate, fillVocabItem, mapVocab, mergeTranslation, mapQuestion, AGENTS };
+module.exports = { name: 'ai-core', generate, fillVocabItem, mapVocab, mergeTranslation, mapTranslation, mapQuestion, mapImageDescription, AGENTS, NO_IMAGE };

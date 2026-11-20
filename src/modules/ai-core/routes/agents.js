@@ -39,7 +39,8 @@ function createAgentsRouter(dependencies = {}) {
     res.json({ data: await service.saveDraft(req.params.key, req.body || {}, actor(req)) });
   }));
   router.post('/:key/test', requirePermission('ai_core.manage'), asyncHandler(async (req, res) => {
-    res.json({ data: await service.test(req.params.key, variables(req.body), actor(req)) });
+    // Optional test images: [{ mimeType, data: base64 }] — validated by the runtime.
+    res.json({ data: await service.test(req.params.key, variables(req.body), actor(req), req.body?.images) });
   }));
   router.post('/:key/publish', requirePermission('ai_core.manage'), asyncHandler(async (req, res) => {
     res.json({ data: await service.publish(req.params.key, actor(req)) });

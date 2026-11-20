@@ -5,6 +5,11 @@
 // without calling any AI service.
 
 const TRANSLATIONS = {
+  'Dear Ms. Joseph,': 'Kính gửi bà Joseph,',
+  'Sincerely,': 'Trân trọng,',
+  'Daniel Brooks': 'Daniel Brooks',
+  'Business Development Manager': 'Giám đốc Phát triển Kinh doanh',
+  'HF Manufacturers': 'HF Manufacturers',
   'I am writing in reference to the partnership proposal that you sent to HF Manufacturers on 8 March.':
     'Tôi viết thư này liên quan đến bản đề xuất hợp tác mà bà đã gửi cho HF Manufacturers vào ngày 8 tháng 3.',
   'I am pleased to inform you that our Vice President, Mr. Howard, would like to meet with representatives from your company to discuss the proposal in more detail.':

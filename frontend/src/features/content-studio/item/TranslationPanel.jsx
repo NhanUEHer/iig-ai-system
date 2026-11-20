@@ -56,7 +56,7 @@ export default function TranslationPanel({ artifact, draft, dirty, onChange, she
             {isRowDirty(index) && <em>Chưa lưu</em>}
             {shell.canGenerate && <Button variant="ghost" size="sm" icon={<RefreshCw />} loading={regeneratingIndex === index} disabled={regeneratingIndex != null || ['queued', 'generating'].includes(artifact.status)} onClick={() => onRegenerateSentence(index)}>Tạo lại câu này</Button>}
           </div>
-          <textarea rows={2} aria-label={`Bản dịch câu ${index + 1}`} value={row.vi || ''} readOnly={!shell.canEdit}
+          <textarea rows={1} aria-label={`Bản dịch câu ${index + 1}`} value={row.vi || ''} readOnly={!shell.canEdit}
             ref={element => { if (element) { element.style.height = 'auto'; element.style.height = `${element.scrollHeight}px`; } }}
             onInput={autoSize} onFocus={() => onFocusSentence?.(row.en)} onBlur={() => onFocusSentence?.(null)}
             onChange={event => setVietnamese(index, event.target.value)} />

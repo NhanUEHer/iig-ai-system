@@ -44,12 +44,14 @@ test('dictionary extract and define keep the Dify flow contract understood by no
   } finally { stub.restore(); }
 });
 
-test('translation sends numbered English and joins the Vietnamese-only answer by index', async () => {
-  const stub = stubRun({ 'cs.translate': { t: [{ i: 2, vi: 'Câu hai.' }, { i: 1, vi: 'Câu một.' }] } });
+test('translation sends only the passage and keeps the agent\'s own sentence split', async () => {
+  const stub = stubRun({ 'cs.translate': { s: [{ en: 'Dear Mr. Lee,', vi: 'Kính gửi ông Lee,' }, { en: ' One. ', vi: 'Một.' }, { en: '', vi: '' }] } });
   try {
-    const out = await provider.generate('passage_translation', { itemId: 'i1', passage: 'One. Two. Three.', sentences: ['One.', 'Two.', 'Three.'] });
-    assert.equal(stub.calls[0].vars.sentences, JSON.stringify([{ i: 1, en: 'One.' }, { i: 2, en: 'Two.' }, { i: 3, en: 'Three.' }]));
-    assert.deepEqual(out.sentences, [{ en: 'One.', vi: 'Câu một.' }, { en: 'Two.', vi: 'Câu hai.' }, { en: 'Three.', vi: '' }]);
+    const out = await provider.generate('passage_translation', { itemId: 'i1', passage: 'Dear Mr. Lee,\nOne.', sentences: ['ignored'] });
+    assert.deepEqual(stub.calls[0].vars, { passage: 'Dear Mr. Lee,\nOne.' });
+    assert.deepEqual(out.sentences, [{ en: 'Dear Mr. Lee,', vi: 'Kính gửi ông Lee,' }, { en: 'One.', vi: 'Một.' }]);
+    // Older agent versions ({t:[{i,vi}]}) are still mapped onto our split.
+    assert.deepEqual(provider.mapTranslation({ t: [{ i: 1, vi: 'Một.' }] }, ['One.']).sentences, [{ en: 'One.', vi: 'Một.' }]);
   } finally { stub.restore(); }
 });
 
@@ -73,10 +75,11 @@ test('question pack: one AI call per set, split per question, translation field 
     n, stem_vi: `Câu ${n}?`, options_vi: { A: 'a vi', B: 'b vi', C: 'c vi', D: 'd vi' }, hint: 'h', explanation: 'e', note: 'n',
   })) } });
   try {
-    const base = { itemId: 'i1', setId: 'set-1', setQuestions, passage: 'P', passageVi: '' };
+    const base = { itemId: 'i1', setId: 'set-1', setQuestions, passage: 'P' };
     const [first, second] = await Promise.all(setQuestions.map(question => provider.generate('question_pack', { ...base, question })));
     assert.equal(stub.calls.length, 1);
-    assert.equal(stub.calls[0].vars.passage_vi, '(chưa có bản dịch)');
+    // English only: the passage translation is never sent to the question pack.
+    assert.deepEqual(Object.keys(stub.calls[0].vars).sort(), ['image_description', 'passage', 'questions']);
     assert.deepEqual(JSON.parse(stub.calls[0].vars.questions)[1], { n: 2, stem: 'Stem 2?', options: { A: 'a', B: 'b', C: 'c', D: 'd' }, answer: 'B' });
     assert.equal(first.translation, 'Câu 1?\n(A) a vi\n(B) b vi\n(C) c vi\n(D) d vi');
     assert.deepEqual({ hint: second.hint, explanation: second.explanation, note: second.note }, { hint: 'h', explanation: 'e', note: 'n' });
@@ -103,5 +106,34 @@ test('types without an AI Core agent fall back to the mock provider', async () =
     const out = await provider.generate('dictionary', { sentences: ['Hello there.'] });
     assert.equal(stub.calls.length, 0);
     assert.ok(out);
+  } finally { stub.restore(); }
+});
+
+test('image_description sends the stored image as image data with the question context', async () => {
+  const storage = require('../src/services/storageService');
+  const original = storage.downloadBuffer;
+  const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2]);
+  storage.downloadBuffer = async key => { assert.equal(key, 'r2:content-studio/images/x.png'); return { buffer: bytes }; };
+  const calls = [];
+  const run = aiCore.run;
+  aiCore.run = async (key, vars, ctx, options) => { calls.push({ key, vars, ctx, options }); return { data: { image_type: 'scene_photo', image_description: 'Two men carry a box.' } }; };
+  try {
+    const out = await provider.generate('image_description', { itemId: 'i1', image: { storedKey: 'r2:content-studio/images/x.png', mime: 'image/png', sha256: 'a' }, contextText: '1. (A) They are carrying a box.' });
+    assert.equal(calls[0].key, 'cs.image.describe');
+    assert.deepEqual(calls[0].vars, { context: '1. (A) They are carrying a box.' });
+    assert.deepEqual(calls[0].options.images, [{ mimeType: 'image/png', data: bytes }]);
+    assert.deepEqual(out, { imageType: 'scene_photo', description: 'Two men carry a box.' });
+  } finally { aiCore.run = run; storage.downloadBuffer = original; }
+});
+
+test('question_pack passes image_description, "(none)" when the set has no image', async () => {
+  const stub = stubRun({ 'cs.question_pack': { q: [{ n: 1, stem_vi: '', options_vi: {}, hint: 'h', explanation: 'e', note: 'n' }] } });
+  try {
+    const question = { id: 'q-img', number: 1, stem: '', options: { A: 'a', B: 'b', C: 'c', D: 'd' }, answerKey: 'A' };
+    await provider.generate('question_pack', { itemId: 'i1', setId: 's-img-1', question, setQuestions: [question], passage: '', imageDescription: '[Image for question 1]\nA desk.' });
+    await provider.generate('question_pack', { itemId: 'i1', setId: 's-img-2', question, setQuestions: [question], passage: '' });
+    assert.equal(stub.calls[0].vars.image_description, '[Image for question 1]\nA desk.');
+    assert.equal(stub.calls[1].vars.image_description, '(none)');
+    assert.match(stub.calls[1].vars.passage, /^\(none/);
   } finally { stub.restore(); }
 });

@@ -13,6 +13,7 @@ const costGuard = require('../guards/costGuard');
 const budgetGuard = require('../guards/budgetGuard');
 const limiter = require('../guards/limiter');
 const retry = require('../guards/retry');
+const { normalizeImages, describeImages } = require('./images');
 
 const EMPTY_USAGE = Object.freeze({ input: 0, cachedInput: 0, output: 0, thinking: 0 });
 const EXECUTION_VERSION_ID = Symbol('aiCore.executionVersionId');
@@ -67,7 +68,7 @@ function createRunner(dependencies = {}) {
     return { adapter, connection, price, model };
   }
 
-  async function execute({ key, variables = {}, ctx = {}, mode = 'run' }) {
+  async function execute({ key, variables = {}, ctx = {}, mode = 'run', images }) {
     const startedAt = clock();
     const usageParts = [];
     let agent;
@@ -86,6 +87,7 @@ function createRunner(dependencies = {}) {
     let caught;
     let callId = null;
     let usedFallback = false;
+    let imageList = [];
 
     function totalCost() {
       return roundUsd(usageParts.reduce(
@@ -97,18 +99,23 @@ function createRunner(dependencies = {}) {
     try {
       ({ agent, version } = await registry.load(key, { mode }));
       user = render(version.userTemplate, variables, version.variables);
+      imageList = normalizeImages(images);
       ({ adapter, connection, price } = await resolveProvider(version.connectionId, version.model));
+      if (imageList.length && !adapter.capabilities?.vision) {
+        throw new AiCoreError('CONFIG_MISSING', `Provider "${adapter.label || adapter.name}" of this agent cannot read images; use a vision model (e.g. Gemini).`);
+      }
 
       const state = {
         key, variables, ctx, mode, agent, version, adapter, connection, price,
-        model: version.model, system: version.systemPrompt, user, spend,
+        model: version.model, system: version.systemPrompt, user, spend, images: imageList,
       };
       await guards.input(state);
       await guards.cost(state);
       estimatedMaxCostUsd = Number(state.estimatedMaxCostUsd || state.estimatedMax || 0);
       await guards.budget(state);
 
-      const invokeSelected = async generateUser => guards.limiter(state, () => guards.retry(state, async () => {
+      // Images go with the real prompt only; a JSON repair call is text-to-text.
+      const invokeSelected = async (generateUser, withImages) => guards.limiter(state, () => guards.retry(state, async () => {
         attempts += 1;
         try {
           return await adapter.generate({
@@ -117,6 +124,7 @@ function createRunner(dependencies = {}) {
             model: state.model,
             system: version.systemPrompt,
             user: generateUser,
+            images: withImages ? imageList : [],
             schema: version.outputSchema,
             temperature: version.temperature,
             thinkingMode: version.thinkingMode,
@@ -129,21 +137,21 @@ function createRunner(dependencies = {}) {
         }
       }));
 
-      const generate = async (generateUser = user) => {
+      const generate = async (generateUser = user, withImages = true) => {
         let providerResult;
         try {
-          providerResult = await invokeSelected(generateUser);
+          providerResult = await invokeSelected(generateUser, withImages);
         } catch (error) {
           const canFallback = !usedFallback
             && version.fallbackConnectionId
             && version.fallbackModel
             && (error?.retryable || error?.code === 'PROVIDER_DOWN' || error?.code === 'TIMEOUT');
           if (!canFallback) throw error;
+          const fallback = await resolveProvider(version.fallbackConnectionId, version.fallbackModel);
+          // A text-only fallback would silently drop the images: keep the original error instead.
+          if (withImages && imageList.length && !fallback.adapter.capabilities?.vision) throw error;
           usedFallback = true;
-          ({ adapter, connection, price } = await resolveProvider(
-            version.fallbackConnectionId,
-            version.fallbackModel,
-          ));
+          ({ adapter, connection, price } = fallback);
           Object.assign(state, {
             adapter,
             connection,
@@ -154,7 +162,7 @@ function createRunner(dependencies = {}) {
           await guards.input(state);
           await guards.cost(state);
           estimatedMaxCostUsd = Number(state.estimatedMaxCostUsd || state.estimatedMax || 0);
-          providerResult = await invokeSelected(generateUser);
+          providerResult = await invokeSelected(generateUser, withImages);
         }
         usageParts.push({ usage: providerResult.usage || EMPTY_USAGE, price });
         responseText = providerResult.text;
@@ -170,7 +178,7 @@ function createRunner(dependencies = {}) {
       schemaValidFirstTry = checked.valid;
       if (!checked.valid && version.repairInvalidJson) {
         repaired = true;
-        providerResult = await generate(repairPrompt(providerResult.text, checked.errors, version.outputSchema));
+        providerResult = await generate(repairPrompt(providerResult.text, checked.errors, version.outputSchema), false);
         checked = parseAndValidate(providerResult.text, version.outputSchema);
       }
       if (!checked.valid) {
@@ -217,7 +225,10 @@ function createRunner(dependencies = {}) {
         schemaValidFirstTry,
         repaired,
         latencyMs: Math.max(0, clock() - startedAt),
-        requestPreview: { system: version?.systemPrompt || '', user },
+        // Images first so truncation keeps them; only type/size/hash, never the bytes.
+        requestPreview: imageList.length
+          ? { images: describeImages(imageList), system: version?.systemPrompt || '', user }
+          : { system: version?.systemPrompt || '', user },
         responsePreview: responseText,
         agent,
       });

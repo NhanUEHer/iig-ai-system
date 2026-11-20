@@ -3,6 +3,7 @@ const db = require('../../config/db');
 const HttpError = require('../../http/httpError');
 const { detectContent, countSentences, splitSentences } = require('./detect/detectContent');
 const summaryService = require('./summaryService');
+const imageService = require('./images/imageService');
 
 const MAX_SOURCE_CHARS = 60000;
 const MAX_FOLDER_DEPTH = 6;
@@ -177,10 +178,11 @@ function normalizeSegments(segments) {
   });
 }
 
-async function createItem({ title, folderId, sourceText, sourceKind = 'paste', sourceFileName, segments, tasks }, userId) {
+async function createItem({ title, folderId, sourceText, sourceKind = 'paste', sourceFileName, segments, tasks, images }, userId) {
   const text = requireSource(sourceText);
   const detection = detectContent(text);
   const finalSegments = normalizeSegments(segments || detection.segments);
+  const itemImages = imageService.normalizeImages(images, finalSegments);
   const folder = optionalFolderId(folderId);
   const itemTitle = requireName(title || detection.title, 240, 'Tên học liệu');
   return db.transaction(async client => {
@@ -195,6 +197,7 @@ async function createItem({ title, folderId, sourceText, sourceKind = 'paste', s
       JSON.stringify({ summary: summarize(finalSegments), warnings: detection.warnings, confidence: detection.confidence }),
       JSON.stringify(normalizeTasks(tasks, finalSegments)), userId]);
     await insertSegments(client, item.id, finalSegments);
+    await imageService.insertImages(client, item.id, itemImages, userId);
     return getItem(item.id, client);
   });
 }
@@ -223,21 +226,25 @@ async function insertSegments(client, itemId, segments) {
 
 // ---------- stale detection (generated content vs. edited source) ----------
 const { passageHash, questionHash, norm: normText } = require('./sourceHash');
+const { descriptionForSet } = require('./images/imageText');
 
-function passageForSet(segments, setSegment) {
-  const passages = segments.filter(segment => segment.kind === 'passage');
-  return passages.find(segment => segment.position === setSegment?.meta?.passageIndex) || passages[0];
-}
+const { passageForSet } = require('./passageForSet');
 
 // An artifact is stale when it was built from a source fingerprint that no longer matches.
 // Artifacts generated before fingerprints existed (sourceHash null) are never flagged.
-function markStale(segments, questions, artifacts) {
+function markStale(segments, questions, artifacts, images = []) {
+  const descriptions = new Map();
+  const setDescription = setId => {
+    if (!descriptions.has(setId)) descriptions.set(setId, descriptionForSet(setId, images, artifacts, questions));
+    return descriptions.get(setId);
+  };
   for (const artifact of artifacts) {
     let current = null;
+    if (artifact.type === 'image_description') { artifact.stale = false; delete artifact.sourceHash; continue; }
     if (artifact.type === 'question_pack') {
       const question = questions.find(row => row.id === artifact.questionId);
       const setSegment = segments.find(segment => segment.id === question?.segmentId);
-      if (question) current = questionHash(passageForSet(segments, setSegment)?.text || '', question);
+      if (question) current = questionHash(passageForSet(segments, setSegment)?.text || '', question, setDescription(question.segmentId));
     } else {
       const segment = segments.find(row => row.id === artifact.segmentId);
       if (segment) current = passageHash(segment.text);
@@ -280,10 +287,11 @@ async function getItem(id, client = db) {
     SELECT q.id, q.segment_id AS "segmentId", q.number, q.stem, q.options, q.answer_key AS "answerKey"
     FROM cs_questions q JOIN cs_segments s ON s.id = q.segment_id WHERE s.item_id = $1 ORDER BY q.number`, [id]);
   const { rows: artifacts } = await client.query(`
-    SELECT id, segment_id AS "segmentId", question_id AS "questionId", type, status, content, validation, source, provider, error, attempts,
+    SELECT id, segment_id AS "segmentId", question_id AS "questionId", image_id AS "imageId", type, status, content, validation, source, provider, error, attempts,
            source_hash AS "sourceHash", updated_at AS "updatedAt"
     FROM cs_artifacts WHERE item_id = $1`, [id]);
-  markStale(segments, questions, artifacts);
+  const images = await imageService.listImages(client, id);
+  markStale(segments, questions, artifacts, images);
   const { rows: dictSentences } = await client.query('SELECT segment_id AS "segmentId", text FROM cs_dict_sentences WHERE item_id = $1', [id]);
   const dictionaryStale = dictionarySentencesStale(segments, dictSentences);
   const { rows: [dictionary] } = await client.query(`SELECT ${summaryService.DICTIONARY_STATUS_SQL} AS status FROM cs_items i WHERE i.id = $1`, [id]);
@@ -294,7 +302,7 @@ async function getItem(id, client = db) {
     ) SELECT id, name FROM chain ORDER BY depth DESC`, [item.folderId]);
   const taskStatus = summaryService.deriveTaskStatus(item.tasks, artifacts, { dictionaryStatus: dictionary?.status });
   const staleParts = staleSummary(artifacts, dictionaryStale);
-  return { ...item, taskStatus, staleParts, folderPath: path, artifacts, segments: segments.map(segment => ({ ...segment, questions: questions.filter(question => question.segmentId === segment.id) })) };
+  return { ...item, taskStatus, staleParts, folderPath: path, artifacts, images, segments: segments.map(segment => ({ ...segment, questions: questions.filter(question => question.segmentId === segment.id) })) };
 }
 
 async function updateItem(id, { title, folderId }) {
@@ -327,7 +335,8 @@ async function updateContent(id, { segments = [], questions = [] } = {}) {
     for (const question of questions) {
       requireId(question.id, 'questionId');
       const [normalized] = normalizeSegments([{ kind: 'question_set', questions: [{ ...question, number: question.number || 1 }] }])[0].questions;
-      if (!normalized.stem) throw new HttpError('Câu hỏi không được để trống.', 400, 'VALIDATION_ERROR');
+      // Photo questions (Part 1) have no stem — then the options are the question.
+      if (!normalized.stem && Object.keys(normalized.options).length < 2) throw new HttpError('Câu hỏi không được để trống.', 400, 'VALIDATION_ERROR');
       const result = await client.query(`
         UPDATE cs_questions q SET stem = $3, options = $4, answer_key = $5
         FROM cs_segments s WHERE q.id = $1 AND s.id = q.segment_id AND s.item_id = $2`,

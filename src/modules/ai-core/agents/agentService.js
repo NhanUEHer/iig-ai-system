@@ -277,10 +277,10 @@ function createAgentService(dependencies = {}) {
     return (await get(key)).draft;
   }
 
-  async function test(key, variables, userId = null) {
+  async function test(key, variables, userId = null, images = undefined) {
     const current = await get(key);
     if (!current?.draft) throw new HttpError('Agent draft not found.', 409, 'AI_CORE_DRAFT_NOT_FOUND');
-    const result = await sdk.testRun(key, variables || {}, userId);
+    const result = await sdk.testRun(key, variables || {}, userId, { images });
     const preview = (await database.query(
       'SELECT request_preview,response_preview FROM aic_call_logs WHERE id=$1', [result.callId],
     )).rows[0] || {};

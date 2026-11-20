@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import useProviders from '../utils/useProviders';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Check, FileClock, FlaskConical, History, Save, Send, X } from 'lucide-react';
+import { Check, FileClock, FlaskConical, History, ImagePlus, Save, Send, X } from 'lucide-react';
 import { Button, ConfirmDialog, ErrorState, PageFrame, Skeleton, Tooltip } from '../../../design-system-v2';
 import {
   createAgent, errorMessage, getAgent, listConnections, listModels, publishAgent,
@@ -29,9 +29,23 @@ function Field({ label, help, error, children, className = '' }) {
   return <label className={`aic-field ${error ? 'has-error' : ''} ${className}`}><span>{label}</span>{children}{help && <small>{help}</small>}{error && <em>{error}</em>}</label>;
 }
 
-function Card({ title, tools, children, accent = false }) {
-  return <section className={`aic-editor-card${accent ? ' is-accent' : ''}`}><header><h2>{title}</h2>{tools}</header>{children}</section>;
+function Card({ title, tools, children, accent = false, onPaste }) {
+  return <section className={`aic-editor-card${accent ? ' is-accent' : ''}`} onPaste={onPaste}><header><h2>{title}</h2>{tools}</header>{children}</section>;
 }
+
+const TEST_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+const MAX_TEST_IMAGES = 10;
+const readAsBase64 = file => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+  reader.onerror = () => reject(reader.error);
+  reader.readAsDataURL(file);
+});
+
+// Prompt fields open tall enough to read the whole prompt; CSS caps the height and keeps manual resize.
+// Long lines wrap, so count ~90 characters per visual row.
+const autoRows = (value, min) => Math.min(60, Math.max(min, String(value || '').split('\n')
+  .reduce((rows, line) => rows + Math.max(1, Math.ceil(line.length / 90)), 1)));
 
 export default function AgentEditorPage({ canManage = false, showMsg }) {
   const { key: routeKey } = useParams();
@@ -45,6 +59,8 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
   const [models, setModels] = useState([]);
   const [agent, setAgent] = useState(null);
   const [variables, setVariables] = useState({});
+  const [testImages, setTestImages] = useState([]);
+  const testImageInput = useRef(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -65,7 +81,8 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
   );
   const fallbackValue = draft.fallbackConnectionId && draft.fallbackModel ? `${draft.fallbackConnectionId}::${draft.fallbackModel}` : '';
   const activeModel = models.find(item => item.provider === selectedConnection?.provider && item.model === draft.model);
-  const estimatedTokens = estimateInputTokens({ system: draft.systemPrompt, user: draft.userTemplate, ...variables });
+  // A typical screenshot is a few 258-token tiles; ~1,300 tokens per image is a safe pre-run estimate.
+  const estimatedTokens = estimateInputTokens({ system: draft.systemPrompt, user: draft.userTemplate, ...variables }) + testImages.length * 1300;
   const estimatedMaxCost = activeModel
     ? (estimatedTokens * Number(activeModel.priceIn || 0) + Number(draft.maxOutputTokens || 0) * Number(activeModel.priceOut || 0)) / 1_000_000
     : 0;
@@ -85,6 +102,8 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
       temperature: version.temperature, thinkingMode: version.thinkingMode || 'off', maxInputTokens: version.maxInputTokens, maxOutputTokens: version.maxOutputTokens,
       timeoutMs: version.timeoutMs, maxRetries: version.maxRetries, repairInvalidJson: version.repairInvalidJson,
       changeNote: version.changeNote || '',
+      // Keep each variable's required flag/description across saves (new ones default to required).
+      variableMeta: Object.fromEntries((version.variables || []).map(item => [item.name, { required: item.required !== false, description: item.description || '' }])),
     } : { ...DEFAULT_DRAFT, connectionId: firstConnection?.id || '', model: firstModel?.model || '' };
     const nextSchema = JSON.stringify(version?.outputSchema || DEFAULT_SCHEMA, null, 2);
     setAgent(loaded);
@@ -144,11 +163,28 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
     navigate(target);
   };
 
+  const addTestImages = async fileList => {
+    const files = [...(fileList || [])].filter(file => TEST_IMAGE_TYPES.includes(file.type));
+    if (files.some(file => file.size > 5 * 1024 * 1024)) setError('Ảnh chạy thử tối đa 5 MB — đã bỏ qua ảnh quá lớn.');
+    const accepted = files.filter(file => file.size <= 5 * 1024 * 1024);
+    const loaded = await Promise.all(accepted.map(async file => ({
+      id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2)}`,
+      mimeType: file.type, data: await readAsBase64(file), preview: URL.createObjectURL(file),
+    })));
+    setTestImages(current => [...current, ...loaded].slice(0, MAX_TEST_IMAGES));
+  };
+  const pasteTestImages = event => {
+    const files = [...(event.clipboardData?.files || [])].filter(file => TEST_IMAGE_TYPES.includes(file.type));
+    if (!files.length) return;
+    event.preventDefault();
+    addTestImages(files);
+  };
+  const variableMeta = name => draft.variableMeta?.[name] || { required: true, description: '' };
   const draftBody = () => ({
-    ...draft,
+    ...Object.fromEntries(Object.entries(draft).filter(([field]) => field !== 'variableMeta')),
     fallbackConnectionId: draft.fallbackConnectionId || null,
     fallbackModel: draft.fallbackModel || null,
-    variables: variableNames.map(name => ({ name, required: true, description: '' })),
+    variables: variableNames.map(name => ({ name, ...variableMeta(name) })),
     outputSchema: schemaValidation.value,
   });
 
@@ -193,7 +229,7 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
   };
 
   const runTest = async () => {
-    const missing = variableNames.find(name => !String(variables[name] || '').trim());
+    const missing = variableNames.find(name => variableMeta(name).required && !String(variables[name] || '').trim());
     if (missing) { setError(`Hãy nhập giá trị chạy thử cho biến {{${missing}}}.`); return; }
     setTesting(true);
     setError('');
@@ -201,7 +237,7 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
       const saved = dirty || !agent || !agent.draft ? await persist({ silent: true }) : agent;
       if (!saved) return;
       const startedAt = performance.now();
-      const tested = await testAgent(saved.key, variables);
+      const tested = await testAgent(saved.key, variables, testImages.map(({ mimeType, data }) => ({ mimeType, data })));
       setResult({ ...tested, latencyMs: Math.max(0, Math.round(performance.now() - startedAt)) });
       const refreshed = await getAgent(saved.key);
       setAgent(refreshed);
@@ -254,17 +290,26 @@ export default function AgentEditorPage({ canManage = false, showMsg }) {
       <div className="aic-editor-layout">
         <main>
           <Card title="Thiết kế prompt" tools={<div className="aic-variable-list"><span>Biến:</span>{variableNames.length ? variableNames.map(name => <code key={name}>{`{{${name}}}`}</code>) : <small>chưa phát hiện</small>}</div>}>
-            <Field label="System prompt" help="Vai trò và quy tắc chung cho model"><textarea className="is-prose" rows="5" placeholder="You are … Return JSON only." value={draft.systemPrompt} onChange={updateDraft('systemPrompt')} disabled={!canManage} /></Field>
-            <Field label="User prompt (template)" help="Biến dùng cú pháp {{variable_name}}"><textarea className="is-prose" rows="5" placeholder="Translate this sentence into Vietnamese: {{sentence}}" value={draft.userTemplate} onChange={updateDraft('userTemplate')} disabled={!canManage} /></Field>
-            <Field label="JSON schema đầu ra" error={schemaValidation.valid ? '' : schemaValidation.error}><textarea rows="10" value={schemaText} onChange={event => setSchemaText(event.target.value)} disabled={!canManage} /></Field>
+            <Field label="System prompt" help="Vai trò và quy tắc chung cho model"><textarea className="is-prose is-autosize" rows={autoRows(draft.systemPrompt, 8)} placeholder="You are … Return JSON only." value={draft.systemPrompt} onChange={updateDraft('systemPrompt')} disabled={!canManage} /></Field>
+            <Field label="User prompt (template)" help="Biến dùng cú pháp {{variable_name}}"><textarea className="is-prose is-autosize" rows={autoRows(draft.userTemplate, 5)} placeholder="Translate this sentence into Vietnamese: {{sentence}}" value={draft.userTemplate} onChange={updateDraft('userTemplate')} disabled={!canManage} /></Field>
+            <Field label="JSON schema đầu ra" error={schemaValidation.valid ? '' : schemaValidation.error}><textarea className="is-autosize" rows={autoRows(schemaText, 10)} value={schemaText} onChange={event => setSchemaText(event.target.value)} disabled={!canManage} /></Field>
             {schemaValidation.valid && <span className="aic-schema-ok"><Check /> JSON hợp lệ</span>}
           </Card>
 
           <div className="aic-test-row">
-          <Card title="Chạy thử bản nháp" accent tools={<small>không tính vào ngân sách tháng</small>}>
-            {!variableNames.length && <p className="aic-test-guidance">Thêm biến <code>{'{{variable}}'}</code> vào user prompt để tạo ô dữ liệu chạy thử.</p>}
-            {variableNames.map(name => <Field key={name} label={<code className="aic-variable">{name}</code>}><textarea rows={2} value={variables[name] || ''} onChange={event => setVariables(current => ({ ...current, [name]: event.target.value }))} disabled={!canManage} /></Field>)}
-            <div className="aic-test-action"><span>Ước tính trước: {estimatedTokens.toLocaleString('vi-VN')} token vào · tối đa {usd(estimatedMaxCost)}</span><Button variant="secondary" icon={<FlaskConical />} loading={testing || saving} disabled={!canManage || !variableNames.length || !schemaValidation.valid} onClick={runTest}>Chạy thử</Button></div>
+          <Card onPaste={pasteTestImages} title="Chạy thử bản nháp" accent tools={<small>không tính vào ngân sách tháng</small>}>
+            {!variableNames.length && !testImages.length && <p className="aic-test-guidance">Thêm biến <code>{'{{variable}}'}</code> vào user prompt, hoặc đính kèm ảnh, để chạy thử.</p>}
+            {variableNames.map(name => <div key={name} className="aic-test-variable">
+              <Field label={<code className="aic-variable">{name}</code>}><textarea rows={2} value={variables[name] || ''} onChange={event => setVariables(current => ({ ...current, [name]: event.target.value }))} disabled={!canManage} /></Field>
+              <label className="aic-variable-required"><input type="checkbox" checked={variableMeta(name).required} disabled={!canManage} onChange={event => setDraft(current => ({ ...current, variableMeta: { ...current.variableMeta, [name]: { ...variableMeta(name), required: event.target.checked } } }))} />Biến bắt buộc</label>
+            </div>)}
+            <div className="aic-test-images">
+              <input ref={testImageInput} hidden type="file" multiple accept={TEST_IMAGE_TYPES.join(',')} onChange={event => { addTestImages(event.target.files); event.target.value = ''; }} />
+              <Button variant="outline" size="sm" icon={<ImagePlus />} disabled={!canManage || testImages.length >= MAX_TEST_IMAGES} onClick={() => testImageInput.current?.click()}>Đính kèm ảnh</Button>
+              <small>Chỉ model đọc được ảnh (Gemini) · tối đa {MAX_TEST_IMAGES} ảnh, 5 MB/ảnh · có thể dán ảnh (Ctrl+V) vào khung này</small>
+              {testImages.length > 0 && <div className="aic-test-images__list">{testImages.map((image, index) => <figure key={image.id}><img src={image.preview} alt={`Ảnh chạy thử ${index + 1}`} /><button type="button" aria-label={`Bỏ ảnh ${index + 1}`} onClick={() => setTestImages(current => current.filter(item => item.id !== image.id))}><X /></button></figure>)}</div>}
+            </div>
+            <div className="aic-test-action"><span>Ước tính trước: {estimatedTokens.toLocaleString('vi-VN')} token vào · tối đa {usd(estimatedMaxCost)}</span><Button variant="secondary" icon={<FlaskConical />} loading={testing || saving} disabled={!canManage || (!variableNames.length && !testImages.length) || !schemaValidation.valid} onClick={runTest}>Chạy thử</Button></div>
           </Card>
 
           <Card title="Kết quả" tools={result && <span className={`aic-badge is-${result.error ? 'warning' : 'success'}`}>{result.error ? 'Không đạt' : 'Đạt'}</span>}>
