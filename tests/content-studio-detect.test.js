@@ -143,3 +143,22 @@ test('directions before a reading passage keep the passage', () => {
   assert.match(result.segments[0].text, /^Dear Ms\. Kim/);
   assert.equal(result.segments[1].meta.part, 7);
 });
+
+test('unnumbered "Question" blocks and bare option lists become numbered questions', () => {
+  const options = '(A) She is checking her backpack.\n(B) She is putting some items into a shopping cart.\n(C) She is choosing some clothes.\n(D) She is pointing at a mirror.';
+  const blocks = detectContent(`Question\n${options}\nKey C\nQuestion\n${options}\nKey A`);
+  assert.deepEqual(blocks.segments.map(segment => segment.kind), ['question_set']);
+  assert.deepEqual(blocks.segments[0].questions.map(q => [q.number, q.stem, Object.keys(q.options).join(''), q.answerKey]), [[1, '', 'ABCD', 'C'], [2, '', 'ABCD', 'A']]);
+  const bare = detectContent(`${options}\nKey C\n${options}\nKey B`);
+  assert.deepEqual(bare.segments[0].questions.map(q => [q.number, q.answerKey]), [[1, 'C'], [2, 'B']]);
+  const withStem = detectContent('Question: Where is the meeting?\n(A) In room 3.\n(B) At 2.\n(C) Yes.\nKey: A');
+  assert.deepEqual(withStem.segments[0].questions.map(q => [q.number, q.stem, q.answerKey]), [[1, 'Where is the meeting?', 'A']]);
+});
+
+test('"(A)" inside a passage and sentences starting with "Question" stay passage text', () => {
+  const form = detectContent('The form has two parts.\n(A) Personal details must be complete.\nPlease sign below.\n1. What is required?\n(A) x\n(B) y\n(C) z\n(D) w\nAnswer: A');
+  assert.deepEqual(form.segments.map(segment => segment.kind), ['passage', 'question_set']);
+  assert.match(form.segments[0].text, /\(A\) Personal details/);
+  const sentence = detectContent('Question everything you read in the news.\n1. Why?\n(A) a\n(B) b\n(C) c\n(D) d\nAnswer: B');
+  assert.equal(sentence.segments[0].kind, 'passage');
+});

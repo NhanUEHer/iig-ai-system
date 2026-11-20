@@ -16,6 +16,9 @@ const BLANK = /-{2,}\s*\[?\(?\d{1,3}\)?\]?\s*-{2,}|_{3,}\s*\(?\d{1,3}\)?|\(\d{1,
 const SECTION_LABEL = /^\s*(?:part|phần)\s*[1-7]\s*[:.\-–—]?\s*(?:[A-Za-zÀ-ỹ ]{0,40})?$/i;
 const DIRECTIONS = /^\s*directions?\s*[:.]/i;
 // Part 1 stems are only the instruction to look at the photo; the question is the photo itself.
+// A question block without a number: a line that is just "Question" / "Câu hỏi" (optionally "Question: stem").
+// "Question everything…" (no separator) stays text.
+const QUESTION_LABEL = /^\s*(?:question|câu\s*hỏi)\s*(?:[:.)\-–]\s*(.*))?$/i;
 const PHOTO_STEM = /^\s*look at the (?:picture|photo(?:graph)?)\b.*$/i;
 
 const clean = value => String(value || '').replace(/ /g, ' ').replace(/[ \t]+/g, ' ').trim();
@@ -47,10 +50,20 @@ function detectContent(rawText) {
   let question = null;
   let skippedDirections = false;
 
+  // Unnumbered questions take the next number after the last one seen (1 when none).
+  let lastNumber = 0;
+  const startQuestion = (number, stem, options = {}) => {
+    ensureGroup();
+    question = { number, stem, options, answerKey: null };
+    lastNumber = Math.max(lastNumber, number);
+    group.questions.push(question);
+  };
   const newGroup = header => { group = { header: header || null, passage: [], questions: [] }; groups.push(group); question = null; };
   const ensureGroup = () => { if (!group) newGroup(); };
 
-  for (const rawLine of lines) {
+  const nextLine = index => { for (let next = index + 1; next < lines.length; next += 1) { const text = clean(lines[next]); if (text) return text; } return ''; };
+
+  for (const [lineIndex, rawLine] of lines.entries()) {
     const line = clean(rawLine);
     if (!line) continue;
 
@@ -70,6 +83,12 @@ function detectContent(rawText) {
     if (answer && question) { question.answerKey = answer[1].toUpperCase(); continue; }
 
     const option = line.match(OPTION_LINE);
+    // "(A) …" with no open question (or after a complete one) starts an unnumbered question — only when
+    // option (B) follows (on this line or the next), so an "(A)" item inside a passage stays passage text.
+    const optionsFollow = () => Boolean(splitInlineOptions(line)) || /^\(?B\s*[.)]/i.test(nextLine(lineIndex));
+    if (option && option[1].toUpperCase() === 'A' && (!question || question.options.A) && optionsFollow()) {
+      startQuestion(lastNumber + 1, '');
+    }
     if (option && question) {
       const inline = splitInlineOptions(line);
       if (inline && !inline.stem) Object.assign(question.options, inline.options);
@@ -80,10 +99,15 @@ function detectContent(rawText) {
     const start = line.match(QUESTION_START);
     if (start && !BLANK.test(line)) {
       // A question that follows a finished one inside a group whose passage came after it starts a new group.
-      ensureGroup();
       const inline = splitInlineOptions(start[2]);
-      question = { number: Number(start[1]), stem: inline ? inline.stem : clean(start[2]), options: inline ? inline.options : {}, answerKey: null };
-      group.questions.push(question);
+      startQuestion(Number(start[1]), inline ? inline.stem : clean(start[2]), inline ? inline.options : {});
+      continue;
+    }
+
+    const label = line.match(QUESTION_LABEL);
+    if (label) {
+      const inline = splitInlineOptions(label[1] || '');
+      startQuestion(lastNumber + 1, inline ? inline.stem : clean(label[1] || ''), inline ? inline.options : {});
       continue;
     }
 
