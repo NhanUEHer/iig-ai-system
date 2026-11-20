@@ -54,6 +54,7 @@ router.get('/items/:id/export/:kind/:format', requirePermission(...EXPORT), asyn
   res.send(result.file);
 }));
 router.post('/items/:id/regenerate-stale', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.status(202).json({ success: true, data: await stale.regenerateStale(req.params.id) })));
+router.post('/items/:id/images/describe', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.status(202).json({ success: true, data: await generation.describeImages(req.params.id) })));
 router.post('/items/:id/generate', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.status(202).json({ success: true, data: await generation.enqueue(req.params.id, req.body?.tasks) })));
 router.post('/items/:id/dictionary/extract', requirePermission(...GENERATE), asyncHandler(async (req, res) => res.status(202).json({ success: true, data: await dictionary.extract(req.params.id) })));
 router.get('/items/:id/dictionary', requirePermission(...VIEW), asyncHandler(async (req, res) => res.json({ success: true, data: await dictionary.getState(req.params.id) })));

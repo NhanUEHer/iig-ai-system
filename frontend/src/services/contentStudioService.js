@@ -41,6 +41,7 @@ export async function exportItem(id, kind, format) {
 }
 export const regenerateStale = id => api.post(`/content-studio/items/${id}/regenerate-stale`).then(data);
 export const generateItem = (id, tasks) => api.post(`/content-studio/items/${id}/generate`, tasks ? { tasks } : {}).then(data);
+export const describeItemImages = id => api.post(`/content-studio/items/${id}/images/describe`).then(data);
 export const regenerateArtifact = id => api.post(`/content-studio/artifacts/${id}/regenerate`).then(data);
 export const fillVocabItem = (id, index) => api.post(`/content-studio/artifacts/${id}/vocab/fill`, { index }).then(data);
 export const regenerateTranslationSentence = (id, index) => api.post(`/content-studio/artifacts/${id}/translation/sentence`, { index }).then(data);

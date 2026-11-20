@@ -162,3 +162,18 @@ test('"(A)" inside a passage and sentences starting with "Question" stay passage
   const sentence = detectContent('Question everything you read in the news.\n1. Why?\n(A) a\n(B) b\n(C) c\n(D) d\nAnswer: B');
   assert.equal(sentence.segments[0].kind, 'passage');
 });
+
+test('a lettered list inside a passage stays passage text', () => {
+  const result = detectContent('NOTICE\nFees are listed below.\nA. Registration fee\nB. Late payment\nC. Refunds\n147. What is listed?\n(A) a\n(B) b\n(C) c\n(D) d\nAnswer: A');
+  assert.deepEqual(result.segments.map(segment => segment.kind), ['passage', 'question_set']);
+  assert.match(result.segments[0].text, /A\. Registration fee\nB\. Late payment/);
+  assert.deepEqual(result.segments[1].questions.map(q => q.number), [147]);
+});
+
+test('passageForSet: question-only sets never borrow a passage', () => {
+  const { passageForSet } = require('../src/modules/content-studio/passageForSet');
+  const segments = [{ kind: 'passage', position: 0, text: 'P' }, { kind: 'question_set', position: 1, meta: { passageIndex: 0 } }, { kind: 'question_set', position: 2, meta: { passageIndex: null, questionOnly: true } }];
+  assert.equal(passageForSet(segments, segments[1]).text, 'P');
+  assert.equal(passageForSet(segments, segments[2]), undefined);
+  assert.equal(passageForSet(segments, { meta: {} }).text, 'P');
+});

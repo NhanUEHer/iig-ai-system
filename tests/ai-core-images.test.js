@@ -109,3 +109,19 @@ test('Gemini puts inlineData before the prompt text; DeepSeek refuses images', a
   await assert.rejects(deepseek.generate({ model: 'deepseek-chat', user: 'x', images: [{ mimeType: 'image/png', data: 'AAAA' }] }), { code: 'CONFIG_MISSING' });
   assert.equal(await fake.countTokens({ system: '', user: '', images: [{}, {}] }), 516);
 });
+
+test('Gemini countTokens counts image tiles locally instead of uploading the images', async () => {
+  const { geminiImageTokens } = require('../src/utils/imageSize');
+  assert.equal(geminiImageTokens({ width: 300, height: 200 }), 258);
+  assert.equal(geminiImageTokens({ width: 960, height: 540 }), 258 * 6);
+  assert.equal(geminiImageTokens(null), 258 * 6);
+  const png = Buffer.alloc(32); png.writeUInt32BE(0x89504e47, 0); png.writeUInt32BE(960, 16); png.writeUInt32BE(540, 20);
+  const original = global.fetch;
+  let body;
+  global.fetch = async (_url, options) => { body = JSON.parse(options.body); return new Response(JSON.stringify({ totalTokens: 40 }), { status: 200, headers: { 'content-type': 'application/json' } }); };
+  try {
+    const total = await gemini.countTokens({ apiKey: 'k', model: 'gemini-x', system: 's', user: 'u', images: [{ mimeType: 'image/png', data: png.toString('base64') }] });
+    assert.equal(total, 40 + 258 * 6);
+    assert.ok(!JSON.stringify(body).includes('inlineData'));
+  } finally { global.fetch = original; }
+});

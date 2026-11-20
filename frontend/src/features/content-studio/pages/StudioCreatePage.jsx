@@ -245,7 +245,8 @@ export default function StudioCreatePage({ showMsg, permissions = {} }) {
 
   const applyDetection = result => {
     setDetection(result);
-    setImages(current => suggestTargets(result, current));
+    // A new detection can renumber sets: re-suggest every target instead of keeping old index-based ones.
+    setImages(current => suggestTargets(result, current.map(image => ({ ...image, target: '' }))));
     if (!titleTouched) setTitle(result?.title || '');
     setStep(2);
   };

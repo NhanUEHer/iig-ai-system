@@ -17,7 +17,9 @@ const issue = (code, message, path) => ({ code, message, ...(path ? { path } : {
 
 // The agent splits the passage itself: check every English row is really in the passage and,
 // together, the rows cover the passage (nothing skipped).
-const letters = text => String(text || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+// Blank markers (Part 6 "---[131]---", "____ (131)") are often rewritten by the agent: ignore them when matching.
+const BLANK_MARKERS = /-{2,}\s*\[?\(?\d{1,3}\)?\]?\s*-{2,}|_{2,}\s*\(?\d{0,3}\)?|\(\d{1,3}\)\s*_{2,}|-{3,}|_{2,}/g;
+const letters = text => String(text || '').replace(BLANK_MARKERS, ' ').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
 function validatePassageTranslation(content, { passage = '' }) {
   const issues = [];
   const rows = Array.isArray(content?.sentences) ? content.sentences : [];

@@ -41,7 +41,7 @@ function ImageDescriptions({ images, imageArtifacts, drafts, onChange, shell, qu
       return <article key={image.id} className="cs-image-description">
         {image.url ? <a href={image.url} target="_blank" rel="noreferrer"><img src={image.url} alt={`Hình ${index + 1} · câu ${questionNumber}`} /></a> : <div className="cs-image-description__missing">Không tải được ảnh</div>}
         <div>
-          <strong>Mô tả hình {images.length > 1 ? index + 1 : ''}{image.questionId ? '' : ' · dùng cho cả nhóm câu'}</strong>
+          <strong>Mô tả hình {images.length > 1 ? index + 1 : ''}{image.questionId ? '' : image.segmentId ? ' · dùng cho cả nhóm câu' : ' · dùng cho cả học liệu'}</strong>
           <ArtifactShell artifact={artifact} label="mô tả hình" dirty={Boolean(artifact && drafts[artifact.id])} shell={shell}>
             {draft && <>
               {draft.imageType && <small className="cs-image-description__type">{draft.imageType}</small>}
@@ -55,7 +55,7 @@ function ImageDescriptions({ images, imageArtifacts, drafts, onChange, shell, qu
   </section>;
 }
 
-export function QuestionWorkspace({ questions, artifacts, drafts, selectedId, onSelect, onChange, shell, images = [], imageArtifacts = {} }) {
+export function QuestionWorkspace({ questions, artifacts, drafts, selectedId, onSelect, onChange, shell, imageShell = shell, images = [], imageArtifacts = {} }) {
   const selectedIndex = Math.max(0, questions.findIndex(question => question.id === selectedId));
   const question = questions[selectedIndex];
   const artifact = artifacts[question?.id];
@@ -68,7 +68,9 @@ export function QuestionWorkspace({ questions, artifacts, drafts, selectedId, on
   const previous = questions[selectedIndex - 1];
   const next = questions[selectedIndex + 1];
   // Part 1 photo on the question itself; Part 3/4 graphic on its question set.
-  const questionImages = question ? images.filter(image => image.questionId === question.id || (!image.questionId && image.segmentId === question.segmentId)) : [];
+  // Its own photo, its set's graphic, or an image attached to the whole item (sent to every set).
+  const questionImages = question ? images.filter(image => image.questionId === question.id
+    || (!image.questionId && (!image.segmentId || image.segmentId === question.segmentId))) : [];
 
   return <div className="cs-question-workspace">
     <div className="cs-question-picker">
@@ -83,7 +85,7 @@ export function QuestionWorkspace({ questions, artifacts, drafts, selectedId, on
       <small>{needsReview ? `AI · Câu ${question.number} cần xem lại` : 'AI · Nội dung đạt'}</small>
     </div>
 
-    <ImageDescriptions images={questionImages} imageArtifacts={imageArtifacts} drafts={drafts} onChange={onChange} shell={shell} questionNumber={question?.number} />
+    <ImageDescriptions images={questionImages} imageArtifacts={imageArtifacts} drafts={drafts} onChange={onChange} shell={imageShell} questionNumber={question?.number} />
 
     {!artifact || (!artifact.content && (isBusy(artifact) || artifact?.status === 'failed'))
       ? <div className="cs-question-empty"><ArtifactShell artifact={artifact} label="nội dung câu hỏi" dirty={dirty} shell={shell} /></div>

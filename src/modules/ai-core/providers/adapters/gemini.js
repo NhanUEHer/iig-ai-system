@@ -1,6 +1,7 @@
 // Gemini adapter: everything Gemini-specific (endpoints, schema dialect, thinking, usage fields) stays here.
 const { fetchJson, joinUrl } = require('../http');
 const { nonNegativeInteger } = require('../normalize');
+const { imageSize, geminiImageTokens } = require('../../../../utils/imageSize');
 
 const name = 'gemini';
 const label = 'Gemini';
@@ -121,12 +122,15 @@ async function countTokens(options) {
     {
       headers: headers(options.apiKey),
       // systemInstruction is only accepted inside generateContentRequest.
-      body: { generateContentRequest: { model: `models/${options.model}`, ...contents(options.system, options.user, options.images) } },
+      // Images are not uploaded just to be counted: their tokens follow a fixed tile rule (added below).
+      body: { generateContentRequest: { model: `models/${options.model}`, ...contents(options.system, options.user) } },
       timeoutMs: options.timeoutMs,
       signal: options.signal,
     },
   );
-  return Number(raw.totalTokens) || 0;
+  const imageTokens = (options.images || [])
+    .reduce((sum, image) => sum + geminiImageTokens(imageSize(Buffer.from(String(image.data || ''), 'base64'))), 0);
+  return (Number(raw.totalTokens) || 0) + imageTokens;
 }
 
 async function check({ apiKey, baseUrl, timeoutMs = 10000, signal } = {}) {

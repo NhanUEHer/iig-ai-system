@@ -228,13 +228,7 @@ async function insertSegments(client, itemId, segments) {
 const { passageHash, questionHash, norm: normText } = require('./sourceHash');
 const { descriptionForSet } = require('./images/imageText');
 
-function passageForSet(segments, setSegment) {
-  // Question-only sets (Part 1/2/5) have passageIndex null and no passage — same rule as generation.
-  const meta = setSegment?.meta;
-  if (meta?.questionOnly === true || (meta && Object.hasOwn(meta, 'passageIndex') && meta.passageIndex === null)) return undefined;
-  const passages = segments.filter(segment => segment.kind === 'passage');
-  return passages.find(segment => segment.position === setSegment?.meta?.passageIndex) || passages[0];
-}
+const { passageForSet } = require('./passageForSet');
 
 // An artifact is stale when it was built from a source fingerprint that no longer matches.
 // Artifacts generated before fingerprints existed (sourceHash null) are never flagged.

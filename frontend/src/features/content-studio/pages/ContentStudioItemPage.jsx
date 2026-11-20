@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom';
 import { BookOpen, Check, CheckCircle2, Pencil, RefreshCw, Save, TriangleAlert } from 'lucide-react';
 import { Button, ConfirmDialog, ErrorState, PageFrame, Skeleton, StatusBadge } from '../../../design-system-v2';
-import { errorMessage, fillVocabItem, generateItem, getDictionary, regenerateStale, getItem, regenerateArtifact, regenerateTranslationSentence, saveArtifact, saveDictionaryEntry, updateItemContent } from '../../../services/contentStudioService';
+import { errorMessage, fillVocabItem, describeItemImages, generateItem, getDictionary, regenerateStale, getItem, regenerateArtifact, regenerateTranslationSentence, saveArtifact, saveDictionaryEntry, updateItemContent } from '../../../services/contentStudioService';
 import { STATUS, isBusy } from '../item/ArtifactShell';
 import DictionaryPanel from '../item/DictionaryPanel';
 import { SourceEditor, VocabView, highlight } from '../item/PassagePanels';
@@ -194,6 +194,13 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
     ...(task === 'vocab' ? { onRegenerate: regenerateVocab } : {}),
   });
   const questionShell = shellFor(() => generate({ passage: [], question: tasks.question?.length ? tasks.question : ['translation', 'hint', 'explanation', 'note'] }));
+  // Image descriptions get their own "generate": it must not re-queue (and overwrite) reviewed question packs.
+  const imageShell = shellFor(async () => {
+    setGenerating(true);
+    try { const result = await describeItemImages(id); showMsg?.(`Đã đưa ${result.queued} ảnh vào hàng chờ mô tả.`, 'success'); await load(); }
+    catch (requestError) { showMsg?.(errorMessage(requestError, 'Không thể tạo mô tả hình.'), 'error'); }
+    finally { setGenerating(false); }
+  });
   const counts = {
     vocab: passages.reduce((sum, passage) => sum + (artifactFor('vocab', passage.id)?.content?.items?.length || 0), 0),
     dictionary: dictionaryState?.counts?.total || 0,
@@ -349,7 +356,7 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
             selectedText={selectedText} onConsumed={() => setSelectedText(null)} activeId={activeEntry} onActive={setActiveEntry}
             notify={(message, tone) => showMsgRef.current?.(message, tone)} onState={setDictionaryState} />}
           {activeTab === 'questions' && <QuestionWorkspace questions={questions} artifacts={artifactsByQuestion} drafts={drafts} selectedId={openQuestion}
-            onSelect={setOpenQuestion} onChange={(artifact, content) => setDrafts(current => ({ ...current, [artifact.id]: content }))} shell={questionShell} images={item?.images || []} imageArtifacts={imageArtifacts} />}
+            onSelect={setOpenQuestion} onChange={(artifact, content) => setDrafts(current => ({ ...current, [artifact.id]: content }))} shell={questionShell} imageShell={imageShell} images={item?.images || []} imageArtifacts={imageArtifacts} />}
         </div>
       </section>
     </div>

@@ -52,3 +52,8 @@ test('sample letter fixtures pass every validator', async () => {
     assert.deepEqual(validate('question_pack', content, { question, passage: passageText }).issues, [], `Q${question.number}`);
   }
 });
+
+test('translation check ignores rewritten Part 6 blank markers', () => {
+  const issues = validate('passage_translation', { sentences: [{ en: 'Please ______ the form by Friday.', vi: 'Vui lòng ______ biểu mẫu trước thứ Sáu.' }] }, { passage: 'Please ---[131]--- the form by Friday.' }).issues;
+  assert.deepEqual(issues, []);
+});

@@ -83,10 +83,12 @@ function detectContent(rawText) {
     if (answer && question) { question.answerKey = answer[1].toUpperCase(); continue; }
 
     const option = line.match(OPTION_LINE);
-    // "(A) …" with no open question (or after a complete one) starts an unnumbered question — only when
-    // option (B) follows (on this line or the next), so an "(A)" item inside a passage stays passage text.
+    // "(A) …" with no open question (or after a complete one) starts an unnumbered question — only in a set
+    // without a passage and only when option (B) follows, so a lettered list inside a passage
+    // ("A. Registration fee / B. Late payment") stays passage text. With a passage, write "Question" first.
     const optionsFollow = () => Boolean(splitInlineOptions(line)) || /^\(?B\s*[.)]/i.test(nextLine(lineIndex));
-    if (option && option[1].toUpperCase() === 'A' && (!question || question.options.A) && optionsFollow()) {
+    if (option && option[1].toUpperCase() === 'A' && (!question || question.options.A)
+      && !(group && group.passage.length) && optionsFollow()) {
       startQuestion(lastNumber + 1, '');
     }
     if (option && question) {

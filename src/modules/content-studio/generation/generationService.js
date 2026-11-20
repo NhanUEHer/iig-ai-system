@@ -6,6 +6,7 @@ const { validate } = require('./validators');
 const { artifactHash } = require('../sourceHash');
 const LETTERS = ['A', 'B', 'C', 'D'];
 const { formatImageDescriptions } = require('../images/imageText');
+const { passageForSet } = require('../passageForSet');
 const mockProvider = require('./mockProvider');
 const aiCoreProvider = require('./aiCoreProvider');
 const dictionary = require('../dictionary/dictionaryService');
@@ -66,11 +67,7 @@ async function loadContext(client, artifact) {
       'SELECT id, segment_id, number, stem, options, answer_key AS "answerKey" FROM cs_questions WHERE id = $1', [artifact.question_id]);
     if (!question) throw new Error('Question no longer exists');
     const set = segments.find(segment => segment.id === question.segment_id);
-    const passageIndex = set?.meta?.passageIndex;
-    // A question-only set (Part 1/2/5) has passageIndex null: it must not borrow another set's passage.
-    const questionOnly = set?.meta?.questionOnly === true || (set?.meta && Object.hasOwn(set.meta, 'passageIndex') && set.meta.passageIndex === null);
-    const passageSegment = questionOnly ? null
-      : segments.find(segment => segment.kind === 'passage' && segment.position === passageIndex) || segments.find(segment => segment.kind === 'passage');
+    const passageSegment = passageForSet(segments, set);
     const passage = passageSegment?.text || '';
     // The whole set goes to AI in one call: passage (or transcript), image descriptions and questions — English only.
     const { rows: setQuestions } = await client.query(
@@ -111,6 +108,36 @@ async function upsertQueued(client, itemId, { segmentId = null, questionId = nul
   [itemId, segmentId, questionId, targetKey, type]);
 }
 
+// Images are described once (background job, before the question packs that read them);
+// a finished description is kept — only "Tạo lại" asks the AI again. Returns how many were queued.
+async function queueImageDescriptions(client, itemId) {
+  const { rows: images } = await client.query('SELECT id FROM cs_item_images WHERE item_id = $1', [itemId]);
+  let count = 0;
+  for (const image of images) {
+    const { rowCount } = await client.query(`
+      INSERT INTO cs_artifacts (item_id, image_id, target_key, type, status) VALUES ($1, $2, $3, 'image_description', 'queued')
+      ON CONFLICT (item_id, target_key, type) DO UPDATE
+        SET status = 'queued', attempts = 0, error = NULL, locked_at = NULL, updated_at = CURRENT_TIMESTAMP
+        WHERE cs_artifacts.status = 'failed'`, [itemId, image.id, `img:${image.id}`]);
+    count += rowCount;
+  }
+  return count;
+}
+
+// Describe the item's images only (missing or failed descriptions) — never touches question packs.
+async function describeImages(itemId) {
+  requireId(itemId, 'id');
+  const queued = await db.transaction(async client => {
+    const { rowCount } = await client.query('SELECT 1 FROM cs_items WHERE id = $1 FOR UPDATE', [itemId]);
+    if (!rowCount) throw new HttpError('Không tìm thấy học liệu.', 404, 'ITEM_NOT_FOUND');
+    const count = await queueImageDescriptions(client, itemId);
+    if (count) await refreshItemStatus(client, itemId);
+    return count;
+  });
+  kickWorker();
+  return { queued };
+}
+
 async function enqueue(itemId, tasks) {
   requireId(itemId, 'id');
   return db.transaction(async client => {
@@ -136,17 +163,7 @@ async function enqueue(itemId, tasks) {
       const { rows: questions } = await client.query(
         'SELECT q.id, q.segment_id FROM cs_questions q JOIN cs_segments s ON s.id = q.segment_id WHERE s.item_id = $1', [itemId]);
       for (const question of questions) { await upsertQueued(client, itemId, { segmentId: question.segment_id, questionId: question.id, type: 'question_pack' }); count += 1; }
-      // Images are described once (background job, before the question packs that read them);
-      // a finished description is kept — only "Tạo lại" asks the AI again.
-      const { rows: images } = await client.query('SELECT id FROM cs_item_images WHERE item_id = $1', [itemId]);
-      for (const image of images) {
-        const { rowCount } = await client.query(`
-          INSERT INTO cs_artifacts (item_id, image_id, target_key, type, status) VALUES ($1, $2, $3, 'image_description', 'queued')
-          ON CONFLICT (item_id, target_key, type) DO UPDATE
-            SET status = 'queued', attempts = 0, error = NULL, locked_at = NULL, updated_at = CURRENT_TIMESTAMP
-            WHERE cs_artifacts.status = 'failed'`, [itemId, image.id, `img:${image.id}`]);
-        count += rowCount;
-      }
+      count += await queueImageDescriptions(client, itemId);
     }
     if (!count) throw new HttpError('Chưa chọn nội dung nào để tạo.', 400, 'NO_TASKS');
     if (tasks) {
@@ -384,4 +401,4 @@ function startWorker() {
 
 function stopWorker() { if (timer) clearInterval(timer); timer = null; }
 
-module.exports = { enqueue, regenerate, fillVocab, regenerateTranslationSentence, saveEdit, startWorker, stopWorker, loadContext };
+module.exports = { enqueue, describeImages, regenerate, fillVocab, regenerateTranslationSentence, saveEdit, startWorker, stopWorker, loadContext };

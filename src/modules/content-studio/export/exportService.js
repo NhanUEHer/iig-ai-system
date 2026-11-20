@@ -73,8 +73,8 @@ async function loadImage(image, download = storage.downloadBuffer) {
 }
 
 // Part 1 photo before its question; a set graphic (or an unattached image) before the set's first question.
-async function attachImages(item, questions, download) {
-  const images = (item.images || []).slice().sort((a, b) => a.position - b.position);
+async function attachImages(item, questions, download, withImages = true) {
+  const images = withImages ? (item.images || []).slice().sort((a, b) => a.position - b.position) : [];
   if (!images.length) return questions;
   const loaded = new Map((await Promise.all(images.map(image => loadImage(image, download)))).map(row => [row.id, row]));
   const firstOfSet = new Map();
@@ -83,13 +83,13 @@ async function attachImages(item, questions, download) {
   return questions.map(question => ({
     ...question,
     images: images.filter(image => image.questionId === question.id
-      || (!image.questionId && image.segmentId && firstOfSet.get(image.segmentId) === question.id && image.segmentId === question.segmentId)
+      || (!image.questionId && image.segmentId && firstOfSet.get(image.segmentId) === question.id)
       || (!image.questionId && !image.segmentId && question.id === firstQuestionId)).map(image => loaded.get(image.id)),
   }));
 }
 
 // Everything the bilingual / question / full documents need, in reading order.
-async function lessonModel(item, client = db, { download } = {}) {
+async function lessonModel(item, client = db, { download, withImages = true } = {}) {
   const passages = item.segments.filter(segment => segment.kind === 'passage').map(segment => {
     const translation = item.artifacts.find(artifact => artifact.type === 'passage_translation' && artifact.segmentId === segment.id);
     return { text: segment.text, sentences: translation?.content?.sentences || [] };
@@ -97,7 +97,7 @@ async function lessonModel(item, client = db, { download } = {}) {
   const questions = await attachImages(item, item.segments.flatMap(segment => segment.questions || []).sort((a, b) => a.number - b.number).map(question => {
     const pack = item.artifacts.find(artifact => artifact.type === 'question_pack' && artifact.questionId === question.id)?.content;
     return { ...question, pack: pack ? { translation: typeof pack.translation === 'string' ? pack.translation : '', hint: pack.hint, explanation: pack.explanation, note: pack.note } : null };
-  }), download);
+  }), download, withImages);
   const vocab = item.artifacts.filter(artifact => artifact.type === 'vocab' && artifact.content).flatMap(artifact => artifact.content.items || []);
   const { rows } = await client.query(`
     SELECT e.content FROM cs_dict_candidates c JOIN cs_dict_sentences s ON s.id = c.sentence_id JOIN cs_dict_entries e ON e.candidate_id = c.id
@@ -135,7 +135,8 @@ async function exportItem(itemId, kind, format) {
   }
   if (['bilingual', 'questions', 'full'].includes(kind)) {
     if (format !== 'docx') throw new HttpError('Định dạng không hỗ trợ.', 400, 'INVALID_EXPORT_FORMAT');
-    const model = await lessonModel(item);
+    // The bilingual document has no questions, so it never downloads the images.
+    const model = await lessonModel(item, db, { withImages: kind !== 'bilingual' });
     if (kind === 'bilingual' && !model.passages.some(passage => passage.sentences.length)) throw new HttpError('Chưa có bản dịch để xuất.', 400, 'EMPTY_TRANSLATION_EXPORT');
     if (kind.startsWith('questions') && !model.questions.some(question => question.pack)) throw new HttpError('Chưa có nội dung câu hỏi để xuất.', 400, 'EMPTY_QUESTION_EXPORT');
     const file = kind === 'bilingual' ? await docx.buildBilingual(model)
