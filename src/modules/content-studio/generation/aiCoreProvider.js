@@ -52,7 +52,7 @@ function questionSetCall(agentKey, input, ctx) {
   if (input.bypassSetCache) {
     return aiCore.run(agentKey, {
       passage: input.passage || NO_PASSAGE,
-      passage_vi: input.passageVi || '(chưa có bản dịch)',
+      passage_vi: input.passageVi || (input.passage ? '(chưa có bản dịch)' : '(none)'),
       image_description: input.imageDescription || NO_IMAGE,
       questions: JSON.stringify(questions),
     }, ctx);
@@ -62,7 +62,7 @@ function questionSetCall(agentKey, input, ctx) {
   if (cached && cached.expiresAt > Date.now()) return cached.promise;
   const promise = aiCore.run(agentKey, {
     passage: input.passage || NO_PASSAGE,
-    passage_vi: input.passageVi || '(chưa có bản dịch)',
+    passage_vi: input.passageVi || (input.passage ? '(chưa có bản dịch)' : '(none)'),
       image_description: input.imageDescription || NO_IMAGE,
     questions: JSON.stringify(questions),
   }, ctx);

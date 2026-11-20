@@ -12,6 +12,12 @@ const ANSWER_KEY_BLOCK = /^\s*(?:answer key|answers|đáp án|key)\s*[:\-–]?\s
 const ANSWER_PAIR = /(\d{1,3})\s*[-.:)]?\s*\(?([A-D])\)?/g;
 const BLANK = /-{2,}\s*\[?\(?\d{1,3}\)?\]?\s*-{2,}|_{3,}\s*\(?\d{1,3}\)?|\(\d{1,3}\)\s*_{2,}/;
 
+// Section labels and test directions copied with the questions are not passage text.
+const SECTION_LABEL = /^\s*(?:part|phần)\s*[1-7]\s*[:.\-–—]?\s*(?:[A-Za-zÀ-ỹ ]{0,40})?$/i;
+const DIRECTIONS = /^\s*directions?\s*[:.]/i;
+// Part 1 stems are only the instruction to look at the photo; the question is the photo itself.
+const PHOTO_STEM = /^\s*look at the (?:picture|photo(?:graph)?)\b.*$/i;
+
 const clean = value => String(value || '').replace(/ /g, ' ').replace(/[ \t]+/g, ' ').trim();
 
 function splitInlineOptions(text) {
@@ -39,6 +45,7 @@ function detectContent(rawText) {
   const answerKey = {};
   let group = null;
   let question = null;
+  let skippedDirections = false;
 
   const newGroup = header => { group = { header: header || null, passage: [], questions: [] }; groups.push(group); question = null; };
   const ensureGroup = () => { if (!group) newGroup(); };
@@ -50,7 +57,14 @@ function detectContent(rawText) {
     const key = parseAnswerKey(line);
     if (key) { Object.assign(answerKey, key); continue; }
 
-    if (SET_HEADER.test(line)) { newGroup(line); continue; }
+    if (SET_HEADER.test(line)) { skippedDirections = false; newGroup(line); continue; }
+    // Drop section labels and the directions paragraph; a directions sentence that wraps
+    // onto the next line is dropped only until it ends with . ! or ?
+    const unfinished = text => !/[.!?]["')\]]*$/.test(text);
+    if (SECTION_LABEL.test(line)) { skippedDirections = false; continue; }
+    if (DIRECTIONS.test(line)) { skippedDirections = unfinished(line); continue; }
+    if (skippedDirections && !QUESTION_START.test(line)) { skippedDirections = unfinished(line); continue; }
+    skippedDirections = false;
 
     const answer = line.match(ANSWER_LINE);
     if (answer && question) { question.answerKey = answer[1].toUpperCase(); continue; }
@@ -81,9 +95,11 @@ function detectContent(rawText) {
     group.passage.push(rawLine.trim());
   }
 
+  for (const current of groups) for (const item of current.questions) if (PHOTO_STEM.test(item.stem)) item.stem = '';
+
   const segments = [];
   const warnings = [];
-  for (const current of groups) {
+  for (const current of splitQuestionOnlyRuns(groups)) {
     const passageText = current.passage.join('\n').trim();
     let passageIndex = null;
     if (passageText) {
@@ -117,6 +133,22 @@ function detectContent(rawText) {
     confidence: !segments.length ? 0 : warnings.some(item => item.code === 'MISSING_OPTIONS') ? 0.5 : 0.9,
     title: suggestTitle(segments),
   };
+}
+
+// Without a passage, photo questions (no stem) and question–response items (stem, A–C) pasted
+// together are different sets: split them into runs so each set gets its own part and images.
+function splitQuestionOnlyRuns(groups) {
+  return groups.flatMap(group => {
+    if (group.passage.length || group.questions.length < 2) return [group];
+    const runs = [];
+    for (const item of group.questions) {
+      const photo = !item.stem;
+      const last = runs[runs.length - 1];
+      if (last && last.photo === photo) last.questions.push(item);
+      else runs.push({ photo, questions: [item] });
+    }
+    return runs.map((run, index) => ({ header: index === 0 ? group.header : null, passage: [], questions: run.questions }));
+  });
 }
 
 const ABBREVIATIONS = /\b(?:Mr|Mrs|Ms|Dr|Prof|St|No|Inc|Co|Ltd|Jr|Sr|vs|etc|e\.g|i\.e|a\.m|p\.m)\.|\b(?:[A-Z]\.){2,}/gi;

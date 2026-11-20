@@ -63,7 +63,7 @@ export function QuestionWorkspace({ questions, artifacts, drafts, selectedId, on
       : <article className="cs-question-card">
         <header>
           <span>{question.number}</span>
-          <h2>{question.stem}</h2>
+          <h2>{question.stem || (questionImages.length ? '(Mô tả tranh — chọn câu đúng với hình)' : '(Chỉ có phương án)')}</h2>
           {dirty && <em>Chưa lưu</em>}
           <b className={needsReview ? 'is-review' : 'is-ready'}>{needsReview ? 'Cần xem lại' : status?.label || 'Hoàn tất'}</b>
         </header>

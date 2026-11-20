@@ -122,3 +122,24 @@ test('Part 1 options-only questions are recognised without a passage', () => {
   assert.equal(result.segments[0].meta.part, 1);
   assert.equal(result.segments[0].questions[0].stem, '');
 });
+
+test('Part 1: section label, directions and "Look at the picture" stems are not passage text', () => {
+  const options = '(A) A man is typing.\n(B) A woman is reading.\n(C) They are walking.\n(D) Chairs are stacked.';
+  const result = detectContent(`PART 1\nDirections: For each question in this part, you will hear four\nstatements about a picture in your test book.\n1. Look at the picture marked number 1 in your test book.\n${options}\n2.\n${options}\nAnswer key: 1-A 2-D`);
+  assert.equal(result.segments.length, 1);
+  assert.equal(result.segments[0].meta.part, 1);
+  assert.equal(result.segments[0].meta.questionOnly, true);
+  assert.deepEqual(result.segments[0].questions.map(q => [q.number, q.stem, q.answerKey]), [[1, '', 'A'], [2, '', 'D']]);
+});
+
+test('photo questions and question–response items pasted together become separate sets', () => {
+  const result = detectContent(`6.\n(A) a\n(B) b\n(C) c\n(D) d\nAnswer: A\n7. Where is the meeting?\n(A) In room 3.\n(B) At 2.\n(C) Yes.\nAnswer: A`);
+  assert.deepEqual(result.segments.map(segment => [segment.kind, segment.meta.part, segment.questions.map(q => q.number)]), [['question_set', 1, [6]], ['question_set', 2, [7]]]);
+});
+
+test('directions before a reading passage keep the passage', () => {
+  const result = detectContent('Directions: In this part you will read a selection of texts.\nDear Ms. Kim,\nThank you for your order. It will ship on Monday.\n147. When will the order ship?\n(A) Monday\n(B) Tuesday\n(C) Friday\n(D) Sunday\nAnswer: A');
+  assert.equal(result.segments[0].kind, 'passage');
+  assert.match(result.segments[0].text, /^Dear Ms\. Kim/);
+  assert.equal(result.segments[1].meta.part, 7);
+});
