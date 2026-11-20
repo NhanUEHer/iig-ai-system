@@ -13,12 +13,13 @@ function createAiCore(dependencies = {}) {
     return runtime.execute({ key, variables, ctx, mode: 'run', images: options.images });
   }
 
-  async function testRun(key, variables, userId) {
+  async function testRun(key, variables, userId, options = {}) {
     const result = await runtime.execute({
       key,
       variables,
       ctx: { userId },
       mode: 'test',
+      images: options.images,
     });
     await agentRegistry.markTestOk(result[EXECUTION_VERSION_ID]);
     return result;

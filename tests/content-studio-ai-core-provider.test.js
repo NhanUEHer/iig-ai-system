@@ -105,3 +105,32 @@ test('types without an AI Core agent fall back to the mock provider', async () =
     assert.ok(out);
   } finally { stub.restore(); }
 });
+
+test('image_description sends the stored image as image data with the question context', async () => {
+  const storage = require('../src/services/storageService');
+  const original = storage.downloadBuffer;
+  const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2]);
+  storage.downloadBuffer = async key => { assert.equal(key, 'r2:content-studio/images/x.png'); return { buffer: bytes }; };
+  const calls = [];
+  const run = aiCore.run;
+  aiCore.run = async (key, vars, ctx, options) => { calls.push({ key, vars, ctx, options }); return { data: { image_type: 'scene_photo', image_description: 'Two men carry a box.' } }; };
+  try {
+    const out = await provider.generate('image_description', { itemId: 'i1', image: { storedKey: 'r2:content-studio/images/x.png', mime: 'image/png', sha256: 'a' }, contextText: '1. (A) They are carrying a box.' });
+    assert.equal(calls[0].key, 'cs.image.describe');
+    assert.deepEqual(calls[0].vars, { context: '1. (A) They are carrying a box.' });
+    assert.deepEqual(calls[0].options.images, [{ mimeType: 'image/png', data: bytes }]);
+    assert.deepEqual(out, { imageType: 'scene_photo', description: 'Two men carry a box.' });
+  } finally { aiCore.run = run; storage.downloadBuffer = original; }
+});
+
+test('question_pack passes image_description, "(none)" when the set has no image', async () => {
+  const stub = stubRun({ 'cs.question_pack': { q: [{ n: 1, stem_vi: '', options_vi: {}, hint: 'h', explanation: 'e', note: 'n' }] } });
+  try {
+    const question = { id: 'q-img', number: 1, stem: '', options: { A: 'a', B: 'b', C: 'c', D: 'd' }, answerKey: 'A' };
+    await provider.generate('question_pack', { itemId: 'i1', setId: 's-img-1', question, setQuestions: [question], passage: '', imageDescription: '[Image for question 1]\nA desk.' });
+    await provider.generate('question_pack', { itemId: 'i1', setId: 's-img-2', question, setQuestions: [question], passage: '' });
+    assert.equal(stub.calls[0].vars.image_description, '[Image for question 1]\nA desk.');
+    assert.equal(stub.calls[1].vars.image_description, '(none)');
+    assert.match(stub.calls[1].vars.passage, /^\(none/);
+  } finally { stub.restore(); }
+});

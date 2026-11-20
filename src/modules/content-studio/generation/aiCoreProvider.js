@@ -5,6 +5,7 @@
 // Types without an agent fall back to the mock provider.
 const aiCore = require('../../ai-core');
 const mockProvider = require('./mockProvider');
+const storage = require('../../../services/storageService');
 const { splitSentences } = require('../detect/detectContent');
 
 const AGENTS = {
@@ -13,7 +14,10 @@ const AGENTS = {
   dictionary_entries: 'cs.dict.define',
   passage_translation: 'cs.translate',
   question_pack: 'cs.question_pack',
+  image_description: 'cs.image.describe',
 };
+// Sent when the question set has no image; the question_pack prompt must not invent one.
+const NO_IMAGE = '(none)';
 const LETTERS = ['A', 'B', 'C', 'D'];
 // Question-only sets (Part 1/2/5) have no passage; say so explicitly instead of sending an empty tag.
 const NO_PASSAGE = '(none — this set has questions only, no passage or transcript)';
@@ -49,15 +53,17 @@ function questionSetCall(agentKey, input, ctx) {
     return aiCore.run(agentKey, {
       passage: input.passage || NO_PASSAGE,
       passage_vi: input.passageVi || '(chưa có bản dịch)',
+      image_description: input.imageDescription || NO_IMAGE,
       questions: JSON.stringify(questions),
     }, ctx);
   }
-  const cacheKey = `${input.setId || input.question.id}:${JSON.stringify(questions)}:${input.passage}`;
+  const cacheKey = `${input.setId || input.question.id}:${JSON.stringify(questions)}:${input.passage}:${input.imageDescription || ''}`;
   const cached = setCalls.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.promise;
   const promise = aiCore.run(agentKey, {
     passage: input.passage || NO_PASSAGE,
     passage_vi: input.passageVi || '(chưa có bản dịch)',
+      image_description: input.imageDescription || NO_IMAGE,
     questions: JSON.stringify(questions),
   }, ctx);
   setCalls.set(cacheKey, { promise, expiresAt: Date.now() + SET_CACHE_MS });
@@ -107,6 +113,14 @@ function mapVocab(data, settings) {
   return { settings, items };
 }
 
+// cs.image.describe returns { image_type, image_description }; keep a stable camelCase shape.
+function mapImageDescription(data) {
+  return {
+    imageType: String(data?.image_type || data?.type || 'other').trim(),
+    description: String(data?.image_description || data?.description || '').trim(),
+  };
+}
+
 async function generate(type, input = {}, options = {}) {
   const agentKey = AGENTS[type];
   if (!agentKey) return mockProvider.generate(type, input, options);
@@ -134,6 +148,15 @@ async function generate(type, input = {}, options = {}) {
     return mergeTranslation(result.data, sentences);
   }
 
+  if (type === 'image_description') {
+    // The image itself goes to AI Core as image data; `context` (the question text) is optional in the agent.
+    const { buffer } = await storage.downloadBuffer(input.image.storedKey);
+    const result = await aiCore.run(agentKey, { context: input.contextText || '' }, ctx, {
+      images: [{ mimeType: input.image.mime, data: buffer }],
+    });
+    return mapImageDescription(result.data);
+  }
+
   if (type === 'question_pack') {
     const result = await questionSetCall(agentKey, input, ctx);
     const row = (result.data?.q || []).find(item => Number(item?.n) === Number(input.question.number));
@@ -155,4 +178,4 @@ async function generate(type, input = {}, options = {}) {
   return result.data; // { dictionary_entries: [...] } in request order — mapped by dictionary/normalize.js
 }
 
-module.exports = { name: 'ai-core', generate, fillVocabItem, mapVocab, mergeTranslation, mapQuestion, AGENTS };
+module.exports = { name: 'ai-core', generate, fillVocabItem, mapVocab, mergeTranslation, mapQuestion, mapImageDescription, AGENTS, NO_IMAGE };

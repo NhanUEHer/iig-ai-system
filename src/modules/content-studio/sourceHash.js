@@ -16,8 +16,13 @@ function questionHash(passage, question = {}) {
   return sha(`q:${norm(passage)}#${norm(question.stem)}#${options}#${question.answerKey || ''}`);
 }
 
+// An image description depends on the image bytes and the question text sent as context.
+// The same fingerprint is the reuse key: identical image + context never pays for a second AI call.
+const imageHash = (sha256, contextText) => sha(`i:${sha256}#${norm(contextText)}`);
+
 function artifactHash(type, context) {
+  if (type === 'image_description') return imageHash(context.image?.sha256, context.contextText);
   return type === 'question_pack' ? questionHash(context.passage, context.question) : passageHash(context.passage);
 }
 
-module.exports = { passageHash, questionHash, artifactHash, norm };
+module.exports = { passageHash, questionHash, imageHash, artifactHash, norm };

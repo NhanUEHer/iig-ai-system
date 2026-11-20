@@ -283,7 +283,7 @@ async function getItem(id, client = db) {
     SELECT q.id, q.segment_id AS "segmentId", q.number, q.stem, q.options, q.answer_key AS "answerKey"
     FROM cs_questions q JOIN cs_segments s ON s.id = q.segment_id WHERE s.item_id = $1 ORDER BY q.number`, [id]);
   const { rows: artifacts } = await client.query(`
-    SELECT id, segment_id AS "segmentId", question_id AS "questionId", type, status, content, validation, source, provider, error, attempts,
+    SELECT id, segment_id AS "segmentId", question_id AS "questionId", image_id AS "imageId", type, status, content, validation, source, provider, error, attempts,
            source_hash AS "sourceHash", updated_at AS "updatedAt"
     FROM cs_artifacts WHERE item_id = $1`, [id]);
   markStale(segments, questions, artifacts);

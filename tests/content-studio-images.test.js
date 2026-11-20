@@ -37,3 +37,15 @@ test('normalizeImages resolves targets and rejects foreign keys', () => {
   assert.throws(() => normalizeImages([{ storedKey: KEY, sha256: SHA, segmentIndex: 0 }], segments), { code: 'INVALID_IMAGE_TARGET' });
   assert.throws(() => normalizeImages([{ storedKey: KEY, sha256: SHA, segmentIndex: 1, questionNumber: 9 }], segments), { code: 'INVALID_IMAGE_TARGET' });
 });
+
+test('image description hash is the reuse key and validation flags unreadable text', () => {
+  const { artifactHash } = require('../src/modules/content-studio/sourceHash');
+  const { validate } = require('../src/modules/content-studio/generation/validators');
+  const a = artifactHash('image_description', { image: { sha256: SHA }, contextText: '1. Look at the graphic.' });
+  assert.equal(a, artifactHash('image_description', { image: { sha256: SHA }, contextText: '1.  Look at the graphic. ' }));
+  assert.notEqual(a, artifactHash('image_description', { image: { sha256: 'b'.repeat(64) }, contextText: '1. Look at the graphic.' }));
+  assert.notEqual(a, artifactHash('image_description', { image: { sha256: SHA }, contextText: '2. Other question' }));
+  assert.deepEqual(validate('image_description', { description: 'A desk.' }).issues, []);
+  assert.equal(validate('image_description', { description: '' }).issues[0].code, 'EMPTY_FIELD');
+  assert.equal(validate('image_description', { description: 'Price: [unclear]' }).issues[0].code, 'UNCLEAR_TEXT');
+});

@@ -4,6 +4,7 @@ const HttpError = require('../../../http/httpError');
 const { splitSentences } = require('../detect/detectContent');
 const { validate } = require('./validators');
 const { artifactHash } = require('../sourceHash');
+const LETTERS = ['A', 'B', 'C', 'D'];
 const mockProvider = require('./mockProvider');
 const aiCoreProvider = require('./aiCoreProvider');
 const dictionary = require('../dictionary/dictionaryService');
@@ -29,7 +30,39 @@ const requireId = (value, label) => {
 };
 
 // Everything a provider or validator needs for one artifact, loaded fresh from the database.
+const questionText = question => [`${question.number}. ${question.stem || ''}`.trim(),
+  ...LETTERS.filter(letter => question.options?.[letter]).map(letter => `(${letter}) ${question.options[letter]}`)].join('\n');
+
+// The questions an image belongs to: its own question (Part 1 photo), its set (Part 3/4 graphic),
+// or every question of the item when it was left unattached.
+async function imageContext(client, artifact) {
+  const { rows: [image] } = await client.query(`
+    SELECT id, segment_id, question_id, storage_key AS "storedKey", mime, sha256 FROM cs_item_images WHERE id = $1`, [artifact.image_id]);
+  if (!image) throw new Error('Image no longer exists');
+  const { rows: questions } = await client.query(`
+    SELECT q.id, q.segment_id, q.number, q.stem, q.options FROM cs_questions q JOIN cs_segments s ON s.id = q.segment_id
+    WHERE s.item_id = $1 ORDER BY q.number`, [artifact.item_id]);
+  const related = image.question_id ? questions.filter(question => question.id === image.question_id)
+    : image.segment_id ? questions.filter(question => question.segment_id === image.segment_id) : questions;
+  return { itemId: artifact.item_id, image, contextText: related.map(questionText).join('\n\n').slice(0, 6000) };
+}
+
+// Descriptions of every image that belongs to this question's set, labelled for the question_pack prompt.
+async function imageDescriptionsForSet(client, itemId, segmentId) {
+  const { rows } = await client.query(`
+    SELECT im.position, q.number, a.content FROM cs_item_images im
+    JOIN cs_artifacts a ON a.image_id = im.id AND a.type = 'image_description' AND a.status IN ('ready','needs_review') AND a.content IS NOT NULL
+    LEFT JOIN cs_questions q ON q.id = im.question_id
+    WHERE im.item_id = $1 AND (im.segment_id = $2 OR im.segment_id IS NULL) ORDER BY im.position`, [itemId, segmentId]);
+  return rows.map((row, index) => {
+    const label = row.number ? `[Image for question ${row.number}]` : `[Image ${index + 1} for this question set]`;
+    const type = row.content?.imageType ? ` (${row.content.imageType})` : '';
+    return `${label}${type}\n${String(row.content?.description || '').trim()}`;
+  }).filter(text => text.trim()).join('\n\n');
+}
+
 async function loadContext(client, artifact) {
+  if (artifact.type === 'image_description') return imageContext(client, artifact);
   const { rows: segments } = await client.query('SELECT id, kind, position, text, meta FROM cs_segments WHERE item_id = $1 ORDER BY position', [artifact.item_id]);
   if (artifact.type === 'question_pack') {
     const { rows: [question] } = await client.query(
@@ -49,7 +82,8 @@ async function loadContext(client, artifact) {
       `SELECT content FROM cs_artifacts WHERE segment_id = $1 AND type = 'passage_translation' AND status IN ('ready','needs_review')`,
       [passageSegment.id]) : { rows: [] };
     const passageVi = (translation?.content?.sentences || []).map(row => row?.vi).filter(Boolean).join(' ');
-    return { itemId: artifact.item_id, question, setId: question.segment_id, setQuestions, passage, passageVi, sentences: splitSentences(passage) };
+    const imageDescription = await imageDescriptionsForSet(client, artifact.item_id, question.segment_id);
+    return { itemId: artifact.item_id, question, setId: question.segment_id, setQuestions, passage, passageVi, imageDescription, sentences: splitSentences(passage) };
   }
   const segment = segments.find(row => row.id === artifact.segment_id);
   if (!segment) throw new Error('Segment no longer exists');
@@ -109,6 +143,17 @@ async function enqueue(itemId, tasks) {
       const { rows: questions } = await client.query(
         'SELECT q.id, q.segment_id FROM cs_questions q JOIN cs_segments s ON s.id = q.segment_id WHERE s.item_id = $1', [itemId]);
       for (const question of questions) { await upsertQueued(client, itemId, { segmentId: question.segment_id, questionId: question.id, type: 'question_pack' }); count += 1; }
+      // Images are described once (background job, before the question packs that read them);
+      // a finished description is kept — only "Tạo lại" asks the AI again.
+      const { rows: images } = await client.query('SELECT id FROM cs_item_images WHERE item_id = $1', [itemId]);
+      for (const image of images) {
+        const { rowCount } = await client.query(`
+          INSERT INTO cs_artifacts (item_id, image_id, target_key, type, status) VALUES ($1, $2, $3, 'image_description', 'queued')
+          ON CONFLICT (item_id, target_key, type) DO UPDATE
+            SET status = 'queued', attempts = 0, error = NULL, locked_at = NULL, updated_at = CURRENT_TIMESTAMP
+            WHERE cs_artifacts.status = 'failed'`, [itemId, image.id, `img:${image.id}`]);
+        count += rowCount;
+      }
     }
     if (!count) throw new HttpError('Chưa chọn nội dung nào để tạo.', 400, 'NO_TASKS');
     if (tasks) {
@@ -266,26 +311,46 @@ async function claimNext() {
   const { rows: [artifact] } = await db.query(`
     UPDATE cs_artifacts SET status = 'generating', locked_at = CURRENT_TIMESTAMP, attempts = attempts + 1, updated_at = CURRENT_TIMESTAMP
     WHERE id = (
-      SELECT id FROM cs_artifacts
-      WHERE status = 'queued' OR (status = 'generating' AND locked_at < CURRENT_TIMESTAMP - INTERVAL '${STALE_LOCK_MINUTES} minutes')
-      ORDER BY updated_at FOR UPDATE SKIP LOCKED LIMIT 1)
+      SELECT a.id FROM cs_artifacts a
+      WHERE (a.status = 'queued' OR (a.status = 'generating' AND a.locked_at < CURRENT_TIMESTAMP - INTERVAL '${STALE_LOCK_MINUTES} minutes'))
+        -- A question pack waits until the images of its set are described (failed ones do not block).
+        AND NOT (a.type = 'question_pack' AND EXISTS (
+          SELECT 1 FROM cs_artifacts d
+          JOIN cs_item_images im ON im.id = d.image_id
+          JOIN cs_questions q ON q.id = a.question_id
+          WHERE d.item_id = a.item_id AND d.type = 'image_description' AND d.status IN ('queued','generating')
+            AND (im.segment_id = q.segment_id OR im.segment_id IS NULL)))
+      ORDER BY (a.type = 'image_description') DESC, a.updated_at FOR UPDATE OF a SKIP LOCKED LIMIT 1)
     RETURNING *`);
   return artifact || null;
+}
+
+// Same image bytes + same question context described before (any item) → reuse, no AI call.
+// Skipped when this artifact already has content: that means "Tạo lại", which must ask the AI again.
+async function reusableImageDescription(artifact, context) {
+  if (artifact.type !== 'image_description' || artifact.content) return null;
+  const { rows: [hit] } = await db.query(`
+    SELECT content FROM cs_artifacts
+    WHERE type = 'image_description' AND source_hash = $1 AND id <> $2 AND content IS NOT NULL AND status IN ('ready','needs_review')
+    ORDER BY updated_at DESC LIMIT 1`, [artifactHash(artifact.type, context), artifact.id]);
+  return hit?.content || null;
 }
 
 async function processArtifact(artifact) {
   const selected = provider();
   try {
     const context = await loadContext(db, artifact);
-    const content = await selected.generate(artifact.type, context);
+    const cached = await reusableImageDescription(artifact, context);
+    const content = cached || await selected.generate(artifact.type, context);
+    const providerName = cached ? 'cache' : selected.name;
     const validation = validate(artifact.type, content, context);
     await db.transaction(async client => {
       await client.query(`
         UPDATE cs_artifacts SET content = $2, validation = $3, status = $4, source = 'ai', provider = $5, error = NULL, locked_at = NULL,
           source_hash = $6, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1`, [artifact.id, JSON.stringify(content), JSON.stringify(validation), validation.issues.length ? 'needs_review' : 'ready', selected.name, artifactHash(artifact.type, context)]);
+        WHERE id = $1`, [artifact.id, JSON.stringify(content), JSON.stringify(validation), validation.issues.length ? 'needs_review' : 'ready', providerName, artifactHash(artifact.type, context)]);
       await client.query(`INSERT INTO cs_artifact_versions (artifact_id, content, validation, source, provider) VALUES ($1, $2, $3, 'ai', $4)`,
-        [artifact.id, JSON.stringify(content), JSON.stringify(validation), selected.name]);
+        [artifact.id, JSON.stringify(content), JSON.stringify(validation), providerName]);
       await refreshItemStatus(client, artifact.item_id);
     });
   } catch (error) {

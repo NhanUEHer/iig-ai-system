@@ -96,7 +96,16 @@ const VALIDATORS = {
   question_pack: validateQuestionPack,
   vocab: validateVocab,
   dictionary: validateDictionary,
+  image_description: validateImageDescription,
 };
+
+function validateImageDescription(content) {
+  const description = String(content?.description || '').trim();
+  if (!description) return [issue('EMPTY_FIELD', 'Chưa có mô tả ảnh.', 'description')];
+  // The agent writes [unclear] where it could not read text; a person should check those spots.
+  if (description.includes('[unclear]')) return [issue('UNCLEAR_TEXT', 'Mô tả ảnh có chỗ AI không đọc rõ ([unclear]) — hãy kiểm tra lại.', 'description')];
+  return [];
+}
 
 function validate(type, content, context) {
   const issues = VALIDATORS[type](content, context);

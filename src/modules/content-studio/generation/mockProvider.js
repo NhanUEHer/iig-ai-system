@@ -46,6 +46,9 @@ function bestSentence(sentences, text) {
 const vi = text => `(Bản dịch mẫu) ${text}`;
 
 async function generate(type, input) {
+  if (type === 'image_description') {
+    return { imageType: 'scene_photo', description: `(mock) Image ${String(input.image?.sha256 || '').slice(0, 8)}: an office scene with two people at a desk. ${input.contextText ? 'Context was provided.' : ''}`.trim() };
+  }
   // No artificial delay: the mock behaves as if the AI step was bypassed and results go straight to the database.
   const sample = fixtures.isSamplePassage(input.sentences || []);
   if (type === 'dictionary_extract') {
