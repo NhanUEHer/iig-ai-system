@@ -239,12 +239,18 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
     if (activeTab === 'translation') return activeSentence ? [activeSentence] : [];
     if (!showHighlights) return [];
     if (activeTab === 'vocab') { const artifact = artifactFor('vocab', passage.id); return ((artifact && (drafts[artifact.id] ?? artifact.content))?.items || []).map(word => word.inText); }
-    if (activeTab === 'dictionary') return (dictionaryState?.sentences || []).filter(sentence => sentence.segmentId === passage.id).flatMap(sentence => sentence.candidates.map(candidate => dictionaryDrafts[candidate.id]?.inText || candidate.entry?.content?.inText || candidate.chunk));
+    if (activeTab === 'dictionary') return (dictionaryState?.sentences || []).filter(sentence => sentence.segmentId === passage.id).flatMap(sentence => sentence.candidates.map(candidate => ({ text: dictionaryDrafts[candidate.id]?.inText || candidate.entry?.content?.inText || candidate.chunk, scope: sentence.text })));
     return [];
   };
   const activeTerm = passage => {
     if (activeTab === 'translation') return activeSentence;
-    if (activeTab === 'dictionary') { const candidate = (dictionaryState?.sentences || []).flatMap(sentence => sentence.candidates).find(entry => entry.id === activeEntry); return dictionaryDrafts[activeEntry]?.inText || candidate?.entry?.content?.inText || candidate?.chunk; }
+    if (activeTab === 'dictionary') {
+      const sentence = (dictionaryState?.sentences || []).find(row => row.candidates.some(entry => entry.id === activeEntry));
+      const candidate = sentence?.candidates.find(entry => entry.id === activeEntry);
+      const text = dictionaryDrafts[activeEntry]?.inText || candidate?.entry?.content?.inText || candidate?.chunk;
+      // Only the occurrence in the entry's own sentence is active.
+      return text ? { text, scope: sentence.text } : null;
+    }
     if (activeTab !== 'vocab' || activeWord?.[0] !== passage.id) return null;
     const artifact = artifactFor('vocab', passage.id);
     return (artifact && (drafts[artifact.id] ?? artifact.content))?.items?.[activeWord[1]]?.inText;
