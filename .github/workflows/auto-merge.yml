@@ -1,0 +1,61 @@
+name: Auto-merge verified pull requests
+
+# PR vào develop + CI xanh → squash-merge đúng revision đã test → dispatch Beta release.
+# CI đỏ thì không merge. Production vẫn chỉ chạy khi bấm promote.yml.
+# Merge bằng GITHUB_TOKEN không kích hoạt workflow khác, nên tự dispatch release.yml
+# và tự gửi Telegram "PR đã merge".
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: auto-merge-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Merge the exact verified revision
+        id: merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+        run: |
+          set -euo pipefail
+          [ -n "$PR_NUMBER" ] || { echo "No PR for this CI run."; exit 0; }
+          pr_json=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")
+          read -r state draft base_ref head_ref head_sha head_repo < <(jq -r '[.state,.draft,.base.ref,.head.ref,.head.sha,(.head.repo.full_name//"")]|@tsv' <<<"$pr_json")
+          if [ "$state" != open ] || [ "$draft" = true ]; then echo "PR #$PR_NUMBER not open/ready."; exit 0; fi
+          [ "$head_repo" = "$GITHUB_REPOSITORY" ] || { echo "Refusing cross-repository PR."; exit 1; }
+          [ "$head_sha" = "$VERIFIED_SHA" ] || { echo "PR head changed after CI started; waiting."; exit 0; }
+          case "$base_ref:$head_ref" in
+            develop:claude/*|develop:codex/*|develop:feature/*|develop:fix/*|develop:hotfix/*|develop:chore/*) ;;
+            *) echo "Branch policy skips $head_ref -> $base_ref."; exit 0 ;;
+          esac
+          merged=$(gh api --method PUT "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/merge" \
+            -f merge_method=squash -f sha="$VERIFIED_SHA" -q .merged)
+          [ "$merged" = true ] || { echo "GitHub did not merge PR #$PR_NUMBER."; exit 1; }
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/release.yml/dispatches" -f ref=develop
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" | jq '{action:"closed", pull_request:.}' > "$RUNNER_TEMP/merged.json"
+          echo "merged=true" >> "$GITHUB_OUTPUT"
+      - if: steps.merge.outputs.merged == 'true'
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/ci/telegram-notify.sh
+          sparse-checkout-cone-mode: false
+      - if: steps.merge.outputs.merged == 'true'
+        run: GITHUB_EVENT_PATH="$RUNNER_TEMP/merged.json" GITHUB_EVENT_NAME=pull_request scripts/ci/telegram-notify.sh
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_THREAD_ID: ${{ secrets.TELEGRAM_THREAD_ID }}

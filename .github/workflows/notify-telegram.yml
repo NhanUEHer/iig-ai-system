@@ -1,0 +1,32 @@
+name: Telegram notify
+
+# Bắn thông báo Telegram khi: PR mở / sẵn sàng review / merge / đóng, và khi Beta deploy,
+# Production promote hoặc Rollback kết thúc. Copy file này + scripts/ci/telegram-notify.sh
+# sang repo khác và đổi danh sách `workflows` bên dưới.
+# Secrets: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, (tuỳ chọn) TELEGRAM_THREAD_ID.
+# Lưu ý: trigger workflow_run chỉ chạy khi file này đã có trên default branch.
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, closed]
+  workflow_run:
+    workflows: [Build and deploy containers, Promote Beta to Production, Roll back Production]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft || github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/ci/telegram-notify.sh
+          sparse-checkout-cone-mode: false
+      - run: scripts/ci/telegram-notify.sh
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_THREAD_ID: ${{ secrets.TELEGRAM_THREAD_ID }}
