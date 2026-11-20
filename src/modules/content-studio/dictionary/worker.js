@@ -4,7 +4,7 @@ const db = require('../../../config/db');
 const mockProvider = require('../generation/mockProvider');
 const difyProvider = require('../generation/difyProvider');
 const aiCoreProvider = require('../generation/aiCoreProvider');
-const { mapDictionaryEntries, normalizeExtract, sameSentence, validateEntry } = require('./normalize');
+const { assignExtract, mapDictionaryEntries, validateEntry } = require('./normalize');
 
 const MAX_ATTEMPTS = 3;
 const TIMEOUT_MS = 150000;
@@ -43,14 +43,15 @@ async function processExtract(job) {
   const passage = job.sentences.map(sentence => sentence.text).join(' ');
   try {
     const raw = await selected.generate('dictionary_extract', { itemId: job.itemId, passage, sentences: job.sentences.map(sentence => sentence.text) });
-    const extracted = normalizeExtract(raw, passage);
+    const { items: extracted, dropped } = assignExtract(raw, job.sentences.map(sentence => sentence.text));
+    if (dropped) console.warn('[ContentStudioDictionaryExtract]', job.itemId, `dropped ${dropped} chunk(s) not found verbatim in any sentence`);
     await db.transaction(async client => {
       let count = 0;
-      for (const row of extracted) {
-        const sentence = job.sentences.find(value => sameSentence(value.text, row.sentenceText));
-        if (!sentence) throw new Error('Extracted sentence does not match a stored sentence');
-        for (let position = 0; position < row.items.length; position += 1) {
-          const chunk = row.items[position];
+      for (let index = 0; index < job.sentences.length; index += 1) {
+        const sentence = job.sentences[index];
+        const chunks = extracted[index];
+        for (let position = 0; position < chunks.length; position += 1) {
+          const chunk = chunks[position];
           // Extraction flows straight into definition: each sentence becomes one batch.
           await client.query(`INSERT INTO cs_dict_candidates (item_id, sentence_id, position, chunk, status)
             VALUES ($1, $2, $3, $4, 'queued')`, [job.itemId, sentence.id, position, chunk]);
