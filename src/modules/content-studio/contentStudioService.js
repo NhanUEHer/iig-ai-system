@@ -341,7 +341,8 @@ async function updateContent(id, { segments = [], questions = [] } = {}) {
     for (const question of questions) {
       requireId(question.id, 'questionId');
       const [normalized] = normalizeSegments([{ kind: 'question_set', questions: [{ ...question, number: question.number || 1 }] }])[0].questions;
-      if (!normalized.stem) throw new HttpError('Câu hỏi không được để trống.', 400, 'VALIDATION_ERROR');
+      // Photo questions (Part 1) have no stem — then the options are the question.
+      if (!normalized.stem && Object.keys(normalized.options).length < 2) throw new HttpError('Câu hỏi không được để trống.', 400, 'VALIDATION_ERROR');
       const result = await client.query(`
         UPDATE cs_questions q SET stem = $3, options = $4, answer_key = $5
         FROM cs_segments s WHERE q.id = $1 AND s.id = q.segment_id AND s.item_id = $2`,
