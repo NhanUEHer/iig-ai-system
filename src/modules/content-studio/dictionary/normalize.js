@@ -53,6 +53,51 @@ function normalizeExtract(raw, passage, maxItems = 300) {
   return result;
 }
 
+// Letters and digits only: survives quote style, dashes, rewritten blanks ("---[1]---") and spacing.
+const looseKey = value => clean(value).normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+const sameLoose = (left, right) => {
+  const a = looseKey(left);
+  const b = looseKey(right);
+  return Boolean(a && b) && (a === b || a.includes(b) || b.includes(a));
+};
+
+// The model splits sentences its own way and may retype them (straight quotes, rewritten blanks),
+// so its sentence_text is only a hint. Each chunk is placed in the stored sentence that contains it,
+// preferring the stored sentence that overlaps the model's sentence. Unplaceable chunks are dropped,
+// never failing the whole passage.
+function assignExtract(raw, storedSentences, maxItems = 300) {
+  const output = outputOf(raw);
+  if (!Array.isArray(output?.sentences)) {
+    throw new HttpError('Workflow bóc từ trả về sai định dạng.', 502, 'INVALID_DICTIONARY_ITEMS');
+  }
+  const stored = storedSentences.map(clean);
+  const items = stored.map(() => []);
+  const seen = stored.map(() => new Set());
+  let total = 0;
+  let dropped = 0;
+  for (const row of output.sentences) {
+    const hint = clean(row?.sentence_text ?? row?.sentenceText ?? row?.text);
+    const preferred = stored.map((text, index) => index).filter(index => hint && sameLoose(stored[index], hint));
+    const order = [...preferred, ...stored.map((text, index) => index).filter(index => !preferred.includes(index))];
+    for (const item of Array.isArray(row?.items) ? row.items : []) {
+      const chunk = clean(typeof item === 'string' ? item : item?.original_chunk ?? item?.item ?? item?.text);
+      if (!chunk) continue;
+      const target = order.find(index => containsExactChunk(stored[index], chunk));
+      if (target === undefined) { dropped += 1; continue; }
+      const key = normalizedSentence(chunk);
+      if (seen[target].has(key)) continue;
+      if (total >= maxItems) break;
+      seen[target].add(key);
+      items[target].push(chunk);
+      total += 1;
+    }
+  }
+  if (!total) {
+    throw new HttpError('AI không tìm thấy từ phù hợp trong đoạn văn.', 422, 'NO_DICTIONARY_ITEMS');
+  }
+  return { items, dropped };
+}
+
 const cleanList = value => (Array.isArray(value) ? value.map(clean).filter(Boolean) : []);
 const splitWordFamily = value => Array.isArray(value)
   ? cleanList(value)
@@ -63,8 +108,9 @@ function normalizeOneEntry(value, requestedChunk, sentence) {
   const usage = value?.usage || {};
   const example = usage.example || value?.example || {};
   const originalSentence = clean(context.original_sentence ?? value?.sentence);
-  if (!sameSentence(sentence, originalSentence)) {
-    throw new HttpError('Dify trả về câu ngữ cảnh không khớp câu nguồn.', 502, 'DICTIONARY_CONTEXT_MISMATCH');
+  // One batch = one stored sentence, so a retyped sentence (quotes, blanks) is still ours; only reject a clearly different one.
+  if (originalSentence && !sameSentence(sentence, originalSentence) && !sameLoose(sentence, originalSentence)) {
+    throw new HttpError('AI trả về câu ngữ cảnh không khớp câu nguồn.', 502, 'DICTIONARY_CONTEXT_MISMATCH');
   }
   return {
     inText: clean(requestedChunk || value?.original_chunk || value?.inText),
@@ -115,6 +161,6 @@ function validateEntry(content, sentence) {
 }
 
 module.exports = {
-  containsExactChunk, mapDictionaryEntries, normalizeExtract, normalizedSentence,
+  assignExtract, containsExactChunk, looseKey, mapDictionaryEntries, normalizeExtract, normalizedSentence,
   sameSentence, sentenceBelongsToPassage, splitWordFamily, validateEntry,
 };

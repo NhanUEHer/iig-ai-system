@@ -80,3 +80,30 @@ test('sample dictionary mock extracts and maps fourteen ready entries', async ()
   assert.equal(entries.length, 14);
   assert.equal(entries.every(entry => entry.validation.issues.length === 0), true);
 });
+
+test('assignExtract places chunks by stored sentence even when the model splits and retypes sentences', () => {
+  const { assignExtract } = require('../src/modules/content-studio/dictionary/normalize');
+  const stored = [
+    'I am writing this letter of recommendation for Su Lee, who ---[1]--- as a Senior Business Manager for Naoyang. ---[2]---.',
+    'She had been awarded “The employee of the year” five times. ---[3]---, Ms. Lee has outstanding communication and leadership skills that enable her to interact effectively with customers and colleagues alike.',
+  ];
+  const raw = { sentences: [
+    // Model split the first stored sentence and dropped the blank.
+    { sentence_text: 'I am writing this letter of recommendation for Su Lee, who as a Senior Business Manager for Naoyang.', items: ['recommendation', 'Senior Business Manager'] },
+    // Straight quotes and a rewritten blank.
+    { sentence_text: 'She had been awarded "The employee of the year" five times. ___(3)___, Ms. Lee has outstanding communication', items: ['awarded', 'outstanding', 'not in text at all'] },
+  ] };
+  const { items, dropped } = assignExtract(raw, stored);
+  assert.deepEqual(items, [['recommendation', 'Senior Business Manager'], ['awarded', 'outstanding']]);
+  assert.equal(dropped, 1);
+});
+
+test('assignExtract keeps the same word in each sentence it was picked from', () => {
+  const { assignExtract } = require('../src/modules/content-studio/dictionary/normalize');
+  const stored = ['She got a high school diploma.', 'She plans to go to college after high school.'];
+  const raw = { sentences: [
+    { sentence_text: stored[0], items: ['school'] },
+    { sentence_text: stored[1], items: ['school', 'college'] },
+  ] };
+  assert.deepEqual(assignExtract(raw, stored).items, [['school'], ['school', 'college']]);
+});
