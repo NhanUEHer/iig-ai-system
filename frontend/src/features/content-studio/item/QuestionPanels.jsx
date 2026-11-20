@@ -30,7 +30,7 @@ function Field({ definition, index, value, issues, readOnly, onChange }) {
   </div>;
 }
 
-export function QuestionWorkspace({ questions, artifacts, drafts, selectedId, onSelect, onChange, shell }) {
+export function QuestionWorkspace({ questions, artifacts, drafts, selectedId, onSelect, onChange, shell, images = [] }) {
   const selectedIndex = Math.max(0, questions.findIndex(question => question.id === selectedId));
   const question = questions[selectedIndex];
   const artifact = artifacts[question?.id];
@@ -42,6 +42,8 @@ export function QuestionWorkspace({ questions, artifacts, drafts, selectedId, on
   const set = patch => onChange(artifact, { ...draft, ...patch });
   const previous = questions[selectedIndex - 1];
   const next = questions[selectedIndex + 1];
+  // Part 1 photo on the question itself; Part 3/4 graphic on its question set.
+  const questionImages = question ? images.filter(image => image.questionId === question.id || (!image.questionId && image.segmentId === question.segmentId)) : [];
 
   return <div className="cs-question-workspace">
     <div className="cs-question-picker">
@@ -65,6 +67,7 @@ export function QuestionWorkspace({ questions, artifacts, drafts, selectedId, on
           {dirty && <em>Chưa lưu</em>}
           <b className={needsReview ? 'is-review' : 'is-ready'}>{needsReview ? 'Cần xem lại' : status?.label || 'Hoàn tất'}</b>
         </header>
+        {questionImages.length > 0 && <div className="cs-question-images">{questionImages.map(image => image.url && <a key={image.id} href={image.url} target="_blank" rel="noreferrer"><img src={image.url} alt={`Hình câu ${question.number}`} /></a>)}</div>}
         <ul aria-label="Phương án">
           {LETTERS.filter(letter => question.options?.[letter]).map(letter => <li key={letter} className={question.answerKey === letter ? 'is-answer' : ''}>
             <span>{letter}</span>{question.options[letter]}

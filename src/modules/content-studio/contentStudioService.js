@@ -3,6 +3,7 @@ const db = require('../../config/db');
 const HttpError = require('../../http/httpError');
 const { detectContent, countSentences, splitSentences } = require('./detect/detectContent');
 const summaryService = require('./summaryService');
+const imageService = require('./images/imageService');
 
 const MAX_SOURCE_CHARS = 60000;
 const MAX_FOLDER_DEPTH = 6;
@@ -177,10 +178,11 @@ function normalizeSegments(segments) {
   });
 }
 
-async function createItem({ title, folderId, sourceText, sourceKind = 'paste', sourceFileName, segments, tasks }, userId) {
+async function createItem({ title, folderId, sourceText, sourceKind = 'paste', sourceFileName, segments, tasks, images }, userId) {
   const text = requireSource(sourceText);
   const detection = detectContent(text);
   const finalSegments = normalizeSegments(segments || detection.segments);
+  const itemImages = imageService.normalizeImages(images, finalSegments);
   const folder = optionalFolderId(folderId);
   const itemTitle = requireName(title || detection.title, 240, 'Tên học liệu');
   return db.transaction(async client => {
@@ -195,6 +197,7 @@ async function createItem({ title, folderId, sourceText, sourceKind = 'paste', s
       JSON.stringify({ summary: summarize(finalSegments), warnings: detection.warnings, confidence: detection.confidence }),
       JSON.stringify(normalizeTasks(tasks, finalSegments)), userId]);
     await insertSegments(client, item.id, finalSegments);
+    await imageService.insertImages(client, item.id, itemImages, userId);
     return getItem(item.id, client);
   });
 }
@@ -294,7 +297,8 @@ async function getItem(id, client = db) {
     ) SELECT id, name FROM chain ORDER BY depth DESC`, [item.folderId]);
   const taskStatus = summaryService.deriveTaskStatus(item.tasks, artifacts, { dictionaryStatus: dictionary?.status });
   const staleParts = staleSummary(artifacts, dictionaryStale);
-  return { ...item, taskStatus, staleParts, folderPath: path, artifacts, segments: segments.map(segment => ({ ...segment, questions: questions.filter(question => question.segmentId === segment.id) })) };
+  const images = await imageService.listImages(client, id);
+  return { ...item, taskStatus, staleParts, folderPath: path, artifacts, images, segments: segments.map(segment => ({ ...segment, questions: questions.filter(question => question.segmentId === segment.id) })) };
 }
 
 async function updateItem(id, { title, folderId }) {

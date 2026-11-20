@@ -97,7 +97,7 @@ function detectContent(rawText) {
       const questions = current.questions.map(item => ({ ...item, answerKey: item.answerKey || answerKey[item.number] || null }));
       segments.push({
         kind: 'question_set', text: '',
-        meta: { header: current.header, passageIndex, part: guessPart(passageText, questions) },
+        meta: { header: current.header, passageIndex, questionOnly: passageIndex === null, part: guessPart(passageText, questions) },
         questions,
       });
       for (const item of questions) {
@@ -134,7 +134,11 @@ const countSentences = text => splitSentences(text).length;
 function guessPart(passageText, questions) {
   if (passageText && BLANK.test(passageText)) return 6;
   if (passageText) return 7;
+  // Question-only sets (no passage): Part 1 = options only (photo), Part 2 = three options, Part 5 = blank in stem.
+  if (!questions.length) return null;
   if (questions.every(item => /_{2,}|-{3,}/.test(item.stem))) return 5;
+  if (questions.every(item => !item.stem && Object.keys(item.options).length === 4)) return 1;
+  if (questions.every(item => Object.keys(item.options).length === 3 && !item.options.D)) return 2;
   return null;
 }
 

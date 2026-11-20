@@ -379,3 +379,6 @@ main .cs-question-field textarea:focus { border-color: #d55f3d!important; outlin
 .cs-icon-btn--danger:hover { color: var(--iig3-color-danger); background: var(--iig3-color-danger-soft); }
 @media (hover: none) { .cs-dictionary-detail__actions { opacity: 1; } }
 .cs-dictionary-detail > header > .cs-dictionary-detail__title > span { flex: none; padding: 2px 8px; background: #eaf0f5; }
+
+.cs-question-images { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 12px; }
+.cs-question-images img { display: block; max-width: 320px; max-height: 220px; object-fit: contain; border: 1px solid #deded8; border-radius: 8px; background: #fff; }

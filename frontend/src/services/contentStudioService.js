@@ -14,6 +14,12 @@ export const detectDocx = file => {
   return api.post('/content-studio/detect/docx', form).then(data);
 };
 
+export const uploadImage = file => {
+  const form = new FormData();
+  form.append('file', file);
+  return api.post('/content-studio/images', form).then(data);
+};
+
 export const listItems = params => api.get('/content-studio/items', { params }).then(data);
 export const getRecentItems = params => api.get('/content-studio/items/recent', { params }).then(data);
 export const getAttention = () => api.get('/content-studio/attention').then(data);

@@ -104,3 +104,21 @@ test('keeps only known generation tasks that match detected content and normaliz
     passage: ['vocab'], question: [], vocab: { level: 650, mode: 'balanced' },
   });
 });
+
+test('question-only Part 2 input yields questions with no passage', () => {
+  const result = detectContent(`7. Where is the meeting?\n(A) In room 3.\n(B) At 2 o'clock.\n(C) Yes, I will.\nAnswer: A\n8. Who wrote the report?\n(A) Ms. Kim did.\n(B) It's on my desk.\n(C) Last week.\nAnswer: A`);
+  assert.equal(result.segments.length, 1);
+  assert.equal(result.segments[0].kind, 'question_set');
+  assert.equal(result.segments[0].meta.passageIndex, null);
+  assert.equal(result.segments[0].meta.questionOnly, true);
+  assert.equal(result.segments[0].meta.part, 2);
+  assert.deepEqual(result.segments[0].questions.map(q => [q.number, q.answerKey]), [[7, 'A'], [8, 'A']]);
+  assert.equal(result.warnings.length, 0);
+});
+
+test('Part 1 options-only questions are recognised without a passage', () => {
+  const result = detectContent(`1.\n(A) A man is typing.\n(B) A woman is reading.\n(C) They are walking.\n(D) Chairs are stacked.\nAnswer: B`);
+  assert.equal(result.segments.length, 1);
+  assert.equal(result.segments[0].meta.part, 1);
+  assert.equal(result.segments[0].questions[0].stem, '');
+});

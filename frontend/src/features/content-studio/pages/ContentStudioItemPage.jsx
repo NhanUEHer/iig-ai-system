@@ -348,7 +348,7 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
             selectedText={selectedText} onConsumed={() => setSelectedText(null)} activeId={activeEntry} onActive={setActiveEntry}
             notify={(message, tone) => showMsgRef.current?.(message, tone)} onState={setDictionaryState} />}
           {activeTab === 'questions' && <QuestionWorkspace questions={questions} artifacts={artifactsByQuestion} drafts={drafts} selectedId={openQuestion}
-            onSelect={setOpenQuestion} onChange={(artifact, content) => setDrafts(current => ({ ...current, [artifact.id]: content }))} shell={questionShell} />}
+            onSelect={setOpenQuestion} onChange={(artifact, content) => setDrafts(current => ({ ...current, [artifact.id]: content }))} shell={questionShell} images={item?.images || []} />}
         </div>
       </section>
     </div>

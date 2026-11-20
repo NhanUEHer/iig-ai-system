@@ -68,3 +68,26 @@
 .cs-create__head { padding-top: 20px; }
 .cs-create-source--title > .cs-create-collapsed-source { border: 0; border-top: 1px solid #ecebe6; border-radius: 0; background: transparent; }
 .cs-create-source--title > header { padding-bottom: 14px !important; }
+
+/* Pasted / uploaded images (Part 1 photos, Part 3/4 graphics) */
+.cs-create-images { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px 16px; border-top: 1px solid #ecebe6; }
+.cs-create-images figure { position: relative; display: flex; width: 132px; flex-direction: column; gap: 6px; margin: 0; }
+.cs-create-images img { display: block; width: 132px; height: 96px; object-fit: cover; border: 1px solid #deded8; border-radius: 8px; background: #f6f5f2; }
+.cs-create-images figure.is-uploading img { opacity: .55; }
+.cs-create-images figure.is-error img { border-color: #d55f3d; opacity: .55; }
+.cs-create-images__state { position: absolute; top: 34px; left: 52px; display: grid; width: 28px; height: 28px; place-items: center; padding: 0; border: 0; border-radius: 50%; background: #fffefa; color: #d55f3d; box-shadow: 0 1px 3px rgb(0 0 0 / .15); cursor: pointer; }
+.cs-create-images__state svg, .cs-create-images__remove svg { width: 14px; height: 14px; }
+.cs-create-images__remove { position: absolute; top: 4px; right: 4px; display: grid; width: 22px; height: 22px; place-items: center; padding: 0; border: 0; border-radius: 50%; background: rgb(36 37 33 / .7); color: #fff; cursor: pointer; }
+.cs-create-images select { width: 100%; height: 30px; padding: 0 6px; border: 1px solid #d8d7d0; border-radius: 6px; background: #fff; color: #242521; font-size: 12px; }
+.cs-create-attach { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border: 1px solid #deded8; border-radius: 12px; background: #fffefa; }
+.cs-create-attach > strong { font-size: 13px; }
+.cs-create-attach > small { color: #656963; font-size: 12px; }
+.cs-create-attach .cs-create-images { padding: 8px 0 0; border-top: 0; }
+.cs-create-review-images { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+.cs-create-review-images img { width: 160px; max-height: 120px; object-fit: contain; border: 1px solid #deded8; border-radius: 8px; background: #fff; }
+.cs-create-review-set-images { display: flex; flex-direction: column; gap: 6px; }
+.cs-create-review-set-images > strong { font-size: 13px; }
+.cs-create-review-results__note, .cs-create-tasks__hint { margin: 0; padding: 8px 10px; border-radius: 8px; background: #f6f5f2; color: #656963; font-size: 12px; }
+.cs-create-tasks__pill.is-disabled { opacity: .45; cursor: not-allowed; }
+.is-spinning { animation: cs-create-spin 1s linear infinite; }
+@keyframes cs-create-spin { to { transform: rotate(360deg); } }

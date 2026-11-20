@@ -15,6 +15,8 @@ const AGENTS = {
   question_pack: 'cs.question_pack',
 };
 const LETTERS = ['A', 'B', 'C', 'D'];
+// Question-only sets (Part 1/2/5) have no passage; say so explicitly instead of sending an empty tag.
+const NO_PASSAGE = '(none — this set has questions only, no passage or transcript)';
 const SET_CACHE_MS = 30 * 1000; // long enough for the set's artifacts claimed together, short enough for "Tạo lại"
 const setCalls = new Map(); // one AI call per question set, shared by the set's question artifacts
 const MODES = new Set(['balanced', 'phrase_focused', 'single_word_focused']);
@@ -45,7 +47,7 @@ function questionSetCall(agentKey, input, ctx) {
   }));
   if (input.bypassSetCache) {
     return aiCore.run(agentKey, {
-      passage: input.passage,
+      passage: input.passage || NO_PASSAGE,
       passage_vi: input.passageVi || '(chưa có bản dịch)',
       questions: JSON.stringify(questions),
     }, ctx);
@@ -54,7 +56,7 @@ function questionSetCall(agentKey, input, ctx) {
   const cached = setCalls.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.promise;
   const promise = aiCore.run(agentKey, {
-    passage: input.passage,
+    passage: input.passage || NO_PASSAGE,
     passage_vi: input.passageVi || '(chưa có bản dịch)',
     questions: JSON.stringify(questions),
   }, ctx);

@@ -37,7 +37,10 @@ async function loadContext(client, artifact) {
     if (!question) throw new Error('Question no longer exists');
     const set = segments.find(segment => segment.id === question.segment_id);
     const passageIndex = set?.meta?.passageIndex;
-    const passageSegment = segments.find(segment => segment.kind === 'passage' && segment.position === passageIndex) || segments.find(segment => segment.kind === 'passage');
+    // A question-only set (Part 1/2/5) has passageIndex null: it must not borrow another set's passage.
+    const questionOnly = set?.meta?.questionOnly === true || (set?.meta && Object.hasOwn(set.meta, 'passageIndex') && set.meta.passageIndex === null);
+    const passageSegment = questionOnly ? null
+      : segments.find(segment => segment.kind === 'passage' && segment.position === passageIndex) || segments.find(segment => segment.kind === 'passage');
     const passage = passageSegment?.text || '';
     // The whole set goes to AI in one call; a Vietnamese passage helps when it already exists.
     const { rows: setQuestions } = await client.query(
