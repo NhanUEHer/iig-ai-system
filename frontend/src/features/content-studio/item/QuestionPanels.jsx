@@ -1,9 +1,17 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, RefreshCw, TriangleAlert } from 'lucide-react';
 import { Button } from '../../../design-system-v2';
 import ArtifactShell, { STATUS, isBusy } from './ArtifactShell';
 
 const autoSize = node => { if (node) { node.style.height = 'auto'; node.style.height = `${node.scrollHeight + 2}px`; } };
+
+// Fits its text whenever the value changes (switching question, regenerate, typing); the user can
+// still drag it taller or shorter, and CSS caps it at most of the screen with a scrollbar.
+function AutoTextarea({ value, ...props }) {
+  const ref = useRef(null);
+  useLayoutEffect(() => autoSize(ref.current), [value]);
+  return <textarea ref={ref} value={value} {...props} />;
+}
 
 const LETTERS = ['A', 'B', 'C', 'D'];
 const FIELDS = [
@@ -25,7 +33,7 @@ export function explanationQuote(value, passage) {
 function Field({ definition, index, value, issues, readOnly, onChange }) {
   return <div className={`cs-question-field cs-question-field--${definition.value}${issues.length ? ' is-review' : ''}`}>
     <div><span>{index + 1}</span><strong>{definition.label}</strong><small>{definition.hint}</small></div>
-    <textarea ref={autoSize} onInput={event => autoSize(event.currentTarget)} rows={definition.rows} value={value || ''} readOnly={readOnly} aria-label={definition.label} onChange={event => onChange(event.target.value)} />
+    <AutoTextarea rows={definition.rows} value={value || ''} readOnly={readOnly} aria-label={definition.label} onChange={event => onChange(event.target.value)} />
     {issues.map((issue, issueIndex) => <p key={`${issue.code}-${issueIndex}`}><TriangleAlert />{issue.message}</p>)}
   </div>;
 }
@@ -45,7 +53,7 @@ function ImageDescriptions({ images, imageArtifacts, drafts, onChange, shell, qu
           <ArtifactShell artifact={artifact} label="mô tả hình" dirty={Boolean(artifact && drafts[artifact.id])} shell={shell}>
             {draft && <>
               {draft.imageType && <small className="cs-image-description__type">{draft.imageType}</small>}
-              <textarea ref={autoSize} onInput={event => autoSize(event.currentTarget)} rows={4} aria-label="Mô tả hình" readOnly={!shell.canEdit}
+              <AutoTextarea rows={4} aria-label="Mô tả hình" readOnly={!shell.canEdit}
                 value={draft.description || ''} onChange={event => onChange(artifact, { ...draft, description: event.target.value })} />
             </>}
           </ArtifactShell>
