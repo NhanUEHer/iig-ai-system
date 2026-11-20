@@ -226,21 +226,31 @@ async function insertSegments(client, itemId, segments) {
 
 // ---------- stale detection (generated content vs. edited source) ----------
 const { passageHash, questionHash, norm: normText } = require('./sourceHash');
+const { descriptionForSet } = require('./images/imageText');
 
 function passageForSet(segments, setSegment) {
+  // Question-only sets (Part 1/2/5) have passageIndex null and no passage — same rule as generation.
+  const meta = setSegment?.meta;
+  if (meta?.questionOnly === true || (meta && Object.hasOwn(meta, 'passageIndex') && meta.passageIndex === null)) return undefined;
   const passages = segments.filter(segment => segment.kind === 'passage');
   return passages.find(segment => segment.position === setSegment?.meta?.passageIndex) || passages[0];
 }
 
 // An artifact is stale when it was built from a source fingerprint that no longer matches.
 // Artifacts generated before fingerprints existed (sourceHash null) are never flagged.
-function markStale(segments, questions, artifacts) {
+function markStale(segments, questions, artifacts, images = []) {
+  const descriptions = new Map();
+  const setDescription = setId => {
+    if (!descriptions.has(setId)) descriptions.set(setId, descriptionForSet(setId, images, artifacts, questions));
+    return descriptions.get(setId);
+  };
   for (const artifact of artifacts) {
     let current = null;
+    if (artifact.type === 'image_description') { artifact.stale = false; delete artifact.sourceHash; continue; }
     if (artifact.type === 'question_pack') {
       const question = questions.find(row => row.id === artifact.questionId);
       const setSegment = segments.find(segment => segment.id === question?.segmentId);
-      if (question) current = questionHash(passageForSet(segments, setSegment)?.text || '', question);
+      if (question) current = questionHash(passageForSet(segments, setSegment)?.text || '', question, setDescription(question.segmentId));
     } else {
       const segment = segments.find(row => row.id === artifact.segmentId);
       if (segment) current = passageHash(segment.text);
@@ -286,7 +296,8 @@ async function getItem(id, client = db) {
     SELECT id, segment_id AS "segmentId", question_id AS "questionId", image_id AS "imageId", type, status, content, validation, source, provider, error, attempts,
            source_hash AS "sourceHash", updated_at AS "updatedAt"
     FROM cs_artifacts WHERE item_id = $1`, [id]);
-  markStale(segments, questions, artifacts);
+  const images = await imageService.listImages(client, id);
+  markStale(segments, questions, artifacts, images);
   const { rows: dictSentences } = await client.query('SELECT segment_id AS "segmentId", text FROM cs_dict_sentences WHERE item_id = $1', [id]);
   const dictionaryStale = dictionarySentencesStale(segments, dictSentences);
   const { rows: [dictionary] } = await client.query(`SELECT ${summaryService.DICTIONARY_STATUS_SQL} AS status FROM cs_items i WHERE i.id = $1`, [id]);
@@ -297,7 +308,6 @@ async function getItem(id, client = db) {
     ) SELECT id, name FROM chain ORDER BY depth DESC`, [item.folderId]);
   const taskStatus = summaryService.deriveTaskStatus(item.tasks, artifacts, { dictionaryStatus: dictionary?.status });
   const staleParts = staleSummary(artifacts, dictionaryStale);
-  const images = await imageService.listImages(client, id);
   return { ...item, taskStatus, staleParts, folderPath: path, artifacts, images, segments: segments.map(segment => ({ ...segment, questions: questions.filter(question => question.segmentId === segment.id) })) };
 }
 

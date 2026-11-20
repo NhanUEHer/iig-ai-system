@@ -68,6 +68,7 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
   const passages = useMemo(() => (item?.segments || []).filter(segment => segment.kind === 'passage'), [item]);
   const questions = useMemo(() => (item?.segments || []).flatMap(segment => segment.questions || []), [item]);
   const artifactFor = useCallback((type, segmentId) => item?.artifacts?.find(artifact => artifact.type === type && artifact.segmentId === segmentId && !artifact.questionId), [item]);
+  const imageArtifacts = useMemo(() => Object.fromEntries((item?.artifacts || []).filter(artifact => artifact.type === 'image_description').map(artifact => [artifact.imageId, artifact])), [item]);
   const artifactsByQuestion = useMemo(() => Object.fromEntries((item?.artifacts || []).filter(artifact => artifact.questionId).map(artifact => [artifact.questionId, artifact])), [item]);
 
   const sourceDirty = Object.keys(sourceDraft.segments).length + Object.keys(sourceDraft.questions).length;
@@ -348,7 +349,7 @@ export default function ContentStudioItemPage({ showMsg, permissions = {} }) {
             selectedText={selectedText} onConsumed={() => setSelectedText(null)} activeId={activeEntry} onActive={setActiveEntry}
             notify={(message, tone) => showMsgRef.current?.(message, tone)} onState={setDictionaryState} />}
           {activeTab === 'questions' && <QuestionWorkspace questions={questions} artifacts={artifactsByQuestion} drafts={drafts} selectedId={openQuestion}
-            onSelect={setOpenQuestion} onChange={(artifact, content) => setDrafts(current => ({ ...current, [artifact.id]: content }))} shell={questionShell} images={item?.images || []} />}
+            onSelect={setOpenQuestion} onChange={(artifact, content) => setDrafts(current => ({ ...current, [artifact.id]: content }))} shell={questionShell} images={item?.images || []} imageArtifacts={imageArtifacts} />}
         </div>
       </section>
     </div>

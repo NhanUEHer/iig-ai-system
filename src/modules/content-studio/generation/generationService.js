@@ -5,6 +5,7 @@ const { splitSentences } = require('../detect/detectContent');
 const { validate } = require('./validators');
 const { artifactHash } = require('../sourceHash');
 const LETTERS = ['A', 'B', 'C', 'D'];
+const { formatImageDescriptions } = require('../images/imageText');
 const mockProvider = require('./mockProvider');
 const aiCoreProvider = require('./aiCoreProvider');
 const dictionary = require('../dictionary/dictionaryService');
@@ -54,11 +55,7 @@ async function imageDescriptionsForSet(client, itemId, segmentId) {
     JOIN cs_artifacts a ON a.image_id = im.id AND a.type = 'image_description' AND a.status IN ('ready','needs_review') AND a.content IS NOT NULL
     LEFT JOIN cs_questions q ON q.id = im.question_id
     WHERE im.item_id = $1 AND (im.segment_id = $2 OR im.segment_id IS NULL) ORDER BY im.position`, [itemId, segmentId]);
-  return rows.map((row, index) => {
-    const label = row.number ? `[Image for question ${row.number}]` : `[Image ${index + 1} for this question set]`;
-    const type = row.content?.imageType ? ` (${row.content.imageType})` : '';
-    return `${label}${type}\n${String(row.content?.description || '').trim()}`;
-  }).filter(text => text.trim()).join('\n\n');
+  return formatImageDescriptions(rows);
 }
 
 async function loadContext(client, artifact) {

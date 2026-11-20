@@ -68,3 +68,31 @@ test('bilingual, question (teacher/student) and full DOCX contain the expected c
   const full = await text(docx.buildFull(model));
   assert.match(full, /Key Vocab/); assert.match(full, /Song ngữ/);
 });
+
+test('lesson export puts Part 1 photos before their question and set graphics before the set', async () => {
+  const { attachImages } = require('../src/modules/content-studio/export/exportService');
+  const { imageSize, fitSize } = require('../src/modules/content-studio/images/imageSize');
+  const png = Buffer.alloc(32); png.writeUInt32BE(0x89504e47, 0); png.writeUInt32BE(1200, 16); png.writeUInt32BE(800, 20);
+  assert.deepEqual(imageSize(png), { type: 'png', width: 1200, height: 800 });
+  assert.deepEqual(fitSize({ width: 1200, height: 800 }), { width: 560, height: 373 });
+  const jpg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x04, 0, 0, 0xff, 0xc0, 0x00, 0x11, 0x08, 0x01, 0x2c, 0x01, 0x90, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  assert.deepEqual(imageSize(jpg), { type: 'jpg', width: 400, height: 300 });
+  const questions = [
+    { id: 'q1', number: 1, segmentId: 's1' }, { id: 'q2', number: 2, segmentId: 's1' },
+    { id: 'q32', number: 32, segmentId: 's2' }, { id: 'q33', number: 33, segmentId: 's2' },
+  ];
+  const item = { images: [
+    { id: 'i1', questionId: 'q1', segmentId: 's1', position: 0, storedKey: 'a' },
+    { id: 'i2', questionId: 'q2', segmentId: 's1', position: 1, storedKey: 'missing' },
+    { id: 'g', questionId: null, segmentId: 's2', position: 2, storedKey: 'webp' },
+  ] };
+  const download = async key => {
+    if (key === 'missing') throw new Error('gone');
+    return { buffer: key === 'webp' ? Buffer.from('RIFF0000WEBPVP8 00000000000000') : png };
+  };
+  const out = await attachImages(item, questions, download);
+  assert.deepEqual(out.map(question => question.images.map(image => image.data ? `${image.type}:${image.width}` : 'note')), [['png:560'], ['note'], ['note'], []]);
+  const docx = require('../src/modules/content-studio/export/docxDocuments');
+  const file = await docx.buildQuestions({ title: 'T', questions: out.map(question => ({ ...question, options: { A: 'a', B: 'b', C: 'c', D: 'd' }, answerKey: 'A', pack: null })) });
+  assert.ok(Buffer.isBuffer(file) && file.length > 1000);
+});

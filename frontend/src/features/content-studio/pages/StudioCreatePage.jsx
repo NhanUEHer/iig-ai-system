@@ -28,6 +28,18 @@ const MAX_IMAGES = 20;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 let imageSeq = 0;
 
+// Word cannot embed WEBP: convert it to PNG in the browser before upload (PNG/JPG go as they are).
+async function toUploadable(file) {
+  if (file.type !== 'image/webp') return file;
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  canvas.getContext('2d').drawImage(bitmap, 0, 0);
+  const blob = await new Promise((resolve, reject) => canvas.toBlob(result => (result ? resolve(result) : reject(new Error('Không chuyển được ảnh WEBP.'))), 'image/png'));
+  return new File([blob], file.name.replace(/\.webp$/i, '') + '.png', { type: 'image/png' });
+}
+
 const isImageFile = file => IMAGE_TYPES.includes(file?.type);
 const isDocxFile = file => Boolean(file?.name?.toLocaleLowerCase().endsWith('.docx'));
 // Part 2 has three options (A–C); everything else has four.
@@ -191,7 +203,7 @@ export default function StudioCreatePage({ showMsg, permissions = {} }) {
     const entry = imagesRef.current.find(image => image.id === id);
     if (!entry) return;
     setImages(current => current.map(image => image.id === id ? { ...image, status: 'uploading', error: null } : image));
-    uploadImage(entry.file)
+    toUploadable(entry.file).then(uploadImage)
       .then(uploaded => setImages(current => current.map(image => image.id === id ? { ...image, status: 'done', uploaded } : image)))
       .catch(error => setImages(current => current.map(image => image.id === id ? { ...image, status: 'error', error: errorMessage(error, 'Không thể tải ảnh.') } : image)));
   };

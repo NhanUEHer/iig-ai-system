@@ -9,6 +9,8 @@ const keyVocabExporter = require('../../key-vocab/keyVocabExporter');
 const dictionaryExporter = require('../../dictionary/dictionaryExporter');
 const documentExporter = require('../../learning-materials/learningMaterialDocumentExporter');
 const docx = require('./docxDocuments');
+const storage = require('../../../services/storageService');
+const { imageSize, fitSize } = require('../images/imageSize');
 
 const clean = value => String(value ?? '').trim();
 const MIME = {
@@ -57,16 +59,45 @@ async function mapDictionary(item, client = db) {
   return { candidates, skipped, passage: passageText(item), created_at: item.createdAt };
 }
 
+// Image bytes for the Word file; a missing or unsupported (WEBP) image becomes a note instead.
+async function loadImage(image, download = storage.downloadBuffer) {
+  try {
+    const { buffer } = await download(image.storedKey);
+    const size = imageSize(buffer);
+    const fitted = fitSize(size);
+    if (!size || !fitted) return { id: image.id, missing: 'Ảnh không nhúng được vào Word (định dạng không hỗ trợ) — xem trên hệ thống.' };
+    return { id: image.id, data: buffer, type: size.type, ...fitted };
+  } catch (error) {
+    return { id: image.id, missing: 'Không tải được ảnh khi xuất file.' };
+  }
+}
+
+// Part 1 photo before its question; a set graphic (or an unattached image) before the set's first question.
+async function attachImages(item, questions, download) {
+  const images = (item.images || []).slice().sort((a, b) => a.position - b.position);
+  if (!images.length) return questions;
+  const loaded = new Map((await Promise.all(images.map(image => loadImage(image, download)))).map(row => [row.id, row]));
+  const firstOfSet = new Map();
+  for (const question of questions) if (!firstOfSet.has(question.segmentId)) firstOfSet.set(question.segmentId, question.id);
+  const firstQuestionId = questions[0]?.id;
+  return questions.map(question => ({
+    ...question,
+    images: images.filter(image => image.questionId === question.id
+      || (!image.questionId && image.segmentId && firstOfSet.get(image.segmentId) === question.id && image.segmentId === question.segmentId)
+      || (!image.questionId && !image.segmentId && question.id === firstQuestionId)).map(image => loaded.get(image.id)),
+  }));
+}
+
 // Everything the bilingual / question / full documents need, in reading order.
-async function lessonModel(item, client = db) {
+async function lessonModel(item, client = db, { download } = {}) {
   const passages = item.segments.filter(segment => segment.kind === 'passage').map(segment => {
     const translation = item.artifacts.find(artifact => artifact.type === 'passage_translation' && artifact.segmentId === segment.id);
     return { text: segment.text, sentences: translation?.content?.sentences || [] };
   });
-  const questions = item.segments.flatMap(segment => segment.questions || []).sort((a, b) => a.number - b.number).map(question => {
+  const questions = await attachImages(item, item.segments.flatMap(segment => segment.questions || []).sort((a, b) => a.number - b.number).map(question => {
     const pack = item.artifacts.find(artifact => artifact.type === 'question_pack' && artifact.questionId === question.id)?.content;
     return { ...question, pack: pack ? { translation: typeof pack.translation === 'string' ? pack.translation : '', hint: pack.hint, explanation: pack.explanation, note: pack.note } : null };
-  });
+  }), download);
   const vocab = item.artifacts.filter(artifact => artifact.type === 'vocab' && artifact.content).flatMap(artifact => artifact.content.items || []);
   const { rows } = await client.query(`
     SELECT e.content FROM cs_dict_candidates c JOIN cs_dict_sentences s ON s.id = c.sentence_id JOIN cs_dict_entries e ON e.candidate_id = c.id
@@ -115,4 +146,4 @@ async function exportItem(itemId, kind, format) {
   throw new HttpError('Loại export không hỗ trợ.', 400, 'INVALID_EXPORT_KIND');
 }
 
-module.exports = { exportItem, mapVocab, mapDictionary, lessonModel, fileName, MIME };
+module.exports = { exportItem, mapVocab, mapDictionary, lessonModel, attachImages, fileName, MIME };
