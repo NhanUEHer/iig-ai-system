@@ -1,6 +1,7 @@
 // DeepSeek adapter: OpenAI-style chat API, JSON mode without native schema, thinking toggle.
 const { fetchJson, joinUrl } = require('../http');
 const { nonNegativeInteger } = require('../normalize');
+const { AiCoreError } = require('../../errors');
 
 const name = 'deepseek';
 const label = 'DeepSeek';
@@ -8,6 +9,7 @@ const capabilities = Object.freeze({
   nativeSchema: false,
   thinking: '"Tắt" = tắt hẳn suy nghĩ; các mức khác = bật',
   outputFormat: 'JSON mode + schema đưa vào system prompt, AI Core tự kiểm',
+  vision: false,
 });
 
 function normalizeUsage(usage = {}) {
@@ -50,6 +52,9 @@ ${JSON.stringify(schema)}`);
 }
 
 async function generate(options) {
+  if (options.images?.length) {
+    throw new AiCoreError('CONFIG_MISSING', 'DeepSeek cannot read images; run this agent on a vision model (e.g. Gemini).');
+  }
   const body = {
     model: options.model,
     messages: [

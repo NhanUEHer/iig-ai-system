@@ -7,6 +7,7 @@ async function inputGuard(state) {
     model: state.model || state.version.model,
     system: state.system,
     user: state.user,
+    images: state.images || [],
     schema: state.version.outputSchema,
     timeoutMs: state.version.timeoutMs,
   }));

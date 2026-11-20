@@ -2,7 +2,7 @@ const { EMPTY_USAGE } = require('../normalize');
 
 const name = 'fake';
 const label = 'Fake (test)';
-const capabilities = Object.freeze({ nativeSchema: true, thinking: 'không áp dụng', outputFormat: 'Trả lời lập trình sẵn' });
+const capabilities = Object.freeze({ nativeSchema: true, thinking: 'không áp dụng', outputFormat: 'Trả lời lập trình sẵn', vision: true });
 const queue = [];
 
 function enqueue(response) {
@@ -35,8 +35,11 @@ async function generate(options = {}) {
   };
 }
 
-async function countTokens({ system, user }) {
-  return Math.ceil((String(system || '').length + String(user || '').length) / 4);
+// Roughly what Gemini bills for one image tile.
+const IMAGE_TOKENS = 258;
+
+async function countTokens({ system, user, images = [] }) {
+  return Math.ceil((String(system || '').length + String(user || '').length) / 4) + images.length * IMAGE_TOKENS;
 }
 
 async function check() {

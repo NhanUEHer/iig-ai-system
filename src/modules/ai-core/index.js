@@ -7,9 +7,10 @@ function createAiCore(dependencies = {}) {
   const runtime = dependencies.runner || runner;
   const agentRegistry = dependencies.registry || registry;
 
-  async function run(key, variables, ctx = {}) {
+  // options.images: [{ mimeType, data: Buffer|base64 }] for agents on a vision model (Gemini).
+  async function run(key, variables, ctx = {}, options = {}) {
     if (!key) throw new AiCoreError('CONFIG_MISSING', 'AI Core agent key is required.');
-    return runtime.execute({ key, variables, ctx, mode: 'run' });
+    return runtime.execute({ key, variables, ctx, mode: 'run', images: options.images });
   }
 
   async function testRun(key, variables, userId) {

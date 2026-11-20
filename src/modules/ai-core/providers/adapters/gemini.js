@@ -8,6 +8,7 @@ const capabilities = Object.freeze({
   nativeSchema: true,
   thinking: 'Gemini 3 không tắt hẳn được: "Tắt" = mức thấp nhất (low) · Gemini 2.5: thinkingBudget',
   outputFormat: 'Ép JSON schema ngay khi gọi',
+  vision: true,
 });
 
 function normalizeUsage(metadata = {}) {
@@ -58,8 +59,11 @@ function headers(apiKey) {
   return { 'content-type': 'application/json', 'x-goog-api-key': apiKey };
 }
 
-function contents(system, user) {
-  const request = { contents: [{ role: 'user', parts: [{ text: String(user || '') }] }] };
+// Images go before the text so the prompt can refer to "the image above".
+function contents(system, user, images = []) {
+  const parts = (images || []).map(image => ({ inlineData: { mimeType: image.mimeType, data: image.data } }));
+  parts.push({ text: String(user || '') });
+  const request = { contents: [{ role: 'user', parts }] };
   if (system) request.systemInstruction = { parts: [{ text: String(system) }] };
   return request;
 }
@@ -78,7 +82,7 @@ function thinkingConfig(model, mode) {
 }
 
 async function generate(options) {
-  const body = contents(options.system, options.user);
+  const body = contents(options.system, options.user, options.images);
   body.generationConfig = {
     responseMimeType: 'application/json',
     responseSchema: toResponseSchema(options.schema || {}),
@@ -117,7 +121,7 @@ async function countTokens(options) {
     {
       headers: headers(options.apiKey),
       // systemInstruction is only accepted inside generateContentRequest.
-      body: { generateContentRequest: { model: `models/${options.model}`, ...contents(options.system, options.user) } },
+      body: { generateContentRequest: { model: `models/${options.model}`, ...contents(options.system, options.user, options.images) } },
       timeoutMs: options.timeoutMs,
       signal: options.signal,
     },
@@ -146,4 +150,4 @@ async function check({ apiKey, baseUrl, timeoutMs = 10000, signal } = {}) {
   }
 }
 
-module.exports = { name, label, capabilities, normalizeUsage, normalizeFinishReason, thinkingConfig, generate, countTokens, check, toResponseSchema, DEFAULT_BASE_URL };
+module.exports = { name, label, capabilities, contents, normalizeUsage, normalizeFinishReason, thinkingConfig, generate, countTokens, check, toResponseSchema, DEFAULT_BASE_URL };
