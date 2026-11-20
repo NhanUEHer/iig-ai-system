@@ -5,6 +5,11 @@ const aiCore = require('../src/modules/ai-core');
 const provider = require('../src/modules/content-studio/generation/aiCoreProvider');
 const { normalizeExtract, mapDictionaryEntries } = require('../src/modules/content-studio/dictionary/normalize');
 
+// Agent variables come from the AI Core registry; by default the published agents use the new prompts.
+const registry = require('../src/modules/ai-core/agents/registry');
+const declared = { 'cs.translate': ['passage'], 'cs.question_pack': ['image_description', 'passage', 'questions'] };
+registry.load = async key => ({ version: { variables: (declared[key] || []).map(name => ({ name })) } });
+
 function stubRun(responses) {
   const calls = [];
   const original = aiCore.run;
@@ -136,4 +141,19 @@ test('question_pack passes image_description, "(none)" when the set has no image
     assert.equal(stub.calls[1].vars.image_description, '(none)');
     assert.match(stub.calls[1].vars.passage, /^\(none/);
   } finally { stub.restore(); }
+});
+
+test('legacy agent versions still get the variables they require during a rollout', async () => {
+  const saved = { ...declared };
+  declared['cs.translate'] = ['passage', 'sentences'];
+  declared['cs.question_pack'] = ['passage', 'passage_vi', 'questions'];
+  const stub = stubRun({ 'cs.translate': { t: [{ i: 1, vi: 'Một.' }] }, 'cs.question_pack': { q: [{ n: 9, stem_vi: '', options_vi: {}, hint: 'h', explanation: 'e', note: 'n' }] } });
+  try {
+    const out = await provider.generate('passage_translation', { itemId: 'i1', passage: 'One.', sentences: ['One.'] });
+    assert.equal(stub.calls[0].vars.sentences, JSON.stringify([{ i: 1, en: 'One.' }]));
+    assert.deepEqual(out.sentences, [{ en: 'One.', vi: 'Một.' }]);
+    const question = { id: 'q-legacy', number: 9, stem: 'Why?', options: { A: 'a', B: 'b' }, answerKey: 'A' };
+    await provider.generate('question_pack', { itemId: 'i1', setId: 's-legacy', question, setQuestions: [question], passage: 'P' });
+    assert.equal(stub.calls[1].vars.passage_vi, '(chưa có bản dịch)');
+  } finally { Object.assign(declared, saved); stub.restore(); }
 });
