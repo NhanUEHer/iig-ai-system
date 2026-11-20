@@ -4,6 +4,7 @@
 // prompts, model, limits and cost ceilings live in AI Core, not here.
 // Types without an agent fall back to the mock provider.
 const aiCore = require('../../ai-core');
+const registry = require('../../ai-core/agents/registry');
 const mockProvider = require('./mockProvider');
 const storage = require('../../../services/storageService');
 const { splitSentences } = require('../detect/detectContent');
@@ -55,25 +56,36 @@ function mapQuestion(row, question) {
   };
 }
 
+// Variables the published version of an agent declares (registry is cached for a minute).
+// Lets one release work with old and new agent prompts during a rollout: legacy variables
+// (passage_vi, sentences) are sent only to an agent version that still requires them.
+async function declaredVariables(agentKey) {
+  try {
+    const { version } = await registry.load(agentKey, { mode: 'run' });
+    return new Set((version?.variables || []).map(variable => variable?.name).filter(Boolean));
+  } catch {
+    return new Set(); // missing/paused agent: aiCore.run reports the real error
+  }
+}
+
+async function questionSetVariables(agentKey, input, questions) {
+  const variables = { passage: input.passage || NO_PASSAGE, image_description: input.imageDescription || NO_IMAGE, questions: JSON.stringify(questions) };
+  // Old prompts required passage_vi; the question pack is English-only now, so it never carries a translation.
+  if ((await declaredVariables(agentKey)).has('passage_vi')) variables.passage_vi = '(chưa có bản dịch)';
+  return variables;
+}
+
 function questionSetCall(agentKey, input, ctx) {
   const questions = (input.setQuestions?.length ? input.setQuestions : [input.question]).map(question => ({
     n: question.number, stem: question.stem, options: question.options || {}, answer: question.answerKey || '',
   }));
   if (input.bypassSetCache) {
-    return aiCore.run(agentKey, {
-      passage: input.passage || NO_PASSAGE,
-      image_description: input.imageDescription || NO_IMAGE,
-      questions: JSON.stringify(questions),
-    }, ctx);
+    return questionSetVariables(agentKey, input, questions).then(variables => aiCore.run(agentKey, variables, ctx));
   }
   const cacheKey = `${input.setId || input.question.id}:${JSON.stringify(questions)}:${input.passage}:${input.imageDescription || ''}`;
   const cached = setCalls.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.promise;
-  const promise = aiCore.run(agentKey, {
-    passage: input.passage || NO_PASSAGE,
-      image_description: input.imageDescription || NO_IMAGE,
-    questions: JSON.stringify(questions),
-  }, ctx);
+  const promise = questionSetVariables(agentKey, input, questions).then(variables => aiCore.run(agentKey, variables, ctx));
   setCalls.set(cacheKey, { promise, expiresAt: Date.now() + SET_CACHE_MS });
   promise.catch(() => setCalls.delete(cacheKey));
   for (const [key, value] of setCalls) if (value.expiresAt <= Date.now()) setCalls.delete(key);
@@ -148,7 +160,12 @@ async function generate(type, input = {}, options = {}) {
   }
 
   if (type === 'passage_translation') {
-    const result = await aiCore.run(agentKey, { passage: input.passage }, ctx);
+    const variables = { passage: input.passage };
+    // Old cs.translate versions translated our own numbered split; new ones split the passage themselves.
+    if ((await declaredVariables(agentKey)).has('sentences')) {
+      variables.sentences = JSON.stringify((input.sentences || []).map((en, index) => ({ i: index + 1, en })));
+    }
+    const result = await aiCore.run(agentKey, variables, ctx);
     return mapTranslation(result.data, input.sentences || []);
   }
 
