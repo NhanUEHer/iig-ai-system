@@ -337,7 +337,9 @@ main .cs-question-field textarea:focus { border-color: #d55f3d!important; outlin
 #root .iig3-theme .cs-dictionary-field.is-accent textarea { color: #b4532f; font-weight: 600 !important; }
 
 /* UAT polish: fields grow with their text instead of scrolling inside; dictionary filters wrap */
-#root .iig3-theme .cs-question-field textarea, #root .iig3-theme .cs-translation-cards textarea { resize: none !important; overflow: hidden !important; min-height: 0 !important; }
+#root .iig3-theme .cs-translation-cards textarea { resize: none !important; overflow: hidden !important; min-height: 0 !important; }
+/* Question fields and image descriptions: fit the text, drag the corner to resize, scroll past ~75% of the screen. */
+#root .iig3-theme .cs-question-field textarea, #root .iig3-theme .cs-image-description textarea { resize: vertical !important; overflow-y: auto !important; min-height: 0 !important; max-height: 75vh; }
 .cs-dictionary-filters { flex-wrap: wrap !important; overflow: visible !important; }
 
 /* Stale content after editing the source */
