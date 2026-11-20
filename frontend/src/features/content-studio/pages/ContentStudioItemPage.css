@@ -393,3 +393,11 @@ main .cs-question-field textarea:focus { border-color: #d55f3d!important; outlin
 .cs-image-description textarea { width: 100%; box-sizing: border-box; min-height: 0 !important; padding: 8px 10px !important; border: 1px solid #ecebe6 !important; border-radius: 8px !important; background: #fff !important; font: inherit; font-size: 13px !important; line-height: 1.6; resize: vertical; }
 .cs-image-description__missing { display: grid; min-height: 120px; place-items: center; border: 1px dashed #deded8; border-radius: 8px; color: #a3a69f; font-size: 12px; }
 @media (max-width: 760px) { .cs-image-description { grid-template-columns: 1fr; } }
+
+/* Compact translation cards: one-line sentences take one line; the row action is small. */
+.cs-translation-cards { gap: 6px; }
+.cs-translation-cards > li { padding: 6px 10px 6px 12px; }
+.cs-translation-card__head { min-height: 24px; margin-bottom: 0; }
+.cs-translation-cards .cs-translation-card__head .iig3-button.is-sm { height: 24px; min-height: 24px; padding: 0 8px; font-size: 12px; }
+.cs-translation-card__head .iig3-button svg { width: 12px; height: 12px; }
+main .cs-translation-cards textarea { padding: 2px 6px !important; line-height: 1.5; }
